@@ -15,10 +15,10 @@ reference model, `third_party/nuked-sc55`).
 | Whole core | avmidi `0A.mid` rendered by the HDL gives the same SHA-256 as the reference renderer | [`docs/board.md`](docs/board.md) |
 | MiSTer board (ROM pack, DDR3 wave ROMs, pacing, MIDI, audio) | identical in simulation from power-on | [`docs/board.md`](docs/board.md) |
 | LCD and panel keys | LCD identical pixel for pixel to the reference's renderer | [`docs/lcd.md`](docs/lcd.md) |
-| Quartus build, MiSTer hardware | in progress | [`docs/plan.md`](docs/plan.md) |
+| Quartus build | fits (67 % of ALMs); 50 MHz core and 40 MHz video meet timing | [`docs/plan.md`](docs/plan.md) |
+| MiSTer hardware | not yet run | [`docs/plan.md`](docs/plan.md) |
 
-Not yet: the SC-55mk2 (sub-MCU), a 64 → 48 kHz resampler (the 64 kHz
-output is held for MiSTer's audio filter).
+Not yet: the SC-55mk2 (sub-MCU).
 
 ## Using the core
 
