@@ -21,9 +21,10 @@ module resample (
     // input queue
     logic [31:0] q [4];
     logic [2:0]  q_wp, q_rp;
-    // history (newest at wp - 1)
+    // history (newest at wp - 1) in LUT RAM; entries not yet written read as 0
     logic signed [15:0] hl [64], hr [64];
     logic [5:0]  wp;
+    logic [6:0]  filled;
     logic [1:0]  n4;               // input index mod 4
     // MAC
     logic        busy;
@@ -42,8 +43,7 @@ module resample (
     always_ff @(posedge clk) begin
         out_valid <= 1'b0;
         if (rst) begin
-            q_wp <= '0; q_rp <= '0; wp <= '0; n4 <= '0; busy <= 1'b0;
-            for (int i = 0; i < 64; i++) begin hl[i] <= 16'sd0; hr[i] <= 16'sd0; end
+            q_wp <= '0; q_rp <= '0; wp <= '0; n4 <= '0; busy <= 1'b0; filled <= '0;
         end else begin
             if (in_valid && (q_wp - q_rp) != 3'd4) begin
                 q[q_wp[1:0]] <= {in_l, in_r};
@@ -56,6 +56,7 @@ module resample (
                     q_rp <= q_rp + 3'd1;
                     base <= wp;
                     wp <= wp + 6'd1;
+                    if (filled != 7'd64) filled <= filled + 7'd1;
                     n4 <= n4 + 2'd1;
                     if (n4 != 2'd3) begin
                         busy <= 1'b1;
@@ -68,8 +69,10 @@ module resample (
             end else begin : b_resample_1
                 logic signed [17:0] c;
                 c = coef(8'd3 * {2'b0, j} + {6'b0, ph});
-                al <= al + 40'(c * hl[base - j]);
-                ar <= ar + 40'(c * hr[base - j]);
+                if ({1'b0, j} < filled) begin
+                    al <= al + 40'(c * hl[base - j]);
+                    ar <= ar + 40'(c * hr[base - j]);
+                end
                 j <= j + 6'd1;
                 if (j == 6'd63) busy <= 1'b0;
             end
@@ -77,8 +80,8 @@ module resample (
                 // the last product is added this clock: finish from the sums including it
                 logic signed [17:0] c;
                 c = coef(8'd3 * 8'd63 + {6'b0, ph});
-                out_l <= clamp(al + 40'(c * hl[base - 6'd63]));
-                out_r <= clamp(ar + 40'(c * hr[base - 6'd63]));
+                out_l <= clamp(al + ((filled == 7'd64) ? 40'(c * hl[base - 6'd63]) : 40'sd0));
+                out_r <= clamp(ar + ((filled == 7'd64) ? 40'(c * hr[base - 6'd63]) : 40'sd0));
                 out_valid <= 1'b1;
             end
         end

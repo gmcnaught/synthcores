@@ -52,8 +52,17 @@ module sc55_pcm (
     // ------------------------------------------------------------------
     // State (names as in pcm_t)
     // ------------------------------------------------------------------
-    logic [31:0] ram1 [32][8];
-    logic [15:0] ram2 [32][16];
+    // ram1 (32 slots x 8 x 32 bit) and ram2 (32 x 16 x 16 bit): one small RAM
+    // per word index (LUT RAM), one write port each, all read at the same row
+    // (row_ra, chosen by the state): see the "row memories" block below.
+    logic [31:0] r1_rd [8];
+    logic [15:0] r2_rd [16];
+    logic [4:0]  row_ra, row_wa;
+    logic [7:0]  r1_we;
+    logic [15:0] r2_we;
+    logic [31:0] r1_wd [8];
+    logic [15:0] r2_wd [16];
+    logic [1:0]  fe_i;                  // frame end: rows 28..31 written back one per clock
     logic [15:0] pitch [32];            // copy of ram2[n][0] for the indirect read
     // eram (16K x 16) is a block RAM (hdl/common/sdp_ram.sv): reads and writes are
     // registered requests; after a read the reverb program waits two clocks
@@ -264,6 +273,7 @@ module sc55_pcm (
     // (nibble byte, samples 0..3) and which of them have arrived.
     logic [7:0]  sl_rom [32][5];
     logic [4:0]  sl_got [32];
+    logic [4:0]  sl_inv [32];            // bytes outside the wave ROMs (read as 0, never requested)
     logic        sl_active [32], sl_kon [32], sl_key [32], sl_irq [32], sl_newsel [32], sl_usenew [32], sl_r14_we [32];
     logic [3:0]  sl_oldn [32];
     logic        sl_ncmp [32][2:6];
@@ -309,6 +319,63 @@ module sc55_pcm (
     // ------------------------------------------------------------------
 
     sdp_ram #(.AW(14), .DW(16)) u_eram (.clk, .we(er_we), .wa(er_wa), .wd(er_wd), .ra(er_ra), .rd(er_rd));
+
+    // ------------------------------------------------------------------
+    // Row memories: read row and the single write port of each word RAM
+    // ------------------------------------------------------------------
+    // CPU word writes (PCM_Write with a[1:0] == 3 for ram1, a[0] for ram2)
+    wire        cpu_wr_go = cpu_req && !cpu_ack && !cpu_busy && ps == P_IDLE && caught_up && cpu_we;
+    wire [5:0]  ca = cpu_addr;
+    wire        cpu_w1 = cpu_wr_go && ((ca >= 6'h04 && ca < 6'h10) || (ca >= 6'h24 && ca < 6'h30)) && ca[1:0] == 2'd3;
+    wire        cpu_w2 = cpu_wr_go && ((ca >= 6'h10 && ca < 6'h20) || (ca >= 6'h30 && ca < 6'h38)) && ca[0];
+    wire [2:0]  cpu_ix1 = {!ca[3], !ca[2], ca[5]};
+    wire [3:0]  cpu_ix2 = {ca[5], ca[3:1]};
+    wire [31:0] cpu_wv = (write_latch & ~32'h000000ff) | {24'h0, cpu_wdata};
+
+    always_comb begin
+        case (ps)
+            P_PRESCAN: row_ra = pre_i[4:0];
+            P_SLOT_RD: row_ra = slot[4:0];
+            P_LOADG:   row_ra = 5'd28 + {3'd0, loadg_i[1:0]};
+            default:   row_ra = select_channel;
+        endcase
+        r1_we = 8'h00; r2_we = 16'h0000; row_wa = select_channel;
+        for (int w = 0; w < 8; w++) r1_wd[w] = cpu_wv;
+        for (int w = 0; w < 16; w++) r2_wd[w] = cpu_wv[15:0];
+        if (ps == P_CLEAR) begin
+            if (clr_a[13:5] == 9'd0) begin r1_we = 8'hff; r2_we = 16'hffff; end
+            row_wa = clr_a[4:0];
+            for (int w = 0; w < 8; w++) r1_wd[w] = 32'h0;
+            for (int w = 0; w < 16; w++) r2_wd[w] = 16'h0;
+        end else if (ps == P_SLOT_WB) begin
+            r1_we = 8'hff; r2_we = 16'hffff; row_wa = slot[4:0];
+            for (int w = 0; w < 8; w++) r1_wd[w] = r1[w];
+            for (int w = 0; w < 16; w++) r2_wd[w] = r2[w];
+        end else if (ps == P_FRAME_END) begin
+            r1_we = 8'hff; r2_we = 16'hffff; row_wa = 5'd28 + {3'd0, fe_i};
+            for (int w = 0; w < 8; w++) r1_wd[w] = g1[fe_i][w];
+            for (int w = 0; w < 16; w++) r2_wd[w] = g2[fe_i][w];
+            if (fe_i == 2'd3) begin
+                r1_wd[1] = acc1;
+                r1_wd[3] = acc3;
+                if (nfs) r2_wd[7] = g2[3][7] | 16'h0020;
+            end
+        end else begin
+            if (cpu_w1) r1_we[cpu_ix1] = 1'b1;
+            if (cpu_w2) r2_we[cpu_ix2] = 1'b1;
+        end
+    end
+
+    for (genvar w = 0; w < 8; w++) begin : g_r1
+        logic [31:0] mem [32];
+        always_ff @(posedge clk) if (r1_we[w]) mem[row_wa] <= r1_wd[w];
+        assign r1_rd[w] = mem[row_ra];
+    end
+    for (genvar w = 0; w < 16; w++) begin : g_r2
+        logic [15:0] mem [32];
+        always_ff @(posedge clk) if (r2_we[w]) mem[row_wa] <= r2_wd[w];
+        assign r2_rd[w] = mem[row_ra];
+    end
     always_ff @(posedge clk) begin : b_sc55_pcm_1
         // temporaries
         logic [5:0]  a;
@@ -327,11 +394,7 @@ module sc55_pcm (
         if (rst) begin
             ps <= P_CLEAR;
             clr_a <= 14'd0;
-            for (int i = 0; i < 32; i++) begin
-                for (int j = 0; j < 8; j++) ram1[i][j] <= 32'h0;
-                for (int j = 0; j < 16; j++) ram2[i][j] <= 16'h0;
-                pitch[i] <= 16'h0;
-            end
+            for (int i = 0; i < 32; i++) pitch[i] <= 16'h0;
             pcm_cycles <= 48'd0;
             voice_mask <= 32'h0; voice_mask_pending <= 32'h0; write_latch <= 32'h0; read_latch <= 32'h0;
             wave_read_address <= 32'h0; tv_counter <= 16'h0; wave_byte_latch <= 8'h0;
@@ -408,25 +471,13 @@ module sc55_pcm (
                             2'd3: t32 = (t32 & ~32'h000ff) | {24'h0, cpu_wdata};
                             default: ;
                         endcase
-                        write_latch <= t32;
-                        if (a[1:0] == 2'd3) begin
-                            ix = 0;
-                            if (a[5]) ix |= 1;
-                            if (!a[3]) ix |= 4;
-                            if (!a[2]) ix |= 2;
-                            ram1[select_channel][ix] <= t32;
-                        end
+                        write_latch <= t32;               // ram1 word: the row memories' write port
                     end else if ((a >= 6'h10 && a < 6'h20) || (a >= 6'h30 && a < 6'h38)) begin
                         t32 = write_latch;
                         if (!a[0]) t32 = (t32 & ~32'hff00) | ({24'h0, cpu_wdata} << 8);
                         else t32 = (t32 & ~32'h00ff) | {24'h0, cpu_wdata};
-                        write_latch <= t32;
-                        if (a[0]) begin
-                            ix = int'(a[3:1]);
-                            if (a[5]) ix |= 8;
-                            ram2[select_channel][ix] <= t32[15:0];
-                            if (ix == 0) pitch[select_channel] <= t32[15:0];
-                        end
+                        write_latch <= t32;               // ram2 word: the row memories' write port
+                        if (a[0] && a[3:1] == 3'd0 && !a[5]) pitch[select_channel] <= t32[15:0];
                     end
                 end else begin
                     // PCM_Read
@@ -446,13 +497,13 @@ module sc55_pcm (
                             if (a[5]) ix |= 1;
                             if (!a[3]) ix |= 4;
                             if (!a[2]) ix |= 2;
-                            read_latch <= ram1[select_channel][ix];
+                            read_latch <= r1_rd[ix];
                         end
                     end else if ((a >= 6'h10 && a < 6'h20) || (a >= 6'h30 && a < 6'h38)) begin
                         if (!a[0]) begin
                             ix = int'(a[3:1]);
                             if (a[5]) ix |= 8;
-                            read_latch <= {16'h0, ram2[select_channel][ix]};
+                            read_latch <= {16'h0, r2_rd[ix]};
                         end
                     end else if (a >= 6'h39 && a <= 6'h3b) begin
                         case (a[1:0])
@@ -557,14 +608,14 @@ module sc55_pcm (
                     logic [15:0] ag_r28;
                     logic [22:0] m [5];
                     logic [4:0] got;
-                    `define AGR1(j) ram1[pre_i[4:0]][j]
-                    `define AGR2(j) ram2[pre_i[4:0]][j]
+                    `define AGR1(j) r1_rd[j]
+                    `define AGR2(j) r2_rd[j]
                     `define AG_KEY voice_active[pre_i[4:0]]
                     `include "sc55_pcm_agen.svh"
                     `undef AGR1
                     `undef AGR2
                     `undef AG_KEY
-                    if (ag_active && ram2[pre_i[4:0]][6][0] && !ram2[pre_i[4:0]][8][14] && !irq_assert && ag_irq) pre_hit <= 1'b1;
+                    if (ag_active && r2_rd[6][0] && !r2_rd[8][14] && !irq_assert && ag_irq) pre_hit <= 1'b1;
                     sl_active[pre_i[4:0]] <= ag_active; sl_kon[pre_i[4:0]] <= ag_kon; sl_key[pre_i[4:0]] <= ag_key;
                     sl_irq[pre_i[4:0]] <= ag_irq; sl_newsel[pre_i[4:0]] <= ag_newsel; sl_usenew[pre_i[4:0]] <= ag_usenew;
                     sl_oldn[pre_i[4:0]] <= ag_oldn; sl_spo[pre_i[4:0]] <= ag_spo; sl_ratio[pre_i[4:0]] <= ag_ratio;
@@ -575,9 +626,10 @@ module sc55_pcm (
                     got = 5'b0;
                     for (int k = 0; k < 5; k++) begin
                         iss_addr[k] <= m[k][21:0];
-                        if (!m[k][22]) begin got[k] = 1'b1; sl_rom[pre_i[4:0]][k] <= 8'h00; end
+                        if (!m[k][22]) got[k] = 1'b1;
                     end
                     sl_got[pre_i[4:0]] <= got;
+                    sl_inv[pre_i[4:0]] <= got;
                     iss_valid <= ~got;
                     iss_k <= 3'd0;
                     pre_i <= pre_i + 6'd1;
@@ -585,8 +637,8 @@ module sc55_pcm (
             end
 
             P_LOADG: begin
-                for (int j = 0; j < 8; j++) g1[loadg_i[1:0]][j] <= ram1[28 + int'(loadg_i[1:0])][j];
-                for (int j = 0; j < 16; j++) g2[loadg_i[1:0]][j] <= ram2[28 + int'(loadg_i[1:0])][j];
+                for (int j = 0; j < 8; j++) g1[loadg_i[1:0]][j] <= r1_rd[j];
+                for (int j = 0; j < 16; j++) g2[loadg_i[1:0]][j] <= r2_rd[j];
                 if (loadg_i == 3'd3) ps <= P_MIX;
                 loadg_i <= loadg_i + 3'd1;
             end
@@ -720,20 +772,21 @@ module sc55_pcm (
                 acc1 <= 32'sh0; acc3 <= 32'sh0;
                 rcsum[0] <= 32'sh0; rcsum[1] <= 32'sh0;
                 slot <= 6'd0;
+                fe_i <= 2'd0;
                 ps <= (reg_slots == 6'd0) ? P_FRAME_END : P_SLOT_RD;
             end
 
             P_SLOT_RD: begin
                 if (sl_got[slot[4:0]] == 5'b11111) begin
-                    for (int j = 0; j < 8; j++) r1[j] <= ram1[slot[4:0]][j];
-                    for (int j = 0; j < 16; j++) r2[j] <= ram2[slot[4:0]][j];
+                    for (int j = 0; j < 8; j++) r1[j] <= r1_rd[j];
+                    for (int j = 0; j < 16; j++) r2[j] <= r2_rd[j];
                     if (sl_r14_we[slot[4:0]]) r1[4] <= sl_r14[slot[4:0]];
                     r2[8] <= sl_r28[slot[4:0]];
                     v_active <= sl_active[slot[4:0]]; v_kon <= sl_kon[slot[4:0]]; v_key <= sl_key[slot[4:0]];
                     v_irq_flag <= sl_irq[slot[4:0]]; v_newsel <= sl_newsel[slot[4:0]]; v_usenew <= sl_usenew[slot[4:0]];
                     v_old_nibble <= sl_oldn[slot[4:0]]; v_spo <= sl_spo[slot[4:0]]; v_ratio <= sl_ratio[slot[4:0]];
                     for (int k = 2; k <= 6; k++) v_ncmp[k] <= sl_ncmp[slot[4:0]][k];
-                    for (int k = 0; k < 5; k++) v_rom[k] <= sl_rom[slot[4:0]][k];
+                    for (int k = 0; k < 5; k++) v_rom[k] <= sl_inv[slot[4:0]][k] ? 8'h00 : sl_rom[slot[4:0]][k];
                     ps <= P_SLOT_DPCM;
                 end
             end
@@ -896,24 +949,21 @@ module sc55_pcm (
             end
 
             P_SLOT_WB: begin
-                for (int j = 0; j < 8; j++) ram1[slot[4:0]][j] <= r1[j];
-                for (int j = 0; j < 16; j++) ram2[slot[4:0]][j] <= r2[j];
+                // the row goes back through the row memories' write port
+                fe_i <= 2'd0;
                 if (slot + 6'd1 >= reg_slots) ps <= P_FRAME_END;
                 else begin slot <= slot + 6'd1; ps <= P_SLOT_RD; end
             end
 
             P_FRAME_END: begin
-                for (int i = 0; i < 4; i++) begin
-                    for (int j = 0; j < 8; j++) ram1[28 + i][j] <= g1[i][j];
-                    for (int j = 0; j < 16; j++) ram2[28 + i][j] <= g2[i][j];
-                end
-                ram1[31][1] <= acc1;
-                ram1[31][3] <= acc3;
-                if (nfs) ram2[31][7] <= g2[3][7] | 16'h0020;
+                // rows 28..31 go back one per clock (write port); row 31 with acc1/acc3 and key bit
+                fe_i <= fe_i + 2'd1;
+                if (fe_i == 2'd3) begin
                 nfs <= 1'b1;
                 pre_done <= 1'b0;
                 pcm_cycles <= pcm_cycles + ({42'h0, reg_slots} + 48'd1) * 48'd25;
                 ps <= P_FRAME;
+                end
             end
 
             default: ps <= P_IDLE;

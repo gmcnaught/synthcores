@@ -26,6 +26,46 @@
 #include <string>
 #include <vector>
 
+// ram1/ram2 live in one LUT RAM per word index (sc55_pcm.sv g_r1/g_r2)
+static uint32_t pcm_ram1(Vsc55_pcm___024root* R, int r, int i)
+{
+    switch (i)
+    {
+    case 0: return R->sc55_pcm__DOT__g_r1__BRA__0__KET____DOT__mem[r];
+    case 1: return R->sc55_pcm__DOT__g_r1__BRA__1__KET____DOT__mem[r];
+    case 2: return R->sc55_pcm__DOT__g_r1__BRA__2__KET____DOT__mem[r];
+    case 3: return R->sc55_pcm__DOT__g_r1__BRA__3__KET____DOT__mem[r];
+    case 4: return R->sc55_pcm__DOT__g_r1__BRA__4__KET____DOT__mem[r];
+    case 5: return R->sc55_pcm__DOT__g_r1__BRA__5__KET____DOT__mem[r];
+    case 6: return R->sc55_pcm__DOT__g_r1__BRA__6__KET____DOT__mem[r];
+    case 7: return R->sc55_pcm__DOT__g_r1__BRA__7__KET____DOT__mem[r];
+    }
+    return 0;
+}
+static uint32_t pcm_ram2(Vsc55_pcm___024root* R, int r, int i)
+{
+    switch (i)
+    {
+    case 0: return R->sc55_pcm__DOT__g_r2__BRA__0__KET____DOT__mem[r];
+    case 1: return R->sc55_pcm__DOT__g_r2__BRA__1__KET____DOT__mem[r];
+    case 2: return R->sc55_pcm__DOT__g_r2__BRA__2__KET____DOT__mem[r];
+    case 3: return R->sc55_pcm__DOT__g_r2__BRA__3__KET____DOT__mem[r];
+    case 4: return R->sc55_pcm__DOT__g_r2__BRA__4__KET____DOT__mem[r];
+    case 5: return R->sc55_pcm__DOT__g_r2__BRA__5__KET____DOT__mem[r];
+    case 6: return R->sc55_pcm__DOT__g_r2__BRA__6__KET____DOT__mem[r];
+    case 7: return R->sc55_pcm__DOT__g_r2__BRA__7__KET____DOT__mem[r];
+    case 8: return R->sc55_pcm__DOT__g_r2__BRA__8__KET____DOT__mem[r];
+    case 9: return R->sc55_pcm__DOT__g_r2__BRA__9__KET____DOT__mem[r];
+    case 10: return R->sc55_pcm__DOT__g_r2__BRA__10__KET____DOT__mem[r];
+    case 11: return R->sc55_pcm__DOT__g_r2__BRA__11__KET____DOT__mem[r];
+    case 12: return R->sc55_pcm__DOT__g_r2__BRA__12__KET____DOT__mem[r];
+    case 13: return R->sc55_pcm__DOT__g_r2__BRA__13__KET____DOT__mem[r];
+    case 14: return R->sc55_pcm__DOT__g_r2__BRA__14__KET____DOT__mem[r];
+    case 15: return R->sc55_pcm__DOT__g_r2__BRA__15__KET____DOT__mem[r];
+    }
+    return 0;
+}
+
 struct Access
 {
     bool     write;
@@ -225,11 +265,11 @@ int main(int argc, char** argv)
         for (int r = 0; r < 32; ++r)
         {
             for (int i = 0; i < 8; ++i)
-                if (R->sc55_pcm__DOT__ram1[r][i] != p.ram1[r][i])
-                    cmp("ram1[" + std::to_string(r) + "][" + std::to_string(i) + "]", R->sc55_pcm__DOT__ram1[r][i], p.ram1[r][i]);
+                if (pcm_ram1(R, r, i) != p.ram1[r][i])
+                    cmp("ram1[" + std::to_string(r) + "][" + std::to_string(i) + "]", pcm_ram1(R, r, i), p.ram1[r][i]);
             for (int i = 0; i < 16; ++i)
-                if (R->sc55_pcm__DOT__ram2[r][i] != p.ram2[r][i])
-                    cmp("ram2[" + std::to_string(r) + "][" + std::to_string(i) + "]", R->sc55_pcm__DOT__ram2[r][i], p.ram2[r][i]);
+                if (pcm_ram2(R, r, i) != p.ram2[r][i])
+                    cmp("ram2[" + std::to_string(r) + "][" + std::to_string(i) + "]", pcm_ram2(R, r, i), p.ram2[r][i]);
         }
         if ((s % 1000) == 0 || s + 1 == steps)
             for (int i = 0; i < 0x4000; ++i)
