@@ -9,6 +9,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/wave_ddr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/step_pacer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/rom_loader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/audio_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/resample.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/lcd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/lcd_video.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/kbd_buttons.sv

@@ -38,3 +38,7 @@ verilate(board_lockstep SOURCES ${BOARD_SV} "${HDL}/cpu/h8_cpu.sv" "${HDL}/mcu/s
          TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${HDL}/pcm" "${HDL}/board"
          VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
          "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"")
+
+add_executable(resample_tb resample/resample_tb.cpp)
+verilate(resample_tb SOURCES "${HDL}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
+         INCLUDE_DIRS "${HDL}/board" VERILATOR_ARGS ${VFLAGS})

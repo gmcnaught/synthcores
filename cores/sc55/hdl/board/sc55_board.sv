@@ -175,8 +175,8 @@ module sc55_board #(
     );
 
     // ---------------------------------------------------------- audio
-    // the renderer's s16 conversion (Normalize: clamp(x >> 15)), then a FIFO
-    // that plays at the output rate (mk1, oversampling on: 64 kHz)
+    // the renderer's s16 conversion (Normalize: clamp(x >> 15)), 64 -> 48 kHz
+    // (resample.sv), then a FIFO that plays at 48 kHz in real time
     function automatic logic signed [15:0] to16(input logic signed [31:0] v);
         logic signed [31:0] s;
         s = v >>> 15;
@@ -185,9 +185,17 @@ module sc55_board #(
         return s[15:0];
     endfunction
 
-    audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(64_000), .DEPTH_BITS(8)) fifo (
+    logic        rs_valid;
+    logic signed [15:0] rs_l, rs_r;
+    resample rs (
         .clk, .rst(core_rst),
         .in_valid(sample_valid), .in_l(to16(sample_l)), .in_r(to16(sample_r)),
+        .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
+    );
+
+    audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(48_000), .DEPTH_BITS(8)) fifo (
+        .clk, .rst(core_rst),
+        .in_valid(rs_valid), .in_l(rs_l), .in_r(rs_r),
         .out_l(audio_l), .out_r(audio_r), .out_strobe(),
         .underruns, .overruns
     );
