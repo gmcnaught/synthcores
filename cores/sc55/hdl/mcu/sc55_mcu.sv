@@ -280,11 +280,39 @@ module sc55_mcu #(
     wire [15:0] a16  = c_addr[15:0];
     // (address & 0x3ffff) | (bit 19 ? 0x40000 : 0), then & rom2_mask (mk1 256 KB, mk2 512 KB)
     wire [18:0] rom2_a19 = {mk2 & c_addr[19], c_addr[17:0]};
-    wire [ROM2_AW-1:0] rom2_a = rom2_a19[ROM2_AW-1:0];
     wire rom2_ext = (ROM2_AW < 19) && rom2_a19[18];
+
+    // Sequential reads: while a block-RAM byte is delivered, the block RAMs
+    // already read the next address (same page); if the CPU's next read is
+    // that address and decodes to a block RAM, it is answered when taken
+    // (one clock instead of two). Any write, load or clear drops it.
+    logic [23:0] spec_a;
+    logic        spec_v;
+    logic [2:0]  bram_rs;                  // the block RAM c_addr decodes to (0: none)
+    wire  [23:0] c_next = {c_addr[23:16], c_addr[15:0] + 16'd1};
+    wire         accept = c_req && !c_ack && !pcm_req && !sm_req && !rom2x_req && !rd_b && !sm_wait;
+    wire         hit = accept && !c_we && spec_v && c_addr == spec_a && bram_rs != 3'd0;
+    wire  [23:0] bram_a = (rd_b || hit) ? c_next : accept ? c_addr : spec_a;   // the block RAMs' read address
+    wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], bram_a[17:0]};
     // the PCM and sub-MCU windows (page 0)
     wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
     wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
+    always_comb begin
+        bram_rs = 3'd0;
+        case (page)
+            4'd0: begin
+                if (!a16[15]) bram_rs = 3'd1;
+                else if (!in_pcm && !in_sm && a16 < 16'hff80) begin
+                    if (a16 >= 16'hfb80 && dev[7'h79][7]) bram_rs = 3'd4;
+                    else if (a16 < 16'he000) bram_rs = 3'd3;
+                end
+            end
+            4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: if (!rom2_ext) bram_rs = 3'd2;
+            4'd5: if (!mk2) bram_rs = 3'd3;
+            4'd10, 4'd11: if (mk2) bram_rs = 3'd3;
+            default: ;
+        endcase
+    end
     // accesses that see or change what the running sub-MCU uses: wait until it has caught up
     wire sm_sync = mk2 && page == 4'd0 && (in_sm || a16 == 16'he402 || a16 == 16'hffdd || (c_we && a16 == 16'hffdc));
     wire sm_wait = sm_sync && !sm_caught_up;
@@ -313,13 +341,13 @@ module sc55_mcu #(
     end
 
     sdp_ram #(.AW(15), .DW(8)) u_rom1 (.clk, .we(ld_we && ld_sel == 3'd0), .wa(ld_addr[14:0]), .wd(ld_data),
-                                      .ra(c_addr[14:0]), .rd(rom1_rd));
+                                      .ra(bram_a[14:0]), .rd(rom1_rd));
     sdp_ram #(.AW(ROM2_AW), .DW(8)) u_rom2 (.clk, .we(ld_we && ld_sel == 3'd1), .wa(ld_addr[ROM2_AW-1:0]), .wd(ld_data),
-                                      .ra(rom2_a), .rd(rom2_rd));
+                                      .ra(bram_a_rom2[ROM2_AW-1:0]), .rd(rom2_rd));
     sdp_ram #(.AW(15), .DW(8)) u_sram (.clk, .we(sram_we), .wa(sram_wa), .wd(sram_wd),
-                                      .ra(c_addr[14:0]), .rd(sram_rd));
+                                      .ra(bram_a[14:0]), .rd(sram_rd));
     sdp_ram #(.AW(10), .DW(8)) u_ram  (.clk, .we(ram_we), .wa(ram_wa), .wd(ram_wd),
-                                      .ra(10'(c_addr[15:0] - 16'hfb80)), .rd(ram_rd));
+                                      .ra(10'(bram_a[15:0] - 16'hfb80)), .rd(ram_rd));
     sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),
                                       .ra(rx_rp), .rd(rx_rd));
 
@@ -343,6 +371,10 @@ module sc55_mcu #(
 
         if (midi_valid && !midi_full) rx_wp <= rx_wp + 1'b1;
         if (sm_rx_pop) rx_rp <= rx_rp + 1'b1;
+        // the block RAMs read `bram_a` this clock
+        if (rd_b || hit) begin spec_a <= c_next; spec_v <= 1'b1; end
+        else if (accept) spec_v <= 1'b0;
+        if (ld_we || q == Q_CLEAR || (accept && c_we)) spec_v <= 1'b0;
         // GA line 5 (MCU_GA_SetGAInt(5, v)): trigger 5 on a rising edge when enabled; IRQ1 = trigger != 0
         if (sm_ga5_we) begin : b_sc55_mcu_ga5
             logic [2:0] tg;
@@ -356,6 +388,7 @@ module sc55_mcu #(
 
         if (rst) begin
             rd_b <= 1'b0;
+            spec_v <= 1'b0;
             q <= Q_CLEAR;
             clr_a <= 16'd0;
             cycles <= 48'd0;
@@ -402,6 +435,15 @@ module sc55_mcu #(
                 endcase
                 c_ack <= 1'b1;
                 rd_b <= 1'b0;
+            end else if (hit) begin
+                // the speculative read was this address: its data is here now
+                case (bram_rs)
+                    3'd1: c_rdata <= rom1_rd;
+                    3'd2: c_rdata <= rom2_rd;
+                    3'd3: c_rdata <= sram_rd;
+                    default: c_rdata <= ram_rd;
+                endcase
+                c_ack <= 1'b1;
             end else if (c_req && !c_ack && !sm_wait) begin
                 d = 8'hff;
                 rs = 3'd0;
