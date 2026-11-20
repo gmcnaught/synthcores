@@ -78,6 +78,7 @@ output stage (DAC, filters) until there are recordings; shipping ROMs.
 | D5 | Licence | **GPL-2.0-or-later**, as upstream. HDL translated from the Nuked code is a derivative work. Template_MiSTer `sys/` is GPL-2.0, which is compatible. |
 | D6 | MIDI input | Bytes reach the SCI the way `MCU_PostUART` delivers them: buffered, with the reference's `uart_rx_delay` of 3000 cycles. This keeps lockstep exact. Serial input on the RX pin at the firmware's baud rate is a later option. |
 | D7 | SCI fixes from mckuhei (shingo45endo) | Check in M0 whether they change any reference render. Adopt them only into the reference fork with new hashes; never in the HDL alone. |
+| D8 | Releases (decided 2026-11-20, with the user) | MiSTer-devel convention: dated cores committed to `releases/SC55_YYYYMMDD.rbf` (installable with update_all / downloader) and attached to a GitHub Release `vYYYYMMDD`, by `.github/workflows/release.yml` after each successful Build RBF of main. The hygiene test allows RBFs only there. |
 
 ## 5. Milestones
 
@@ -109,7 +110,8 @@ each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
 | **M5** MiSTer core | `emu` top level; ioctl ROM load into DDR3/BRAM; board bench from power-on with random register and memory contents (`--x-initial unique`) and a DDR3 model with BUSY and latency; throttle; `audio_fifo`; 64/66.2 → 48 kHz resampler; status line; `build-rbf.yml` fails on negative slack | On the .62: boots, plays MIDI over MidiLink, Lag/Underrun 0 over 100 s |
 | **M6** Panel and LCD | LCD drawn as on the unit (`lcd.cpp` is the reference, compared pixel for pixel); buttons from keyboard, mouse (`panel_mouse.sv`) and MIDI; volume from the A/D | Frame read back equal to the reference LCD buffer; buttons change parts and instruments |
 | **M7** SC-55mk2 | M37450 sub-MCU (evaluate T65 as a base and add the 740 instructions), 28 voices, 66.207 kHz, MIDI routed through the sub-MCU as in the reference | M4 and M5 criteria repeated with the mk2 romset |
-| **M8** Options | Oversampling on/off, other romsets (D-table), MGL per model, dated GitHub Releases (synclavierii PR #77) | per option |
+| **R** Public release | After M7 is merged and the mk2 pack has run on the MiSTer: scan the whole git history for ROM content (romset hashes, sizes); "the .62" -> "the test MiSTer" in the docs; README install notes (releases/, ROM pack); make the repository public; the first release from main (D8) | `releases/SC55_YYYYMMDD.rbf` on main and a GitHub Release; installs on the MiSTer from the repository |
+| **M8** Options | Oversampling on/off, other romsets (D-table), MGL per model | per option |
 
 ## 6. Verification
 
@@ -146,7 +148,7 @@ each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
 | MidiLink ttyS1 can fall back to 9600 baud (the Zaparoo service reopens it) | Reuse `midi_in.sv` with 31250/9600 detection; stop Zaparoo during tests |
 | OSD settings must be taken while reset is held, not on reset's rising edge (it rises before the HPS sends status) | Model/romset select read during reset |
 | Shared checkout with other agents; stage explicit paths | Same rule in this repo |
-| CI Quartus build with a slack gate; dated GitHub Releases, no RBFs in git | Same workflows |
+| CI Quartus build with a slack gate; dated releases | Same workflows; RBFs in `releases/` (MiSTer-devel convention, D8) |
 
 ## 9. Unknown
 
