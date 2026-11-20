@@ -196,6 +196,7 @@ reg  [2:0]  q_state;
 reg  [11:0] div;
 reg         tick_pending;
 reg         rb_pending;
+reg  [1:0]  wgap;            // proteus_snd needs 2 clocks between writes and before start
 
 always @(posedge clk) begin
 	snd_wr        <= 0;
@@ -204,6 +205,7 @@ always @(posedge clk) begin
 	rb_start      <= 0;
 	cpu_rb_done   <= 0;
 	sample_strobe <= 0;
+	wgap <= (snd_wr || pan_wr) ? 2'd2 : (wgap != 0 ? wgap - 1'd1 : 2'd0);
 
 	if (reset) begin
 		q_state      <= Q_IDLE;
@@ -236,14 +238,15 @@ always @(posedge clk) begin
 				tick_pending <= 0;
 				q_state <= Q_DRAIN;
 			end
-			else if (rb_pending && f_empty && !snd_busy) begin
+			else if (rb_pending && f_empty && !snd_busy && wgap == 0) begin
 				rb_pending <= 0;
 				rb_start   <= 1;
 				q_state    <= Q_RB;
 			end
 
 		Q_DRAIN:
-			if (!f_empty) begin
+			if (snd_wr || pan_wr) ;   // one write every other clock
+			else if (!f_empty) begin
 				{pan_wr, snd_voice, snd_word, snd_mask, snd_data} <= {fifo[f_rp][41], fifo[f_rp][40:0]};
 				snd_wr <= !fifo[f_rp][41];
 				f_rp   <= f_rp + 1'd1;
@@ -251,7 +254,7 @@ always @(posedge clk) begin
 			else q_state <= Q_RUN;
 
 		Q_RUN:
-			if (!snd_busy && !snd_wr && !pan_wr) begin snd_start <= 1; q_state <= Q_WAIT; end
+			if (!snd_busy && !snd_wr && !pan_wr && wgap == 0) begin snd_start <= 1; q_state <= Q_WAIT; end
 
 		Q_WAIT:
 			if (snd_done) begin

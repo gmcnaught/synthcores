@@ -1,50 +1,51 @@
-# Proteus sound demo core (MiSTer)
+# Proteus/1 XR core (MiSTer)
 
-Plays register writes captured from MAME (Proteus/1 XR firmware v2.30 playing presets 0–23)
-through `rtl/proteus_snd.sv`, an HDL model of the Proteus/1 sound chip. There is no 68000 in
-this core yet: the event stream stands in for the firmware.
+Runs the original Proteus/1 XR firmware (v2.30, ProtoLogic expansion) on an fx68k 68000 with
+HDL models of the MC68901 MFP, the HD44780 LCD and the Proteus/1 sound chip. MIDI comes in on the
+MiSTer UART (MidiLink). No ROM, firmware or sample data is part of the core.
 
 ## Use
-0. Capture the register trace from MAME (see `mame/README.md` for building it):
+1. Build the system image from your own data:
    ```sh
-   cp build/run_xr/nvram_proteusxrpl_init.bin build/run_xr/nvram/proteusxrpl/nvram   # presets initialised once with mame/scripts/call_init.lua
-   PROTEUS_TRACE=build/demo_trace.txt PROTEUS_SCRIPTS=load_waves.lua:trace_io.lua \
-     tools/mame-headless.sh proteusxrpl -seconds_to_run 55 -nvram_directory build/run_xr/nvram \
-     -midiin build/demo_presets.mid -autoboot_script mame/scripts/run_test.lua
+   python3 tools/make_system.py roms/_rebuilt/proteus1_waves.bin roms/proteusxrpl \
+       roms/proteusxrpl/ip486_901101.bin roms/proteusxrpl/ip485_901101.bin \
+       build/run_xr/nvram_proteusxrpl_init.bin roms/hd44780/hd44780_a00.bin build/proteus_system.bin
    ```
-   (`build/demo_presets.mid` = `tools/mkmidi.py tests/midi/demo_presets.txt`.)
-1. Build the demo image (needs your own ROM data, never shipped):
-   `python3 tools/make_demo.py build/demo_trace.txt roms/_rebuilt/proteus1_waves.bin roms/proteusxrpl build/proteus_demo.bin --from 10.3`
-2. Copy `Proteus_<date>.rbf` to `_Other/` and the image to `games/Proteus/proteus_demo.bin`.
-3. Load the core, OSD → **Load Demo**. Playback starts when the download ends and loops.
-   **Restart Demo** starts it again from the first event.
+   Contents: 8 MB sample ROM (rebuilt Proteus/1 + ProtoLogic), 128 KB firmware, 64 KB preset RAM
+   (a MAME NVRAM file after the firmware's Initialize; see `mame/README.md`), 4 KB LCD font.
+2. Copy `Proteus_<date>.rbf` to `_Other/` and the image to `games/Proteus/proteus_system.bin`.
+3. Load the core, OSD → **Load System**. The firmware boots (about 2.3 s) to `C01 Vol127 Pan=P` /
+   `000 Stereo Piano`.
+4. MIDI: set the MiSTer UART mode to MIDI (MidiLink) and play a USB MIDI keyboard, or send bytes to
+   `/dev/ttyS1` at 31250 baud (`tools/mister_midi.py`).
 
-`tools/mister_demo.sh RBF build/proteus_demo.bin` does all of this over SSH (`MISTER=root@<address>`)
-and checks the output against the reference model.
+`tools/mister_system.sh RBF build/proteus_system.bin tests/midi/hw_test.txt` installs, boots, plays
+MIDI, screenshots and reads back the audio capture over SSH (`MISTER=root@<address>`).
 
-The screen shows 32 bars (one per voice, height = envelope level) over a green strip (demo running)
-or a red strip (no demo loaded).
+OSD: **Volume** sets the front-panel volume pot (Max/75/50/25 %). Front-panel buttons are not
+wired yet (their MFP GPIO mapping is unknown), so editing is via MIDI/SysEx only.
 
 ## Design
 | Block | File | Notes |
 |---|---|---|
-| Top | `Proteus.sv` | 80 MHz `clk_sys` (PLL), 2048 clocks per 39062.5 Hz output sample |
-| Sound chip | `rtl/proteus_snd.sv` | 32 voices processed in turn; next voice's samples prefetched; matches `tools/proteus_model.py` sample for sample |
-| Demo controller | `rtl/demo_ctrl.sv` | ioctl → DDR3 loader, event player (WAIT / write / pan / END), DDR3 arbiter, capture writer |
-| Display | `rtl/level_display.sv` | 320×240 @ 60 Hz, 6.667 MHz pixel clock |
+| Top | `Proteus.sv` | 80 MHz `clk_sys`; `UART31250,MIDI` in CONF_STR enables MidiLink |
+| System | `rtl/proteus_sys.sv` | fx68k at 10 MHz (phi enables every 4 clocks), MAME `proteusxr` memory map, ROM/RAM/font block RAM (`rtl/bram.sv`), volume one-shot, IACK |
+| MFP | `rtl/mfp68901.sv` | MC68901 subset modelled on MAME (interrupts, timers incl. pulse-width, 8N1 USART) |
+| LCD | `rtl/hd44780.sv`, `rtl/display.sv` | HD44780 modelled on MAME incl. busy timing; 2×16 panel + 32 voice bars on 320×240 |
+| Sound | `rtl/snd_ctrl.sv`, `rtl/proteus_snd.sv` | CPU write FIFO drained between samples, +0x18 read-back, DDR3 samples, capture ring |
+| CPU | `rtl/fx68k/` | fx68k by Jorge Cwik (GPL-3), unmodified |
 
-DDR3 map (physical): `0x30000000` sample words (8 MB, big-endian), `0x30800000` events,
-`0x31000000` output capture ring (16 MB, left/right s16 LE per sample).
+DDR3 (physical): `0x30000000` samples (8 MB), `0x31000000` output capture ring (16 MB).
 
 ## Verification
-- `sim/`: Verilator harness with a DDR3 model (random BUSY, 12–39 cycle read latency); loads the image
-  through ioctl, compares outputs and the capture ring with `tools/proteus_model.py`.
-- On hardware: `tools/mister_demo.sh` reads the capture ring back over SSH (`/dev/mem`) and compares it.
-
-## Status (2026-11-20)
-- Build 2 (`Build RBF` run 44805460547): 32 % ALMs, 37 DSP blocks, all clocks meet timing (80 MHz setup slack +0.82 ns).
-- On a MiSTer (DE10-Nano, Linux 6.18.38-MiSTer): the DDR3 capture equals `tools/proteus_model.py` for the
-  first 2,578,125 samples (66.0 s, including the demo's restart at 46.7 s). Listening test: pending.
+- `sim/sys_main.cpp` (Verilator, full system): from power-on, the CPU's LCD (4720), sound-chip (770)
+  and other I/O writes in the first 2.5 s equal MAME's (`mame/scripts/trace_writes.lua`,
+  `tools/compare_writes.py`); RAM/MFP differ only by sub-millisecond interrupt jitter. A MIDI
+  note-on programs the same voice registers as MAME (start, loop, pitch) and plays audio.
+- `sim/sim_main.cpp` (sound chip only): bit-exact with `tools/proteus_model.py`.
+- Earlier event-replay demo build: hardware capture bit-exact with the model for 66 s.
 
 ## Build
-`bash mister/build.sh` with Quartus Lite 17.0, or the `Build RBF` GitHub workflow (raetro/quartus:17.0).
+`bash mister/build.sh` with Quartus Lite 17.0, or the `Build RBF` GitHub workflow.
+The event-replay demo (`rtl/demo_ctrl.sv`, `rtl/level_display.sv`) is kept for the sound-chip
+testbench but is not in the core.

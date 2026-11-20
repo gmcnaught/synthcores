@@ -101,10 +101,15 @@ endfunction
 
 // ---------------------------------------------------------------- register writes
 // reg_long(w) as the MAME model: write the word, then rebuild the 32-bit value
-wire [2:0]  wr_long = wr_word[3:1];          // 0:+00 1:+04 2:+08 3:+0c 4:+10 5:+14
-wire [15:0] wr_new  = (raw[wr_voice][wr_word] & ~wr_mask) | (wr_data & wr_mask);
-wire [31:0] wr_val  = wr_word[0] ? {raw[wr_voice][{wr_long, 1'b0}], wr_new}
-                                 : {wr_new, raw[wr_voice][{wr_long, 1'b1}]};
+// Two stages (timing): stage 1 latches the write and reads the word and its partner,
+// stage 2 merges and updates the voice state. Writes must be at least 2 clocks apart.
+reg         wq;
+reg  [4:0]  wq_voice;
+reg  [3:0]  wq_word;
+reg  [15:0] wq_data, wq_mask, wq_old, wq_partner;
+wire [2:0]  wr_long = wq_word[3:1];          // 0:+00 1:+04 2:+08 3:+0c 4:+10 5:+14
+wire [15:0] wr_new  = (wq_old & ~wq_mask) | (wq_data & wq_mask);
+wire [31:0] wr_val  = wq_word[0] ? {wq_partner, wr_new} : {wr_new, wq_partner};
 assign rd_raw = raw[rd_voice][rd_word];
 
 // ---------------------------------------------------------------- engine
@@ -158,6 +163,7 @@ always @(posedge clk) begin
 		state    <= S_IDLE;
 		busy     <= 0;
 		mem_req  <= 0;
+		wq       <= 0;
 		out_l    <= 0;
 		out_r    <= 0;
 		nx_valid <= 0;
@@ -169,17 +175,26 @@ always @(posedge clk) begin
 	end
 	else begin
 		// register writes (only between samples)
+		wq <= wr;
 		if (wr) begin
-			raw[wr_voice][wr_word] <= wr_new;
-			if (wr_word < 4'd12) case (wr_long)
-				3'd0: begin v_addr[wr_voice] <= wr_val[23:0]; v_frac[wr_voice] <= 0; end
-				3'd1: v_pitch[wr_voice] <= wr_val[18:0];
+			wq_voice   <= wr_voice;
+			wq_word    <= wr_word;
+			wq_data    <= wr_data;
+			wq_mask    <= wr_mask;
+			wq_old     <= raw[wr_voice][wr_word];
+			wq_partner <= raw[wr_voice][wr_word ^ 4'd1];
+		end
+		if (wq) begin
+			raw[wq_voice][wq_word] <= wr_new;
+			if (wq_word < 4'd12) case (wr_long)
+				3'd0: begin v_addr[wq_voice] <= wr_val[23:0]; v_frac[wq_voice] <= 0; end
+				3'd1: v_pitch[wq_voice] <= wr_val[18:0];
 				3'd2: begin
-					v_env[wr_voice] <= wr_val[23:0];
-					if (wr_word[0] && wr_val[9]) v_level[wr_voice] <= wr_val[23:12];
+					v_env[wq_voice] <= wr_val[23:0];
+					if (wq_word[0] && wr_val[9]) v_level[wq_voice] <= wr_val[23:12];
 				end
-				3'd4: v_lstart[wr_voice] <= wr_val[23:0];
-				3'd5: v_lend[wr_voice] <= ~wr_val[23:0];
+				3'd4: v_lstart[wq_voice] <= wr_val[23:0];
+				3'd5: v_lend[wq_voice] <= ~wr_val[23:0];
 				default: ;
 			endcase
 		end
