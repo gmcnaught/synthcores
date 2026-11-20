@@ -1,7 +1,8 @@
 // SC-55 (mk1) core: MCU system + PCM chip. Board-independent; the MiSTer top
 // level adds the HPS interface, wave ROM memory, MIDI, video and audio.
 module sc55_core #(
-    parameter int RXBUF_BITS = 11
+    parameter int RXBUF_BITS = 11,
+    parameter int ROM2_AW = 18             // 19 for the mk2's 512 KB ROM2
 ) (
     input  logic        clk,
     input  logic        rst,
@@ -13,8 +14,10 @@ module sc55_core #(
     output logic        ready,            // power-on clears done
 
     input  logic        ld_we,
-    input  logic [1:0]  ld_sel,           // 0 rom1, 1 rom2, 2 sram, 3 ram
-    input  logic [17:0] ld_addr,
+    input  logic [2:0]  ld_sel,           // 0 rom1, 1 rom2, 2 sram, 3 ram, 4 sub-MCU rom
+    input  logic [18:0] ld_addr,
+    input  logic        mk2,              // model (see sc55_mcu)
+    input  logic        sc155,
     input  logic [7:0]  ld_data,
 
     input  logic        midi_valid,
@@ -51,8 +54,8 @@ module sc55_core #(
 
     logic m_ready, p_ready;
     assign ready = m_ready && p_ready;
-    sc55_mcu #(.RXBUF_BITS(RXBUF_BITS)) mcu (
-        .clk, .rst, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
+    sc55_mcu #(.RXBUF_BITS(RXBUF_BITS), .ROM2_AW(ROM2_AW)) mcu (
+        .clk, .rst, .mk2, .sc155, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data,
         .midi_valid, .midi_data, .midi_full, .buttons,
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),

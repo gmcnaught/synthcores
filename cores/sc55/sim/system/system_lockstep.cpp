@@ -113,6 +113,7 @@ int main(int argc, char** argv)
     t->rst = 0;
     for (int g = 0; g < 20000 && !t->ready; ++g) tick();
     auto load_mem = [&](int sel, const uint8_t* src, size_t n) {
+        t->mk2 = 0; t->sc155 = 0;
         t->ld_we = 1; t->ld_sel = sel;
         for (size_t i = 0; i < n; ++i) { t->ld_addr = (uint32_t)i; t->ld_data = src[i]; tick(); }
         t->ld_we = 0;
