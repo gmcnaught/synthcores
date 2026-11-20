@@ -106,7 +106,8 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // CPU
     // ------------------------------------------------------------------
-    logic        c_req, c_we, c_ack, c_step, c_done, c_reset;
+    logic        c_req, c_we, c_ack, c_step, c_done, c_reset, c_more;
+    wire         c_step_now;                 // the CPU starts the step in the clock run_step is seen (below)
     logic [23:0] c_addr;
     logic [7:0]  c_wdata, c_rdata;
     logic [20:0] int_pend;
@@ -114,9 +115,9 @@ module sc55_mcu #(
 
     h8_cpu cpu (
         .clk, .rst,
-        .step(c_step), .step_done(c_done),
+        .step(c_step_now), .step_done(c_done),
         .bus_req(c_req), .bus_we(c_we), .bus_addr(c_addr), .bus_wdata(c_wdata),
-        .bus_rdata(c_rdata), .bus_ack(c_ack),
+        .bus_rdata(c_rdata), .bus_ack(c_ack), .bus_more(c_more),
         .int_pending(int_pend),
         .ipra(dev[7'h70]), .iprb(dev[7'h71]), .iprc(dev[7'h72]), .iprd(dev[7'h73]), .p1cr(dev[7'h7c]),
         .int_hold(int_hold),
@@ -272,6 +273,7 @@ module sc55_mcu #(
     logic       rd_b;
     logic [15:0] clr_a;
     assign ready = (q != Q_CLEAR) && sm_ready;
+    assign c_step_now = (q == Q_IDLE) && !reset_start && run_step;
 
     wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
 
@@ -292,27 +294,41 @@ module sc55_mcu #(
     wire  [23:0] c_next = {c_addr[23:16], c_addr[15:0] + 16'd1};
     wire         accept = c_req && !c_ack && !pcm_req && !sm_req && !rom2x_req && !rd_b && !sm_wait;
     wire         hit = accept && !c_we && spec_v && c_addr == spec_a && bram_rs != 3'd0;
-    wire  [23:0] bram_a = (rd_b || hit) ? c_next : accept ? c_addr : spec_a;   // the block RAMs' read address
+    // streaming: while byte A of a sequential read burst is being acknowledged and the block RAMs
+    // hold A + 1 (spec), A + 1 is answered the next clock without a request
+    wire  [23:0] c_next2 = {c_next[23:16], c_next[15:0] + 16'd1};
+    wire  [2:0]  bram_rs_n = bram_of(c_next, mk2, dev[7'h79][7]);
+    wire         stream = c_ack && c_req && !c_we && c_more && spec_v && spec_a == c_next && bram_rs_n != 3'd0
+                          && !pcm_req && !sm_req && !rom2x_req && !rd_b;
+    wire  [23:0] bram_a = stream ? c_next2 : (rd_b || hit) ? c_next : accept ? c_addr : spec_a;   // the block RAMs' read address
     wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], bram_a[17:0]};
     // the PCM and sub-MCU windows (page 0)
     wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
     wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
-    always_comb begin
-        bram_rs = 3'd0;
-        case (page)
+    // the block RAM an address decodes to (0: none; 1 ROM1, 2 ROM2, 3 SRAM, 4 on-chip RAM)
+    function automatic logic [2:0] bram_of(input logic [23:0] ad, input logic m2, input logic ramcr);
+        logic [15:0] a;
+        logic        pcm, smw, ext;
+        a = ad[15:0];
+        pcm = a >= 16'he000 && (m2 ? a < 16'he400 : a < 16'he040);
+        smw = m2 && a >= 16'hec00 && a < 16'hf000;
+        ext = (ROM2_AW < 19) && m2 && ad[19];
+        case (ad[19:16])
             4'd0: begin
-                if (!a16[15]) bram_rs = 3'd1;
-                else if (!in_pcm && !in_sm && a16 < 16'hff80) begin
-                    if (a16 >= 16'hfb80 && dev[7'h79][7]) bram_rs = 3'd4;
-                    else if (a16 < 16'he000) bram_rs = 3'd3;
+                if (!a[15]) return 3'd1;
+                if (!pcm && !smw && a < 16'hff80) begin
+                    if (a >= 16'hfb80 && ramcr) return 3'd4;
+                    if (a < 16'he000) return 3'd3;
                 end
+                return 3'd0;
             end
-            4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: if (!rom2_ext) bram_rs = 3'd2;
-            4'd5: if (!mk2) bram_rs = 3'd3;
-            4'd10, 4'd11: if (mk2) bram_rs = 3'd3;
-            default: ;
+            4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: return ext ? 3'd0 : 3'd2;
+            4'd5: return m2 ? 3'd0 : 3'd3;
+            4'd10, 4'd11: return m2 ? 3'd3 : 3'd0;
+            default: return 3'd0;
         endcase
-    end
+    endfunction
+    assign bram_rs = bram_of(c_addr, mk2, dev[7'h79][7]);
     // accesses that see or change what the running sub-MCU uses: wait until it has caught up
     wire sm_sync = mk2 && page == 4'd0 && (in_sm || a16 == 16'he402 || a16 == 16'hffdd || (c_we && a16 == 16'hffdc));
     wire sm_wait = sm_sync && !sm_caught_up;
@@ -372,7 +388,8 @@ module sc55_mcu #(
         if (midi_valid && !midi_full) rx_wp <= rx_wp + 1'b1;
         if (sm_rx_pop) rx_rp <= rx_rp + 1'b1;
         // the block RAMs read `bram_a` this clock
-        if (rd_b || hit) begin spec_a <= c_next; spec_v <= 1'b1; end
+        if (stream) begin spec_a <= c_next2; spec_v <= 1'b1; end
+        else if (rd_b || hit) begin spec_a <= c_next; spec_v <= 1'b1; end
         else if (accept) spec_v <= 1'b0;
         if (ld_we || q == Q_CLEAR || (accept && c_we)) spec_v <= 1'b0;
         // GA line 5 (MCU_GA_SetGAInt(5, v)): trigger 5 on a rising edge when enabled; IRQ1 = trigger != 0
@@ -435,6 +452,15 @@ module sc55_mcu #(
                 endcase
                 c_ack <= 1'b1;
                 rd_b <= 1'b0;
+            end else if (stream) begin
+                // the next byte of a sequential read burst (its request comes with this acknowledge)
+                case (bram_rs_n)
+                    3'd1: c_rdata <= rom1_rd;
+                    3'd2: c_rdata <= rom2_rd;
+                    3'd3: c_rdata <= sram_rd;
+                    default: c_rdata <= ram_rd;
+                endcase
+                c_ack <= 1'b1;
             end else if (hit) begin
                 // the speculative read was this address: its data is here now
                 case (bram_rs)
@@ -676,7 +702,7 @@ module sc55_mcu #(
                     behind = 1'b0;
                     for (int i = 0; i < 3; i++) begin
                         frc_n[i] = frt_frc[i]; ts_n[i] = frt_tcsr[i]; dl_n[i] = frt_deadline[i];
-                        for (int k = 0; k < 2; k++) begin
+                        for (int k = 0; k < 3; k++) begin
                             if (dl_n[i] < tcyc) begin : b_sc55_mcu_6
                                 logic ma, mb;
                                 ma = frc_n[i] == frt_ocra[i];
@@ -698,7 +724,7 @@ module sc55_mcu #(
                         frt_frc[i] <= frc_n[i]; frt_tcsr[i] <= ts_n[i]; frt_deadline[i] <= dl_n[i];
                     end
                     cnt_n = tmr_tcnt; tts_n = tmr_tcsr; tdl_n = tmr_deadline;
-                    for (int k = 0; k < 2; k++) begin
+                    for (int k = 0; k < 3; k++) begin
                         if (tdl_n < tcyc) begin : b_sc55_mcu_7
                             logic ma, mb;
                             ma = cnt_n == tmr_tcora;
