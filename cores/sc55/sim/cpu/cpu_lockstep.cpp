@@ -18,6 +18,7 @@
 #include "mcu.h"
 #include "rom_loader.h"
 #include "ref_hooks.h"
+#include "../common/midi_demo.h"
 
 #include <cinttypes>
 #include <cstdio>
@@ -176,41 +177,7 @@ int main(int argc, char** argv)
         midi.assign(std::istreambuf_iterator<char>(f), {});
     }
     if (midi_seed >= 0)
-    {
-        // GM reset, then random channel traffic: notes, programs, controllers,
-        // pitch bend, aftertouch, GS parameter SysEx
-        std::mt19937_64 mr((uint64_t)midi_seed);
-        const uint8_t gm_reset[] = {0xf0, 0x7e, 0x7f, 0x09, 0x01, 0xf7};
-        midi.insert(midi.end(), gm_reset, gm_reset + sizeof gm_reset);
-        for (int i = 0; i < 4000; ++i)
-        {
-            uint8_t ch = (uint8_t)(mr() % 16);
-            switch (mr() % 10)
-            {
-            case 0: case 1: case 2: case 3:
-                midi.insert(midi.end(), {(uint8_t)(0x90 | ch), (uint8_t)(36 + mr() % 60), (uint8_t)(1 + mr() % 127)}); break;
-            case 4: case 5:
-                midi.insert(midi.end(), {(uint8_t)(0x80 | ch), (uint8_t)(36 + mr() % 60), 0x40}); break;
-            case 6:
-                midi.insert(midi.end(), {(uint8_t)(0xc0 | ch), (uint8_t)(mr() % 128)}); break;
-            case 7: {
-                static const uint8_t ccs[] = {1, 7, 10, 11, 64, 91, 93, 121, 0, 32, 100, 101, 6};
-                midi.insert(midi.end(), {(uint8_t)(0xb0 | ch), ccs[mr() % sizeof ccs], (uint8_t)(mr() % 128)}); break;
-            }
-            case 8:
-                midi.insert(midi.end(), {(uint8_t)(0xe0 | ch), (uint8_t)(mr() % 128), (uint8_t)(mr() % 128)}); break;
-            default: {
-                // GS: reverb/chorus macro, master volume, part parameters (Roland checksum)
-                uint8_t addr[3] = {0x40, 0x01, (uint8_t)(0x30 + mr() % 0x10)};
-                if (mr() % 2) { addr[1] = (uint8_t)(0x10 + mr() % 16); addr[2] = (uint8_t)(0x15 + mr() % 0x20); }
-                uint8_t data = (uint8_t)(mr() % 128);
-                uint8_t sum = (uint8_t)((128 - ((addr[0] + addr[1] + addr[2] + data) & 0x7f)) & 0x7f);
-                midi.insert(midi.end(), {0xf0, 0x41, 0x10, 0x42, 0x12, addr[0], addr[1], addr[2], data, sum, 0xf7});
-                break;
-            }
-            }
-        }
-    }
+        midi = make_midi_demo((uint64_t)midi_seed);
 
     g_ref_hooks.bus      = bus_hook;
     g_ref_hooks.cpu_done = cpu_done_hook;
@@ -219,7 +186,7 @@ int main(int argc, char** argv)
     ctx.commandArgs(argc, argv);
     Bench b{new Vh8_cpu{&ctx}};
     Vh8_cpu* t = b.top;
-    t->rst = 1; t->step = 0; t->reset_start = 0; t->bus_ack = 0; t->ld_en = 0;
+    t->rst = 1; t->step = 0; t->reset_start = 0; t->bus_ack = 0; t->ld_en = 0; t->int_hold = 0;
     for (int i = 0; i < 4; ++i) b.tick();
     t->rst = 0;
     b.tick();

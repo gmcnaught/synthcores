@@ -11,6 +11,22 @@ find_package(verilator REQUIRED HINTS $ENV{VERILATOR_ROOT})
 set(HDL "${CMAKE_CURRENT_SOURCE_DIR}/../hdl")
 set(VFLAGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -O3 --x-assign unique --x-initial unique)
 
-add_executable(cpu_lockstep cpu/cpu_lockstep.cpp)
+add_executable(cpu_lockstep cpu/cpu_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(cpu_lockstep PRIVATE sc55_common_traced)
-verilate(cpu_lockstep SOURCES "${HDL}/cpu/h8_cpu.sv" TOP_MODULE h8_cpu VERILATOR_ARGS ${VFLAGS})
+verilate(cpu_lockstep SOURCES "${HDL}/cpu/h8_cpu.sv" TOP_MODULE h8_cpu PREFIX Vh8_cpu VERILATOR_ARGS ${VFLAGS})
+
+add_executable(mcu_lockstep mcu/mcu_lockstep.cpp common/midi_demo.cpp)
+target_link_libraries(mcu_lockstep PRIVATE sc55_common_traced)
+verilate(mcu_lockstep SOURCES "${HDL}/cpu/h8_cpu.sv" "${HDL}/mcu/sc55_mcu.sv" TOP_MODULE sc55_mcu PREFIX Vsc55_mcu
+         VERILATOR_ARGS ${VFLAGS} --public-flat-rw)
+
+add_executable(pcm_lockstep pcm/pcm_lockstep.cpp common/midi_demo.cpp)
+target_link_libraries(pcm_lockstep PRIVATE sc55_common_traced)
+verilate(pcm_lockstep SOURCES "${HDL}/pcm/sc55_pcm.sv" TOP_MODULE sc55_pcm PREFIX Vsc55_pcm
+         INCLUDE_DIRS "${HDL}/pcm" VERILATOR_ARGS ${VFLAGS} --public-flat-rw)
+
+add_executable(system_lockstep system/system_lockstep.cpp common/midi_demo.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-sc55/src/renderer/smf.cpp")
+target_include_directories(system_lockstep PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-sc55/src/renderer")
+target_link_libraries(system_lockstep PRIVATE sc55_common_traced)
+verilate(system_lockstep SOURCES "${HDL}/cpu/h8_cpu.sv" "${HDL}/mcu/sc55_mcu.sv" "${HDL}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
+         TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${HDL}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw)
