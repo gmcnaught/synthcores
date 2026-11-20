@@ -7,6 +7,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/mcu/sc55_mcu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/pcm/sc55_pcm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/sc55_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/midi_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/rom2x_cache.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/wave_ddr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/step_pacer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/rom_loader.sv

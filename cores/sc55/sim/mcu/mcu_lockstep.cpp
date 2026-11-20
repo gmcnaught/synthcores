@@ -93,7 +93,7 @@ int main(int argc, char** argv)
     auto tick = [&]() { t->clk = 0; t->eval(); t->clk = 1; t->eval(); ++clocks; };
 
     t->rst = 1; t->run_step = 0; t->reset_start = 0; t->ld_we = 0; t->midi_valid = 0;
-    t->mk2 = mk2; t->sc155 = m.is_sc155;
+    t->mk2 = mk2; t->sc155 = m.is_sc155; t->rom2x_ack = 0;
     t->buttons = 0; t->pcm_ack = 0; t->pcm_irq0 = 0; t->pcm_irq_known = 1; t->cpu_ld_en = 0;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
