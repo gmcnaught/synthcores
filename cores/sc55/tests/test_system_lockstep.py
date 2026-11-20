@@ -62,5 +62,38 @@ def test_renderer_hash():
     print("    SHA-256", got)
 
 
+def test_mk2_board_from_power_on():
+    need_roms("mk2-v1.01")
+    exe = need_file(SIM_BUILD / "board_lockstep", "board bench")
+    sys.path.insert(0, str(ROOT / "tools"))
+    import romset
+    with tempfile.TemporaryDirectory() as d:
+        pack = pathlib.Path(d) / "boot.rom"
+        pack.write_bytes(romset.pack(ROM_DIR, "mk2-v1.01"))
+        ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--pack", str(pack), "--midi-loud", "1", "--steps", "8000000")
+
+
+def test_mk2_system_loud():
+    need_roms("mk2-v1.01")
+    exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
+    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "6000000", "--rom-latency", "10", "--rom-backpressure")
+
+
+def test_mk2_upstream_hash():
+    """avmidi 0A.mid through the mk2 HDL = jcmoyer's own integration hash (test/integration/CMakeLists.txt)."""
+    need_roms("mk2-v1.01")
+    if not os.environ.get("SC55_LONG"):
+        raise Skip("set SC55_LONG=1 (about 40 minutes)")
+    exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
+    midi = MIDI_DIR / "avmidi" / "0A.mid"
+    want = "222e0892c0afad047c9ca00a14dae2dd1f124cc36e81073659aa474ceaa30f59"
+    with tempfile.TemporaryDirectory() as d:
+        out = pathlib.Path(d) / "hdl.s16"
+        ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--smf", str(midi), "--out", str(out))
+        got = hashlib.sha256(out.read_bytes()).hexdigest()
+    assert got == want, (got, want)
+    print("    SHA-256", got)
+
+
 if __name__ == "__main__":
     run(globals())

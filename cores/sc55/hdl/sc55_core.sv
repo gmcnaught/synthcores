@@ -18,6 +18,10 @@ module sc55_core #(
     input  logic [18:0] ld_addr,
     input  logic        mk2,              // model (see sc55_mcu)
     input  logic        sc155,
+    output logic        rom2x_req,        // ROM2 upper half outside (sc55_mcu)
+    output logic [17:0] rom2x_addr,
+    input  logic        rom2x_ack,
+    input  logic [7:0]  rom2x_data,
     input  logic [7:0]  ld_data,
 
     input  logic        midi_valid,
@@ -55,7 +59,7 @@ module sc55_core #(
     logic m_ready, p_ready;
     assign ready = m_ready && p_ready;
     sc55_mcu #(.RXBUF_BITS(RXBUF_BITS), .ROM2_AW(ROM2_AW)) mcu (
-        .clk, .rst, .mk2, .sc155, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
+        .clk, .rst, .mk2, .sc155, .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data,
         .midi_valid, .midi_data, .midi_full, .buttons,
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),

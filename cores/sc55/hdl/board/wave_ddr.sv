@@ -6,7 +6,9 @@
 // read (the four sample bytes of a voice are usually consecutive), so a
 // voice costs about two DDR3 reads; reads are pipelined (commands do not
 // wait for data). Write port for loading: one byte per write, held until
-// accepted (wbusy).
+// accepted (wbusy). Line port: one 64-bit word at BASE + 0x400000 + 8 * laddr
+// (ROM2's upper 256 KB on the mk2, for rom2x_cache), ahead of queued PCM reads;
+// returned data is routed by a tag kept per issued read.
 //
 // The wave ROMs live at BASE (bytes; DDR3 from 0x30000000 is free for cores).
 module wave_ddr #(
@@ -17,7 +19,7 @@ module wave_ddr #(
     input  logic        rst,
 
     input  logic        wr,
-    input  logic [21:0] waddr,
+    input  logic [22:0] waddr,
     input  logic [7:0]  wdata,
     output logic        wbusy,
 
@@ -26,6 +28,11 @@ module wave_ddr #(
     output logic        ready,
     output logic        rvalid,
     output logic [7:0]  rdata,
+
+    input  logic        lreq,             // held until lvalid
+    input  logic [14:0] laddr,
+    output logic        lvalid,
+    output logic [63:0] ldata,
 
     input  logic        DDRAM_BUSY,
     output logic [7:0]  DDRAM_BURSTCNT,
@@ -50,6 +57,9 @@ module wave_ddr #(
     logic [63:0]       dq [Q];
     logic [QBITS:0]    dq_wp, dq_rp;
     logic [QBITS:0]    inflight;        // commands issued, data not yet back
+    logic              tq [Q];          // per issued read: 1 = line port
+    logic [QBITS:0]    tq_wp, tq_rp;
+    logic              l_busy;          // the line read is issued or waiting
     logic [18:0]       last_word;
     logic              have_last;
     logic [63:0]       cur;
@@ -66,7 +76,9 @@ module wave_ddr #(
 
     always_ff @(posedge clk) begin
         rvalid <= 1'b0;
+        lvalid <= 1'b0;
         if (rst) begin
+            tq_wp <= '0; tq_rp <= '0; l_busy <= 1'b0;
             rq_wp <= '0; rq_rp <= '0; cq_wp <= '0; cq_rp <= '0; dq_wp <= '0; dq_rp <= '0;
             inflight <= '0;
             have_last <= 1'b0;
@@ -100,21 +112,36 @@ module wave_ddr #(
                 end
             end else if (wr && !wbusy) begin
                 DDRAM_WE <= 1'b1;
-                DDRAM_ADDR <= BASE_W + {10'h0, waddr[21:3]};
+                DDRAM_ADDR <= BASE_W + {9'h0, waddr[22:3]};
                 DDRAM_DIN <= {8{wdata}};
                 DDRAM_BE <= 8'd1 << waddr[2:0];
                 wbusy <= 1'b1;
                 have_last <= 1'b0;        // contents change: no merging across a load
+            end else if (lreq && !l_busy && !lvalid && inflight < (QBITS+1)'(Q - 1)) begin
+                DDRAM_RD <= 1'b1;
+                DDRAM_ADDR <= BASE_W + 29'h80000 + {14'h0, laddr};
+                tq[tq_wp[QBITS-1:0]] <= 1'b1;
+                tq_wp <= tq_wp + 1'b1;
+                l_busy <= 1'b1;
             end else if (cq_wp != cq_rp) begin
                 DDRAM_RD <= 1'b1;
                 DDRAM_ADDR <= BASE_W + {10'h0, cq[cq_rp[QBITS-1:0]]};
                 cq_rp <= cq_rp + 1'b1;
+                tq[tq_wp[QBITS-1:0]] <= 1'b0;
+                tq_wp <= tq_wp + 1'b1;
             end
 
             // data back, in order
             if (DDRAM_DOUT_READY) begin
-                dq[dq_wp[QBITS-1:0]] <= DDRAM_DOUT;
-                dq_wp <= dq_wp + 1'b1;
+                if (tq[tq_rp[QBITS-1:0]]) begin
+                    ldata <= DDRAM_DOUT;
+                    lvalid <= 1'b1;
+                    l_busy <= 1'b0;
+                end else begin
+                    dq[dq_wp[QBITS-1:0]] <= DDRAM_DOUT;
+                    dq_wp <= dq_wp + 1'b1;
+                end
+                tq_rp <= tq_rp + 1'b1;
                 returned = 1'b1;
             end
             inflight <= inflight + (QBITS+1)'(issued) - (QBITS+1)'(returned);

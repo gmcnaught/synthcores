@@ -52,6 +52,12 @@ module sc55_mcu #(
     input  logic        pcm_irq0,        // INTERRUPT_SOURCE_IRQ0 request
     input  logic        pcm_irq_known,   // pcm_irq0 already has its value for the frames due by `cycles`
 
+    // ROM2's upper 256 KB outside (mk2 with ROM2_AW = 18: DDR3 through a cache)
+    output logic        rom2x_req,       // held until rom2x_ack
+    output logic [17:0] rom2x_addr,
+    input  logic        rom2x_ack,
+    input  logic [7:0]  rom2x_data,
+
     // LCD
     output logic        lcd_we,          // LCD_Write(address = lcd_rs, data)
     output logic        lcd_rs,
@@ -272,6 +278,7 @@ module sc55_mcu #(
     // (address & 0x3ffff) | (bit 19 ? 0x40000 : 0), then & rom2_mask (mk1 256 KB, mk2 512 KB)
     wire [18:0] rom2_a19 = {mk2 & c_addr[19], c_addr[17:0]};
     wire [ROM2_AW-1:0] rom2_a = rom2_a19[ROM2_AW-1:0];
+    wire rom2_ext = (ROM2_AW < 19) && rom2_a19[18];
     // the PCM and sub-MCU windows (page 0)
     wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
     wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
@@ -283,7 +290,7 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // Memories and their write ports: clear (power-on), load port, CPU write
     // ------------------------------------------------------------------
-    wire cpu_wr_now = !pcm_req && !sm_req && !rd_b && c_req && !c_ack && c_we && !sm_wait;
+    wire cpu_wr_now = !pcm_req && !sm_req && !rom2x_req && !rd_b && c_req && !c_ack && c_we && !sm_wait;
     wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) ||
                       c_addr[19:16] == (mk2 ? 4'd10 : 4'd5);
     wire dec_ram    = c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'hfb80 && c_addr[15:0] < 16'hff80 && dev[7'h79][7];
@@ -351,6 +358,7 @@ module sc55_mcu #(
             cycles <= 48'd0;
             pcm_req <= 1'b0;
             sm_req <= 1'b0;
+            rom2x_req <= 1'b0;
             ga_en <= 8'h00; ga_int5 <= 1'b0;
             sm_tgt5 <= 48'd0; sm_wp <= '0;
             rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
@@ -366,6 +374,12 @@ module sc55_mcu #(
                 if (pcm_ack) begin
                     pcm_req <= 1'b0;
                     c_rdata <= pcm_rdata;
+                    c_ack <= 1'b1;
+                end
+            end else if (rom2x_req) begin
+                if (rom2x_ack) begin
+                    rom2x_req <= 1'b0;
+                    c_rdata <= rom2x_data;
                     c_ack <= 1'b1;
                 end
             end else if (sm_req) begin
@@ -460,7 +474,10 @@ module sc55_mcu #(
                         4'd12, 4'd13: d = 8'hff;
                         default: d = 8'h00;
                     endcase
-                    if (!in_pcm && !in_sm) begin
+                    if (rs == 3'd2 && rom2_ext) begin
+                        rom2x_req <= 1'b1;            // ROM2's upper half, outside
+                        rom2x_addr <= rom2_a19[17:0];
+                    end else if (!in_pcm && !in_sm) begin
                         rd_dev <= d;
                         rsel <= rs;
                         rd_b <= 1'b1;
