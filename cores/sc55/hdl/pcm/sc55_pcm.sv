@@ -340,21 +340,21 @@ module sc55_pcm (
             default:   row_ra = select_channel;
         endcase
         r1_we = 8'h00; r2_we = 16'h0000; row_wa = select_channel;
-        for (int w = 0; w < 8; w++) r1_wd[w] = cpu_wv;
-        for (int w = 0; w < 16; w++) r2_wd[w] = cpu_wv[15:0];
+        for (int k1 = 0; k1 < 8; k1++) r1_wd[k1] = cpu_wv;
+        for (int k1 = 0; k1 < 16; k1++) r2_wd[k1] = cpu_wv[15:0];
         if (ps == P_CLEAR) begin
             if (clr_a[13:5] == 9'd0) begin r1_we = 8'hff; r2_we = 16'hffff; end
             row_wa = clr_a[4:0];
-            for (int w = 0; w < 8; w++) r1_wd[w] = 32'h0;
-            for (int w = 0; w < 16; w++) r2_wd[w] = 16'h0;
+            for (int k1 = 0; k1 < 8; k1++) r1_wd[k1] = 32'h0;
+            for (int k1 = 0; k1 < 16; k1++) r2_wd[k1] = 16'h0;
         end else if (ps == P_SLOT_WB) begin
             r1_we = 8'hff; r2_we = 16'hffff; row_wa = slot[4:0];
-            for (int w = 0; w < 8; w++) r1_wd[w] = r1[w];
-            for (int w = 0; w < 16; w++) r2_wd[w] = r2[w];
+            for (int k1 = 0; k1 < 8; k1++) r1_wd[k1] = r1[k1];
+            for (int k1 = 0; k1 < 16; k1++) r2_wd[k1] = r2[k1];
         end else if (ps == P_FRAME_END) begin
             r1_we = 8'hff; r2_we = 16'hffff; row_wa = 5'd28 + {3'd0, fe_i};
-            for (int w = 0; w < 8; w++) r1_wd[w] = g1[fe_i][w];
-            for (int w = 0; w < 16; w++) r2_wd[w] = g2[fe_i][w];
+            for (int k1 = 0; k1 < 8; k1++) r1_wd[k1] = g1[fe_i][k1];
+            for (int k1 = 0; k1 < 16; k1++) r2_wd[k1] = g2[fe_i][k1];
             if (fe_i == 2'd3) begin
                 r1_wd[1] = acc1;
                 r1_wd[3] = acc3;
@@ -366,16 +366,19 @@ module sc55_pcm (
         end
     end
 
-    for (genvar w = 0; w < 8; w++) begin : g_r1
-        logic [31:0] mem [32];
-        always_ff @(posedge clk) if (r1_we[w]) mem[row_wa] <= r1_wd[w];
-        assign r1_rd[w] = mem[row_ra];
-    end
-    for (genvar w = 0; w < 16; w++) begin : g_r2
-        logic [15:0] mem [32];
-        always_ff @(posedge clk) if (r2_we[w]) mem[row_wa] <= r2_wd[w];
-        assign r2_rd[w] = mem[row_ra];
-    end
+    genvar gw1, gw2;
+    generate
+        for (gw1 = 0; gw1 < 8; gw1 = gw1 + 1) begin : g_r1
+            logic [31:0] mem [32];
+            always_ff @(posedge clk) if (r1_we[gw1]) mem[row_wa] <= r1_wd[gw1];
+            assign r1_rd[gw1] = mem[row_ra];
+        end
+        for (gw2 = 0; gw2 < 16; gw2 = gw2 + 1) begin : g_r2
+            logic [15:0] mem [32];
+            always_ff @(posedge clk) if (r2_we[gw2]) mem[row_wa] <= r2_wd[gw2];
+            assign r2_rd[gw2] = mem[row_ra];
+        end
+    endgenerate
 
     // one calc_tv for the voice loop's three envelopes and the reverb's one
     logic [31:0] tv_out;
