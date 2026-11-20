@@ -18,7 +18,7 @@ from your own dumps.
 | Whole core | avmidi `0A.mid` rendered by the HDL = the reference renderer (mk1) and jcmoyer's own integration hash (mk2) | [`docs/board.md`](docs/board.md), [`docs/mk2.md`](docs/mk2.md) |
 | MiSTer board (ROM pack, DDR3 wave ROMs, pacing, MIDI, audio) | identical in simulation from power-on | [`docs/board.md`](docs/board.md) |
 | LCD and panel keys | LCD identical pixel for pixel to the reference's renderer | [`docs/lcd.md`](docs/lcd.md) |
-| MiSTer hardware | mk1: plays MIDI in real time (100 s, no underrun or lag); mk2: boots and plays, real-time run pending | [`docs/board.md`](docs/board.md) |
+| MiSTer hardware | mk1 and mk2: play MIDI in real time (100 s of avmidi 0A.mid, no underrun or lag) | [`docs/board.md`](docs/board.md), [`docs/mk2.md`](docs/mk2.md) |
 
 ## Using the core
 

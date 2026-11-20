@@ -89,7 +89,12 @@ overhead gives about 20, inside the mk2's 25.
 Found on the way: a single A/D conversion (the mk1 firmware only scans)
 wrote its result to dev[0x36] instead of 0x60 + 2 * channel.
 
-## Still to do
+## On the MiSTer
 
-- Quartus fit and timing with the sub-MCU and the ROM2 cache
-- the MiSTer run (M5 criteria with the mk2 pack)
+Quartus: 79 % of the ALMs, all clocks meet timing (seed 4). The first mk2
+run booted and played but fell behind real time under heavy polyphony
+(26-30 HDL clocks a step against 25; the paced board bench showed it). After
+the CPU/MCU speed work (bus requests issued at once, read bursts streamed,
+one-clock step handshake, three timer ticks a pass) and 1 ms of pacer
+credit: boot, GM reset and 100 s of avmidi 0A.mid with the underrun and lag
+indicators both off.

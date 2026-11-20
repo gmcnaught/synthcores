@@ -93,7 +93,7 @@ Progress (2026-11-20; details in each doc):
 | M4 | done: avmidi `0A.mid` through the HDL system = `sc55-render` SHA-256 ([`board.md`](board.md)) |
 | M5 | simulation done (board bench from power-on, DDR3 model, pack download); Quartus: fits (28,060 ALMs 67 %, 453/553 RAM blocks, 96/112 DSP), all clocks meet timing with seed 3 (core 50 MHz +0.843 ns, video 40 MHz +8.772 ns, HDMI +0.514 ns; seed 1 failed by 0.037 ns inside the framework's ascal, seeds 2 and 4 also pass); on the test MiSTer (2026-11-20): boots to the same LCD as the bench, plays MIDI at 9600 baud on ttyS1 (not yet through the MidiLink daemon at 31250), avmidi `0A.mid` for 100 s with no underrun and no lag ([`board.md`](board.md)) |
 | M6 | LCD and panel keys done in simulation (frame identical to `LCD_Render`) ([`lcd.md`](lcd.md)); mouse panel not done |
-| M7 | in simulation: sub-MCU, mk2 MCU/PCM/board identical to the reference; avmidi 0A.mid through the mk2 HDL = jcmoyer's mk2 hash; SC-155 (mk1 board) identical; Quartus and MiSTer run pending ([`mk2.md`](mk2.md)) |
+| M7 | done: sub-MCU, mk2 MCU/PCM/board identical to the reference; avmidi 0A.mid through the mk2 HDL = jcmoyer's mk2 hash; SC-155 (mk1 board) identical; on the MiSTer: 100 s of 0A.mid with no underrun or lag ([`mk2.md`](mk2.md)) |
 
 Decisions taken while building: ROM1/ROM2/SRAM in block RAM (mk1 ROM2 is
 256 KB), wave ROMs in DDR3 (D3); the PCM runs alongside the CPU with exact
