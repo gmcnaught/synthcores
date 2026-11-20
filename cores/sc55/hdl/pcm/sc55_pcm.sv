@@ -303,7 +303,7 @@ module sc55_pcm (
 
     typedef enum logic [4:0] {
         P_IDLE, P_FRAME, P_LOADG, P_MIX, P_REVERB, P_AGEN, P_SLOT0, P_SLOT_RD,
-        P_SLOT_DPCM2, P_SLOT_FILT2, P_SLOT_FILT3, P_SLOT_FILT4, P_SLOT_VOL2, P_SLOT_VOL3, P_SLOT_VOL4, P_SLOT_MIX2,
+        P_SLOT_TV2, P_SLOT_DPCM2, P_SLOT_FILT2, P_SLOT_FILT3, P_SLOT_FILT4, P_SLOT_VOL2, P_SLOT_VOL3, P_SLOT_VOL4, P_SLOT_MIX2,
         P_SLOT_DPCM, P_SLOT_FILT, P_SLOT_TV0, P_SLOT_TV1, P_SLOT_VOL, P_SLOT_MIX, P_SLOT_WB, P_FRAME_END,
         P_CPU_ROM, P_CLEAR, P_PRESCAN
     } pst_t;
@@ -375,6 +375,17 @@ module sc55_pcm (
         logic [15:0] mem [32];
         always_ff @(posedge clk) if (r2_we[w]) mem[row_wa] <= r2_wd[w];
         assign r2_rd[w] = mem[row_ra];
+    end
+
+    // one calc_tv for the voice loop's three envelopes and the reverb's one
+    logic [31:0] tv_out;
+    always_comb begin
+        case (ps)
+            P_SLOT_TV0: tv_out = calc_tv(0, r2[3], r2[9], v_active, tv_counter, nfs);
+            P_SLOT_TV1: tv_out = calc_tv(1, r2[4], r2[10], v_active, tv_counter, nfs);
+            P_SLOT_TV2: tv_out = calc_tv(2, r2[5], r2[11], v_active, tv_counter, nfs);
+            default:    tv_out = calc_tv(1, g2[2][0], g2[2][9], g2[3][7][5], tv_counter, nfs);   // reverb step 0: ram2[30][0], [30][9]
+        endcase
     end
     always_ff @(posedge clk) begin : b_sc55_pcm_1
         // temporaries
@@ -849,19 +860,21 @@ module sc55_pcm (
                 ps <= P_SLOT_TV0;
             end
 
+            // envelopes: one shared calc_tv (tv_out), inputs chosen by the state
             P_SLOT_TV0: begin
-                ct = calc_tv(0, r2[3], r2[9], v_active, tv_counter, nfs);
-                r2[9] <= ct[31:16];
-                v_volmul1 <= ct[15:0];
+                r2[9] <= tv_out[31:16];
+                v_volmul1 <= tv_out[15:0];
                 ps <= P_SLOT_TV1;
             end
 
             P_SLOT_TV1: begin
-                ct = calc_tv(1, r2[4], r2[10], v_active, tv_counter, nfs);
-                r2[10] <= ct[31:16];
-                v_volmul2 <= ct[15:0];
-                ct = calc_tv(2, r2[5], r2[11], v_active, tv_counter, nfs);
-                r2[11] <= ct[31:16];
+                r2[10] <= tv_out[31:16];
+                v_volmul2 <= tv_out[15:0];
+                ps <= P_SLOT_TV2;
+            end
+
+            P_SLOT_TV2: begin
+                r2[11] <= tv_out[31:16];
                 ps <= P_SLOT_VOL;
             end
 
