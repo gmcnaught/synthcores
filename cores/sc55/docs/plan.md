@@ -81,6 +81,24 @@ output stage (DAC, filters) until there are recordings; shipping ROMs.
 
 ## 5. Milestones
 
+Progress (2026-11-20; details in each doc):
+
+| M | Status |
+|---|---|
+| M0 | done: reference builds without SDL; hooked copy; decoder2 on/off identical; mk1 = 20 MHz reference cycles ([`reference.md`](reference.md)). jcmoyer's own hashes are mk2-only (no mk2 ROMs here). |
+| M1 | done: CPU identical on firmware (30 M steps), MIDI traffic, random code; 18/18 seeded faults ([`cpu.md`](cpu.md)) |
+| M2 | done: MCU system identical 20 M steps with MIDI and buttons; 12/14 seeded faults (2 unused by the firmware) ([`mcu.md`](mcu.md)) |
+| M3 | done: PCM identical sample for sample, loud and normal MIDI, any ROM latency; 12/13 seeded faults (1 unobservable on mk1) ([`pcm.md`](pcm.md)) |
+| M4 | done: avmidi `0A.mid` through the HDL system = `sc55-render` SHA-256 ([`board.md`](board.md)) |
+| M5 | simulation done (board bench from power-on, DDR3 model, pack download); Quartus: fits (28,060 ALMs 67 %, 453/553 RAM blocks, 96/112 DSP), all clocks meet timing with seed 3 (core 50 MHz +0.843 ns, video 40 MHz +8.772 ns, HDMI +0.514 ns; seed 1 failed by 0.037 ns inside the framework's ascal, seeds 2 and 4 also pass); hardware run pending (the .62 did not answer on 2026-11-20) |
+| M6 | LCD and panel keys done in simulation (frame identical to `LCD_Render`) ([`lcd.md`](lcd.md)); mouse panel not done |
+| M7 | not started: needs SC-55mk2 ROMs |
+
+Decisions taken while building: ROM1/ROM2/SRAM in block RAM (mk1 ROM2 is
+256 KB), wave ROMs in DDR3 (D3); the PCM runs alongside the CPU with exact
+ordering (register accesses wait; IRQ0 pre-scan) instead of strictly after
+each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
+
 | M | Work | Acceptance |
 |---|---|---|
 | **M0** Reference and repo | git repo, CI (`tests.yml`), jcmoyer as a submodule; renderer built; `tools/romset.py` (hash check, packing); trace hooks in a thin fork: per instruction (pc, regs, cycle), bus R/W, PCM register writes, samples; measure the mk1 clock (`cycles/s`) | jcmoyer integration hashes reproduce with user ROMs; mk1 boot trace recorded |
