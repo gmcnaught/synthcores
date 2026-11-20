@@ -13,6 +13,7 @@
 #include "../common/midi_demo.h"
 #include "emu.h"
 #include "mcu.h"
+#include "lcd.h"
 #include "pcm.h"
 #include "rom_loader.h"
 
@@ -29,6 +30,14 @@
 
 uint8_t PCM_ReadROM(pcm_t& pcm, uint32_t address);
 struct Frame { int32_t l, r; };
+
+// The model only keeps LCD state when a backend is attached.
+struct NullLcd : LCD_Backend
+{
+    bool Start(const lcd_t&) override { return true; }
+    void Stop() override {}
+    void Render() override {}
+};
 static std::vector<Frame> g_model;
 static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({f.left, f.right}); }
 
@@ -39,6 +48,8 @@ int main(int argc, char** argv)
     int64_t     midi_seed = -1, loud_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     bool        zero_init = false, serial = false;
+    std::string lcd_ppm;
+    std::vector<uint8_t> frame(741 * 268 * 3, 0);
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -50,6 +61,7 @@ int main(int argc, char** argv)
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--zero-init") zero_init = true;
         else if (a == "--serial") serial = true;
+        else if (a == "--lcd-ppm" && i + 1 < argc) lcd_ppm = argv[++i];
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
@@ -66,9 +78,11 @@ int main(int argc, char** argv)
         return 2;
     }
     Emulator emu;
-    emu.Init({.lcd_backend = nullptr});
+    NullLcd  null_lcd;
+    emu.Init({.lcd_backend = &null_lcd});
     emu.LoadRoms(load.romset, load.romset_info);
     emu.Reset();
+    emu.StartLCD();
     emu.GetPCM().enable_oversampling = true;
     emu.SetSampleCallback(sample_cb, nullptr);
     mcu_t& m = emu.GetMCU();
@@ -109,7 +123,7 @@ int main(int argc, char** argv)
             t->DDRAM_DOUT = ddr[rdq.front().second];
             rdq.pop_front();
         }
-        t->clk = 0; t->eval();
+        t->clk = 0; t->clk_vid = 0; t->eval();
         // commands are taken at this edge when not busy
         if (!t->DDRAM_BUSY && !t->rst)
         {
@@ -153,11 +167,13 @@ int main(int argc, char** argv)
                 exit(1);
             }
         }
-        t->clk = 1; t->eval();
+        t->clk = 1; t->clk_vid = 1; t->eval();
+        t->clk_vid = 0;
         ++clocks;
         if (t->sample_valid) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
     };
 
+    t->clk_vid = 0;
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
     t->midi_inject = 0; t->buttons = 0; t->pace_enable = 0; t->step_gate = 0;
     for (int i = 0; i < 8; ++i) tick();
@@ -309,6 +325,12 @@ int main(int argc, char** argv)
             for (int a = 0; a < 0x80; ++a)
                 if (!((a >= 0x10 && a < 0x40) || (a >= 0x50 && a < 0x55)) && R->sc55_board__DOT__core__DOT__mcu__DOT__dev[a] != m.dev_register[a])
                     d += "dev[" + std::to_string(a) + "] ";
+            lcd_t& lc = emu.GetLCD();
+            for (int i = 0; i < 80; ++i)
+                if (R->sc55_board__DOT__dd[i] != lc.LCD_Data[i]) { d += "lcd data[" + std::to_string(i) + "] "; break; }
+            for (int i = 0; i < 64; ++i)
+                if (R->sc55_board__DOT__cg[i] != lc.LCD_CG[i]) { d += "lcd cg[" + std::to_string(i) + "] "; break; }
+            if (R->sc55_board__DOT__lcd__DOT__dd_ram != lc.LCD_DD_RAM) d += "lcd dd_ram ";
             if (!d.empty()) { fprintf(stderr, "MCU state differs at step %" PRIu64 ": %s\n", s, d.c_str()); return 1; }
         }
         if (!t->step_done || t->dbg_pc != m.pc || t->dbg_cp != m.cp)
@@ -321,6 +343,42 @@ int main(int argc, char** argv)
         // PCM state, whenever the HDL PCM has caught up with the model
         if (!pcm_check(s, serial)) return 1;
     }
+    // one video frame against the model's LCD_Render (741 x 268, ARGB; compare RGB)
+    uint64_t lcd_pixels = 0, lcd_lit = 0;
+    {
+        lcd_t& lc = emu.GetLCD();
+        LCD_Render(lc);
+        // the frame must not change while it is drawn: hold the core still
+        bool seen_start = false;
+        for (uint64_t g = 0; g < 4'000'000; ++g)
+        {
+            tick();
+            if (!t->lcd_pix) continue;
+            if (t->lcd_x == 0 && t->lcd_y == 0) { if (seen_start) break; seen_start = true; }
+            if (!seen_start) continue;
+            uint32_t want = lc.buffer[t->lcd_y][t->lcd_x] & 0xffffff;
+            uint32_t got = ((uint32_t)t->vid_r << 16) | ((uint32_t)t->vid_g << 8) | t->vid_b;
+            if (got != want)
+            {
+                fprintf(stderr, "LCD pixel (%d, %d): HDL %06x, model %06x\n", t->lcd_x, t->lcd_y, got, want);
+                return 1;
+            }
+            ++lcd_pixels;
+            lcd_lit += (want == 0x000000);
+            size_t o = ((size_t)t->lcd_y * 741 + t->lcd_x) * 3;
+            frame[o] = t->vid_r; frame[o + 1] = t->vid_g; frame[o + 2] = t->vid_b;
+        }
+        if (lcd_pixels != 741ull * 268) { fprintf(stderr, "LCD frame: %" PRIu64 " pixels compared\n", lcd_pixels); return 1; }
+    }
+    if (!lcd_ppm.empty())
+    {
+        std::ofstream f(lcd_ppm, std::ios::binary);
+        f << "P6\n741 268\n255\n";
+        f.write((const char*)frame.data(), (std::streamsize)frame.size());
+    }
+    printf("LCD frame identical (%" PRIu64 " pixels, %" PRIu64 " black); text: ", lcd_pixels, lcd_lit);
+    for (int i = 0; i < 80; ++i) { uint8_t c = emu.GetLCD().LCD_Data[i]; putchar(c >= 32 && c < 127 ? c : '.'); }
+    printf("\n");
     printf("OK: pack loaded in %" PRIu64 " clocks, %" PRIu64 " steps, %" PRIu64 " samples identical (peak %.1f dBFS), "
            "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu\n",
            load_clocks, steps, compared, peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0,

@@ -12,6 +12,7 @@ module sc55_board #(
     parameter logic [31:0] WAVE_BASE = 32'h3000_0000
 ) (
     input  logic        clk,
+    input  logic        clk_vid,          // 40 MHz: 800 x 600 video
     input  logic        rst,              // power-on / hard reset
     input  logic        user_reset,       // OSD reset: re-run the MCU reset
 
@@ -35,10 +36,17 @@ module sc55_board #(
     output logic signed [31:0] sample_l,
     output logic signed [31:0] sample_r,
 
-    output logic        lcd_we,
-    output logic        lcd_rs,
-    output logic [7:0]  lcd_data,
-    output logic        lcd_enable,
+    // video (clk_vid)
+    output logic        vid_hs,
+    output logic        vid_vs,
+    output logic        vid_hblank,
+    output logic        vid_vblank,
+    output logic [7:0]  vid_r,
+    output logic [7:0]  vid_g,
+    output logic [7:0]  vid_b,
+    output logic        lcd_pix,          // bench: an LCD pixel at (lcd_x, lcd_y) is on vid_r/g/b
+    output logic [9:0]  lcd_x,
+    output logic [8:0]  lcd_y,
 
     // status
     output logic        rom_ok,
@@ -129,8 +137,33 @@ module sc55_board #(
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,
-        .lcd_we, .lcd_rs, .lcd_data, .lcd_enable,
+        .lcd_we(l_we), .lcd_rs(l_rs), .lcd_data(l_data), .lcd_enable(l_en),
         .cycles(), .dbg_pc, .dbg_cp, .dbg_sr()
+    );
+
+    // ---------------------------------------------------------- LCD
+    logic       l_we, l_rs, l_en, lcd_on;
+    logic [7:0] l_data;
+    logic [7:0] dd [80];
+    logic [4:0] cg [64];
+    lcd_ctrl lcd (
+        .clk, .rst(core_rst), .we(l_we), .rs(l_rs), .data(l_data), .enable_in(l_en),
+        .dd, .cg, .enable(lcd_on), .dd_ram(), .c_flag()
+    );
+
+    // status for the strip under the LCD (shown only)
+    logic [23:0] midi_stretch, ur_stretch;
+    logic [15:0] last_ur;
+    always_ff @(posedge clk) begin
+        midi_stretch <= midi_seen ? 24'hffffff : (midi_stretch != 0 ? midi_stretch - 24'd1 : 24'd0);
+        last_ur <= underruns;
+        ur_stretch <= (underruns != last_ur) ? 24'hffffff : (ur_stretch != 0 ? ur_stretch - 24'd1 : 24'd0);
+    end
+    lcd_video video (
+        .clk(clk_vid), .dd, .cg, .enable(lcd_on),
+        .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
+        .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b),
+        .lcd_pix, .lcd_x, .lcd_y
     );
 
     wave_ddr #(.BASE(WAVE_BASE)) wave (
