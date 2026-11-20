@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'mister/**'
+      - '!mister/**/*.md'
       - '.github/workflows/build-rbf.yml'
 
 jobs:
