@@ -151,17 +151,31 @@ module sc55_board #(
         .dd, .cg, .enable(lcd_on), .dd_ram(), .c_flag()
     );
 
-    // status for the strip under the LCD (shown only)
+    // status for the strip under the LCD (shown only): MIDI and underrun
+    // flashes; underrun since the core started (sticky); real-time lag that
+    // grew after the first second of running (sticky; the reset and memory
+    // clear before running always count some)
     logic [23:0] midi_stretch, ur_stretch;
     logic [15:0] last_ur;
+    logic [25:0] run_time;
+    logic [31:0] lag_base;
+    logic        lag_seen;
     always_ff @(posedge clk) begin
         midi_stretch <= midi_seen ? 24'hffffff : (midi_stretch != 0 ? midi_stretch - 24'd1 : 24'd0);
         last_ur <= underruns;
         ur_stretch <= (underruns != last_ur) ? 24'hffffff : (ur_stretch != 0 ? ur_stretch - 24'd1 : 24'd0);
+        if (!running) begin
+            run_time <= '0;
+            lag_seen <= 1'b0;
+        end else if (run_time != 26'(CLK_HZ)) begin
+            run_time <= run_time + 26'd1;
+            lag_base <= lag_us;
+        end else if (lag_us != lag_base) lag_seen <= 1'b1;
     end
     lcd_video video (
         .clk(clk_vid), .dd, .cg, .enable(lcd_on),
         .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
+        .underrun_seen(underruns != 16'd0), .lag_seen,
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b),
         .lcd_pix, .lcd_x, .lcd_y
     );
