@@ -123,25 +123,33 @@ module sc55_mcu #(
     );
 
     // The interrupt check waits only when IRQ0 is enabled, would beat the
-    // mask, is not already requested, and the PCM has not settled it yet.
+    // mask, is not already requested, and the PCM has not settled it yet;
+    // likewise for IRQ1 while the sub-MCU (mk2) is still running the last
+    // step's SM_Update (it can raise IRQ1 through GA line 5, never clear it).
     logic int_hold;
-    assign int_hold = !pcm_irq_known && !pcm_irq0 && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8]);
+    assign int_hold = (!pcm_irq_known && !pcm_irq0 && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8])) ||
+                      (mk2 && !sm_caught_up && !int_req[2] && dev[7'h7c][6] && (dev[7'h70][2:0] > dbg_sr[10:8]));
 
     // ------------------------------------------------------------------
     // Sub-MCU (mk2): EC00-EFFF window, MIDI from the receive buffer, GA line 5
     // ------------------------------------------------------------------
     logic        sm_req, sm_we, sm_ack, sm_run, sm_done, sm_reset, sm_reset_done;
-    logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we;
+    logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we, sm_caught_up;
     logic [7:0]  sm_addr, sm_wdata, sm_rdata, sm_rx_byte;
     logic [47:0] sm_dly_wv;
+    // The sub-MCU runs each step's SM_Update alongside the next step: the
+    // device phase publishes 5 * cycles and the receive-buffer bytes it may
+    // take (those that were there at the device phase).
+    logic [47:0] sm_tgt5;
+    logic [RXBUF_BITS-1:0] sm_wp;
     sc55_submcu sm (
         .clk, .rst,
         .ld_we(ld_we && ld_sel == 3'd4), .ld_addr(ld_addr[11:0]), .ld_data,
         .ld_en(1'b0), .ld_pc(16'h0), .ld_a(8'h0), .ld_x(8'h0), .ld_y(8'h0), .ld_s(8'h0), .ld_sr(8'h0), .ld_sleep(1'b0),
         .reset_start(sm_reset), .reset_done(sm_reset_done),
-        .run(sm_run), .target(cycles), .done(sm_done),
+        .run(mk2), .target5(sm_tgt5), .done(sm_done), .caught_up(sm_caught_up),
         .sys_req(sm_req && !sm_ack), .sys_we(sm_we), .sys_addr(sm_addr), .sys_wdata(sm_wdata), .sys_rdata(sm_rdata), .sys_ack(sm_ack),
-        .rx_avail(mk2 && rx_ready), .rx_data(rx_rd), .rx_pop(sm_rx_pop), .rx_byte(sm_rx_byte),
+        .rx_avail(mk2 && sm_wp != rx_rp), .rx_data(rx_rd), .rx_pop(sm_rx_pop), .rx_byte(sm_rx_byte),
         .rx_delay_we(sm_dly_we), .rx_delay_wv(sm_dly_wv),
         .buttons, .ga5_we(sm_ga5_we), .ga5_val(sm_ga5_val),
         .st_pc(), .st_a(), .st_x(), .st_y(), .st_s(), .st_sr(), .st_cycles(), .st_sleep(),
@@ -267,12 +275,15 @@ module sc55_mcu #(
     // the PCM and sub-MCU windows (page 0)
     wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
     wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
+    // accesses that see or change what the running sub-MCU uses: wait until it has caught up
+    wire sm_sync = mk2 && page == 4'd0 && (in_sm || a16 == 16'he402 || a16 == 16'hffdd || (c_we && a16 == 16'hffdc));
+    wire sm_wait = sm_sync && !sm_caught_up;
 
 
     // ------------------------------------------------------------------
     // Memories and their write ports: clear (power-on), load port, CPU write
     // ------------------------------------------------------------------
-    wire cpu_wr_now = !pcm_req && !sm_req && !rd_b && c_req && !c_ack && c_we;
+    wire cpu_wr_now = !pcm_req && !sm_req && !rd_b && c_req && !c_ack && c_we && !sm_wait;
     wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) ||
                       c_addr[19:16] == (mk2 ? 4'd10 : 4'd5);
     wire dec_ram    = c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'hfb80 && c_addr[15:0] < 16'hff80 && dev[7'h79][7];
@@ -341,6 +352,7 @@ module sc55_mcu #(
             pcm_req <= 1'b0;
             sm_req <= 1'b0;
             ga_en <= 8'h00; ga_int5 <= 1'b0;
+            sm_tgt5 <= 48'd0; sm_wp <= '0;
             rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
@@ -373,7 +385,7 @@ module sc55_mcu #(
                 endcase
                 c_ack <= 1'b1;
                 rd_b <= 1'b0;
-            end else if (c_req && !c_ack) begin
+            end else if (c_req && !c_ack && !sm_wait) begin
                 d = 8'hff;
                 rs = 3'd0;
                 if (!c_we) begin
@@ -691,16 +703,21 @@ module sc55_mcu #(
                                 int_req[2] <= 1'b1;
                             end
                         end
-                        if (mk2) begin
-                            sm_run <= 1'b1;                 // SM_Update(cycles)
-                            q <= Q_SM;
+                        if (mk2 && !sm_caught_up) begin
+                            q <= Q_SM;                      // the last step's SM_Update is still running
                         end else begin
+                            if (mk2) begin                  // SM_Update(cycles), alongside the next step
+                                sm_tgt5 <= (cycles << 2) + cycles;
+                                sm_wp <= rx_wp_d2;
+                            end
                             step_done <= 1'b1;
                             q <= Q_IDLE;
                         end
                     end
                 end
-                Q_SM: if (sm_done) begin
+                Q_SM: if (sm_caught_up) begin
+                    sm_tgt5 <= (cycles << 2) + cycles;
+                    sm_wp <= rx_wp_d2;
                     step_done <= 1'b1;
                     q <= Q_IDLE;
                 end

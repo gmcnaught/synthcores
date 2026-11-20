@@ -11,8 +11,10 @@
 // * one instruction is 48 cycles; SM_Update(cycles) runs while
 //   sm.cycles < 5 * cycles; the timer advances every 16 cycles
 //
-// Ports: `run` with `target` (the MCU's cycle count after its instruction)
-// runs the loop to 5 * target and pulses `done`; the sys port is the main
+// Ports: while `run` is high the loop runs up to `target5` (5 * the MCU's
+// cycle count after its instruction: SM_Update(cycles)); `target5` may grow
+// while it runs (the loop simply continues), `done` pulses when it is
+// reached and `caught_up` is high while it is idle there; the sys port is the main
 // MCU's EC00-ECFF window (address & 0xff); MIDI bytes come from a buffer
 // (rx_avail/rx_data/rx_pop, the MCU's uart_buffer); `buttons` and the P0
 // latch give MCU_ReadP1; ga5_we/ga5_val report MCU_GA_SetGAInt(5, ...).
@@ -32,8 +34,9 @@ module sc55_submcu (
     input  logic        reset_start,      // SM_Reset
     output logic        reset_done,
     input  logic        run,
-    input  logic [47:0] target,
+    input  logic [47:0] target5,
     output logic        done,
+    output logic        caught_up,
 
     input  logic        sys_req,
     input  logic        sys_we,
@@ -217,7 +220,7 @@ module sc55_submcu (
     // others from rd_reg. Side effects of a read happen when it is issued.
     typedef enum logic [4:0] {
         Q_IDLE, Q_LOOP, Q_PUSH, Q_VEC_LO, Q_VEC_HI, Q_VEC_END, Q_F, Q_OPC, Q_B1, Q_B2,
-        Q_ADDR, Q_PTR, Q_PTRJ, Q_VX, Q_DATA, Q_JPUSH, Q_POP, Q_POPD, Q_POST, Q_TIMER, Q_UART
+        Q_ADDR, Q_PTR, Q_PTRJ, Q_VX, Q_DATA, Q_JPUSH, Q_POP, Q_POPD, Q_TIMER
     } q_t;
     q_t q;
 
@@ -230,14 +233,15 @@ module sc55_submcu (
     logic [15:0] ea, npc;
     logic [1:0]  pcnt;
     logic        in_reset;         // the vector fetch is SM_Reset's
+    logic        tcont;            // Q_TIMER continues (cycles already advanced)
     logic        rd_rom;
     logic [7:0]  rd_reg;
     wire  [7:0]  rdata = rd_rom ? rom_q : rd_reg;
-    logic [47:0] tgt5;
+    assign caught_up = (q == Q_IDLE) && !(cycles < target5);
 
     always_comb begin
         case (q)
-            Q_F, Q_OPC, Q_B1:        rom_ra = pc[11:0];
+            Q_LOOP, Q_F, Q_OPC, Q_B1: rom_ra = pc[11:0];
             Q_VEC_LO, Q_VEC_HI:      rom_ra = npc[11:0];
             Q_POP:                   rom_ra = {4'h0, s};
             default:                 rom_ra = ea[11:0];
@@ -347,7 +351,7 @@ module sc55_submcu (
             for (int i = 0; i < 32; i++) dm[i] <= 8'h00;
             p0_data <= '0; p0_dir <= '0; p1_dir <= '0; p1_data <= '0; presc <= '0; counter <= '0;
             rx_byte <= '0; ninstr <= '0; rd_rom <= 1'b0; rd_reg <= '0; in_reset <= 1'b0;
-            ea <= '0; npc <= '0; sys_rdata <= '0; ga5_val <= 1'b0;
+            ea <= '0; npc <= '0; sys_rdata <= '0; ga5_val <= 1'b0; tcont <= 1'b0;
         end else begin
             case (q)
             // ---------------------------------------------------- idle: sys port, reset, run
@@ -401,15 +405,14 @@ module sc55_submcu (
                     npc <= 16'h1ffe;
                     in_reset <= 1'b1;
                     q <= Q_VEC_LO;
-                end else if (run) begin
-                    tgt5 <= (target << 2) + target;
+                end else if (run && cycles < target5) begin
                     q <= Q_LOOP;
                 end
             end
 
             // ---------------------------------------------------- SM_Update loop
             Q_LOOP: begin
-                if (cycles >= tgt5) begin
+                if (!(cycles < target5)) begin
                     done <= 1'b1;
                     q <= Q_IDLE;
                 end else if (int_go) begin
@@ -419,9 +422,11 @@ module sc55_submcu (
                     pcnt <= 2'd0;
                     q <= Q_PUSH;
                 end else if (sleep) begin
-                    q <= Q_POST;
+                    q <= Q_TIMER;
                 end else begin
-                    q <= Q_F;
+                    issue_read(pc);                   // the opcode (Q_F's work)
+                    pc <= pc + 16'd1;
+                    q <= Q_OPC;
                 end
             end
 
@@ -483,7 +488,7 @@ module sc55_submcu (
                     q <= Q_B1;
                 end else begin
                     // implied
-                    q <= Q_POST;
+                    q <= Q_TIMER;
                     case (kind_t'(dk[4:0]))
                         K_INCA: begin a <= a + 8'd1; sr <= nz(sr, a + 8'd1); end
                         K_DECA: begin a <= a - 8'd1; sr <= nz(sr, a - 8'd1); end
@@ -538,7 +543,7 @@ module sc55_submcu (
 
             // ---------------------------------------------------- address known: dispatch
             Q_ADDR: begin
-                q <= Q_POST;
+                q <= Q_TIMER;
                 case (kd)
                     K_BR: begin
                         case (opc)
@@ -596,7 +601,7 @@ module sc55_submcu (
             Q_PTRJ: begin
                 if (kd == K_JMPI) begin
                     pc <= {rdata, rdata};
-                    q <= Q_POST;
+                    q <= Q_TIMER;
                 end else begin
                     npc <= {rdata, rdata};
                     pcnt <= 2'd0;
@@ -607,7 +612,7 @@ module sc55_submcu (
                 vx <= rdata;
                 if (md == M_IMM) begin
                     exec(b1, rdata);
-                    q <= Q_POST;
+                    q <= Q_TIMER;
                 end else begin
                     issue_read(ea);
                     q <= Q_DATA;
@@ -615,7 +620,7 @@ module sc55_submcu (
             end
             Q_DATA: begin
                 exec(rdata, t_mode ? vx : a);
-                q <= Q_POST;
+                q <= Q_TIMER;
             end
 
             Q_JPUSH: begin
@@ -624,7 +629,7 @@ module sc55_submcu (
                 pcnt <= pcnt + 2'd1;
                 if (pcnt == 2'd1) begin
                     pc <= npc;
-                    q <= Q_POST;
+                    q <= Q_TIMER;
                 end
             end
 
@@ -634,7 +639,7 @@ module sc55_submcu (
                 q <= Q_POPD;
             end
             Q_POPD: begin
-                q <= Q_POST;
+                q <= Q_TIMER;
                 case (kd)
                     K_PLA: begin a <= rdata; sr <= nz(sr, rdata); end
                     K_RTS: begin
@@ -650,35 +655,41 @@ module sc55_submcu (
             end
 
             // ---------------------------------------------------- after the instruction
-            Q_POST: begin
-                cycles <= cycles + 48'd48;
-                q <= Q_TIMER;
-            end
-            Q_TIMER: begin                        // SM_UpdateTimer: one 16-cycle tick a clock
-                if (timer_cycles < cycles) begin
-                    if (!dm[D_TCTRL][5] && !sleep) begin
-                        if (presc == 8'h00) begin
-                            presc <= dm[D_PRESC];
-                            if (counter == 8'h00) begin
-                                counter <= dm[D_TIMER];
-                                dm[D_INT_REQ] <= dm[D_INT_REQ] | 8'h08;
-                            end else counter <= counter - 8'd1;
-                        end else presc <= presc - 8'd1;
+            Q_TIMER: begin : b_timer             // cycles += 48; SM_UpdateTimer (up to three 16-cycle ticks a clock); SM_UpdateUART
+                logic [7:0]  pr, ct, ir;
+                logic [47:0] tc, cy;
+                cy = tcont ? cycles : cycles + 48'd48;
+                cycles <= cy;
+                pr = presc; ct = counter; ir = dm[D_INT_REQ]; tc = timer_cycles;
+                for (int k = 0; k < 3; k++) begin
+                    if (tc < cy) begin
+                        if (!dm[D_TCTRL][5] && !sleep) begin
+                            if (pr == 8'h00) begin
+                                pr = dm[D_PRESC];
+                                if (ct == 8'h00) begin
+                                    ct = dm[D_TIMER];
+                                    ir = ir | 8'h08;
+                                end else ct = ct - 8'd1;
+                            end else pr = pr - 8'd1;
+                        end
+                        tc = tc + 48'd16;
                     end
-                    timer_cycles <= timer_cycles + 48'd16;
-                end else begin
-                    q <= Q_UART;
                 end
-            end
-            Q_UART: begin                         // SM_UpdateUART
-                if (dm[D_U1_CTRL][2] && rx_avail && !gotbyte && !(cycles < rx_delay)) begin
-                    rx_byte <= rx_data;
-                    rx_pop <= 1'b1;
-                    gotbyte <= 1'b1;
-                    dm[D_INT_REQ] <= dm[D_INT_REQ] | 8'h40;
-                    rx_delay <= cycles + 48'd12000;
+                presc <= pr; counter <= ct; timer_cycles <= tc;
+                tcont <= 1'b1;
+                if (!(tc < cy)) begin
+                    // SM_UpdateUART
+                    if (dm[D_U1_CTRL][2] && rx_avail && !gotbyte && !(cy < rx_delay)) begin
+                        rx_byte <= rx_data;
+                        rx_pop <= 1'b1;
+                        gotbyte <= 1'b1;
+                        ir = ir | 8'h40;
+                        rx_delay <= cy + 48'd12000;
+                    end
+                    tcont <= 1'b0;
+                    q <= Q_LOOP;
                 end
-                q <= Q_LOOP;
+                dm[D_INT_REQ] <= ir;
             end
 
             default: q <= Q_IDLE;
