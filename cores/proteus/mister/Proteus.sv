@@ -46,6 +46,8 @@ localparam CONF_STR = {
 	"F1,BIN,Load System;",
 	"-;",
 	"O[9:8],Volume,Max,75%,50%,25%;",
+	"J1,Master,Edit,Cursor,Enter;",
+	"jn,A,B,X,Y;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
 	"T[0],Reset;",
@@ -56,6 +58,8 @@ localparam CONF_STR = {
 wire forced_scandoubler;
 wire   [1:0] buttons;
 wire [127:0] status;
+wire  [10:0] ps2_key;
+wire  [31:0] joy0;
 
 wire        ioctl_download;
 wire        ioctl_wr;
@@ -74,6 +78,8 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.buttons(buttons),
 	.status(status),
 	.status_menumask(16'd0),
+	.ps2_key(ps2_key),
+	.joystick_0(joy0),
 	.ioctl_download(ioctl_download),
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
@@ -116,6 +122,14 @@ wire  [7:0] lcd_code, font_data;
 wire  [4:0] lcd_cgbits;
 wire [11:0] font_addr;
 wire        midi_out;
+wire  [7:0] panel_gpio, leds, font2_data;
+wire [11:0] font2_addr;
+
+panel panel
+(
+	.clk(clk_sys), .reset(reset), .ps2_key(ps2_key), .joy(joy0),
+	.gpio(panel_gpio), .buttons_dbg(), .step_dbg()
+);
 
 wire [7:0] volume = 8'd255 - {status[9:8], 6'd0};
 
@@ -123,11 +137,12 @@ proteus_sys sys
 (
 	.clk(clk_sys), .reset(reset), .loading(loading),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
-	.midi_in(UART_RXD), .midi_out(midi_out), .buttons(8'd0), .volume(volume),
+	.midi_in(UART_RXD), .midi_out(midi_out), .buttons(panel_gpio), .volume(volume),
 	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
 	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
 	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
+	.font2_addr(font2_addr), .font2_data(font2_data), .leds(leds),
 	.dbg_pc_addr(), .bus_wr_strobe(), .bus_wr_addr(), .bus_wr_data(), .bus_wr_ds()
 );
 
@@ -169,6 +184,7 @@ display display
 	.clk(clk_sys), .ce_pix(ce_pix), .hsync(hs), .vsync(vs), .hblank(hbl), .vblank(vbl), .r(r), .g(g), .b(b),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
 	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
+	.font2_addr(font2_addr), .font2_data(font2_data), .leds(leds),
 	.voice(disp_voice), .level(disp_level), .running(loaded)
 );
 

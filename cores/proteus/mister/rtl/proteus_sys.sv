@@ -59,6 +59,9 @@ module proteus_sys
 	output            lcd_on,
 	input      [11:0] font_addr,
 	output      [7:0] font_data,
+	input      [11:0] font2_addr,      // second read port (display labels)
+	output      [7:0] font2_data,
+	output reg  [7:0] leds,           // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit3 MIDI
 
 	// debug
 	output     [23:0] dbg_pc_addr,
@@ -143,6 +146,7 @@ bram #(16, 8) rom_lo (.clk(clk), .we(ld_rom &&  ioctl_addr[0]), .waddr(ioctl_add
 bram #(15, 8) ram_hi (.clk(clk), .we(ram_we_hi), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[15:8]), .raddr(addr[15:1]), .rdata(ram_qh));
 bram #(15, 8) ram_lo (.clk(clk), .we(ram_we_lo), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[7:0]),  .raddr(addr[15:1]), .rdata(ram_ql));
 bram #(12, 8) fontm  (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font_addr), .rdata(font_data));
+bram #(12, 8) fontm2 (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font2_addr), .rdata(font2_data));
 
 
 // one access per AS assertion, started when a data strobe is active (bus_busy, ds_act above)
@@ -179,6 +183,7 @@ always @(posedge clk) begin
 		DTACKn   <= 1;
 		bstate   <= B_IDLE;
 		vol_cnt  <= 0;
+		leds     <= 8'hFF;
 	end
 	else begin
 		if (ASn) begin
@@ -195,6 +200,7 @@ always @(posedge clk) begin
 			else if (!eRWn) begin
 				// ------------------------------ write
 				bus_wr_strobe <= 1; bus_wr_addr <= addr; bus_wr_data <= oEdb; bus_wr_ds <= {~UDSn, ~LDSn};
+				if (addr[23:1] == 23'h580000 && !LDSn) leds <= oEdb[7:0];   // B00001
 				// RAM bytes are written by the block RAMs (cpu_wr_go)
 				if (sel_mfp) mfp_cs_wr <= 1;
 				if (sel_lcd) lcd_wr <= 1;

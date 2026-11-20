@@ -22,8 +22,21 @@ MiSTer UART (MidiLink). No ROM, firmware or sample data is part of the core.
 `tools/mister_system.sh RBF build/proteus_system.bin tests/midi/hw_test.txt` installs, boots, plays
 MIDI, screenshots and reads back the audio capture over SSH (`MISTER=root@<address>`).
 
-OSD: **Volume** sets the front-panel volume pot (Max/75/50/25 %). Front-panel buttons are not
-wired yet (their MFP GPIO mapping is unknown), so editing is via MIDI/SysEx only.
+## Controls
+| Front panel | Keyboard | Joystick |
+|---|---|---|
+| MASTER | M | button 1 (A) |
+| EDIT | E | button 2 (B) |
+| CURSOR | C or Tab | button 3 (X) |
+| ENTER | Enter | button 4 (Y) |
+| Data-entry knob −1 / +1 | Left, Down, `-` / Right, Up, `=` (repeats while held) | left/down / right/up |
+| Volume knob | OSD **Volume** (Max/75/50/25 %) | |
+
+On screen: the LCD, LEDs (MIDI, MASTER, EDIT) and one level bar per voice.
+Wiring (from the firmware, verified in simulation): buttons on MFP GPIP0–3 (active low:
+0 MASTER → `MASTER TUNE`, 1 EDIT → `PRESET NAME`, 2 CURSOR, 3 ENTER); knob = GPIP4 falling edge
+with GPIP5 as direction (1 = −1); LEDs = latch 0xB00001 bits 0 (MASTER), 1 (EDIT), 3 (MIDI), active
+low. Holding MASTER + EDIT at power-on enters the diagnostics menu (GPIP0–3 = 1100).
 
 ## Design
 | Block | File | Notes |

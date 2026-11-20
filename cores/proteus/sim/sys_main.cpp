@@ -2,6 +2,8 @@
 // IMAGE: tools/make_system.py output. Samples go straight into the DDR3 model; the rest
 // (ROM, RAM, font) goes through ioctl. Logs every CPU write: "<seconds> <addr> <data> <ds>".
 // MIDI.txt: lines "<seconds> <hex bytes...>" sent to the MFP serial input at 31250 baud.
+// GPIO.txt (optional 6th arg): lines "<seconds> <hex>" setting the MFP GPIP inputs (default ff);
+// the LCD is printed 0.3 s after every GPIO change.
 #include "Vsys_top.h"
 #include "verilated.h"
 #include <cstdio>
@@ -37,6 +39,16 @@ int main(int argc, char **argv) {
 		}
 		if (m) fclose(m);
 	}
+	std::deque<std::pair<uint64_t, int>> gpio;
+	if (argc > 6) {
+		FILE *g = fopen(argv[6], "r"); char line[256];
+		while (g && fgets(line, sizeof line, g)) {
+			double tt; unsigned v;
+			if (sscanf(line, "%lf %x", &tt, &v) == 2) gpio.push_back({uint64_t(tt * CLK), int(v)});
+		}
+		if (g) fclose(g);
+	}
+	std::deque<uint64_t> lcd_dumps;
 	memcpy(mem.data(), img.data(), 0x800000);
 
 	Verilated::commandArgs(argc, argv);
@@ -59,6 +71,9 @@ int main(int argc, char **argv) {
 		}
 		t->DDRAM_BUSY = (rand() % 8) == 0;
 		while (!midi.empty() && midi.front().first <= cycle) { t->midi_in = midi.front().second; midi.pop_front(); }
+		while (!gpio.empty() && gpio.front().first <= cycle) {
+			t->gpio = gpio.front().second; lcd_dumps.push_back(gpio.front().first + uint64_t(0.3 * CLK)); gpio.pop_front();
+		}
 		t->clk = 0; t->eval();
 		if (!t->DDRAM_BUSY) {
 			if (t->DDRAM_RD) reads.push_back({uint32_t(t->DDRAM_ADDR), int(t->DDRAM_BURSTCNT), 12 + rand() % 28});
@@ -71,7 +86,7 @@ int main(int argc, char **argv) {
 		cycle++;
 	};
 
-	t->reset = 1; t->loading = 1; t->midi_in = 1; t->ioctl_wr = 0;
+	t->reset = 1; t->loading = 1; t->midi_in = 1; t->ioctl_wr = 0; t->gpio = 0xff;
 	for (int i = 0; i < 64; i++) step();
 	for (size_t a = 0x800000; a < img.size(); a++) {
 		t->ioctl_addr = a; t->ioctl_dout = img[a]; t->ioctl_wr = 1; step(); t->ioctl_wr = 0; step();
@@ -86,6 +101,13 @@ int main(int argc, char **argv) {
 		if (t->bus_wr_strobe) {
 			fprintf(wlog, "%.6f %06x %04x %d\n", (cycle - start) / CLK, t->bus_wr_addr, t->bus_wr_data, t->bus_wr_ds);
 			nwr++;
+		}
+		if (!lcd_dumps.empty() && cycle >= lcd_dumps.front()) {
+			lcd_dumps.pop_front();
+			std::string s[2];
+			for (int line = 0; line < 2; line++)
+				for (int pos = 0; pos < 16; pos++) { t->lcd_line = line; t->lcd_pos = pos; t->eval(); s[line] += (t->lcd_code >= 32 && t->lcd_code < 127) ? char(t->lcd_code) : '.'; }
+			fprintf(stderr, "%.3f gpio=%02x LCD [%s] [%s]\n", (cycle - start) / CLK, t->gpio, s[0].c_str(), s[1].c_str());
 		}
 		if (t->sample_strobe && aud) { int16_t s[2] = { int16_t(t->out_l), int16_t(t->out_r) }; fwrite(s, 2, 2, aud); nsmp++; }
 	}
