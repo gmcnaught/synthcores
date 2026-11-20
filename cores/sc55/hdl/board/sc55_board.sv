@@ -72,15 +72,17 @@ module sc55_board #(
 );
     // ---------------------------------------------------------- ROM load
     logic        ld_we, wave_wr, wave_busy, loading, ok;
-    logic [1:0]  ld_sel;
-    logic [17:0] ld_addr;
+    logic [1:0]  ld_sel2;
+    logic [17:0] ld_addr18;
+    wire  [2:0]  ld_sel = {1'b0, ld_sel2};
+    wire  [18:0] ld_addr = {1'b0, ld_addr18};
     logic [7:0]  ld_data, wave_data;
     logic [21:0] wave_addr;
 
     rom_loader loader (
         .clk, .rst,
         .ioctl_download, .ioctl_wr, .ioctl_addr, .ioctl_dout, .ioctl_wait,
-        .ld_we, .ld_sel, .ld_addr, .ld_data,
+        .ld_we, .ld_sel(ld_sel2), .ld_addr(ld_addr18), .ld_data,
         .wave_wr, .wave_addr, .wave_data, .wave_busy,
         .loading, .ok
     );
@@ -132,7 +134,7 @@ module sc55_board #(
     sc55_core core (
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
-        .ld_we, .ld_sel, .ld_addr, .ld_data,
+        .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2(1'b0), .sc155(1'b0),
         .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),

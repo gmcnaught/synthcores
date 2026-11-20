@@ -5,7 +5,7 @@ Each mutation changes one detail of the HDL; the bench must report a mismatch
 for every one. Builds each mutant with Verilator directly against the
 reference libraries from out/sim.
 
-Usage: mutate.py ROM_DIR [cpu|mcu|pcm] [OUT_DIR] [--only=1,4]
+Usage: mutate.py ROM_DIR [cpu|mcu|pcm|submcu] [OUT_DIR] [--only=1,4]
 """
 import os
 import pathlib
@@ -17,6 +17,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CPU_SV = ROOT / "hdl" / "cpu" / "h8_cpu.sv"
 MCU_SV = ROOT / "hdl" / "mcu" / "sc55_mcu.sv"
 PCM_SV = ROOT / "hdl" / "pcm" / "sc55_pcm.sv"
+SUBMCU_SV = ROOT / "hdl" / "submcu" / "sc55_submcu.sv"
+SDP_SV = ROOT / "hdl" / "common" / "sdp_ram.sv"
 SIM_BUILD = ROOT / "out" / "sim"
 
 # (name, old, new): `old` must occur exactly once in the target file
@@ -53,6 +55,28 @@ PCM_MUTATIONS = [
     ("reverb step 17 reads tv + 0", "`ER(`EA1(29, 10));", "`ER(`EA(29, 10));"),
     ("send slot 21 to the wrong sum (ram2[31][2] low byte is 00 for every reverb x chorus macro on mk1: expected MISSED)", "6'd21: rs0 = addclip20(rs0, rcadd2[2] >>> 1, rcadd2[2] & 1);", "6'd21: rs1 = addclip20(rs1, rcadd2[2] >>> 1, rcadd2[2] & 1);"),
     ("ROM bank select ignores 3d bit 5", "bank = r3d[5] ? address[23:21] : address[21:19];", "bank = address[21:19];"),
+]
+
+SUBMCU_MUTATIONS = [
+    ("pointer high byte from the next address (SM_Read16 reads one address twice)",
+     "ea <= {rdata, rdata} + ((md == M_INDY)", "ea <= {8'h00, rdata} + ((md == M_INDY)"),
+    ("JSR pushes PC low first", "do_write({8'h00, s}, (pcnt == 2'd0) ? pc[15:8] : pc[7:0]);",
+     "do_write({8'h00, s}, (pcnt == 2'd0) ? pc[7:0] : pc[15:8]);"),
+    ("STA zp,X wraps at 0xff", "M_ZPXU: return {8'h00, lo} + {8'h00, xv};", "M_ZPXU: return {8'h00, lo + xv};"),
+    ("STX 96 indexes with Y", "8'h96: begin m = M_ZPXU; k = K_STX; end", "8'h96: begin m = M_ZPY; k = K_STX; end"),
+    ("LDA ignores T", "K_LDA: if (t_mode) do_write({8'h00, x}, d);", "K_LDA: if (1'b0) do_write({8'h00, x}, d);"),
+    ("IPCM0 interrupt to the timer vector", "begin int_go = 1; int_vec = 4'd5; int_clr = 8'h10; end",
+     "begin int_go = 1; int_vec = 4'd4; int_clr = 8'h10; end"),
+    ("timer reload one less", "counter <= dm[D_TIMER];", "counter <= dm[D_TIMER] - 8'd1;"),
+    ("MIDI byte delay 11000", "rx_delay <= cycles + 48'd12000;", "rx_delay <= cycles + 48'd11000;"),
+    ("sys read keeps IPCE", "dm[D_IPCE0 + 5'(sys_addr[1:0])] <= 8'h00;", "dm[D_IPCE0 + 5'(sys_addr[1:0])] <= dm[D_IPCE0 + 5'(sys_addr[1:0])];"),
+    ("SM read clears access when RAM_DIR clear", "if (dm[D_RAM_DIR][ad[7:5]]) access", "if (!dm[D_RAM_DIR][ad[7:5]]) access"),
+    ("GA line 5 from UART3 control bit 4", "ga5_val <= m0d[7] && !m0e[5];", "ga5_val <= m0d[7] && !m0e[4];"),
+    ("compare carry inverted", "r[F_C] = !df[8];", "r[F_C] = df[8];"),
+    ("BBx A sense inverted", "if (a[opc[7:5]] != opc[4]) pc <= pc", "if (a[opc[7:5]] == opc[4]) pc <= pc"),
+    ("collision write sets bit 7", "D_COLL:    dm[D_COLL] <= {d[7] & dm[D_COLL][7], d[6:0]};", "D_COLL:    dm[D_COLL] <= {d[7], d[6:0]};"),
+    ("instruction 47 cycles", "cycles <= cycles + 48'd48;", "cycles <= cycles + 48'd47;"),
+    ("P1 button group swapped", "if (!p0[1]) d &= ~b[15:8];", "if (!p0[1]) d &= ~b[23:16];"),
 ]
 
 CPU_MUTATIONS = [
@@ -92,7 +116,7 @@ def build(target: str, srcs: list, out: pathlib.Path) -> pathlib.Path:
     libs = [SIM_BUILD / "ref" / "libsc55_common_traced.a", SIM_BUILD / "ref" / "libsc55_backend_traced.a"]
     cflags = "-std=c++20 -O2 " + " ".join(f"-I{p}" for p in inc)
     bench = ROOT / "sim" / target / f"{target}_lockstep.cpp"
-    top = {"cpu": "h8_cpu", "mcu": "sc55_mcu", "pcm": "sc55_pcm"}[target]
+    top = {"cpu": "h8_cpu", "mcu": "sc55_mcu", "pcm": "sc55_pcm", "submcu": "sc55_submcu"}[target]
     extra = [] if target == "cpu" else ["--public-flat-rw"]
     if target == "pcm":
         extra += [f"-I{srcs[0].parent}", f"-I{ROOT / 'hdl' / 'pcm'}"]
@@ -107,6 +131,9 @@ def build(target: str, srcs: list, out: pathlib.Path) -> pathlib.Path:
 def caught(target: str, bench: pathlib.Path, roms: str) -> bool:
     if target == "cpu":
         runs = [["--steps", "3000000"]] + [["--random", str(s), "--steps", "300000"] for s in (1, 2, 3)]
+    elif target == "submcu":
+        runs = ([["--steps", "3000000"], ["--midi-demo", "5", "--buttons", "9", "--steps", "6000000"]]
+                + [["--random", str(s), "--steps", "1000000"] for s in (1, 2, 3)])
     elif target == "mcu":
         runs = [["--steps", "3000000"], ["--midi-demo", "5", "--buttons", "9", "--steps", "6000000"]]
     else:
@@ -125,8 +152,8 @@ def main() -> int:
     target = args[1] if len(args) > 1 else "cpu"
     work = pathlib.Path(args[2]) if len(args) > 2 else ROOT / "out" / f"mutants-{target}"
     work.mkdir(parents=True, exist_ok=True)
-    sv = {"cpu": CPU_SV, "mcu": MCU_SV, "pcm": PCM_SV}[target]
-    muts = {"cpu": CPU_MUTATIONS, "mcu": MCU_MUTATIONS, "pcm": PCM_MUTATIONS}[target]
+    sv = {"cpu": CPU_SV, "mcu": MCU_SV, "pcm": PCM_SV, "submcu": SUBMCU_SV}[target]
+    muts = {"cpu": CPU_MUTATIONS, "mcu": MCU_MUTATIONS, "pcm": PCM_MUTATIONS, "submcu": SUBMCU_MUTATIONS}[target]
     src = sv.read_text()
     missed = []
     incs = {f.name: f.read_text() for f in (ROOT / "hdl" / "pcm").glob("*.svh")} if target == "pcm" else {}
@@ -141,7 +168,7 @@ def main() -> int:
             (d / sv.name).write_text(src)
             for n, s in incs.items():
                 (d / n).write_text(s.replace(old, new) if n == where[0] else s)
-            bench = build(target, [d / sv.name], d / "obj")
+            bench = build(target, [SDP_SV, d / sv.name], d / "obj")
             ok = caught(target, bench, roms)
             print(f"[{i:02d}] {'caught' if ok else 'MISSED'}: {name}", flush=True)
             if not ok and "expected MISSED" not in name:
@@ -160,7 +187,8 @@ def main() -> int:
         if target == "pcm":
             for n, s in incs.items():
                 (d / n).write_text(s)
-        srcs = {"cpu": [d / sv.name], "mcu": [CPU_SV, d / sv.name], "pcm": [d / sv.name]}[target]
+        srcs = {"cpu": [d / sv.name], "mcu": [SDP_SV, CPU_SV, SUBMCU_SV, d / sv.name], "pcm": [SDP_SV, d / sv.name],
+                "submcu": [SDP_SV, d / sv.name]}[target]
         bench = build(target, srcs, d / "obj")
         ok = caught(target, bench, roms)
         print(f"[{i:02d}] {'caught' if ok else 'MISSED'}: {name}", flush=True)
