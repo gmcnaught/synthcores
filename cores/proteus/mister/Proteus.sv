@@ -46,7 +46,7 @@ localparam CONF_STR = {
 	"F1,BIN,Load System;",
 	"-;",
 	"O[9:8],Volume,Max,75%,50%,25%;",
-	"O[11:10],Output Level,+12dB,+6dB,0dB,+18dB;",
+	"O[11:10],Output Level,0dB,+6dB,+12dB,+18dB;",
 	"J1,Master,Edit,Cursor,Enter;",
 	"jn,A,B,X,Y;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
@@ -171,11 +171,11 @@ assign DDRAM_CLK = clk_sys;
 ///////////////////////   AUDIO   ///////////////////////////////
 
 // Output level: the chip model mixes with 4x headroom for 32 full-level voices
-// (a single centred voice peaks near -18 dBFS); gain here with saturation.
-// Applied after the DDR3 capture, so the capture still matches the reference model.
-wire [1:0] gain_sh = (status[11:10] == 2'd0) ? 2'd2 :      // +12 dB (default)
-                     (status[11:10] == 2'd1) ? 2'd1 :      // +6 dB
-                     (status[11:10] == 2'd2) ? 2'd0 : 2'd3; // 0 dB, +18 dB
+// (a single centred voice peaks near -18 dBFS). Optional extra gain with hard
+// saturation; the MiSTer core-volume boost (soft knee, sys/audio_out.sv) is the
+// usual way to raise the level. Applied after the DDR3 capture, so the capture
+// still matches the reference model.
+wire [1:0] gain_sh = status[11:10];                         // 0, +6, +12, +18 dB
 function signed [15:0] sat_shift(input signed [15:0] x, input [1:0] sh);
 	reg signed [18:0] y;
 	begin
