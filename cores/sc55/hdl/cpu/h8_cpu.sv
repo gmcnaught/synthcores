@@ -34,6 +34,7 @@ module h8_cpu (
     // MCU_Interrupt_GetVL reads
     input  logic [20:0] int_pending,
     input  logic [7:0]  ipra, iprb, iprc, iprd, p1cr,
+    input  logic        int_hold,         // wait before the interrupt check (a pending IRQ0 not yet known)
 
     // reset vector load: hold `reset_start` with the step machinery idle
     input  logic        reset_start,
@@ -322,7 +323,9 @@ module h8_cpu (
             // ---------------------------------------------------- interrupts
             S_INT: begin
                 int_clear_exc <= 1'b0;
-                if (ex_ignore) begin
+                if (int_hold && !ex_ignore) begin
+                    // the check needs the PCM's IRQ0 for the frames due by now
+                end else if (ex_ignore) begin
                     ex_ignore <= 1'b0;
                     state <= S_EXEC;
                 end else if (trapa_p != 16'h0) begin
@@ -343,7 +346,11 @@ module h8_cpu (
                     int_has_mask <= 1'b1; int_mask <= irq_lvl;
                     `READ({14'h0, irq_vec, 2'b00}, 4, S_IVEC)
                 end else begin
-                    state <= S_EXEC;
+                    // S_EXEC's work, one clock earlier
+                    g_do_write <= 1'b0;
+                    ran <= !sleep_f;
+                    if (sleep_f) state <= S_END;
+                    else `FETCH(1, S_OP1)
                 end
             end
             S_IVEC: begin
@@ -411,9 +418,15 @@ module h8_cpu (
                     bus_req <= 1'b1; bus_we <= 1'b0; bus_addr <= {cp, pc};
                     pc <= pc + 16'd1;
                 end else if (bus_ack) begin
-                    bus_req <= 1'b0;
                     f_data <= {f_data[15:0], bus_rdata};
-                    if (f_n == 2'd1) state <= ret;
+                    if (f_n == 2'd1) begin
+                        bus_req <= 1'b0;
+                        state <= ret;
+                    end else begin
+                        // next byte back to back: keep the request, new address
+                        bus_addr <= {cp, pc};
+                        pc <= pc + 16'd1;
+                    end
                     f_n <= f_n - 2'd1;
                 end
             end
@@ -424,10 +437,15 @@ module h8_cpu (
                     bus_req <= 1'b1; bus_we <= m_we; bus_addr <= m_addr;
                     bus_wdata <= (m_n == 3'd2) ? m_data[15:8] : m_data[7:0];
                 end else if (bus_ack) begin
-                    bus_req <= 1'b0;
                     if (!m_we) m_data <= {m_data[23:0], bus_rdata};
                     m_addr <= m_addr + 24'd1;
-                    if (m_n == 3'd1) state <= ret;
+                    if (m_n == 3'd1) begin
+                        bus_req <= 1'b0;
+                        state <= ret;
+                    end else begin
+                        bus_addr <= m_addr + 24'd1;
+                        bus_wdata <= m_data[7:0];          // second byte of a 16-bit write
+                    end
                     m_n <= m_n - 3'd1;
                 end
             end
