@@ -226,7 +226,7 @@ int main(int argc, char** argv)
 
     t->clk_vid = 0;
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
-    t->midi_inject = 0; t->buttons = 0; t->pace_enable = 0; t->step_gate = 0;
+    t->midi_inject = 0; t->buttons = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0;
     for (int i = 0; i < 8; ++i) tick();
     t->rst = 0;
     tick();
