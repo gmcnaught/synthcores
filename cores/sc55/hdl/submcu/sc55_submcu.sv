@@ -198,19 +198,25 @@ module sc55_submcu (
     logic [3:0] int_vec;
     logic [7:0] int_clr;          // INT_REQUEST bits to clear (COLLISION handled separately)
     logic       int_coll;
+    // {go, vector, request bits to clear, collision} for request register `rq`
+    function automatic logic [13:0] int_eval(input logic i_flag, input logic [7:0] u1c, input logic [7:0] u2c,
+                                             input logic [7:0] u3c, input logic [7:0] en, input logic [7:0] rq,
+                                             input logic [7:0] tctrl, input logic [7:0] coll);
+        if (i_flag) return 14'h0;
+        if (u1c[3] && en[7] && rq[7]) return {1'b1, 4'd8, 8'h80, 1'b0};
+        if (u2c[3] && en[6] && rq[6]) return {1'b1, 4'd7, 8'h40, 1'b0};
+        if (u3c[3] && en[5] && rq[5]) return {1'b1, 4'd6, 8'h20, 1'b0};
+        if (tctrl[7] && en[4] && rq[4]) return {1'b1, 4'd5, 8'h10, 1'b0};
+        if (tctrl[6] && en[3] && rq[3]) return {1'b1, 4'd4, 8'h08, 1'b0};
+        if (coll[7:6] == 2'b11) return {1'b1, 4'd3, 8'h00, 1'b1};
+        if (!u1c[4] && en[2] && rq[2]) return {1'b1, 4'd2, 8'h04, 1'b0};
+        if (!u2c[4] && en[1] && rq[1]) return {1'b1, 4'd1, 8'h02, 1'b0};
+        if (!u3c[4] && en[0] && rq[0]) return {1'b1, 4'd0, 8'h01, 1'b0};
+        return 14'h0;
+    endfunction
     always_comb begin
-        int_go = 1'b0; int_vec = 4'd0; int_clr = 8'h00; int_coll = 1'b0;
-        if (!sr[F_I]) begin
-            if (dm[D_U1_CTRL][3] && dm[D_INT_EN][7] && dm[D_INT_REQ][7]) begin int_go = 1; int_vec = 4'd8; int_clr = 8'h80; end
-            else if (dm[D_U2_CTRL][3] && dm[D_INT_EN][6] && dm[D_INT_REQ][6]) begin int_go = 1; int_vec = 4'd7; int_clr = 8'h40; end
-            else if (dm[D_U3_CTRL][3] && dm[D_INT_EN][5] && dm[D_INT_REQ][5]) begin int_go = 1; int_vec = 4'd6; int_clr = 8'h20; end
-            else if (dm[D_TCTRL][7] && dm[D_INT_EN][4] && dm[D_INT_REQ][4]) begin int_go = 1; int_vec = 4'd5; int_clr = 8'h10; end
-            else if (dm[D_TCTRL][6] && dm[D_INT_EN][3] && dm[D_INT_REQ][3]) begin int_go = 1; int_vec = 4'd4; int_clr = 8'h08; end
-            else if (dm[D_COLL][7:6] == 2'b11) begin int_go = 1; int_vec = 4'd3; int_coll = 1; end
-            else if (!dm[D_U1_CTRL][4] && dm[D_INT_EN][2] && dm[D_INT_REQ][2]) begin int_go = 1; int_vec = 4'd2; int_clr = 8'h04; end
-            else if (!dm[D_U2_CTRL][4] && dm[D_INT_EN][1] && dm[D_INT_REQ][1]) begin int_go = 1; int_vec = 4'd1; int_clr = 8'h02; end
-            else if (!dm[D_U3_CTRL][4] && dm[D_INT_EN][0] && dm[D_INT_REQ][0]) begin int_go = 1; int_vec = 4'd0; int_clr = 8'h01; end
-        end
+        {int_go, int_vec, int_clr, int_coll} = int_eval(sr[F_I], dm[D_U1_CTRL], dm[D_U2_CTRL], dm[D_U3_CTRL],
+                                                        dm[D_INT_EN], dm[D_INT_REQ], dm[D_TCTRL], dm[D_COLL]);
     end
 
     // ------------------------------------------------------------ sequencer
@@ -241,7 +247,7 @@ module sc55_submcu (
 
     always_comb begin
         case (q)
-            Q_LOOP, Q_F, Q_OPC, Q_B1: rom_ra = pc[11:0];
+            Q_LOOP, Q_F, Q_OPC, Q_B1, Q_TIMER: rom_ra = pc[11:0];
             Q_VEC_LO, Q_VEC_HI:      rom_ra = npc[11:0];
             Q_POP:                   rom_ra = {4'h0, s};
             default:                 rom_ra = ea[11:0];
@@ -327,6 +333,60 @@ module sc55_submcu (
             default: return {8'h00, lo};         // M_ZP, M_ZP2, M_INDY, M_IMM, M_REL
         endcase
     endfunction
+
+    // Q_ADDR's work: the memory operand's (or pointer's) address e, the first operand byte o1
+    task automatic dispatch(input logic [15:0] e, input logic [7:0] o1);
+        logic cond;
+        q <= Q_TIMER;
+        case (kd)
+            K_BR: begin
+                case (opc)
+                    8'h10: cond = !sr[F_N];
+                    8'h90: cond = !sr[F_C];
+                    8'hb0: cond = sr[F_C];
+                    8'hd0: cond = !sr[F_Z];
+                    8'hf0: cond = sr[F_Z];
+                    default: cond = 1'o1;     // BRA
+                endcase
+                if (cond) pc <= pc + {{8{o1[7]}}, o1};
+            end
+            K_BB: begin
+                if (md == M_REL) begin
+                    if (a[opc[7:5]] != opc[4]) pc <= pc + {{8{o1[7]}}, o1};
+                end else begin
+                    issue_read(e);           // BBx zp: the byte, then the test (disp in b2)
+                    q <= Q_DATA;
+                end
+            end
+            K_SEB: begin issue_read(e); q <= Q_DATA; end
+            K_LDM: do_write({8'h00, b2}, o1);
+            K_JMP: pc <= {b2, o1};
+            K_JSR: begin
+                npc <= (opc == 8'h22) ? {8'hff, o1} : {b2, o1};
+                pcnt <= 2'd0;
+                q <= Q_JPUSH;
+            end
+            K_JSRP, K_JMPI: begin issue_read(e); q <= Q_PTRJ; end
+            default: begin
+                if ((md == M_INDX || md == M_INDY) && !ind_done) begin
+                    issue_read(e);           // the pointer
+                    q <= Q_PTR;
+                end else if (kd == K_STA) do_write(e, a);
+                else if (kd == K_STX) do_write(e, x);
+                else if (kd == K_STY) do_write(e, y);
+                else if (kd == K_NI || kd == K_NOP) begin
+                end else if (t_mode && (kd == K_ORA || kd == K_AND)) begin
+                    issue_read({8'h00, x});   // T: the A operand is mem[X]
+                    q <= Q_VX;
+                end else if (md == M_IMM) begin
+                    exec(o1, a);
+                end else begin
+                    issue_read(e);
+                    q <= Q_DATA;
+                end
+            end
+        endcase
+    endtask
 
     wire t_mode = sr[F_T];
 
@@ -531,8 +591,10 @@ module sc55_submcu (
                     pc <= pc + 16'd1;
                     q <= Q_B2;
                 end else begin
+                    // one operand byte: its data or pointer address is below 0x200 (never ROM), so the
+                    // dispatch can issue its read now
                     ea <= calc_ea(md, rdata, 8'h00, x, y);
-                    q <= Q_ADDR;
+                    dispatch(calc_ea(md, rdata, 8'h00, x, y), rdata);
                 end
             end
             Q_B2: begin
@@ -542,57 +604,7 @@ module sc55_submcu (
             end
 
             // ---------------------------------------------------- address known: dispatch
-            Q_ADDR: begin
-                q <= Q_TIMER;
-                case (kd)
-                    K_BR: begin
-                        case (opc)
-                            8'h10: cond = !sr[F_N];
-                            8'h90: cond = !sr[F_C];
-                            8'hb0: cond = sr[F_C];
-                            8'hd0: cond = !sr[F_Z];
-                            8'hf0: cond = sr[F_Z];
-                            default: cond = 1'b1;     // BRA
-                        endcase
-                        if (cond) pc <= pc + {{8{b1[7]}}, b1};
-                    end
-                    K_BB: begin
-                        if (md == M_REL) begin
-                            if (a[opc[7:5]] != opc[4]) pc <= pc + {{8{b1[7]}}, b1};
-                        end else begin
-                            issue_read(ea);           // BBx zp: the byte, then the test (disp in b2)
-                            q <= Q_DATA;
-                        end
-                    end
-                    K_SEB: begin issue_read(ea); q <= Q_DATA; end
-                    K_LDM: do_write({8'h00, b2}, b1);
-                    K_JMP: pc <= {b2, b1};
-                    K_JSR: begin
-                        npc <= (opc == 8'h22) ? {8'hff, b1} : {b2, b1};
-                        pcnt <= 2'd0;
-                        q <= Q_JPUSH;
-                    end
-                    K_JSRP, K_JMPI: begin issue_read(ea); q <= Q_PTRJ; end
-                    default: begin
-                        if ((md == M_INDX || md == M_INDY) && !ind_done) begin
-                            issue_read(ea);           // the pointer
-                            q <= Q_PTR;
-                        end else if (kd == K_STA) do_write(ea, a);
-                        else if (kd == K_STX) do_write(ea, x);
-                        else if (kd == K_STY) do_write(ea, y);
-                        else if (kd == K_NI || kd == K_NOP) begin
-                        end else if (t_mode && (kd == K_ORA || kd == K_AND)) begin
-                            issue_read({8'h00, x});   // T: the A operand is mem[X]
-                            q <= Q_VX;
-                        end else if (md == M_IMM) begin
-                            exec(b1, a);
-                        end else begin
-                            issue_read(ea);
-                            q <= Q_DATA;
-                        end
-                    end
-                endcase
-            end
+            Q_ADDR: dispatch(ea, b1);
             Q_PTR: begin                          // pointer byte: {p, p} (+ Y)
                 ea <= {rdata, rdata} + ((md == M_INDY) ? {8'h00, y} : 16'h0000);
                 ind_done <= 1'b1;
@@ -687,7 +699,29 @@ module sc55_submcu (
                         rx_delay <= cy + 48'd12000;
                     end
                     tcont <= 1'b0;
-                    q <= Q_LOOP;
+                    // the next iteration (Q_LOOP's work) with the request register as now updated
+                    if (!(cy < target5)) begin
+                        done <= 1'b1;
+                        q <= Q_IDLE;
+                    end else begin : b_next
+                        logic [13:0] iv;
+                        iv = int_eval(sr[F_I], dm[D_U1_CTRL], dm[D_U2_CTRL], dm[D_U3_CTRL], dm[D_INT_EN], ir, dm[D_TCTRL], dm[D_COLL]);
+                        if (iv[13]) begin
+                            if (iv[0]) dm[D_COLL][7] <= 1'b0;
+                            else ir = ir & ~iv[8:1];
+                            npc <= 16'h1fec + {11'h0, iv[12:9], 1'b0};
+                            pcnt <= 2'd0;
+                            q <= Q_PUSH;
+                        end else if (sleep) begin
+                            q <= Q_TIMER;                 // a sleeping iteration: cycles += 48 next clock
+                        end else if (pc[12]) begin
+                            issue_read(pc);               // the opcode, from ROM
+                            pc <= pc + 16'd1;
+                            q <= Q_OPC;
+                        end else begin
+                            q <= Q_LOOP;                  // code outside the ROM: fetch with its side effects in order
+                        end
+                    end
                 end
                 dm[D_INT_REQ] <= ir;
             end
