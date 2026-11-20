@@ -46,6 +46,7 @@ localparam CONF_STR = {
 	"F1,BIN,Load System;",
 	"-;",
 	"O[9:8],Volume,Max,75%,50%,25%;",
+	"O[11:10],Output Level,+12dB,+6dB,0dB,+18dB;",
 	"J1,Master,Edit,Cursor,Enter;",
 	"jn,A,B,X,Y;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
@@ -169,9 +170,30 @@ assign DDRAM_CLK = clk_sys;
 
 ///////////////////////   AUDIO   ///////////////////////////////
 
+// Output level: the chip model mixes with 4x headroom for 32 full-level voices
+// (a single centred voice peaks near -18 dBFS); gain here with saturation.
+// Applied after the DDR3 capture, so the capture still matches the reference model.
+wire [1:0] gain_sh = (status[11:10] == 2'd0) ? 2'd2 :      // +12 dB (default)
+                     (status[11:10] == 2'd1) ? 2'd1 :      // +6 dB
+                     (status[11:10] == 2'd2) ? 2'd0 : 2'd3; // 0 dB, +18 dB
+function signed [15:0] sat_shift(input signed [15:0] x, input [1:0] sh);
+	reg signed [18:0] y;
+	begin
+		y = $signed({{3{x[15]}}, x}) <<< sh;
+		if (y > 19'sd32767)       sat_shift = 16'sd32767;
+		else if (y < -19'sd32768) sat_shift = -16'sd32768;
+		else                      sat_shift = y[15:0];
+	end
+endfunction
+reg signed [15:0] aud_l, aud_r;
+always @(posedge clk_sys) begin
+	aud_l <= sat_shift(out_l, gain_sh);
+	aud_r <= sat_shift(out_r, gain_sh);
+end
+
 assign AUDIO_S   = 1;
-assign AUDIO_L   = out_l;
-assign AUDIO_R   = out_r;
+assign AUDIO_L   = aud_l;
+assign AUDIO_R   = aud_r;
 assign AUDIO_MIX = 0;
 
 ///////////////////////   VIDEO   ///////////////////////////////
