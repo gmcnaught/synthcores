@@ -42,8 +42,12 @@ target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
 verilate(board_lockstep SOURCES ${BOARD_SV} "${HDL}/common/sdp_ram.sv" "${HDL}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${HDL}/mcu/sc55_mcu.sv" "${HDL}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
          TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${HDL}/pcm" "${HDL}/board"
          VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
-         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"")
+         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DRESAMPLE_HEX=\"${HDL}/board/resample_coef.hex\"")
 
 add_executable(resample_tb resample/resample_tb.cpp)
-verilate(resample_tb SOURCES "${HDL}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
-         INCLUDE_DIRS "${HDL}/board" VERILATOR_ARGS ${VFLAGS})
+verilate(resample_tb SOURCES "${HDL}/common/sdp_ram.sv" "${HDL}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
+         INCLUDE_DIRS "${HDL}/board" VERILATOR_ARGS ${VFLAGS} "-DRESAMPLE_HEX=\"${HDL}/board/resample_coef.hex\"")
+
+# model-only analysis: ROM2 access statistics (mk2 ROM2-in-SDRAM design)
+add_executable(rom2_stats tools/rom2_stats.cpp common/midi_demo.cpp)
+target_link_libraries(rom2_stats PRIVATE sc55_common_traced)
