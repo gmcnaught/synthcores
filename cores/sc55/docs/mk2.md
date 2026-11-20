@@ -48,32 +48,48 @@ Where the board's clocks go (mk1, free run with loud MIDI, `board_lockstep
 Fetching one byte a clock (or two bytes a read) and trimming the step
 overhead gives about 20, inside the mk2's 25.
 
-## Consequences for the HDL
+## How the HDL does it
 
-1. **ROM2 cannot be block RAM.** The mk1 build uses 453 of 553 M10K blocks
-   and the mk1 ROM2 alone takes 256; the mk2 ROM2 needs 512. Decision
-   (2026-11-20, with the user): ROM2 in SDRAM (the MiSTer SDRAM board: fixed,
-   low latency, unlike DDR3), with a small block-RAM cache in front for
-   instruction fetch; ROM1, SRAM and the sub-MCU memories stay in block
-   RAM; wave ROMs stay in DDR3. The mk2 needs the SDRAM board.
-2. **Step budget.** 500 ns at 50 MHz is 25 clocks a step; the mk1 core
-   averages 26.6 (free-run bench, loud MIDI) and must also absorb ROM2
-   cache misses. Needed: fewer clocks a step (the CPU's two-clock memory
-   accesses, PCM catch-up waits) and/or a faster core clock (at 50 MHz the
-   worst slack is +0.84 ns, about 52 MHz).
-3. **One RBF or two.** With ROM2 external, one core can carry both models,
-   chosen by the ROM pack header (`romset.py pack --romset`); the sub-MCU
-   is idle on mk1.
+1. **ROM2.** The mk1 build uses 453 of 553 M10K blocks and the mk1 ROM2
+   alone takes 256; the mk2 ROM2 needs 512. The first plan was ROM2 in
+   SDRAM; measured first (`sim/tools/rom2_stats.cpp`, model only): the mk2
+   firmware reads ROM2 0.45 times a step (at most 8 in a step) and never
+   its upper 256 KB in 30 M steps of loud or random MIDI (the upper half
+   holds data, 0x40000-0x5ffff). So the first 256 KB stay in block RAM as
+   on the mk1 and the upper 256 KB are in DDR3 (+4 MB after the wave ROMs)
+   behind `hdl/board/rom2x_cache.sv` (2 KB direct-mapped, 8-byte lines,
+   `wave_ddr` line port). No SDRAM board is needed.
+2. **Step budget.** 500 ns at 50 MHz is 25 clocks a step. The sub-MCU
+   runs each step's SM_Update alongside the next step (a live
+   `5 * cycles` target, published at the device phase with the
+   receive-buffer bytes it may take); the MCU waits for it only at the
+   EC00 window, E402, RDR reads, SSR writes, and at the interrupt check
+   while GA line 5 could still raise IRQ1. Its timer ticks, UART update
+   and cycle add take one clock. mk2 system bench, loud MIDI: 31.2 ->
+   20.4 HDL clocks a step.
+3. **One RBF.** The pack's model byte (`romset.py pack --romset`, pack v2)
+   selects mk1, SC-155, mk2 or SC-155mk2 at load; the sub-MCU is idle on
+   the mk1.
+4. **Output rate.** With oversampling the mk2 makes 48 MHz / 725 =
+   66,207 Hz; 48 kHz is exactly 29/40 of it: `resample.sv` has both
+   designs (L 3, M 4 and L 29, M 40), chosen by the model.
 
-## Order of work
+## Verification
 
-1. Benches take the romset as an argument (mk1 or mk2); the reference
-   model already runs both.
-2. Sub-MCU CPU (`hdl/submcu/`) in lockstep with `submcu.cpp`, as M1 did for
-   the H8 (random programs, firmware, seeded faults).
-3. MCU mk2 memory map, timers and pins; PCM mk2 filter, bank 0 at 2 MB,
-   28 voices.
-4. ROM2 in SDRAM with a fetch cache; the board bench (with an SDRAM model) measures clocks
-   per step against 25.
-5. System lockstep: avmidi files against jcmoyer's mk2 hashes (the M4
-   criterion), then the M5 criteria on the MiSTer.
+| Bench (mk2-v1.01) | Result |
+|---|---|
+| `submcu_lockstep`: boot; MIDI + buttons 15 M steps | identical (18.6 M sub-MCU instructions, 14,848 MIDI bytes) |
+| `submcu_lockstep --random`: random code, reseeded registers | identical; 253-256 of 256 opcode values executed |
+| `mutate.py ROMS submcu` | 16/16 seeded faults caught |
+| `mcu_lockstep`: CPU + devices + sub-MCU, MIDI + buttons 15 M steps | identical (also sc155-rev1 and mk1-v1.21) |
+| `pcm_lockstep`: loud MIDI 12 M steps | identical, 397,260 samples |
+| `system_lockstep --smf avmidi/0A.mid` | SHA-256 222e0892...0f59 = jcmoyer's mk2 integration hash |
+| `board_lockstep`: power-on, pack v2 over ioctl, DDR3 model | identical; LCD frame identical |
+
+Found on the way: a single A/D conversion (the mk1 firmware only scans)
+wrote its result to dev[0x36] instead of 0x60 + 2 * channel.
+
+## Still to do
+
+- Quartus fit and timing with the sub-MCU and the ROM2 cache
+- the MiSTer run (M5 criteria with the mk2 pack)
