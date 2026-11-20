@@ -92,29 +92,51 @@ def unscramble(src: bytes) -> bytes:
     return bytes(out)
 
 
-PACK_LAYOUT = {  # mk1: offsets in the pack (hdl/board/rom_loader.sv)
-    "ROM1": (0x000100, 0x8000),
-    "ROM2": (0x008100, 0x40000),
-    "WAVEROM1": (0x048100, 0x100000),
-    "WAVEROM2": (0x148100, 0x100000),
-    "WAVEROM3": (0x248100, 0x100000),
-}
-PACK_SIZE = 0x348100
+# Pack v2 (hdl/board/rom_loader.sv), every supported model:
+#   0x000000  header: "SC55", 2, model (0 mk1, 1 SC-155, 2 mk2, 3 SC-155mk2), 250 bytes reserved
+#   0x000100  ROM1 (32 KB)
+#   0x008100  ROM2 (512 KB; a 256 KB ROM2 is followed by zeros)
+#   0x088100  sub-MCU ROM (4 KB; zeros on the mk1)
+#   0x089100  wave ROMs as the PCM chip addresses them (4 MB): mk1 waverom1..3
+#             at 0, 1 MB, 2 MB; mk2 waverom1 (2 MB) at 0, waverom2 at 2 MB
+# (Pack v1 was the mk1 layout ROM1 0x100, ROM2 0x8100, waves 0x48100; the
+# loader still reads it.)
+MODELS = {"mk1": 0, "sc155": 1, "mk2": 2, "sc155mk2": 3}
+ROM1_AT, ROM2_AT, SMROM_AT, WAVE_AT = 0x000100, 0x008100, 0x088100, 0x089100
+PACK_SIZE = WAVE_AT + 0x400000
+
+
+def model_of(romset: str) -> int:
+    for prefix in ("sc155mk2", "sc155", "mk2", "mk1"):
+        if romset.startswith(prefix + "-"):
+            return MODELS[prefix]
+    raise LookupError(f"{romset}: the core supports mk1, SC-155, mk2 and SC-155mk2 romsets")
 
 
 def pack(directory: pathlib.Path, romset: str) -> bytes:
-    if not romset.startswith("mk1-"):
-        raise LookupError("the core supports mk1 romsets only (for now)")
+    model = model_of(romset)
+    mk2 = model >= 2
     files = find_romset(directory, romset)
     out = bytearray(PACK_SIZE)
-    out[0:5] = b"SC55\x01"
-    for loc, (off, size) in PACK_LAYOUT.items():
+    out[0:6] = b"SC55" + bytes([2, model])
+
+    def put(loc, off, sizes):
         data = files[loc].read_bytes()
-        if len(data) != size:
-            raise LookupError(f"{loc}: {len(data)} bytes, expected {size}")
+        if len(data) not in sizes:
+            raise LookupError(f"{loc}: {len(data)} bytes, expected {sizes}")
         if loc.startswith("WAVEROM"):
             data = unscramble(data)
-        out[off:off + size] = data
+        out[off:off + len(data)] = data
+
+    put("ROM1", ROM1_AT, (0x8000,))
+    put("ROM2", ROM2_AT, (0x80000,) if mk2 else (0x40000,))
+    if mk2:
+        put("SMROM", SMROM_AT, (0x1000,))
+        put("WAVEROM1", WAVE_AT, (0x200000,))
+        put("WAVEROM2", WAVE_AT + 0x200000, (0x100000,))
+    else:
+        for k in range(3):
+            put(f"WAVEROM{k + 1}", WAVE_AT + k * 0x100000, (0x100000,))
     return bytes(out)
 
 

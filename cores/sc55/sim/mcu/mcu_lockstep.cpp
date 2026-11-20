@@ -17,6 +17,7 @@
 #include "emu.h"
 #include "mcu.h"
 #include "mcu_timer.h"
+#include "submcu.h"
 #include "ref_hooks.h"
 #include "rom_loader.h"
 #include "../common/midi_demo.h"
@@ -81,7 +82,8 @@ int main(int argc, char** argv)
     if (!emu.LoadRoms(load.romset, load.romset_info)) { fprintf(stderr, "LoadRoms failed\n"); return 2; }
     mcu_t&       m  = emu.GetMCU();
     mcu_timer_t& tm = *m.timer;
-    if (!m.is_mk1) { fprintf(stderr, "M2 bench covers mk1 romsets only\n"); return 2; }
+    const bool mk2 = !m.is_mk1;
+    if (m.is_jv880 || m.is_scb55 || m.is_cm300) { fprintf(stderr, "only SC-55 / SC-155 romsets (mk1, mk2)\n"); return 2; }
 
     VerilatedContext ctx;
     ctx.commandArgs(argc, argv);
@@ -91,6 +93,7 @@ int main(int argc, char** argv)
     auto tick = [&]() { t->clk = 0; t->eval(); t->clk = 1; t->eval(); ++clocks; };
 
     t->rst = 1; t->run_step = 0; t->reset_start = 0; t->ld_we = 0; t->midi_valid = 0;
+    t->mk2 = mk2; t->sc155 = m.is_sc155; t->rom2x_ack = 0;
     t->buttons = 0; t->pcm_ack = 0; t->pcm_irq0 = 0; t->pcm_irq_known = 1; t->cpu_ld_en = 0;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
@@ -103,7 +106,8 @@ int main(int argc, char** argv)
         t->ld_we = 0;
     };
     load_mem(0, m.rom1, sizeof m.rom1);
-    load_mem(1, m.rom2, 0x40000);
+    load_mem(1, m.rom2, (size_t)m.rom2_mask + 1);
+    if (mk2) load_mem(4, m.sm->rom, 4096);
     load_mem(2, m.sram, sizeof m.sram);
     load_mem(3, m.ram, sizeof m.ram);
 
@@ -170,7 +174,7 @@ int main(int argc, char** argv)
             t->pcm_ack = 0;
             if (t->pcm_req && !pcm_acked)
             {
-                if (k >= g_rec.size() || (g_rec[k].addr & 0xffffc0) != 0xe000 || g_rec[k].write != (bool)t->pcm_we ||
+                if (k >= g_rec.size() || (g_rec[k].addr & (mk2 ? 0xfffc00u : 0xffffc0u)) != 0xe000 || g_rec[k].write != (bool)t->pcm_we ||
                     (g_rec[k].addr & 0x3f) != t->pcm_addr)
                 {
                     char msg[160];
@@ -203,6 +207,7 @@ int main(int argc, char** argv)
             done = t->step_done;
         }
         t->pcm_ack = 0;
+        if (mk2) for (int g = 0; g < 4000 && !R->sc55_mcu__DOT__sm_caught_up; ++g) tick();   // the sub-MCU runs alongside the next step
         n_acc += k;
         if (!done) return fail("HDL step did not finish");
         if (k != g_rec.size())
@@ -263,8 +268,34 @@ int main(int argc, char** argv)
         cmp("tmr.deadline", R->sc55_mcu__DOT__tmr_deadline, tm.tmr.deadline & 0xffffffffffffull);
         cmp("tmr.stride", R->sc55_mcu__DOT__tmr_stride, tm.tmr.stride);
         cmp("tempreg", R->sc55_mcu__DOT__tempreg, tm.tempreg);
-        cmp("uart_rx_byte", R->sc55_mcu__DOT__uart_rx_byte, m.uart_rx_byte);
-        cmp("uart_rx_delay", R->sc55_mcu__DOT__uart_rx_delay, m.uart_rx_delay);
+        if (!mk2)
+        {
+            cmp("uart_rx_byte", R->sc55_mcu__DOT__uart_rx_byte, m.uart_rx_byte);
+            cmp("uart_rx_delay", R->sc55_mcu__DOT__uart_rx_delay, m.uart_rx_delay);
+        }
+        else
+        {
+            // the sub-MCU (shared uart_rx_byte / uart_rx_delay)
+            submcu_t& sm = *m.sm;
+            cmp("uart_rx_byte", R->sc55_mcu__DOT__sm__DOT__rx_byte, m.uart_rx_byte);
+            cmp("uart_rx_delay", R->sc55_mcu__DOT__sm__DOT__rx_delay, m.uart_rx_delay);
+            cmp("sm.pc", R->sc55_mcu__DOT__sm__DOT__pc, sm.pc);
+            cmp("sm.a", R->sc55_mcu__DOT__sm__DOT__a, sm.a);
+            cmp("sm.x", R->sc55_mcu__DOT__sm__DOT__x, sm.x);
+            cmp("sm.y", R->sc55_mcu__DOT__sm__DOT__y, sm.y);
+            cmp("sm.s", R->sc55_mcu__DOT__sm__DOT__s, sm.s);
+            cmp("sm.sr", R->sc55_mcu__DOT__sm__DOT__sr, sm.sr);
+            cmp("sm.cycles", R->sc55_mcu__DOT__sm__DOT__cycles, sm.cycles);
+            cmp("sm.sleep", R->sc55_mcu__DOT__sm__DOT__sleep, sm.sleep);
+            cmp("sm.timer_cycles", R->sc55_mcu__DOT__sm__DOT__timer_cycles, sm.timer_cycles);
+            cmp("sm.gotbyte", R->sc55_mcu__DOT__sm__DOT__gotbyte, sm.uart_rx_gotbyte);
+            cmp("p0_data", R->sc55_mcu__DOT__sm__DOT__p0_data, m.p0_data);
+            for (int i = 0; i < 32; ++i) if (R->sc55_mcu__DOT__sm__DOT__dm[i] != sm.device_mode[i]) cmp(("sm.dev" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__dm[i], sm.device_mode[i]);
+            for (int i = 0; i < 128; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i] != sm.ram[i]) cmp(("sm.ram" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i], sm.ram[i]);
+            for (int i = 0; i < 192; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i] != sm.shared_ram[i]) cmp(("sm.shared" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i], sm.shared_ram[i]);
+            cmp("ga_int5", R->sc55_mcu__DOT__ga_int5, m.ga_int[5]);
+            cmp("ga_enable", R->sc55_mcu__DOT__ga_en, m.ga_int_enable);
+        }
         cmp("uart_tx_delay", R->sc55_mcu__DOT__uart_tx_delay, m.uart_tx_delay);
         cmp("ssr_rd", R->sc55_mcu__DOT__ssr_rd, (uint8_t)m.ssr_rd);
         cmp("rx_count", (uint32_t)(R->sc55_mcu__DOT__rx_wp - R->sc55_mcu__DOT__rx_rp) & 2047,
@@ -285,8 +316,8 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < sizeof m.ram; ++i) bad += R->sc55_mcu__DOT__u_ram__DOT__mem[i] != m.ram[i];
     if (bad) return fail(std::to_string(bad) + " SRAM/RAM bytes differ at the end");
 
-    printf("OK: %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, ended at %02x:%04x\n",
-           steps, n_acc, n_pcm, clocks, (double)clocks / (double)steps, midi_pos, m.cp, m.pc);
+    printf("OK (%s): %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, ended at %02x:%04x\n",
+           romset.c_str(), steps, n_acc, n_pcm, clocks, (double)clocks / (double)steps, midi_pos, m.cp, m.pc);
     delete t;
     return 0;
 }

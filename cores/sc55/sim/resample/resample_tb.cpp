@@ -1,9 +1,11 @@
 // Feeds hdl/board/resample.sv the 16-bit stereo samples read from stdin
 // ("l r" per line), two at a time like the PCM's bursts, and prints each
 // output "l r" (tests/test_resample.py compares with the Python model).
+// Argument "mk2": the 66,207 Hz -> 48 kHz design.
 #include "Vresample.h"
 #include "verilated.h"
 #include <cstdio>
+#include <string>
 #include <vector>
 
 int main(int argc, char** argv)
@@ -15,6 +17,7 @@ int main(int argc, char** argv)
         t.clk = 0; t.eval(); t.clk = 1; t.eval();
         if (t.out_valid) printf("%d %d\n", (int16_t)t.out_l, (int16_t)t.out_r);
     };
+    t.mk2 = (argc > 1 && std::string(argv[1]) == "mk2") ? 1 : 0;
     t.rst = 1; t.in_valid = 0;
     for (int i = 0; i < 4; ++i) tick();
     t.rst = 0;

@@ -72,16 +72,19 @@ module sc55_board #(
 );
     // ---------------------------------------------------------- ROM load
     logic        ld_we, wave_wr, wave_busy, loading, ok;
-    logic [1:0]  ld_sel;
-    logic [17:0] ld_addr;
+    logic [2:0]  ld_sel;
+    logic [18:0] ld_addr;
+    logic [1:0]  model;                   // from the pack: 0 mk1, 1 SC-155, 2 mk2, 3 SC-155mk2
+    wire         mk2 = model[1];
+    wire         sc155 = model[0];
     logic [7:0]  ld_data, wave_data;
-    logic [21:0] wave_addr;
+    logic [22:0] wave_addr;
 
     rom_loader loader (
         .clk, .rst,
         .ioctl_download, .ioctl_wr, .ioctl_addr, .ioctl_dout, .ioctl_wait,
         .ld_we, .ld_sel, .ld_addr, .ld_data,
-        .wave_wr, .wave_addr, .wave_data, .wave_busy,
+        .wave_wr, .wave_addr, .wave_data, .wave_busy, .model,
         .loading, .ok
     );
     assign rom_ok = ok;
@@ -109,8 +112,8 @@ module sc55_board #(
 
     // ---------------------------------------------------------- pacing
     logic allow;
-    step_pacer #(.CLK_HZ(CLK_HZ), .STEP_NS(600)) pacer (
-        .clk, .rst(core_rst), .enable(pace_enable), .step_done, .allow, .lag_us
+    step_pacer #(.CLK_HZ(CLK_HZ), .STEP_NS(600), .STEP_NS_FAST(500)) pacer (
+        .clk, .rst(core_rst), .enable(pace_enable), .fast(mk2), .step_done, .allow, .lag_us
     );
     assign run_step = running && allow && step_gate;
 
@@ -132,7 +135,8 @@ module sc55_board #(
     sc55_core core (
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
-        .ld_we, .ld_sel, .ld_addr, .ld_data,
+        .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155,
+        .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data,
         .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
@@ -180,10 +184,22 @@ module sc55_board #(
         .lcd_pix, .lcd_x, .lcd_y
     );
 
+    // ROM2's upper half (mk2): DDR3 through a small cache
+    logic        rom2x_req, rom2x_ack, ln_req, ln_valid;
+    logic [17:0] rom2x_addr;
+    logic [7:0]  rom2x_data;
+    logic [14:0] ln_addr;
+    logic [63:0] ln_data;
+    rom2x_cache cache (
+        .clk, .flush(rst || loading), .req(rom2x_req), .addr(rom2x_addr), .ack(rom2x_ack), .data(rom2x_data),
+        .lreq(ln_req), .laddr(ln_addr), .lvalid(ln_valid), .ldata(ln_data)
+    );
+
     wave_ddr #(.BASE(WAVE_BASE)) wave (
         .clk, .rst,
         .wr(wave_wr), .waddr(wave_addr), .wdata(wave_data), .wbusy(wave_busy),
         .req(rom_req), .addr(rom_addr), .ready(rom_ready), .rvalid(rom_rvalid), .rdata(rom_data),
+        .lreq(ln_req), .laddr(ln_addr), .lvalid(ln_valid), .ldata(ln_data),
         .DDRAM_BUSY, .DDRAM_BURSTCNT, .DDRAM_ADDR, .DDRAM_DOUT, .DDRAM_DOUT_READY,
         .DDRAM_RD, .DDRAM_DIN, .DDRAM_BE, .DDRAM_WE
     );
@@ -202,7 +218,7 @@ module sc55_board #(
     logic        rs_valid;
     logic signed [15:0] rs_l, rs_r;
     resample rs (
-        .clk, .rst(core_rst),
+        .clk, .rst(core_rst), .mk2,
         .in_valid(sample_valid), .in_l(to16(sample_l)), .in_r(to16(sample_r)),
         .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
     );

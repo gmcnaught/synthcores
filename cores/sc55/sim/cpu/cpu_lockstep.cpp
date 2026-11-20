@@ -338,6 +338,7 @@ int main(int argc, char** argv)
             done = t->step_done;
         }
         t->bus_ack = 0;
+        if (done) b.tick();          // step_done comes in S_END's clock: let S_END finish (trace check)
         n_accesses += k;
 
         char line[256];
