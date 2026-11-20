@@ -24,8 +24,9 @@ module sc55_core #(
 
     output logic        rom_req,
     output logic [21:0] rom_addr,
+    input  logic        rom_ready,
     input  logic [7:0]  rom_data,
-    input  logic        rom_ack,
+    input  logic        rom_rvalid,
 
     input  logic        enable_oversampling,
     output logic        sample_valid,
@@ -48,8 +49,10 @@ module sc55_core #(
     logic [15:0] zr [8];
     always_comb for (int i = 0; i < 8; i++) zr[i] = 16'h0;
 
+    logic m_ready, p_ready;
+    assign ready = m_ready && p_ready;
     sc55_mcu #(.RXBUF_BITS(RXBUF_BITS)) mcu (
-        .clk, .rst, .run_step, .step_done, .reset_start, .reset_done,
+        .clk, .rst, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data,
         .midi_valid, .midi_data, .midi_full, .buttons,
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),
@@ -68,8 +71,8 @@ module sc55_core #(
         .cpu_req(p_req), .cpu_we(p_we), .cpu_addr(p_addr), .cpu_wdata(p_wdata), .cpu_rdata(p_rdata), .cpu_ack(p_ack),
         .run(p_tick), .target(cycles), .done(p_done),
         .irq0(p_irq0), .enable_oversampling,
-        .rom_req, .rom_addr, .rom_data, .rom_ack,
+        .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .sample_valid, .sample_l, .sample_r,
-        .ready, .irq_known(p_known)
+        .ready(p_ready), .irq_known(p_known)
     );
 endmodule

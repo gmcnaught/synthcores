@@ -27,6 +27,7 @@
 #include <cstdlib>
 #include <deque>
 #include <fstream>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -40,6 +41,8 @@ int main(int argc, char** argv)
     uint64_t    steps = 0, reset_steps = 24'000'000;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
+    bool        rom_backpressure = false;
+    std::mt19937_64 bp_rng(7);
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -51,6 +54,7 @@ int main(int argc, char** argv)
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--midi-loud" && i + 1 < argc) loud_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--rom-latency" && i + 1 < argc) rom_latency = std::atoi(argv[++i]);
+        else if (a == "--rom-backpressure") rom_backpressure = true;
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -74,21 +78,23 @@ int main(int argc, char** argv)
     ctx.commandArgs(argc, argv);
     Vsc55_core* t = new Vsc55_core{&ctx};
     uint64_t    clocks = 0;
-    int         rom_wait = 0;
     std::vector<Frame> hdl;
     std::deque<uint8_t> midi_q;
+    std::deque<std::pair<uint64_t, uint32_t>> romq;
+    auto rom_byte = [&](uint32_t a) -> uint8_t {
+        uint32_t bank = a >> 20, off = a & 0xfffff;
+        return bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
+    };
     auto tick = [&]() {
-        if (t->rom_req && !t->rom_ack)
+        t->rom_ready = rom_backpressure ? (bp_rng() % 3) != 0 : 1;
+        if (t->rom_req && t->rom_ready) romq.push_back({clocks + (uint64_t)rom_latency, (uint32_t)t->rom_addr});
+        t->rom_rvalid = 0;
+        if (!romq.empty() && romq.front().first <= clocks)
         {
-            if (++rom_wait >= rom_latency)
-            {
-                uint32_t bank = t->rom_addr >> 20, off = t->rom_addr & 0xfffff;
-                t->rom_data = bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
-                t->rom_ack = 1;
-                rom_wait = 0;
-            }
+            t->rom_rvalid = 1;
+            t->rom_data = rom_byte(romq.front().second);
+            romq.pop_front();
         }
-        else t->rom_ack = 0;
         t->midi_valid = 0;
         if (!midi_q.empty() && !t->midi_full)
         {
@@ -102,7 +108,7 @@ int main(int argc, char** argv)
     };
 
     t->rst = 1; t->run_step = 0; t->reset_start = 0; t->ld_we = 0; t->midi_valid = 0; t->buttons = 0;
-    t->rom_ack = 0; t->enable_oversampling = 1;
+    t->rom_rvalid = 0; t->rom_ready = 1; t->enable_oversampling = 1;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
     for (int g = 0; g < 20000 && !t->ready; ++g) tick();

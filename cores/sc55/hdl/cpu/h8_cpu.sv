@@ -94,7 +94,7 @@ module h8_cpu (
             c = s[16];
             a7 = a[15]; b7 = b[15]; r7 = res[15];
             z = (res == 16'h0);
-        end else begin
+        end else begin : b_h8_cpu_1
             logic [8:0] s8;
             s8 = sub ? ({1'b0, a[7:0]} - {1'b0, b[7:0]} - {8'b0, cin}) : ({1'b0, a[7:0]} + {1'b0, b[7:0]} + {8'b0, cin});
             res = {8'h00, s8[7:0]};
@@ -230,7 +230,7 @@ module h8_cpu (
     logic [2:0]  irq_lvl;
     always_comb begin
         irq_take = 1'b0; irq_vec = 8'd0; irq_lvl = 3'd0;
-        for (int s = 20; s >= 1; s--) begin
+        for (int s = 20; s >= 1; s--) begin : b_h8_cpu_2
             logic [7:0] v; logic [2:0] l; logic ok;
             ok = 1'b1; v = 8'd0; l = 3'd0;
             case (s)
@@ -1033,7 +1033,7 @@ module h8_cpu (
             end
 
             S_G_DIV: begin
-                if (d_cnt != 6'd0) begin
+                if (d_cnt != 6'd0) begin : b_h8_cpu_3
                     logic [32:0] t;
                     t = {d_rem[31:0], d_q[31]} - {17'h0, d_div};
                     if (!t[32]) begin d_rem <= t[31:0]; d_q <= {d_q[30:0], 1'b1}; end

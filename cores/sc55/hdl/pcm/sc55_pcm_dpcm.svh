@@ -1,6 +1,6 @@
 // DPCM reference and interpolation (pcm.cpp voice loop "dpcm", "interpolation").
 // Included in sc55_pcm.sv state P_SLOT_DPCM.
-begin
+begin : b_sc55_pcm_dpcm_1
     int reference_, test_, preshift, shift_, shifted, step_;
     logic [3:0] nn, sel;
     int samp_ [4];

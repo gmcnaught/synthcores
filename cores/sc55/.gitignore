@@ -9,3 +9,13 @@
 
 # Session notes (Remember plugin)
 /.remember/
+
+# Quartus output
+/mister/output_files/
+/mister/db/
+/mister/incremental_db/
+/mister/_out/
+/mister/build_id.v
+/mister/build.log
+/mister/*.qws
+/mister/*.bak

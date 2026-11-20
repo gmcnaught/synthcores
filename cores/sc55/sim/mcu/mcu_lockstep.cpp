@@ -94,6 +94,7 @@ int main(int argc, char** argv)
     t->buttons = 0; t->pcm_ack = 0; t->pcm_irq0 = 0; t->pcm_irq_known = 1; t->cpu_ld_en = 0;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
+    for (int g = 0; g < 40000 && !t->ready; ++g) tick();
 
     // memories: ROMs from the model, RAMs as the model's (zero)
     auto load_mem = [&](int sel, const uint8_t* src, size_t n) {

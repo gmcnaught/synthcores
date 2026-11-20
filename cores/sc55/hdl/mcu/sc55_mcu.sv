@@ -22,6 +22,7 @@ module sc55_mcu #(
     output logic        step_done,
     input  logic        reset_start,     // MCU_Reset (registers, devices, reset vector)
     output logic        reset_done,
+    output logic        ready,           // power-on clear of SRAM and on-chip RAM finished (the model starts zeroed)
 
     // memory load port (ROMs, savestates): sel 0 rom1, 1 rom2, 2 sram, 3 ram
     input  logic        ld_we,
@@ -198,9 +199,15 @@ module sc55_mcu #(
     // Sequencer
     // ------------------------------------------------------------------
     typedef enum logic [3:0] {
-        Q_IDLE, Q_CPU, Q_TIMERS, Q_RESET, Q_RESET_CPU
+        Q_IDLE, Q_CPU, Q_TIMERS, Q_RESET, Q_RESET_CPU, Q_CLEAR
     } q_t;
     q_t q;
+    // two-clock reads: block RAM data registers and the source chosen in the first clock
+    logic [7:0] q_rom1, q_rom2, q_sram_ram, rd_dev;
+    logic [1:0] rsel;
+    logic       rd_b;
+    logic [15:0] clr_a;
+    assign ready = (q != Q_CLEAR);
 
     wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
 
@@ -211,9 +218,10 @@ module sc55_mcu #(
     wire [17:0] rom2_a = c_addr[17:0];
 
 
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk) begin : b_sc55_mcu_1
         logic [7:0]  d;
         logic [1:0]  t;
+        logic [1:0]  rs;
         logic [3:0]  ra;
         logic        any;
 
@@ -240,7 +248,9 @@ module sc55_mcu #(
         end
 
         if (rst) begin
-            q <= Q_IDLE;
+            rd_b <= 1'b0;
+            q <= Q_CLEAR;
+            clr_a <= 16'd0;
             cycles <= 48'd0;
             pcm_req <= 1'b0;
             rx_wp <= '0; rx_rp <= '0;
@@ -258,13 +268,29 @@ module sc55_mcu #(
                     c_rdata <= pcm_rdata;
                     c_ack <= 1'b1;
                 end
+            end else if (rd_b) begin
+                // second clock of a read: the block RAMs' data is here
+                case (rsel)
+                    2'd0: c_rdata <= rd_dev;
+                    2'd1: c_rdata <= q_rom1;
+                    2'd2: c_rdata <= q_rom2;
+                    default: c_rdata <= q_sram_ram;
+                endcase
+                c_ack <= 1'b1;
+                rd_b <= 1'b0;
             end else if (c_req && !c_ack) begin
                 d = 8'hff;
+                rs = 2'd0;
+                // block RAM reads (synchronous: the data is used next clock)
+                q_rom1 <= rom1[a16[14:0]];
+                q_rom2 <= rom2[rom2_a];
+                if (page == 4'd0 && a16 >= 16'hfb80) q_sram_ram <= ram[10'(a16 - 16'hfb80)];
+                else q_sram_ram <= sram[a16[14:0]];
                 if (!c_we) begin
                     // MCU_Read (mk1)
                     case (page)
                         4'd0: begin
-                            if (!a16[15]) d = rom1[a16[14:0]];
+                            if (!a16[15]) rs = 2'd1;
                             else if (a16 >= 16'he000 && a16 < 16'he040) begin
                                 pcm_req <= 1'b1; pcm_we <= 1'b0; pcm_addr <= a16[5:0];
                             end else if (a16 >= 16'hff80) begin
@@ -302,8 +328,8 @@ module sc55_mcu #(
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end
-                            end else if (a16 >= 16'hfb80 && dev[7'h79][7]) d = ram[10'(a16 - 16'hfb80)];
-                            else if (a16 < 16'he000) d = sram[a16[14:0]];
+                            end else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 2'd3;
+                            else if (a16 < 16'he000) rs = 2'd3;
                             else if (a16 >= 16'hf000 && a16 < 16'hf100) begin
                                 io_sd <= a16[7:0];
                                 lcd_enable <= a16[3];
@@ -318,14 +344,15 @@ module sc55_mcu #(
                                 int_req[2] <= 1'b0;
                             end
                         end
-                        4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: d = rom2[rom2_a];
-                        4'd5: d = sram[a16[14:0]];
+                        4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: rs = 2'd2;
+                        4'd5: rs = 2'd3;
                         4'd10, 4'd11, 4'd12, 4'd13: d = 8'hff;
                         default: d = 8'h00;
                     endcase
                     if (!(page == 4'd0 && a16 >= 16'he000 && a16 < 16'he040)) begin
-                        c_rdata <= d;
-                        c_ack <= 1'b1;
+                        rd_dev <= d;
+                        rsel <= rs;
+                        rd_b <= 1'b1;
                     end
                 end else begin
                     // MCU_Write (mk1)
@@ -343,7 +370,7 @@ module sc55_mcu #(
                                         frt_stride[t] <= frt_stride_for(d[1:0]);
                                         frt_deadline[t] <= align_fwd(tcyc, {8'h0, frt_stride_for(d[1:0])});
                                     end
-                                    4'h1: begin
+                                    4'h1: begin : b_sc55_mcu_2
                                         logic [7:0] ts, sr;
                                         ts = {frt_tcsr[t][7:4], d[3:0]};
                                         sr = frt_status_rd[t];
@@ -368,7 +395,7 @@ module sc55_mcu #(
                                         if (tmr_stride_for(d[2:0]) == 16'd0) tmr_deadline <= 48'hffffffffffff;
                                         else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0]));
                                     end
-                                    3'd1: begin
+                                    3'd1: begin : b_sc55_mcu_3
                                         logic [7:0] ts, sr;
                                         ts = {tmr_tcsr[7:4], d[3:0]};
                                         sr = tmr_status_rd;
@@ -382,7 +409,7 @@ module sc55_mcu #(
                                     3'd3: tmr_tcorb <= d;
                                     default: tmr_tcnt <= d;
                                 endcase
-                            end else if (a16[6:0] == 7'h68) begin
+                            end else if (a16[6:0] == 7'h68) begin : b_sc55_mcu_4
                                 // ADCSR
                                 logic [7:0] v;
                                 v = {dev[7'h68][7], d[6:0]};
@@ -438,6 +465,12 @@ module sc55_mcu #(
                         q <= Q_CPU;
                     end
                 end
+                Q_CLEAR: begin
+                    sram[clr_a[14:0]] <= 8'h00;
+                    if (clr_a[15:10] == 6'd0) ram[clr_a[9:0]] <= 8'h00;
+                    clr_a <= clr_a + 16'd1;
+                    if (clr_a == 16'h7fff) q <= Q_IDLE;
+                end
                 Q_RESET: begin c_reset <= 1'b1; q <= Q_RESET_CPU; end
                 Q_RESET_CPU: if (c_done) begin reset_done <= 1'b1; q <= Q_IDLE; end
 
@@ -447,7 +480,7 @@ module sc55_mcu #(
                     q <= Q_TIMERS;
                 end
 
-                Q_TIMERS: begin
+                Q_TIMERS: begin : b_sc55_mcu_5
                     // TIMER_Clock: each timer clocks while its deadline is behind cycles/2, up to two
                     // clocks per timer per pass (the mk1's shortest stride is 4 timer cycles and a step is
                     // 6); when no timer is left behind, UART, A/D and gate array run in the same clock.
@@ -459,7 +492,7 @@ module sc55_mcu #(
                     for (int i = 0; i < 3; i++) begin
                         frc_n[i] = frt_frc[i]; ts_n[i] = frt_tcsr[i]; dl_n[i] = frt_deadline[i];
                         for (int k = 0; k < 2; k++) begin
-                            if (dl_n[i] < tcyc) begin
+                            if (dl_n[i] < tcyc) begin : b_sc55_mcu_6
                                 logic ma, mb;
                                 ma = frc_n[i] == frt_ocra[i];
                                 mb = frc_n[i] == frt_ocrb[i];
@@ -481,7 +514,7 @@ module sc55_mcu #(
                     end
                     cnt_n = tmr_tcnt; tts_n = tmr_tcsr; tdl_n = tmr_deadline;
                     for (int k = 0; k < 2; k++) begin
-                        if (tdl_n < tcyc) begin
+                        if (tdl_n < tcyc) begin : b_sc55_mcu_7
                             logic ma, mb;
                             ma = cnt_n == tmr_tcora;
                             mb = cnt_n == tmr_tcorb;

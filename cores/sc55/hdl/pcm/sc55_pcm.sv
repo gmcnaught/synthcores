@@ -32,11 +32,14 @@ module sc55_pcm (
     output logic        irq0,               // INTERRUPT_SOURCE_IRQ0 request (= irq_assert)
     input  logic        enable_oversampling,
 
-    // wave ROM: linear byte address (bank * 1 MB + offset), data with ack
+    // wave ROM: byte reads at a linear address (bank * 1 MB + offset).
+    // A request is taken in a clock with rom_req && rom_ready; data comes back
+    // in request order, one byte per rom_rvalid, any number of clocks later.
     output logic        rom_req,
     output logic [21:0] rom_addr,
+    input  logic        rom_ready,
     input  logic [7:0]  rom_data,
-    input  logic        rom_ack,
+    input  logic        rom_rvalid,
 
     // MCU_PostSample
     output logic        sample_valid,
@@ -251,12 +254,32 @@ module sc55_pcm (
     logic signed [31:0] v_reference, v_test, v_v3, v_sample3;
     logic [15:0] v_volmul1, v_volmul2;
 
+    // Per slot, from the pre-scan: address-generator results, the ROM bytes
+    // (nibble byte, samples 0..3) and which of them have arrived.
+    logic [7:0]  sl_rom [32][5];
+    logic [4:0]  sl_got [32];
+    logic        sl_active [32], sl_kon [32], sl_key [32], sl_irq [32], sl_newsel [32], sl_usenew [32], sl_r14_we [32];
+    logic [3:0]  sl_oldn [32];
+    logic        sl_ncmp [32][2:6];
+    logic [2:0]  sl_spo [32];
+    logic [6:0]  sl_ratio [32];
+    logic [31:0] sl_r14 [32];
+    logic [15:0] sl_r28 [32];
+    // issue side of the pre-scan
+    logic [21:0] iss_addr [5];
+    logic [4:0]  iss_valid;            // bytes of the current slot still to request
+    logic [2:0]  iss_k;
+    // request tags, in order: {cpu, slot, byte}
+    logic [8:0]  tagq [256];
+    logic [7:0]  tag_wp, tag_rp;
+    logic        cpu_rom_wait;
+
     // reverb section: eram access sequencing
     logic [6:0]  rv_pc;           // reverb micro-step
     logic [15:0] er_q;            // eram read data (registered)
 
     typedef enum logic [4:0] {
-        P_IDLE, P_FRAME, P_LOADG, P_MIX, P_REVERB, P_AGEN, P_SLOT0, P_SLOT_RD, P_SLOT_AG, P_SLOT_ROM,
+        P_IDLE, P_FRAME, P_LOADG, P_MIX, P_REVERB, P_AGEN, P_SLOT0, P_SLOT_RD,
         P_SLOT_DPCM, P_SLOT_FILT, P_SLOT_TV0, P_SLOT_TV1, P_SLOT_VOL, P_SLOT_MIX, P_SLOT_WB, P_FRAME_END,
         P_CPU_ROM, P_CLEAR, P_PRESCAN
     } pst_t;
@@ -270,7 +293,7 @@ module sc55_pcm (
     // ------------------------------------------------------------------
     // Main process
     // ------------------------------------------------------------------
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk) begin : b_sc55_pcm_1
         // temporaries
         logic [5:0]  a;
         int          ix;
@@ -303,6 +326,8 @@ module sc55_pcm (
             reg_slots <= 6'd1;
             rom_req <= 1'b0;
             cpu_busy <= 1'b0;
+            tag_wp <= 8'd0; tag_rp <= 8'd0;
+            cpu_rom_wait <= 1'b0;
         end else begin
             // ---------------------------------------------------- CPU access
             if (cpu_req && !cpu_ack && !cpu_busy && ps == P_IDLE && caught_up) begin
@@ -331,6 +356,7 @@ module sc55_pcm (
                                     cpu_ack <= 1'b0;
                                     cpu_busy <= 1'b1;
                                     rom_req <= 1'b1; rom_addr <= rm[21:0];
+                                    cpu_rom_wait <= 1'b1;
                                     ps <= P_CPU_ROM;
                                 end else wave_byte_latch <= 8'h00;
                             end
@@ -421,6 +447,20 @@ module sc55_pcm (
                 end
             end
 
+            // ROM data, in request order
+            if (rom_rvalid) begin : b_sc55_pcm_2
+                logic [8:0] tg;
+                tg = tagq[tag_rp];
+                tag_rp <= tag_rp + 8'd1;
+                if (tg[8]) begin
+                    wave_byte_latch <= rom_data;
+                    cpu_rom_wait <= 1'b0;
+                end else begin
+                    sl_rom[tg[7:3]][tg[2:0]] <= rom_data;
+                    sl_got[tg[7:3]][tg[2:0]] <= 1'b1;
+                end
+            end
+
             case (ps)
             P_CLEAR: begin
                 eram[clr_a] <= 16'h0;
@@ -433,9 +473,12 @@ module sc55_pcm (
             end
 
             P_CPU_ROM: begin
-                if (rom_ack) begin
+                if (rom_req && rom_ready) begin
                     rom_req <= 1'b0;
-                    wave_byte_latch <= rom_data;
+                    tagq[tag_wp] <= 9'h100;
+                    tag_wp <= tag_wp + 8'd1;
+                end
+                if (!cpu_rom_wait) begin
                     cpu_busy <= 1'b0;
                     cpu_ack <= 1'b1;
                     ps <= P_IDLE;
@@ -452,32 +495,74 @@ module sc55_pcm (
                     pre_i <= 6'd0;
                     pre_hit <= 1'b0;
                     pre_done <= 1'b0;
+                    iss_valid <= 5'b0;
                     ps <= P_PRESCAN;
                 end
             end
 
             P_PRESCAN: begin
-                // the voice loop's IRQ condition for slot pre_i, from its row at frame start
-                logic okey_, key_, active_, kon_, b15_, b7_, f;
-                int address_, aend, aloop, cmp1_;
-                if (pre_i >= reg_slots) begin
+                // Per slot: the address generator and the IRQ condition from its row as it is
+                // now, then its five ROM reads (one per clock, as the stream takes them).
+                if (iss_valid != 5'b0) begin
+                    if (!rom_req || rom_ready) begin
+                        if (rom_req) begin
+                            tagq[tag_wp] <= {1'b0, pre_i[4:0] - 5'd1, iss_k - 3'd1};
+                            tag_wp <= tag_wp + 8'd1;
+                        end
+                        rom_req <= 1'b0;
+                        if (iss_k != 3'd5) begin
+                            if (iss_valid[iss_k]) begin
+                                rom_req <= 1'b1;
+                                rom_addr <= iss_addr[iss_k];
+                            end
+                            iss_valid[iss_k] <= 1'b0;
+                            iss_k <= iss_k + 3'd1;
+                        end
+                    end
+                end else if (rom_req) begin
+                    if (rom_ready) begin
+                        tagq[tag_wp] <= {1'b0, pre_i[4:0] - 5'd1, iss_k - 3'd1};
+                        tag_wp <= tag_wp + 8'd1;
+                        rom_req <= 1'b0;
+                    end
+                end else if (pre_i >= reg_slots) begin
                     pre_done <= 1'b1;
                     ps <= P_LOADG;
-                end else begin
-                    okey_ = ram2[pre_i[4:0]][7][5];
-                    key_ = voice_active[pre_i[4:0]];
-                    active_ = okey_ && key_;
-                    kon_ = key_ && !okey_;
-                    b15_ = ram2[pre_i[4:0]][8][15];
-                    b7_ = ram2[pre_i[4:0]][7][7];
-                    address_ = int'(ram1[pre_i[4:0]][4]);
-                    aend = int'(ram1[pre_i[4:0]][0]);
-                    aloop = int'(ram1[pre_i[4:0]][2]);
-                    cmp1_ = b15_ ? aloop : aend;
-                    if (kon_) f = ((cmp1_ + aloop) & 'h100000) != 0;
-                    else f = ((address_ + ((-aloop) & 'hfffff)) & 'h100000) != 0;
-                    f = f ^ b7_;
-                    if (active_ && ram2[pre_i[4:0]][6][0] && !ram2[pre_i[4:0]][8][14] && !irq_assert && f) pre_hit <= 1'b1;
+                end else begin : b_sc55_pcm_3
+                    logic ag_okey, ag_key, ag_active, ag_kon, ag_irq, ag_newsel, ag_usenew, ag_r14_we, ag_b7;
+                    logic [3:0] ag_hi, ag_oldn;
+                    logic [19:0] ag_wave;
+                    logic [6:0] ag_ratio;
+                    logic [2:0] ag_spo;
+                    logic [31:0] ag_addr [4];
+                    logic ag_ncmp [2:6];
+                    logic [31:0] ag_r14;
+                    logic [15:0] ag_r28;
+                    logic [22:0] m [5];
+                    logic [4:0] got;
+                    `define AGR1(j) ram1[pre_i[4:0]][j]
+                    `define AGR2(j) ram2[pre_i[4:0]][j]
+                    `define AG_KEY voice_active[pre_i[4:0]]
+                    `include "sc55_pcm_agen.svh"
+                    `undef AGR1
+                    `undef AGR2
+                    `undef AG_KEY
+                    if (ag_active && ram2[pre_i[4:0]][6][0] && !ram2[pre_i[4:0]][8][14] && !irq_assert && ag_irq) pre_hit <= 1'b1;
+                    sl_active[pre_i[4:0]] <= ag_active; sl_kon[pre_i[4:0]] <= ag_kon; sl_key[pre_i[4:0]] <= ag_key;
+                    sl_irq[pre_i[4:0]] <= ag_irq; sl_newsel[pre_i[4:0]] <= ag_newsel; sl_usenew[pre_i[4:0]] <= ag_usenew;
+                    sl_oldn[pre_i[4:0]] <= ag_oldn; sl_spo[pre_i[4:0]] <= ag_spo; sl_ratio[pre_i[4:0]] <= ag_ratio;
+                    for (int k = 2; k <= 6; k++) sl_ncmp[pre_i[4:0]][k] <= ag_ncmp[k];
+                    sl_r14_we[pre_i[4:0]] <= ag_r14_we; sl_r14[pre_i[4:0]] <= ag_r14; sl_r28[pre_i[4:0]] <= ag_r28;
+                    m[0] = rom_map({8'h0, ag_hi, ag_wave}, config_reg_3d);
+                    for (int k = 0; k < 4; k++) m[k + 1] = rom_map({8'h0, ag_hi, 20'h0} | ag_addr[k], config_reg_3d);
+                    got = 5'b0;
+                    for (int k = 0; k < 5; k++) begin
+                        iss_addr[k] <= m[k][21:0];
+                        if (!m[k][22]) begin got[k] = 1'b1; sl_rom[pre_i[4:0]][k] <= 8'h00; end
+                    end
+                    sl_got[pre_i[4:0]] <= got;
+                    iss_valid <= ~got;
+                    iss_k <= 3'd0;
                     pre_i <= pre_i + 6'd1;
                 end
             end
@@ -490,7 +575,7 @@ module sc55_pcm (
             end
 
             // ------------------------------------------------ final mixing
-            P_MIX: begin
+            P_MIX: begin : b_sc55_pcm_4
                 logic signed [31:0] al, ar, sh;
                 logic [15:0] shv;
                 logic xr;
@@ -529,13 +614,13 @@ module sc55_pcm (
                 g1[2][4] <= r30_4; g1[2][5] <= r30_5;
 
                 // global counter for envelopes
-                begin
+                begin : b_sc55_pcm_5
                     logic [15:0] tvc;
                     tvc = nfs ? tv_counter : g2[3][8];
                     tv_counter <= (tvc - 16'd1) & 16'h3fff;
                 end
                 // fixme block: two if/else assignments, the second one wins where they overlap
-                begin
+                begin : b_sc55_pcm_6
                     logic [15:0] r8, d;
                     logic [15:0] n9, n10;
                     r8 = g2[3][8];
@@ -561,7 +646,7 @@ module sc55_pcm (
             end
 
             // ------------------------------- reverb address generator (row 31)
-            P_AGEN: begin
+            P_AGEN: begin : b_sc55_pcm_7
                 logic okey_, active_, kon_, b15_, b6_, b7_, acmp, a_add, a_sub, nb15;
                 int address_, aend, aloop, sp, spo_, acnt, acnt2, cmp1_, nxt, ad4, t2_, t3_;
                 logic [15:0] r8n;
@@ -614,33 +699,17 @@ module sc55_pcm (
             end
 
             P_SLOT_RD: begin
-                for (int j = 0; j < 8; j++) r1[j] <= ram1[slot[4:0]][j];
-                for (int j = 0; j < 16; j++) r2[j] <= ram2[slot[4:0]][j];
-                ps <= P_SLOT_AG;
-            end
-
-            P_SLOT_AG: begin
-                `include "sc55_pcm_agen.svh"
-                v_rom_i <= 3'd0;
-                ps <= P_SLOT_ROM;
-            end
-
-            P_SLOT_ROM: begin
-                // five ROM reads: nibble byte, samp0..3
-                if (!rom_req) begin
-                    t32 = (v_rom_i == 3'd0) ? {8'h0, v_hiaddr, v_wave_address} : ({8'h0, v_hiaddr, 20'h0} | v_addr[2'(v_rom_i - 3'd1)]);
-                    rm = rom_map(t32, config_reg_3d);
-                    if (rm[22]) begin rom_req <= 1'b1; rom_addr <= rm[21:0]; end
-                    else begin
-                        v_rom[v_rom_i] <= 8'h00;
-                        if (v_rom_i == 3'd4) ps <= P_SLOT_DPCM;
-                        v_rom_i <= v_rom_i + 3'd1;
-                    end
-                end else if (rom_ack) begin
-                    rom_req <= 1'b0;
-                    v_rom[v_rom_i] <= rom_data;
-                    if (v_rom_i == 3'd4) ps <= P_SLOT_DPCM;
-                    v_rom_i <= v_rom_i + 3'd1;
+                if (sl_got[slot[4:0]] == 5'b11111) begin
+                    for (int j = 0; j < 8; j++) r1[j] <= ram1[slot[4:0]][j];
+                    for (int j = 0; j < 16; j++) r2[j] <= ram2[slot[4:0]][j];
+                    if (sl_r14_we[slot[4:0]]) r1[4] <= sl_r14[slot[4:0]];
+                    r2[8] <= sl_r28[slot[4:0]];
+                    v_active <= sl_active[slot[4:0]]; v_kon <= sl_kon[slot[4:0]]; v_key <= sl_key[slot[4:0]];
+                    v_irq_flag <= sl_irq[slot[4:0]]; v_newsel <= sl_newsel[slot[4:0]]; v_usenew <= sl_usenew[slot[4:0]];
+                    v_old_nibble <= sl_oldn[slot[4:0]]; v_spo <= sl_spo[slot[4:0]]; v_ratio <= sl_ratio[slot[4:0]];
+                    for (int k = 2; k <= 6; k++) v_ncmp[k] <= sl_ncmp[slot[4:0]][k];
+                    for (int k = 0; k < 5; k++) v_rom[k] <= sl_rom[slot[4:0]][k];
+                    ps <= P_SLOT_DPCM;
                 end
             end
 
@@ -649,7 +718,7 @@ module sc55_pcm (
                 ps <= P_SLOT_FILT;
             end
 
-            P_SLOT_FILT: begin
+            P_SLOT_FILT: begin : b_sc55_pcm_8
                 // mk1 filter
                 logic signed [31:0] reg1, reg3, mult1, mult2, mult3, vv1, vv2, subvar, vv3, mult4, mult5, v4, v5;
                 logic [15:0] filter;
@@ -697,7 +766,7 @@ module sc55_pcm (
                 ps <= P_SLOT_VOL;
             end
 
-            P_SLOT_VOL: begin
+            P_SLOT_VOL: begin : b_sc55_pcm_9
                 logic signed [31:0] sample, mv1, mv2, sample2, mv3, mv4;
                 sample = !r2[6][1] ? $signed(r1[3]) : v_v3;
                 mv1 = multi(sample, v_volmul1[15:8]);
@@ -709,7 +778,7 @@ module sc55_pcm (
                 ps <= P_SLOT_MIX;
             end
 
-            P_SLOT_MIX: begin
+            P_SLOT_MIX: begin : b_sc55_pcm_10
                 logic [15:0] pan, rc;
                 logic signed [31:0] sampl, sampr, rc0, rc1, suml, sumr, a1, a3, rs0, rs1;
                 logic [5:0] slot2;
