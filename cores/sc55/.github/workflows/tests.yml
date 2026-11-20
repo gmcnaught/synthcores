@@ -17,11 +17,13 @@ jobs:
           python-version: "3.12"
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y ninja-build verilator g++-14 && verilator --version
-      - name: Build reference model
+      - name: Build reference model and Verilator benches
         run: |
-          cmake -S ref -B out/ref -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
-          ninja -C out/ref
+          cmake -S sim -B out/sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
+          ninja -C out/sim
       - name: Run tests (ROM-dependent tests skip without ROMs)
+        env:
+          SC55_REF_BUILD: out/sim/ref
         run: |
           set -e
           for t in tests/test_*.py; do
