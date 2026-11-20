@@ -1,0 +1,27 @@
+# ROM images and dumps are never committed
+roms/
+*.bin
+*.zip
+# Upstream MAME checkout (our changes live in mame/patches/)
+third_party/mame/
+# Local state
+.remember/
+build/
+__pycache__/
+third_party/Template_MiSTer/
+# MAME run artefacts
+cfg/
+snap/
+nvram/
+error.log
+*.raw
+*.wav
+# Verilator / Quartus outputs
+sim/obj_dir/
+sim/build.log
+mister/output_files/
+mister/db/
+mister/incremental_db/
+mister/build.log
+mister/build_id.v
+mister/*.qws

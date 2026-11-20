@@ -1,0 +1,51 @@
+name: Build RBF
+
+# Compiles mister/Proteus.qpf with Quartus Lite 17.0 (raetro/quartus:17.0) on ubuntu-latest.
+# No ROM or sample data is involved: the core loads its demo image at run time.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mister/**'
+      - '.github/workflows/build-rbf.yml'
+
+jobs:
+  rbf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk space (Quartus needs ~24 GB)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          swap-storage: true
+      # Sources go in and results come out as tar streams; non-login bash keeps the
+      # image's PATH (a login shell resets it and loses quartus_sh).
+      - name: Compile
+        shell: bash
+        run: |
+          set -o pipefail
+          tar -cf - --exclude=./.git mister |
+            docker run --rm -i raetro/quartus:17.0 bash -c '
+              mkdir -p /build && cd /build && tar -xf - || exit 2
+              bash mister/build.sh 1>&2; status=$?
+              tar -cf - mister/output_files mister/build.log 2>/dev/null
+              exit $status' |
+            tar -xf -
+      - name: Upload RBF and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proteus-rbf
+          path: |
+            mister/output_files/Proteus.rbf
+            mister/output_files/*.summary
+            mister/output_files/*.rpt
+            mister/build.log
+          if-no-files-found: warn

@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Reference model of the Proteus/1 sound chip, driven by a demo image (tools/make_demo.py).
+
+A line-by-line port of third_party/mame/src/mame/emusys/proteus_snd.cpp (the MAME model);
+the HDL (mister/rtl/proteus_snd.sv) must match its output sample for sample.
+
+Usage: proteus_model.py DEMO.bin OUT.raw [--ticks N] [--wav OUT.wav]
+OUT.raw: per output sample, two little-endian s16 (left, right).
+"""
+import argparse
+import array
+import struct
+import sys
+import wave
+
+ADDR_MASK = 0xFFFFFF
+SAMPLE_BYTES = 0x800000
+
+
+def sext(v, bits):
+    return v - (1 << bits) if v & (1 << (bits - 1)) else v
+
+
+def level_to_gain(level):
+    e = (level >> 9) & 7
+    m = level & 0x1FF
+    return ((0x200 | m) << (e - 1)) if e else m
+
+
+class Voice:
+    __slots__ = ("addr", "frac", "pitch", "env", "loop_start", "loop_end", "level", "pan")
+
+    def __init__(self):
+        self.addr = self.frac = self.pitch = self.env = 0
+        self.loop_start = self.loop_end = self.level = 0
+        self.pan = 0x08
+
+
+class Chip:
+    def __init__(self, rom_words):
+        self.rom = rom_words  # array('h') of signed words
+        self.mask = len(rom_words) - 1
+        self.regs = [0] * (32 * 16)
+        self.v = [Voice() for _ in range(32)]
+
+    def reg_long(self, v, w):
+        return (self.regs[v * 16 + w] << 16) | self.regs[v * 16 + w + 1]
+
+    def write(self, v, w, data):
+        self.regs[v * 16 + w] = data
+        vc = self.v[v]
+        if w in (0, 1):
+            vc.addr = self.reg_long(v, 0) & ADDR_MASK
+            vc.frac = 0
+        elif w in (2, 3):
+            vc.pitch = self.reg_long(v, 2)
+        elif w in (4, 5):
+            vc.env = self.reg_long(v, 4)
+            if w == 5 and vc.env & 0x200:
+                vc.level = (vc.env >> 12) & 0xFFF
+        elif w in (8, 9):
+            vc.loop_start = self.reg_long(v, 8) & ADDR_MASK
+        elif w in (10, 11):
+            vc.loop_end = ~self.reg_long(v, 10) & ADDR_MASK
+
+    def pan(self, v, data):
+        self.v[v].pan = data
+
+    def step(self, vc):
+        inc = vc.pitch & 0x1FFFF
+        pos = (vc.frac & 0xFFF) + (inc & 0xFFF)
+        vc.frac = pos & 0xFFF
+        vc.addr = (vc.addr + (inc >> 12) + (pos >> 12)) & ADDR_MASK
+        if vc.addr > vc.loop_end and vc.loop_end >= vc.loop_start:
+            vc.addr = (vc.addr - (vc.loop_end - vc.loop_start)) & ADDR_MASK
+
+    def sample(self):
+        left = right = 0
+        rom, mask = self.rom, self.mask
+        for vc in self.v:
+            target = (vc.env >> 12) & 0xFFF
+            rate = sext(vc.env & 0x1FF, 9)
+            if vc.level != target:
+                delta = abs(rate) if rate else 1
+                if vc.level < target:
+                    vc.level = min(vc.level + delta, target)
+                else:
+                    vc.level = max(vc.level - delta, target)
+            s0 = rom[(vc.addr + 4) & mask]
+            s1 = rom[(vc.addr + 5) & mask]
+            smp = s0 + (((s1 - s0) * vc.frac) >> 12)
+            out = (smp * level_to_gain(vc.level)) >> 16
+            p = vc.pan & 0x0F
+            left += out * p
+            right += out * (15 - p)
+            if not vc.pitch & 0x40000:
+                self.step(vc)
+        clamp = lambda x: max(-32768, min(32767, x))
+        return clamp(left >> 6), clamp(right >> 6)
+
+
+def load(path):
+    data = open(path, "rb").read()
+    rom = array.array("h", data[:SAMPLE_BYTES])
+    if sys.byteorder == "little":
+        rom.byteswap()  # big-endian words in the image
+    events = array.array("I", data[SAMPLE_BYTES:])
+    if sys.byteorder == "big":
+        events.byteswap()
+    return rom, events
+
+
+def run(rom, events, ticks):
+    chip = Chip(rom)
+    out = array.array("h")
+    ev, wait = 0, 0
+    for _ in range(ticks):
+        if wait:
+            wait -= 1
+        else:
+            while True:
+                e = events[ev]
+                if e == 0:
+                    ev = 0  # END: restart (the chip state carries over, as in the HDL)
+                    continue
+                ev += 1
+                if not e & 0x80000000:
+                    wait = e - 1
+                    break
+                v = (e >> 25) & 31
+                if e & 0x40000000:
+                    chip.pan(v, e & 0xFF)
+                else:
+                    chip.write(v, (e >> 21) & 15, e & 0xFFFF)
+        out.extend(chip.sample())
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("demo")
+    ap.add_argument("out")
+    ap.add_argument("--ticks", type=int, default=0)
+    ap.add_argument("--wav")
+    a = ap.parse_args()
+    rom, events = load(a.demo)
+    total = a.ticks or sum(e for e in events if e and not e & 0x80000000)
+    out = run(rom, events, total)
+    if sys.byteorder == "big":
+        out.byteswap()
+    open(a.out, "wb").write(out.tobytes())
+    if a.wav:
+        w = wave.open(a.wav, "wb")
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(39062)
+        w.writeframes(out.tobytes())
+        w.close()
+    print(f"{total} samples")
+
+
+if __name__ == "__main__":
+    main()

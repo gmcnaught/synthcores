@@ -1,0 +1,5 @@
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/proteus_snd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/demo_ctrl.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/level_display.sv
+set_global_assignment -name SDC_FILE Proteus.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Proteus.sv
