@@ -8,6 +8,7 @@ module sys_top
 	input      [26:0] ioctl_addr,
 	input       [7:0] ioctl_dout,
 	input             midi_in,
+	input       [7:0] gpio,
 	output            midi_out,
 	input             DDRAM_BUSY,
 	output      [7:0] DDRAM_BURSTCNT,
@@ -37,7 +38,7 @@ proteus_sys sys
 (
 	.clk(clk), .reset(reset), .loading(loading),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
-	.midi_in(midi_in), .midi_out(midi_out), .buttons(8'd0), .volume(8'd255),
+	.midi_in(midi_in), .midi_out(midi_out), .buttons(gpio), .volume(8'd255),
 	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
 	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(3'd0), .lcd_code(lcd_code), .lcd_cgbits(), .lcd_is_cg(), .lcd_cursor(), .lcd_on(),
