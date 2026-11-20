@@ -86,27 +86,29 @@ int main(int argc, char** argv)
     Vsc55_pcm* t = new Vsc55_pcm{&ctx};
     auto*      R = t->rootp;
     uint64_t   clocks = 0;
-    int        rom_wait = 0;
     std::deque<Frame> hdl_samples;
+    // wave ROM: a request is taken when rom_req && rom_ready; data returns in
+    // order rom_latency clocks later (reads pipeline, like the DDR3 stream)
+    std::deque<std::pair<uint64_t, uint32_t>> romq;
+    auto rom_byte = [&](uint32_t a) -> uint8_t {
+        uint32_t bank = a >> 20, off = a & 0xfffff;
+        return bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
+    };
     auto tick = [&]() {
-        // wave ROM with fixed latency
-        if (t->rom_req && !t->rom_ack)
+        t->rom_ready = 1;
+        if (t->rom_req && t->rom_ready) romq.push_back({clocks + (uint64_t)rom_latency, (uint32_t)t->rom_addr});
+        t->rom_rvalid = 0;
+        if (!romq.empty() && romq.front().first <= clocks)
         {
-            if (++rom_wait >= rom_latency)
-            {
-                uint32_t a = t->rom_addr;
-                uint32_t bank = a >> 20, off = a & 0xfffff;
-                t->rom_data = bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
-                t->rom_ack = 1;
-                rom_wait = 0;
-            }
+            t->rom_rvalid = 1;
+            t->rom_data = rom_byte(romq.front().second);
+            romq.pop_front();
         }
-        else t->rom_ack = 0;
         t->clk = 0; t->eval(); t->clk = 1; t->eval();
         ++clocks;
         if (t->sample_valid) hdl_samples.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
     };
-    t->rst = 1; t->cpu_req = 0; t->run = 0; t->enable_oversampling = p.enable_oversampling; t->rom_ack = 0;
+    t->rst = 1; t->cpu_req = 0; t->run = 0; t->enable_oversampling = p.enable_oversampling; t->rom_rvalid = 0; t->rom_ready = 1;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
     for (int g = 0; g < 20000 && !t->ready; ++g) tick();   // power-on eram clear

@@ -9,7 +9,7 @@
 `define ER(addr) er_q <= eram[addr]
 `define EW(addr, val) eram[addr] <= eram_pack_v(val)
 `define UNP(t) eram_unpack_v(er_q, t)
-begin
+begin : b_sc55_pcm_reverb_1
     logic signed [31:0] m1_, m2_, s1_, s2_, v2_, v3_, t1_, t2_;
     logic [15:0] w1;
     logic [31:0] ct_;

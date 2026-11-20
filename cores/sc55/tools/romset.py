@@ -6,6 +6,9 @@ it is the same table the reference renderer uses.
 
   romset.py check DIR      list every file in DIR that belongs to a known romset
                            and which romsets are complete
+  romset.py pack DIR OUT [--romset mk1-v1.21]
+                           write the core's ROM pack (hdl/board/rom_loader.sv):
+                           copy it to the MiSTer as games/SC-55/boot.rom
 """
 import argparse
 import hashlib
@@ -70,12 +73,66 @@ def find_romset(directory: pathlib.Path, romset: str) -> dict[str, pathlib.Path]
     return {loc: found[h] for loc, h in table[romset].items()}
 
 
+# Roland wave ROM dumps are address- and data-scrambled; the reference model
+# unscrambles them on load (rom_io.cpp unscramble). The pack holds them
+# unscrambled, as the model has them in memory.
+_ADDR_BITS = [2, 0, 3, 4, 1, 9, 13, 10, 18, 17, 6, 15, 11, 16, 8, 5, 12, 7, 14, 19]
+_DATA_BITS = [2, 0, 4, 5, 7, 6, 3, 1]
+
+
+def unscramble(src: bytes) -> bytes:
+    def table(bits):
+        return [sum(1 << _ADDR_BITS[b + bits] for b in range(10) if v & (1 << b)) for v in range(1024)]
+    lo, hi = table(0), table(10)
+    data = bytes(sum(1 << j for j in range(8) if v & (1 << _DATA_BITS[j])) for v in range(256))
+    out = bytearray(len(src))
+    for i in range(len(src)):
+        a = (i & ~0xfffff) | lo[i & 0x3ff] | hi[(i >> 10) & 0x3ff]
+        out[i] = data[src[a]]
+    return bytes(out)
+
+
+PACK_LAYOUT = {  # mk1: offsets in the pack (hdl/board/rom_loader.sv)
+    "ROM1": (0x000100, 0x8000),
+    "ROM2": (0x008100, 0x40000),
+    "WAVEROM1": (0x048100, 0x100000),
+    "WAVEROM2": (0x148100, 0x100000),
+    "WAVEROM3": (0x248100, 0x100000),
+}
+PACK_SIZE = 0x348100
+
+
+def pack(directory: pathlib.Path, romset: str) -> bytes:
+    if not romset.startswith("mk1-"):
+        raise LookupError("the core supports mk1 romsets only (for now)")
+    files = find_romset(directory, romset)
+    out = bytearray(PACK_SIZE)
+    out[0:5] = b"SC55\x01"
+    for loc, (off, size) in PACK_LAYOUT.items():
+        data = files[loc].read_bytes()
+        if len(data) != size:
+            raise LookupError(f"{loc}: {len(data)} bytes, expected {size}")
+        if loc.startswith("WAVEROM"):
+            data = unscramble(data)
+        out[off:off + size] = data
+    return bytes(out)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check")
     c.add_argument("directory", type=pathlib.Path)
+    pk = sub.add_parser("pack")
+    pk.add_argument("directory", type=pathlib.Path)
+    pk.add_argument("out", type=pathlib.Path)
+    pk.add_argument("--romset", default="mk1-v1.21")
     args = ap.parse_args()
+
+    if args.cmd == "pack":
+        args.out.write_bytes(pack(args.directory, args.romset))
+        print(f"wrote {args.out} ({PACK_SIZE} bytes, {args.romset})")
+        return 0
 
     table = load_table()
     found, complete = identify(args.directory, table)
