@@ -8,7 +8,7 @@ module step_pacer #(
     parameter longint CLK_HZ = 50_000_000,
     parameter int STEP_NS = 600,
     parameter int STEP_NS_FAST = 500,
-    parameter int CAP_US = 200
+    parameter int CAP_US = 1000
 ) (
     input  logic        clk,
     input  logic        rst,
