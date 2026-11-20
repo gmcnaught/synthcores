@@ -456,8 +456,8 @@ module sc55_mcu #(
                         dev[7'h7e] <= 8'h00; dev[7'h7f] <= 8'h00;
                         dev[7'h5d] <= 8'h00; dev[7'h5b] <= 8'hff; dev[7'h58] <= 8'h04; dev[7'h5a] <= 8'h0c;
                         dev[7'h5c] <= 8'h87; dev[7'h59] <= 8'hff;
-                        for (int i = 'h60; i <= 'h68; i++) dev[7'(i)] <= 8'h00;
-                        for (int i = 'h70; i <= 'h77; i++) dev[7'(i)] <= 8'h00;
+                        for (int i = 0; i <= 8; i++) dev[7'h60 + 7'(i)] <= 8'h00;
+                        for (int i = 0; i <= 7; i++) dev[7'h70 + 7'(i)] <= 8'h00;
                         dev[7'h78] <= 8'hf3; dev[7'h79] <= 8'h80;
                         q <= Q_RESET;
                     end else if (run_step) begin
