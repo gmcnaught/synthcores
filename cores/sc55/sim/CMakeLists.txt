@@ -35,5 +35,6 @@ file(GLOB BOARD_SV "${HDL}/board/*.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
 verilate(board_lockstep SOURCES ${BOARD_SV} "${HDL}/cpu/h8_cpu.sv" "${HDL}/mcu/sc55_mcu.sv" "${HDL}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
-         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${HDL}/pcm"
-         VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw)
+         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${HDL}/pcm" "${HDL}/board"
+         VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
+         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"")

@@ -44,6 +44,9 @@ localparam CONF_STR = {
 	"-;",
 	"F1,ROM,Load ROM pack;",
 	"-;",
+	"-,Panel keys: Q W E R T Y U I O P [;",
+	"-,A S D F G H J K, arrows: part;",
+	"-;",
 	"O[1],Real-time pacing,On,Off;",
 	"-;",
 	"T[0],Reset;",
@@ -53,6 +56,7 @@ localparam CONF_STR = {
 
 wire   [1:0] buttons;
 wire [127:0] status;
+wire  [10:0] ps2_key;
 wire         ioctl_download, ioctl_wr, ioctl_wait;
 wire  [26:0] ioctl_addr;
 wire   [7:0] ioctl_dout;
@@ -68,6 +72,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.buttons(buttons),
 	.status(status),
 	.status_menumask(16'd0),
+	.ps2_key(ps2_key),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index),
@@ -79,7 +84,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-// rtl/pll: clk_sys 50 MHz (core; sc55_board CLK_HZ must match), clk_vid 25 MHz
+// rtl/pll: clk_sys 50 MHz (core; sc55_board CLK_HZ must match), clk_vid 40 MHz (800 x 600)
 wire clk_sys, clk_vid;
 pll pll
 (
@@ -98,6 +103,10 @@ end
 ///////////////////////   CORE   /////////////////////////////////
 
 wire signed [15:0] audio_l, audio_r;
+wire [31:0] panel_buttons;
+kbd_buttons kbd(.clk(clk_sys), .rst(rst_hard), .ps2_key(ps2_key), .buttons(panel_buttons));
+wire hs, vs, hblank, vblank;
+wire [7:0] r, g, b;
 wire        rom_ok, running, midi_seen, step_done;
 wire [15:0] underruns;
 
@@ -105,6 +114,7 @@ assign DDRAM_CLK = clk_sys;
 sc55_board #(.CLK_HZ(50_000_000)) board
 (
 	.clk(clk_sys),
+	.clk_vid(clk_vid),
 	.rst(rst_hard),
 	.user_reset(rst_user),
 
@@ -117,7 +127,7 @@ sc55_board #(.CLK_HZ(50_000_000)) board
 	.uart_rxd(UART_RXD),
 	.midi_inject(1'b0),
 	.midi_inject_data(8'd0),
-	.buttons(32'd0),
+	.buttons(panel_buttons),
 
 	.pace_enable(~status[1]),
 	.step_gate(1'b1),
@@ -125,7 +135,9 @@ sc55_board #(.CLK_HZ(50_000_000)) board
 	.audio_l(audio_l),
 	.audio_r(audio_r),
 	.sample_valid(), .sample_l(), .sample_r(),
-	.lcd_we(), .lcd_rs(), .lcd_data(), .lcd_enable(),
+	.vid_hs(hs), .vid_vs(vs), .vid_hblank(hblank), .vid_vblank(vblank),
+	.vid_r(r), .vid_g(g), .vid_b(b),
+	.lcd_pix(), .lcd_x(), .lcd_y(),
 
 	.rom_ok(rom_ok),
 	.running(running),
@@ -151,30 +163,10 @@ sc55_board #(.CLK_HZ(50_000_000)) board
 // LEDs: MIDI activity (stretched), loading
 reg [21:0] midi_stretch;
 always @(posedge clk_sys) midi_stretch <= midi_seen ? 22'h3fffff : (midi_stretch ? midi_stretch - 1'd1 : 22'd0);
-reg [15:0] last_underruns;
-reg [23:0] ur_stretch;
-always @(posedge clk_sys) begin
-	last_underruns <= underruns;
-	ur_stretch <= (underruns != last_underruns) ? 24'hffffff : (ur_stretch ? ur_stretch - 1'd1 : 24'd0);
-end
 assign LED_USER = midi_stretch != 0;
 assign LED_DISK = {1'b1, ioctl_download};
 
 ///////////////////////   VIDEO   ////////////////////////////////
-
-wire hs, vs, hblank, vblank;
-wire [7:0] r, g, b;
-status_video video
-(
-	.clk(clk_vid),
-	.rom_ok(rom_ok),
-	.loading(ioctl_download),
-	.running(running),
-	.midi_led(midi_stretch != 0),
-	.underrun_led(ur_stretch != 0),
-	.hs(hs), .vs(vs), .hblank(hblank), .vblank(vblank),
-	.r(r), .g(g), .b(b)
-);
 
 assign CLK_VIDEO = clk_vid;
 assign CE_PIXEL  = 1'b1;
