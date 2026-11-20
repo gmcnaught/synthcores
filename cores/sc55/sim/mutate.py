@@ -126,7 +126,7 @@ def build(target: str, srcs: list, out: pathlib.Path) -> pathlib.Path:
     top = {"cpu": "h8_cpu", "mcu": "sc55_mcu", "pcm": "sc55_pcm", "submcu": "sc55_submcu"}[target]
     extra = [] if target == "cpu" else ["--public-flat-rw"]
     if target == "pcm":
-        extra += [f"-I{srcs[0].parent}", f"-I{ROOT / 'hdl' / 'pcm'}"]
+        extra += [f"-I{srcs[-1].parent}", f"-I{ROOT / 'hdl' / 'pcm'}"]
     cmd = ["verilator", "--cc", "--exe", "--build", "-j", str(os.cpu_count() or 4), "-O3",
            "-Wno-fatal", "-Wno-BLKSEQ", "--top-module", top, "--Mdir", str(out), *extra,
            "-CFLAGS", cflags, "-LDFLAGS", " ".join(str(l) for l in libs),
