@@ -25,7 +25,7 @@ SIM_BUILD = ROOT / "out" / "sim"
 MCU_MUTATIONS = [
     ("FRT clear on match B", "if (ts_n[i][0] && ma) frc_n[i] = 16'h0;", "if (ts_n[i][0] && mb) frc_n[i] = 16'h0;"),
     ("FRT stride CKS=0", "case (cks) 2'd0: return 8'd4; 2'd1: return 8'd8;", "case (cks) 2'd0: return 8'd8; 2'd1: return 8'd8;"),
-    ("FRT stride CKS=1 (firmware does not use it: expected MISSED)", "case (cks) 2'd0: return 8'd4; 2'd1: return 8'd8;", "case (cks) 2'd0: return 8'd4; 2'd1: return 8'd16;"),
+    ("FRT stride CKS=1 (the mk1 firmware does not use it; the mk2 run catches it)", "case (cks) 2'd0: return 8'd4; 2'd1: return 8'd8;", "case (cks) 2'd0: return 8'd4; 2'd1: return 8'd16;"),
     ("FRT TCSR flag clear ignores status read", "if (!d[5] && sr[5]) begin ts[5] = 1'b0; sr[5] = 1'b0; int_req[4 + 4 * t]",
      "if (!d[5]) begin ts[5] = 1'b0; sr[5] = 1'b0; int_req[4 + 4 * t]"),
     ("TMR compare A clear mode", "if (tmr_tcr[4:3] == 2'b01 && ma) cnt_n = 8'h0;", "if (tmr_tcr[4:3] == 2'b10 && ma) cnt_n = 8'h0;"),
@@ -34,11 +34,19 @@ MCU_MUTATIONS = [
     ("UART RX delay", "uart_rx_delay <= cycles + 48'd3000;", "uart_rx_delay <= cycles + 48'd2000;"),
     ("A/D period", "analog_end <= cycles + 48'd200;\n                                    dev[7'h68] <= d | 8'h80;",
      "analog_end <= cycles + 48'd201;\n                                    dev[7'h68] <= d | 8'h80;"),
-    ("battery level", "return (ch == 3'd7) ? 10'h2a0 : 10'h000;", "return (ch == 3'd7) ? 10'h2a4 : 10'h000;"),
+    ("battery level", "return (s155 && p9[1]) ? 10'h000 : 10'h2a0;", "return (s155 && p9[1]) ? 10'h000 : 10'h2a4;"),
     ("GA counter length", "ga_lcd_counter <= 9'd500; end\n                        else if (a16 == 16'hf104)", "ga_lcd_counter <= 9'd499; end\n                        else if (a16 == 16'hf104)"),
-    ("internal RAM ignores RAMCR (firmware keeps RAMCR bit 7 set: expected MISSED)", "end else if (a16 >= 16'hfb80 && dev[7'h79][7]) d = ram", "end else if (a16 >= 16'hfb80) d = ram"),
+    ("internal RAM ignores RAMCR (the firmware keeps RAMCR bit 7 set; caught where the speculation decode disagrees)", "else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 3'd4;", "else if (a16 >= 16'hfb80) rs = 3'd4;"),
     ("button groups swapped", "if (!a16[1]) d = d & ~buttons[15:8];", "if (!a16[1]) d = d & ~buttons[23:16];"),
-    ("ROM2 page decode", "wire [17:0] rom2_a = c_addr[17:0];", "wire [17:0] rom2_a = {1'b0, c_addr[16:0]};"),
+    ("ROM2 page decode", "wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], bram_a[17:0]};", "wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], 1'b0, bram_a[16:0]};"),
+    ("speculative read kept across a write", "if (ld_we || q == Q_CLEAR || (accept && c_we)) spec_v <= 1'b0;", "if (ld_we || q == Q_CLEAR) spec_v <= 1'b0;"),
+    ("speculation crosses the page", "wire  [23:0] c_next = {c_addr[23:16], c_addr[15:0] + 16'd1};", "wire  [23:0] c_next = c_addr + 24'd1;"),
+    ("mk2: GA line 5 ignores its enable", "tg = (sm_ga5_val && !ga_int5 && ga_en[5]) ? 3'd5 : ga_trigger;", "tg = (sm_ga5_val && !ga_int5) ? 3'd5 : ga_trigger;"),
+    ("mk2: SRAM in page 11", "c_addr[19:16] == (mk2 ? 4'd10 : 4'd5);", "c_addr[19:16] == (mk2 ? 4'd11 : 4'd5);"),
+    ("mk2: switch level", "2'd2: return 10'h3ff;", "2'd2: return 10'h3fe;"),
+    ("mk2: no IRQ1 hold while the sub-MCU runs",
+     "(mk2 && !sm_caught_up && !int_req[2] && dev[7'h7c][6] && (dev[7'h70][2:0] > dbg_sr[10:8]))", "1'b0"),
+    ("mk2: P9DR model bit", "((mk2 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00)", "((mk2 && !sc155) ? (8'h00 & ~dev[7'h7e]) : 8'h00)"),
 ]
 
 PCM_MUTATIONS = [
@@ -47,12 +55,12 @@ PCM_MUTATIONS = [
     ("noise LFSR tap", "xr = shv[0] ^ shv[1] ^ shv[7] ^ shv[12];\n                shv = {xr, shv[15:1]};", "xr = shv[0] ^ shv[1] ^ shv[7] ^ shv[11];\n                shv = {xr, shv[15:1]};"),
     ("envelope dither bit order", "if (tvc[3]) addlow |= 1;\n            if (tvc[2]) addlow |= 2;", "if (tvc[2]) addlow |= 1;\n            if (tvc[3]) addlow |= 2;"),
     ("eram block-float threshold", "if (top >= 16) sh = 3;", "if (top >= 15) sh = 3;"),
-    ("filter fine multiply shift", "v1s = 0;" if False else "vv1 = addclip20(vv2, mult2 >>> 13, (mult2 >>> 12) & 1);", "vv1 = addclip20(vv2, mult2 >>> 12, (mult2 >>> 11) & 1);"),
-    ("pan bytes swapped", "sampl = multi(v_sample3, pan[15:8]);\n                sampr = multi(v_sample3, pan[7:0]);", "sampl = multi(v_sample3, pan[7:0]);\n                sampr = multi(v_sample3, pan[15:8]);"),
+    ("filter fine multiply shift", "vv1 = fadd(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1, mk2);", "vv1 = fadd(vv2, pp[1] >>> 12, (pp[1] >>> 11) & 1, mk2);"),
+    ("pan bytes swapped", "pp[0] <= multi(v_sample3, pan[15:8]);\n                pp[1] <= multi(v_sample3, pan[7:0]);", "pp[0] <= multi(v_sample3, pan[7:0]);\n                pp[1] <= multi(v_sample3, pan[15:8]);"),
     ("DPCM shift", "shift_ = (10 - int'(sel)) & 15;\n        shifted", "shift_ = (11 - int'(sel)) & 15;\n        shifted"),
     ("IRQ ignores irq_assert", "if (v_active && r2[6][0] && !r2[8][14] && !irq_assert && v_irq_flag) begin", "if (v_active && r2[6][0] && !r2[8][14] && v_irq_flag) begin"),
     ("frame length 24 cycles per slot", "pcm_cycles <= pcm_cycles + ({42'h0, reg_slots} + 48'd1) * 48'd25;", "pcm_cycles <= pcm_cycles + ({42'h0, reg_slots} + 48'd1) * 48'd24;"),
-    ("reverb step 17 reads tv + 0", "`ER(`EA1(29, 10));", "`ER(`EA(29, 10));"),
+    ("reverb step 17 reads tv + 0", "            `ER(`EA1(29, 10))\n", "            `ER(`EA(29, 10))\n"),
     ("send slot 21 to the wrong sum (ram2[31][2] low byte is 00 for every reverb x chorus macro on mk1: expected MISSED)", "6'd21: rs0 = addclip20(rs0, rcadd2[2] >>> 1, rcadd2[2] & 1);", "6'd21: rs1 = addclip20(rs1, rcadd2[2] >>> 1, rcadd2[2] & 1);"),
     ("ROM bank select ignores 3d bit 5", "bank = r3d[5] ? address[23:21] : address[21:19];", "bank = address[21:19];"),
 ]
@@ -134,7 +142,8 @@ def caught(target: str, bench: pathlib.Path, roms: str) -> bool:
         runs = ([["--steps", "3000000"], ["--midi-demo", "5", "--buttons", "9", "--steps", "6000000"]]
                 + [["--random", str(s), "--steps", "1000000"] for s in (1, 2, 3)])
     elif target == "mcu":
-        runs = [["--steps", "3000000"], ["--midi-demo", "5", "--buttons", "9", "--steps", "6000000"]]
+        runs = [["--steps", "3000000"], ["--midi-demo", "5", "--buttons", "9", "--steps", "6000000"],
+                ["--romset", "mk2-v1.01", "--midi-demo", "5", "--buttons", "9", "--steps", "6000000"]]
     else:
         runs = [["--midi-demo", "1", "--steps", "7000000"], ["--midi-loud", "1", "--steps", "16000000"]]
     for args in runs:
