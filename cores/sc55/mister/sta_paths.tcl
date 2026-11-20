@@ -1,7 +1,7 @@
 # Worst setup paths of the compiled design (quartus_sta -t sta_paths.tcl):
 #   output_files/worst_paths.txt        60 worst paths, all clocks
 #   output_files/worst_paths_core.txt   30 worst into the core clock (50 MHz)
-#   output_files/worst_paths_video.txt  30 worst into the video clock (25 MHz)
+#   output_files/worst_paths_video.txt  30 worst into the video clock (40 MHz)
 #   output_files/worst_paths_full.txt   the 5 worst into the core clock, in detail
 #   output_files/core_50mhz.txt         every core-clock endpoint whose worst
 #       path is over 20 ns (slack < period - 20 ns; any core period),
@@ -48,12 +48,8 @@ foreach mod [lsort [array names count]] {
 close $fh
 
 # the worst path from each main module
-set mods {able_cpu:cpu code_cache:cache dev_muldiv:muldiv dev_fm:fm dev_extmem:extmem
-          dev_terminal:terminal dev_floppy:floppy dev_keyboard:keyboard dev_vpk:vpk
-          dev_rtc:rtc throttle:pace poly_box:box pcm_out:pcm dev_poly:poly dev_scsi:scsi dev_midi:midi_card
-          dev_mouse:mouse_port dev_multi:distributor term_display:display tek_plane:tek boot_loader:boot
-          sd_floppy:media midi_in:midi midi_vpk:midi_to_vpk panel_mouse:mouse audio_fifo:to_real_time
-          ddram_word:ext_memory}
+set mods {h8_cpu:cpu sc55_mcu:mcu sc55_pcm:pcm lcd_ctrl:lcd resample:rs audio_fifo:fifo
+          wave_ddr:wave rom_loader:loader step_pacer:pacer midi_rx:midi kbd_buttons:kbd}
 set fh [open output_files/core_modules.txt w]
 foreach m $mods {
     set regs [get_registers -nowarn "*|$m|*"]
