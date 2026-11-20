@@ -1,0 +1,68 @@
+name: Release
+
+# MiSTer-devel convention: dated cores in releases/ (SC55_YYYYMMDD.rbf), so
+# update_all / downloader can install the core. After a successful "Build RBF"
+# of a push to main, the RBF it built is committed to releases/ on main and
+# attached to a GitHub Release tagged vYYYYMMDD. Pushes made with GITHUB_TOKEN
+# start no workflows, and releases/ is outside build-rbf.yml's paths anyway.
+
+on:
+  workflow_run:
+    workflows: ["Build RBF"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fetch the built core
+        uses: actions/download-artifact@v4
+        with:
+          name: sc55-rbf
+          path: built
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit to releases/
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rbf=$(ls built/SC55_*.rbf | head -1)
+          name=$(basename "$rbf")
+          mkdir -p releases
+          if [ -f "releases/$name" ] && cmp -s "$rbf" "releases/$name"; then
+            echo "releases/$name is already this build"; echo "name=$name" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          cp "$rbf" "releases/$name"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "releases/$name"
+          git commit -m "Release $name (build ${{ github.event.workflow_run.head_sha }})"
+          git push origin HEAD:main
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          name=${{ steps.commit.outputs.name }}
+          tag=v$(echo "$name" | sed 's/^SC55_\([0-9]*\)\.rbf$/\1/')
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "releases/$name" --clobber
+          else
+            gh release create "$tag" "releases/$name" --title "SC-55 $tag" \
+              --notes "Core built from ${{ github.event.workflow_run.head_sha }}. Make the ROM pack from your own ROMs with tools/romset.py (see README)."
+          fi
