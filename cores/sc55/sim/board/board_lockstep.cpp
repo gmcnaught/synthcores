@@ -49,6 +49,7 @@ int main(int argc, char** argv)
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     bool        zero_init = false, serial = false;
     std::string lcd_ppm;
+    uint64_t    free_run = 0;
     std::vector<uint8_t> frame(741 * 268 * 3, 0);
     for (int i = 1; i < argc; ++i)
     {
@@ -62,6 +63,7 @@ int main(int argc, char** argv)
         else if (a == "--zero-init") zero_init = true;
         else if (a == "--serial") serial = true;
         else if (a == "--lcd-ppm" && i + 1 < argc) lcd_ppm = argv[++i];
+        else if (a == "--free-run" && i + 1 < argc) free_run = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
@@ -213,6 +215,24 @@ int main(int argc, char** argv)
     }
 
     std::vector<uint8_t> midi;
+    if (free_run)
+    {
+        // throughput: the gate open, no model; loud MIDI paced at 3125 bytes/s of real time (50 MHz)
+        std::vector<uint8_t> fm = make_midi_loud(1);
+        size_t fp = 0;
+        uint64_t c0 = clocks, steps0 = 0, worst = 0, last = clocks;
+        t->step_gate = 1;
+        for (uint64_t i = 0; i < free_run; ++i)
+        {
+            if ((i % 16000) == 0 && fp < fm.size() && clocks - c0 > 40'000'000) { t->midi_inject = 1; t->midi_inject_data = fm[fp++]; }
+            tick();
+            t->midi_inject = 0;
+            if (t->step_done) { ++steps0; worst = std::max(worst, clocks - last); last = clocks; }
+        }
+        printf("free run: %" PRIu64 " clocks, %" PRIu64 " steps: %.2f clocks/step (real time at 50 MHz needs <= 30), longest step %" PRIu64 " clocks, MIDI bytes %zu\n",
+               clocks - c0, steps0, (double)(clocks - c0) / (double)steps0, worst, fp);
+        return 0;
+    }
     if (midi_seed >= 0) midi = make_midi_demo((uint64_t)midi_seed);
     if (loud_seed >= 0) midi = make_midi_loud((uint64_t)loud_seed);
     size_t pos = 0;
