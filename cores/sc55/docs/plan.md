@@ -73,7 +73,7 @@ output stage (DAC, filters) until there are recordings; shipping ROMs.
 |---|---|---|
 | D1 | Framework | **Template_MiSTer.** JTFRAME's MiSTer target ties off the HPS UART, which MidiLink needs (synclavierii research-log §25). |
 | D2 | Time base | **The reference's model:** one instruction = 12 MCU cycles [OBS `mcu.cpp` `cycles += 12 // FIXME`]; one PCM slot = 25 cycles, `(reg_slots+1)*25` per sample [OBS]; the sub-MCU runs at `cycles*5`, 48 per instruction [OBS]. This is required for bit-exact comparison. Real H8/532 cycle timing is a possible later option, but it could not be checked bit for bit. |
-| D3 | ROM storage | **Proposed:** mk1 ROM2 is 256 KB [OBS: v1.21 `sc55_rom2.bin`], so it fits in BRAM (256 M10K blocks, about 406 of 553 with the rest of R4) and the CPU needs no code cache for T1. The wave ROMs (mk1: 3 × 1 MB [OBS]) go in **DDR3** through synclavierii's `ddram_word.sv` read stream. For T2, if the mk2 ROM2 is 512 KB [UNK], it moves to DDR3 behind `code_cache.sv`. Wave-read load: 5 ROM reads per slot (`pcm.cpp:1139–1243`), about 4.8 M reads/s at 24 MHz, mostly sequential bytes. The .62 sustained about 13 M random 64-bit DDR3 reads/s (synclavierii M26) [OBS]. The alternative is SDRAM (fixed latency, no cache, but needs the add-on board). Open: does the .62 have SDRAM? |
+| D3 | ROM storage | **Proposed:** mk1 ROM2 is 256 KB [OBS: v1.21 `sc55_rom2.bin`], so it fits in BRAM (256 M10K blocks, about 406 of 553 with the rest of R4) and the CPU needs no code cache for T1. The wave ROMs (mk1: 3 × 1 MB [OBS]) go in **DDR3** through synclavierii's `ddram_word.sv` read stream. For T2, if the mk2 ROM2 is 512 KB [UNK], it moves to DDR3 behind `code_cache.sv`. Wave-read load: 5 ROM reads per slot (`pcm.cpp:1139–1243`), about 4.8 M reads/s at 24 MHz, mostly sequential bytes. The test MiSTer sustained about 13 M random 64-bit DDR3 reads/s (synclavierii M26) [OBS]. The alternative is SDRAM (fixed latency, no cache, but needs the add-on board). Open: does the test MiSTer have SDRAM? |
 | D4 | Lockstep harness | **jcmoyer's backend linked into the Verilator testbench in C++**, in the same process. There is no Python simulator and no trace-file format to maintain (synclavierii needed both). |
 | D5 | Licence | **GPL-2.0-or-later**, as upstream. HDL translated from the Nuked code is a derivative work. Template_MiSTer `sys/` is GPL-2.0, which is compatible. |
 | D6 | MIDI input | Bytes reach the SCI the way `MCU_PostUART` delivers them: buffered, with the reference's `uart_rx_delay` of 3000 cycles. This keeps lockstep exact. Serial input on the RX pin at the firmware's baud rate is a later option. |
@@ -91,7 +91,7 @@ Progress (2026-11-20; details in each doc):
 | M2 | done: MCU system identical 20 M steps with MIDI and buttons; 12/14 seeded faults (2 unused by the firmware) ([`mcu.md`](mcu.md)) |
 | M3 | done: PCM identical sample for sample, loud and normal MIDI, any ROM latency; 12/13 seeded faults (1 unobservable on mk1) ([`pcm.md`](pcm.md)) |
 | M4 | done: avmidi `0A.mid` through the HDL system = `sc55-render` SHA-256 ([`board.md`](board.md)) |
-| M5 | simulation done (board bench from power-on, DDR3 model, pack download); Quartus: fits (28,060 ALMs 67 %, 453/553 RAM blocks, 96/112 DSP), all clocks meet timing with seed 3 (core 50 MHz +0.843 ns, video 40 MHz +8.772 ns, HDMI +0.514 ns; seed 1 failed by 0.037 ns inside the framework's ascal, seeds 2 and 4 also pass); on the .62 (2026-11-20): boots to the same LCD as the bench, plays MIDI at 9600 baud on ttyS1 (not yet through the MidiLink daemon at 31250), avmidi `0A.mid` for 100 s with no underrun and no lag ([`board.md`](board.md)) |
+| M5 | simulation done (board bench from power-on, DDR3 model, pack download); Quartus: fits (28,060 ALMs 67 %, 453/553 RAM blocks, 96/112 DSP), all clocks meet timing with seed 3 (core 50 MHz +0.843 ns, video 40 MHz +8.772 ns, HDMI +0.514 ns; seed 1 failed by 0.037 ns inside the framework's ascal, seeds 2 and 4 also pass); on the test MiSTer (2026-11-20): boots to the same LCD as the bench, plays MIDI at 9600 baud on ttyS1 (not yet through the MidiLink daemon at 31250), avmidi `0A.mid` for 100 s with no underrun and no lag ([`board.md`](board.md)) |
 | M6 | LCD and panel keys done in simulation (frame identical to `LCD_Render`) ([`lcd.md`](lcd.md)); mouse panel not done |
 | M7 | in simulation: sub-MCU, mk2 MCU/PCM/board identical to the reference; avmidi 0A.mid through the mk2 HDL = jcmoyer's mk2 hash; SC-155 (mk1 board) identical; Quartus and MiSTer run pending ([`mk2.md`](mk2.md)) |
 
@@ -107,10 +107,10 @@ each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
 | **M2** MCU peripherals | Interrupt controller, FRT/8-bit timers, SCI, A/D (buttons, volume knob), ports, memory map, mk1 gate array, LCD controller; all counted in reference cycles | Lockstep with no device left to the trace except the PCM chip |
 | **M3** PCM chip | `hdl/pcm/`: register interface plus the slot engine, serial through BRAM (one slot = 25 reference cycles; for example 50 core clocks at 48 MHz); `addclip20`, `multi`, the corrected interp table generated from `pcm.cpp` by a tool; reverb/chorus `eram`. giulioz's `pcm.v` is a sketch only: its table has the old 3534 entry | Standalone bench: recorded register writes in, every sample identical |
 | **M4** System lockstep | CPU + peripherals + PCM against the model in one process | Each jcmoyer test MIDI rendered bit-exact (same SHA-256) |
-| **M5** MiSTer core | `emu` top level; ioctl ROM load into DDR3/BRAM; board bench from power-on with random register and memory contents (`--x-initial unique`) and a DDR3 model with BUSY and latency; throttle; `audio_fifo`; 64/66.2 → 48 kHz resampler; status line; `build-rbf.yml` fails on negative slack | On the .62: boots, plays MIDI over MidiLink, Lag/Underrun 0 over 100 s |
+| **M5** MiSTer core | `emu` top level; ioctl ROM load into DDR3/BRAM; board bench from power-on with random register and memory contents (`--x-initial unique`) and a DDR3 model with BUSY and latency; throttle; `audio_fifo`; 64/66.2 → 48 kHz resampler; status line; `build-rbf.yml` fails on negative slack | On the test MiSTer: boots, plays MIDI over MidiLink, Lag/Underrun 0 over 100 s |
 | **M6** Panel and LCD | LCD drawn as on the unit (`lcd.cpp` is the reference, compared pixel for pixel); buttons from keyboard, mouse (`panel_mouse.sv`) and MIDI; volume from the A/D | Frame read back equal to the reference LCD buffer; buttons change parts and instruments |
 | **M7** SC-55mk2 | M37450 sub-MCU (evaluate T65 as a base and add the 740 instructions), 28 voices, 66.207 kHz, MIDI routed through the sub-MCU as in the reference | M4 and M5 criteria repeated with the mk2 romset |
-| **R** Public release | After M7 is merged and the mk2 pack has run on the MiSTer: scan the whole git history for ROM content (romset hashes, sizes); "the .62" -> "the test MiSTer" in the docs; README install notes (releases/, ROM pack); make the repository public; the first release from main (D8) | `releases/SC55_YYYYMMDD.rbf` on main and a GitHub Release; installs on the MiSTer from the repository |
+| **R** Public release | After M7 is merged and the mk2 pack has run on the MiSTer: scan the whole git history for ROM content (romset hashes, sizes); README install notes (releases/, ROM pack); make the repository public; the first release from main (D8) | `releases/SC55_YYYYMMDD.rbf` on main and a GitHub Release; installs on the MiSTer from the repository |
 | **M8** Options | Oversampling on/off, other romsets (D-table), MGL per model | per option |
 
 ## 6. Verification
@@ -122,7 +122,7 @@ each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
 | Peripherals, PCM | Per-block benches, then system lockstep | C++ model |
 | Audio | SHA-256 of rendered test MIDIs | renderer output |
 | Board | Power-on with random contents, DDR3 BUSY/latency model | `board_top` pattern |
-| Hardware | `scripts/mister/`: load_core, MIDI to ttyS1, screenshot + OCR of the status line | the .62 |
+| Hardware | `scripts/mister/`: load_core, MIDI to ttyS1, screenshot + OCR of the status line | the test MiSTer |
 | Benches | Every testbench must catch seeded faults (synclavierii: 3–8 per bench) | — |
 
 ## 7. Risks
@@ -152,7 +152,7 @@ each step; 50 MHz core, 40 MHz video (800 × 600 shows the 741 × 268 LCD 1:1).
 
 ## 9. Unknown
 
-- Whether the .62 has an SDRAM board (affects D3).
+- Whether the test MiSTer has an SDRAM board (affects D3).
 - ~~mk1 MCU clock~~ Resolved in M0: the renderer steps mk1 at 600 ns per
   instruction (`R_NSPerStep`), so 12 cycles = 600 ns → **20 MHz** reference
   cycles, 1.667 M instructions/s; mk2 500 ns → 24 MHz [OBS].
