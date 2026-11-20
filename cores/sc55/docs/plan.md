@@ -85,7 +85,7 @@ Progress (2026-11-20; details in each doc):
 
 | M | Status |
 |---|---|
-| M0 | done: reference builds without SDL; hooked copy; decoder2 on/off identical; mk1 = 20 MHz reference cycles ([`reference.md`](reference.md)). jcmoyer's own hashes are mk2-only (no mk2 ROMs here). |
+| M0 | done: reference builds without SDL; hooked copy; decoder2 on/off identical; mk1 = 20 MHz reference cycles ([`reference.md`](reference.md)). jcmoyer's own hashes are mk2-only; with the user's mk2-v1.01 ROMs (2026-11-20) the reference build reproduces them for avmidi 01 and 0A. |
 | M1 | done: CPU identical on firmware (30 M steps), MIDI traffic, random code; 18/18 seeded faults ([`cpu.md`](cpu.md)) |
 | M2 | done: MCU system identical 20 M steps with MIDI and buttons; 12/14 seeded faults (2 unused by the firmware) ([`mcu.md`](mcu.md)) |
 | M3 | done: PCM identical sample for sample, loud and normal MIDI, any ROM latency; 12/13 seeded faults (1 unobservable on mk1) ([`pcm.md`](pcm.md)) |
