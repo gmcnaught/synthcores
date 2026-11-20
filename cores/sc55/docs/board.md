@@ -74,3 +74,8 @@ real-time lag (amber once the pacer lost time after the first second).
 | boot, no MIDI | LCD "01 001 Piano 1", as in the bench |
 | GM reset, C major chord | part 1 level bar, Piano 1 |
 | avmidi `0A.mid` repeated, 100 s at 9600 baud, screenshot every ~2 s | 45 screenshots: underrun flash never lit, MIDI lit in 41, bars moving in 42 (the gap between repeats in the others) |
+| same, 100 s (12,813 bytes), build with the sticky indicators | after 100 s: underrun and lag boxes both off (no underrun since start, no lag after the first second) |
+
+The sticky indicators are checked in the board bench (`--free-run N
+--stall-at CLOCK LEN` closes `step_gate`): a 2 ms stall sets the lag box,
+a 20 ms stall also counts an underrun; neither is set before the stall.
