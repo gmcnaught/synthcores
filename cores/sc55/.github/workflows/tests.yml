@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build verilator g++-14 && verilator --version
+      - name: Build reference model
+        run: |
+          cmake -S ref -B out/ref -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
+          ninja -C out/ref
+      - name: Run tests (ROM-dependent tests skip without ROMs)
+        run: |
+          set -e
+          for t in tests/test_*.py; do
+            echo "== $t"
+            python "$t"
+          done
