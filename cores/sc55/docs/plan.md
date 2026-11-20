@@ -133,6 +133,8 @@ output stage (DAC, filters) until there are recordings; shipping ROMs.
 ## 9. Unknown
 
 - Whether the .62 has an SDRAM board (affects D3).
-- mk1 MCU clock in reference cycles per second (64 kHz output; derive in M0).
+- ~~mk1 MCU clock~~ Resolved in M0: the renderer steps mk1 at 600 ns per
+  instruction (`R_NSPerStep`), so 12 cycles = 600 ns → **20 MHz** reference
+  cycles, 1.667 M instructions/s; mk2 500 ns → 24 MHz [OBS].
 - How mk2 routes MIDI through the sub-MCU in the reference (read `submcu.cpp` in M7).
 - Whether the H8/532's DTC is used by the firmware (no `DTC` hits in `mcu_interrupt.cpp`).
