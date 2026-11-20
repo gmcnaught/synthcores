@@ -55,7 +55,13 @@ module sc55_pcm (
     logic [31:0] ram1 [32][8];
     logic [15:0] ram2 [32][16];
     logic [15:0] pitch [32];            // copy of ram2[n][0] for the indirect read
-    logic [15:0] eram [16384];
+    // eram (16K x 16) is a block RAM (hdl/common/sdp_ram.sv): reads and writes are
+    // registered requests; after a read the reverb program waits two clocks
+    // (er_wait) and takes the data into er_q.
+    logic        er_we;
+    logic [13:0] er_wa, er_ra;
+    logic [15:0] er_wd, er_rd;
+    logic [1:0]  er_wait;
     logic [47:0] pcm_cycles;
     logic [31:0] voice_mask, voice_mask_pending, write_latch, read_latch, wave_read_address;
     logic [15:0] tv_counter;
@@ -274,12 +280,20 @@ module sc55_pcm (
     logic [7:0]  tag_wp, tag_rp;
     logic        cpu_rom_wait;
 
+    // pipeline registers of the voice datapath (products and partial sums
+    // are registered so each clock has at most one multiply or a short add chain)
+    logic signed [31:0] pp [4];
+    logic signed [31:0] dp_sh [4], dp_st [3];
+
     // reverb section: eram access sequencing
     logic [6:0]  rv_pc;           // reverb micro-step
     logic [15:0] er_q;            // eram read data (registered)
+    logic        rv_half;         // second half of a two-clock reverb step
+    logic signed [31:0] rv_t;     // a value kept between the halves
 
     typedef enum logic [4:0] {
         P_IDLE, P_FRAME, P_LOADG, P_MIX, P_REVERB, P_AGEN, P_SLOT0, P_SLOT_RD,
+        P_SLOT_DPCM2, P_SLOT_FILT2, P_SLOT_FILT3, P_SLOT_FILT4, P_SLOT_VOL2, P_SLOT_VOL3, P_SLOT_VOL4, P_SLOT_MIX2,
         P_SLOT_DPCM, P_SLOT_FILT, P_SLOT_TV0, P_SLOT_TV1, P_SLOT_VOL, P_SLOT_MIX, P_SLOT_WB, P_FRAME_END,
         P_CPU_ROM, P_CLEAR, P_PRESCAN
     } pst_t;
@@ -293,6 +307,8 @@ module sc55_pcm (
     // ------------------------------------------------------------------
     // Main process
     // ------------------------------------------------------------------
+
+    sdp_ram #(.AW(14), .DW(16)) u_eram (.clk, .we(er_we), .wa(er_wa), .wd(er_wd), .ra(er_ra), .rd(er_rd));
     always_ff @(posedge clk) begin : b_sc55_pcm_1
         // temporaries
         logic [5:0]  a;
@@ -306,6 +322,7 @@ module sc55_pcm (
         done <= 1'b0;
         cpu_ack <= 1'b0;
         sample_valid <= 1'b0;
+        er_we <= 1'b0;
 
         if (rst) begin
             ps <= P_CLEAR;
@@ -463,7 +480,7 @@ module sc55_pcm (
 
             case (ps)
             P_CLEAR: begin
-                eram[clr_a] <= 16'h0;
+                er_we <= 1'b1; er_wa <= clr_a; er_wd <= 16'h0;
                 clr_a <= clr_a + 14'd1;
                 if (clr_a == 14'h3fff) ps <= P_IDLE;
             end
@@ -631,11 +648,18 @@ module sc55_pcm (
                     g2[3][9] <= n9; g2[3][10] <= n10;
                 end
                 rv_pc <= 7'd0;
+                rv_half <= 1'b0;
+                er_wait <= 2'd0;
                 ps <= P_REVERB;
             end
 
             // ------------------------------------------------ reverb/chorus
             P_REVERB: begin
+                if (er_wait != 2'd0) begin
+                    // an eram read is on its way: hold the program
+                    er_wait <= er_wait - 2'd1;
+                    if (er_wait == 2'd1) er_q <= er_rd;
+                end else begin
                 if (shf == 32'sd1) begin
                     sample_valid <= 1'b1;
                     sample_l <= (g1[2][3] & ~{24'h0, cfg_write_mask}) << 12;
@@ -643,6 +667,7 @@ module sc55_pcm (
                     shf <= 32'sd0;
                 end
                 `include "sc55_pcm_reverb.svh"
+                end
             end
 
             // ------------------------------- reverb address generator (row 31)
@@ -715,31 +740,26 @@ module sc55_pcm (
 
             P_SLOT_DPCM: begin
                 `include "sc55_pcm_dpcm.svh"
+                ps <= P_SLOT_DPCM2;
+            end
+
+            P_SLOT_DPCM2: begin : b_dpcm2
+                int reference_, test_;
+                reference_ = int'(r1[5]);
+                for (int k = 0; k < 4; k++)
+                    if (int'(v_spo) >= k + 1) reference_ = addclip20(reference_, dp_sh[k] >>> 1, dp_sh[k] & 1);
+                test_ = int'(r1[5]);
+                for (int k = 0; k < 3; k++) test_ = addclip20(test_, dp_st[k] >>> 1, dp_st[k] & 1);
+                v_reference <= reference_;
+                v_test <= test_;
                 ps <= P_SLOT_FILT;
             end
 
-            P_SLOT_FILT: begin : b_sc55_pcm_8
-                // mk1 filter
-                logic signed [31:0] reg1, reg3, mult1, mult2, mult3, vv1, vv2, subvar, vv3, mult4, mult5, v4, v5;
-                logic [15:0] filter;
-                logic [6:0] reg2_6;
-                reg1 = r1[1]; reg3 = r1[3];
-                reg2_6 = r2[6][14:8];
-                filter = r2[11];
-                mult1 = multi(reg1, filter[15:8]);
-                mult2 = multi(reg1, {1'b0, filter[7:1]});
-                mult3 = multi(reg1, {1'b0, reg2_6});
-                vv2 = addclip20(reg3, mult1 >>> 6, (mult1 >>> 5) & 1);
-                vv1 = addclip20(vv2, mult2 >>> 13, (mult2 >>> 12) & 1);
-                subvar = addclip20(vv1, mult3 >>> 6, (mult3 >>> 5) & 1);
-                r1[3] <= vv1;
-                vv3 = addclip20(v_test, subvar ^ 32'hfffff, 1);
-                mult4 = multi(vv3, filter[15:8]);
-                mult5 = multi(vv3, {1'b0, filter[7:1]});
-                v4 = addclip20(reg1, mult4 >>> 6, (mult4 >>> 5) & 1);
-                v5 = addclip20(v4, mult5 >>> 13, (mult5 >>> 12) & 1);
-                r1[1] <= v5;
-                v_v3 <= vv3;
+            P_SLOT_FILT: begin
+                // mk1 filter, 1/4: the products of reg1 (ram1[1]); filter = ram2[11] before its envelope update
+                pp[0] <= multi(r1[1], r2[11][15:8]);
+                pp[1] <= multi(r1[1], {1'b0, r2[11][7:1]});
+                pp[2] <= multi(r1[1], {1'b0, r2[6][14:8]});
                 r1[5] <= v_reference;
                 // irq
                 if (v_active && r2[6][0] && !r2[8][14] && !irq_assert && v_irq_flag) begin
@@ -747,6 +767,32 @@ module sc55_pcm (
                     irq_assert <= 1'b1;
                     irq_channel <= {2'b0, slot};
                 end
+                ps <= P_SLOT_FILT2;
+            end
+
+            P_SLOT_FILT2: begin : b_filt2
+                // 2/4: ram1[3] and v3
+                logic signed [31:0] vv1, vv2, subvar;
+                vv2 = addclip20(r1[3], pp[0] >>> 6, (pp[0] >>> 5) & 1);
+                vv1 = addclip20(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1);
+                subvar = addclip20(vv1, pp[2] >>> 6, (pp[2] >>> 5) & 1);
+                r1[3] <= vv1;
+                v_v3 <= addclip20(v_test, subvar ^ 32'hfffff, 1);
+                ps <= P_SLOT_FILT3;
+            end
+
+            P_SLOT_FILT3: begin
+                // 3/4: the products of v3
+                pp[0] <= multi(v_v3, r2[11][15:8]);
+                pp[1] <= multi(v_v3, {1'b0, r2[11][7:1]});
+                ps <= P_SLOT_FILT4;
+            end
+
+            P_SLOT_FILT4: begin : b_filt4
+                // 4/4: ram1[1]
+                logic signed [31:0] v4;
+                v4 = addclip20(r1[1], pp[0] >>> 6, (pp[0] >>> 5) & 1);
+                r1[1] <= addclip20(v4, pp[1] >>> 13, (pp[1] >>> 12) & 1);
                 ps <= P_SLOT_TV0;
             end
 
@@ -766,28 +812,45 @@ module sc55_pcm (
                 ps <= P_SLOT_VOL;
             end
 
-            P_SLOT_VOL: begin : b_sc55_pcm_9
-                logic signed [31:0] sample, mv1, mv2, sample2, mv3, mv4;
+            P_SLOT_VOL: begin : b_vol1
+                logic signed [31:0] sample;
                 sample = !r2[6][1] ? $signed(r1[3]) : v_v3;
-                mv1 = multi(sample, v_volmul1[15:8]);
-                mv2 = multi(sample, {1'b0, v_volmul1[7:1]});
-                sample2 = addclip20(mv1 >>> 6, mv2 >>> 13, ((mv2 >>> 12) | (mv1 >>> 5)) & 1);
-                mv3 = multi(sample2, v_volmul2[15:8]);
-                mv4 = multi(sample2, {1'b0, v_volmul2[7:1]});
-                v_sample3 <= addclip20(mv3 >>> 6, mv4 >>> 13, ((mv4 >>> 12) | (mv3 >>> 5)) & 1);
+                pp[0] <= multi(sample, v_volmul1[15:8]);
+                pp[1] <= multi(sample, {1'b0, v_volmul1[7:1]});
+                ps <= P_SLOT_VOL2;
+            end
+
+            P_SLOT_VOL2: begin
+                v_sample3 <= addclip20(pp[0] >>> 6, pp[1] >>> 13, ((pp[1] >>> 12) | (pp[0] >>> 5)) & 1);   // sample2
+                ps <= P_SLOT_VOL3;
+            end
+
+            P_SLOT_VOL3: begin
+                pp[0] <= multi(v_sample3, v_volmul2[15:8]);
+                pp[1] <= multi(v_sample3, {1'b0, v_volmul2[7:1]});
+                ps <= P_SLOT_VOL4;
+            end
+
+            P_SLOT_VOL4: begin
+                v_sample3 <= addclip20(pp[0] >>> 6, pp[1] >>> 13, ((pp[1] >>> 12) | (pp[0] >>> 5)) & 1);
                 ps <= P_SLOT_MIX;
             end
 
-            P_SLOT_MIX: begin : b_sc55_pcm_10
+            P_SLOT_MIX: begin : b_mix1
                 logic [15:0] pan, rc;
-                logic signed [31:0] sampl, sampr, rc0, rc1, suml, sumr, a1, a3, rs0, rs1;
-                logic [5:0] slot2;
                 pan = v_active ? r2[1] : 16'h0;
                 rc = v_active ? r2[2] : 16'h0;
-                sampl = multi(v_sample3, pan[15:8]);
-                sampr = multi(v_sample3, pan[7:0]);
-                rc0 = multi(v_sample3, rc[15:8]) >>> 5;
-                rc1 = multi(v_sample3, rc[7:0]) >>> 5;
+                pp[0] <= multi(v_sample3, pan[15:8]);
+                pp[1] <= multi(v_sample3, pan[7:0]);
+                pp[2] <= multi(v_sample3, rc[15:8]) >>> 5;
+                pp[3] <= multi(v_sample3, rc[7:0]) >>> 5;
+                ps <= P_SLOT_MIX2;
+            end
+
+            P_SLOT_MIX2: begin : b_sc55_pcm_10
+                logic signed [31:0] sampl, sampr, rc0, rc1, suml, sumr, a1, a3, rs0, rs1;
+                logic [5:0] slot2;
+                sampl = pp[0]; sampr = pp[1]; rc0 = pp[2]; rc1 = pp[3];
                 slot2 = (slot == reg_slots - 6'd1) ? 6'd31 : slot + 6'd1;
                 a1 = acc1; a3 = acc3;
                 case (slot2)

@@ -1,5 +1,6 @@
 set_global_assignment -name SEARCH_PATH ../hdl/board
 set_global_assignment -name SEARCH_PATH ../hdl/pcm
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/common/sdp_ram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cpu/h8_cpu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/mcu/sc55_mcu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/pcm/sc55_pcm.sv

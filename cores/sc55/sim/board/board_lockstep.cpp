@@ -201,8 +201,8 @@ int main(int argc, char** argv)
     {
         auto* R = t->rootp;
         size_t bad1 = 0, bad2 = 0, first = ~0ull;
-        for (size_t i = 0; i < 0x8000; ++i) if (R->sc55_board__DOT__core__DOT__mcu__DOT__rom1[i] != m.rom1[i]) { if (!bad1) first = i; ++bad1; }
-        for (size_t i = 0; i < 0x40000; ++i) if (R->sc55_board__DOT__core__DOT__mcu__DOT__rom2[i] != m.rom2[i]) { if (!bad2 && first == ~0ull) first = i; ++bad2; }
+        for (size_t i = 0; i < 0x8000; ++i) if (R->sc55_board__DOT__core__DOT__mcu__DOT__u_rom1__DOT__mem[i] != m.rom1[i]) { if (!bad1) first = i; ++bad1; }
+        for (size_t i = 0; i < 0x40000; ++i) if (R->sc55_board__DOT__core__DOT__mcu__DOT__u_rom2__DOT__mem[i] != m.rom2[i]) { if (!bad2 && first == ~0ull) first = i; ++bad2; }
         if (bad1 || bad2) { fprintf(stderr, "after load: ROM1 %zu bytes differ, ROM2 %zu (first at %zx)\n", bad1, bad2, first); return 1; }
     }
     for (uint32_t w = 0; w < 0x60000; ++w)
@@ -269,7 +269,7 @@ int main(int argc, char** argv)
         c("write_latch", R->sc55_board__DOT__core__DOT__pcm__DOT__write_latch, pm.write_latch);
         c("wave_byte_latch", R->sc55_board__DOT__core__DOT__pcm__DOT__wave_byte_latch, pm.wave_byte_latch);
         if ((force && !serial) || (s % 4096) == 0)
-            for (int i = 0; i < 0x4000; ++i) c("eram[" + std::to_string(i) + "]", R->sc55_board__DOT__core__DOT__pcm__DOT__eram[i], pm.eram[i]);
+            for (int i = 0; i < 0x4000; ++i) c("eram[" + std::to_string(i) + "]", R->sc55_board__DOT__core__DOT__pcm__DOT__u_eram__DOT__mem[i], pm.eram[i]);
         if (!diff.empty())
         {
             fprintf(stderr, "PCM state differs at step %" PRIu64 " (pcm cycles %" PRIu64 "): %s\n", s, pm.cycles, diff.c_str());

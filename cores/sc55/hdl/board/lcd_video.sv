@@ -30,11 +30,14 @@ module lcd_video (
     localparam int X0 = 29, Y0 = 40, LW = 741, LH = 268;
 
     // background bitmap: pixel p in bit p % 8 of byte p / 8
-    logic [7:0] back [24824];
 `ifndef LCD_BACK_HEX
     `define LCD_BACK_HEX "../hdl/board/lcd_back.hex"     // Quartus: relative to mister/
 `endif
-    initial $readmemh(`LCD_BACK_HEX, back);
+    logic [14:0] back_a;
+    logic [7:0]  back_q;
+    sdp_ram #(.AW(15), .DW(8), .INIT(`LCD_BACK_HEX)) u_back (
+        .clk, .we(1'b0), .wa(15'd0), .wd(8'd0), .ra(back_a), .rd(back_q));
+    assign back_a = 15'(p1 >> 3);
 
     function automatic logic [4:0] font_row(input logic [7:0] fc, input logic [3:0] fr);
         `include "lcd_font.svh"
@@ -154,14 +157,12 @@ module lcd_video (
     logic [3:0]  frow2;
     logic [2:0]  fbit2;
     logic        in_lcd2, hs2, vs2, hb2, vb2;
-    logic [7:0]  back_byte2;
     logic [2:0]  back_bit2;
     logic [9:0]  lx2;
     logic [8:0]  ly2;
     always_ff @(posedge clk) begin
         k2 <= k1; frow2 <= frow1; fbit2 <= fbit1;
         ch2 <= dd[ch_idx1];
-        back_byte2 <= back[15'(p1 >> 3)];
         back_bit2 <= p1[2:0];
         in_lcd2 <= in_lcd1; hs2 <= hs1; vs2 <= vs1; hb2 <= hb1; vb2 <= vb1;
         lx2 <= lx1; ly2 <= ly1;
@@ -177,7 +178,7 @@ module lcd_video (
     always_ff @(posedge clk) begin
         k3 <= k2; fbit3 <= fbit2;
         row3 <= (ch2 >= 8'd16) ? font_row(ch2 - 8'd16, frow2) : cg[{ch2[2:0], frow2[2:0]}];
-        back3 <= back_byte2[back_bit2];
+        back3 <= back_q[back_bit2];
         in_lcd3 <= in_lcd2; hs3 <= hs2; vs3 <= vs2; hb3 <= hb2; vb3 <= vb2;
         lx3 <= lx2; ly3 <= ly2;
     end

@@ -86,10 +86,13 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // Memories
     // ------------------------------------------------------------------
-    logic [7:0] rom1 [32768];
-    logic [7:0] rom2 [262144];
-    logic [7:0] sram [32768];
-    logic [7:0] ram  [1024];
+    // Block RAMs (hdl/common/sdp_ram.sv): reads are registered, so a CPU read
+    // takes two clocks (rd_b below); writes come through one port each.
+    logic [7:0]  rom1_rd, rom2_rd, sram_rd, ram_rd;
+    logic        sram_we, ram_we;
+    logic [14:0] sram_wa;
+    logic [9:0]  ram_wa;
+    logic [7:0]  sram_wd, ram_wd;
 
     // ------------------------------------------------------------------
     // CPU
@@ -159,9 +162,11 @@ module sc55_mcu #(
     logic [7:0]  io_sd;
 
     // MIDI receive buffer (MCU_PostUART ring buffer)
-    logic [7:0]  rxbuf [2**RXBUF_BITS];
-    logic [RXBUF_BITS-1:0] rx_wp, rx_rp;
+    logic [RXBUF_BITS-1:0] rx_wp, rx_rp, rx_wp_d1, rx_wp_d2;
+    logic [7:0]  rx_rd;
     assign midi_full = (rx_wp + 1'b1) == rx_rp;
+    // a byte is taken only once it is surely in the RAM (two clocks after its write)
+    wire rx_ready = rx_wp_d2 != rx_rp;
 
     // timer step tables (mk1)
     function automatic logic [7:0] frt_stride_for(input logic [1:0] cks);
@@ -203,8 +208,8 @@ module sc55_mcu #(
     } q_t;
     q_t q;
     // two-clock reads: block RAM data registers and the source chosen in the first clock
-    logic [7:0] q_rom1, q_rom2, q_sram_ram, rd_dev;
-    logic [1:0] rsel;
+    logic [7:0] rd_dev;
+    logic [2:0] rsel;
     logic       rd_b;
     logic [15:0] clr_a;
     assign ready = (q != Q_CLEAR);
@@ -218,10 +223,42 @@ module sc55_mcu #(
     wire [17:0] rom2_a = c_addr[17:0];
 
 
+    // ------------------------------------------------------------------
+    // Memories and their write ports: clear (power-on), load port, CPU write
+    // ------------------------------------------------------------------
+    wire cpu_wr_now = !pcm_req && !rd_b && c_req && !c_ack && c_we;
+    wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) || c_addr[19:16] == 4'd5;
+    wire dec_ram    = c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'hfb80 && c_addr[15:0] < 16'hff80 && dev[7'h79][7];
+    always_comb begin
+        sram_we = 1'b0; sram_wa = c_addr[14:0]; sram_wd = c_wdata;
+        ram_we = 1'b0;  ram_wa = 10'(c_addr[15:0] - 16'hfb80); ram_wd = c_wdata;
+        if (q == Q_CLEAR) begin
+            sram_we = 1'b1; sram_wa = clr_a[14:0]; sram_wd = 8'h00;
+            ram_we = (clr_a[15:10] == 6'd0); ram_wa = clr_a[9:0]; ram_wd = 8'h00;
+        end else if (ld_we) begin
+            sram_we = (ld_sel == 2'd2); sram_wa = ld_addr[14:0]; sram_wd = ld_data;
+            ram_we = (ld_sel == 2'd3); ram_wa = ld_addr[9:0]; ram_wd = ld_data;
+        end else if (cpu_wr_now) begin
+            sram_we = dec_sram;
+            ram_we = dec_ram;
+        end
+    end
+
+    sdp_ram #(.AW(15), .DW(8)) u_rom1 (.clk, .we(ld_we && ld_sel == 2'd0), .wa(ld_addr[14:0]), .wd(ld_data),
+                                      .ra(c_addr[14:0]), .rd(rom1_rd));
+    sdp_ram #(.AW(18), .DW(8)) u_rom2 (.clk, .we(ld_we && ld_sel == 2'd1), .wa(ld_addr), .wd(ld_data),
+                                      .ra(rom2_a), .rd(rom2_rd));
+    sdp_ram #(.AW(15), .DW(8)) u_sram (.clk, .we(sram_we), .wa(sram_wa), .wd(sram_wd),
+                                      .ra(c_addr[14:0]), .rd(sram_rd));
+    sdp_ram #(.AW(10), .DW(8)) u_ram  (.clk, .we(ram_we), .wa(ram_wa), .wd(ram_wd),
+                                      .ra(10'(c_addr[15:0] - 16'hfb80)), .rd(ram_rd));
+    sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),
+                                      .ra(rx_rp), .rd(rx_rd));
+
     always_ff @(posedge clk) begin : b_sc55_mcu_1
         logic [7:0]  d;
         logic [1:0]  t;
-        logic [1:0]  rs;
+        logic [2:0]  rs;
         logic [3:0]  ra;
         logic        any;
 
@@ -233,19 +270,9 @@ module sc55_mcu #(
         pcm_tick <= 1'b0;
         lcd_we <= 1'b0;
 
-        if (ld_we) begin
-            case (ld_sel)
-                2'd0: rom1[ld_addr[14:0]] <= ld_data;
-                2'd1: rom2[ld_addr] <= ld_data;
-                2'd2: sram[ld_addr[14:0]] <= ld_data;
-                default: ram[ld_addr[9:0]] <= ld_data;
-            endcase
-        end
-
-        if (midi_valid && !midi_full) begin
-            rxbuf[rx_wp] <= midi_data;
-            rx_wp <= rx_wp + 1'b1;
-        end
+        if (midi_valid && !midi_full) rx_wp <= rx_wp + 1'b1;
+        rx_wp_d1 <= rx_wp;
+        rx_wp_d2 <= rx_wp_d1;
 
         if (rst) begin
             rd_b <= 1'b0;
@@ -253,7 +280,7 @@ module sc55_mcu #(
             clr_a <= 16'd0;
             cycles <= 48'd0;
             pcm_req <= 1'b0;
-            rx_wp <= '0; rx_rp <= '0;
+            rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
             ga_lcd_counter <= 9'd0; ga_trigger <= 3'd0; ga_int1 <= 1'b0; io_sd <= 8'h00;
@@ -271,26 +298,22 @@ module sc55_mcu #(
             end else if (rd_b) begin
                 // second clock of a read: the block RAMs' data is here
                 case (rsel)
-                    2'd0: c_rdata <= rd_dev;
-                    2'd1: c_rdata <= q_rom1;
-                    2'd2: c_rdata <= q_rom2;
-                    default: c_rdata <= q_sram_ram;
+                    3'd1: c_rdata <= rom1_rd;
+                    3'd2: c_rdata <= rom2_rd;
+                    3'd3: c_rdata <= sram_rd;
+                    3'd4: c_rdata <= ram_rd;
+                    default: c_rdata <= rd_dev;
                 endcase
                 c_ack <= 1'b1;
                 rd_b <= 1'b0;
             end else if (c_req && !c_ack) begin
                 d = 8'hff;
-                rs = 2'd0;
-                // block RAM reads (synchronous: the data is used next clock)
-                q_rom1 <= rom1[a16[14:0]];
-                q_rom2 <= rom2[rom2_a];
-                if (page == 4'd0 && a16 >= 16'hfb80) q_sram_ram <= ram[10'(a16 - 16'hfb80)];
-                else q_sram_ram <= sram[a16[14:0]];
+                rs = 3'd0;
                 if (!c_we) begin
                     // MCU_Read (mk1)
                     case (page)
                         4'd0: begin
-                            if (!a16[15]) rs = 2'd1;
+                            if (!a16[15]) rs = 3'd1;
                             else if (a16 >= 16'he000 && a16 < 16'he040) begin
                                 pcm_req <= 1'b1; pcm_we <= 1'b0; pcm_addr <= a16[5:0];
                             end else if (a16 >= 16'hff80) begin
@@ -328,8 +351,8 @@ module sc55_mcu #(
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end
-                            end else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 2'd3;
-                            else if (a16 < 16'he000) rs = 2'd3;
+                            end else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 3'd4;
+                            else if (a16 < 16'he000) rs = 3'd3;
                             else if (a16 >= 16'hf000 && a16 < 16'hf100) begin
                                 io_sd <= a16[7:0];
                                 lcd_enable <= a16[3];
@@ -344,8 +367,8 @@ module sc55_mcu #(
                                 int_req[2] <= 1'b0;
                             end
                         end
-                        4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: rs = 2'd2;
-                        4'd5: rs = 2'd3;
+                        4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: rs = 3'd2;
+                        4'd5: rs = 3'd3;
                         4'd10, 4'd11, 4'd12, 4'd13: d = 8'hff;
                         default: d = 8'h00;
                     endcase
@@ -424,13 +447,13 @@ module sc55_mcu #(
                             end else begin
                                 dev[a16[6:0]] <= d;
                             end
-                        end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ram[10'(a16 - 16'hfb80)] <= d;
-                        else if (a16 < 16'he000) sram[a16[14:0]] <= d;
+                        end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
+                        else if (a16 < 16'he000) ;                          // SRAM: write port below
                         else if (a16 >= 16'hf000 && a16 < 16'hf100) begin io_sd <= a16[7:0]; lcd_enable <= a16[3]; end
                         else if (a16 == 16'hf105) begin lcd_we <= 1'b1; lcd_rs <= 1'b0; lcd_data <= d; ga_lcd_counter <= 9'd500; end
                         else if (a16 == 16'hf104) begin lcd_we <= 1'b1; lcd_rs <= 1'b1; lcd_data <= d; ga_lcd_counter <= 9'd500; end
                         else if (a16 == 16'hf107) io_sd <= d;
-                    end else if (page == 4'd5) sram[a16[14:0]] <= d;
+                    end
                     if (!(page == 4'd0 && a16 >= 16'he000 && a16 < 16'he040))
                         c_ack <= 1'b1;
                 end
@@ -466,8 +489,6 @@ module sc55_mcu #(
                     end
                 end
                 Q_CLEAR: begin
-                    sram[clr_a[14:0]] <= 8'h00;
-                    if (clr_a[15:10] == 6'd0) ram[clr_a[9:0]] <= 8'h00;
                     clr_a <= clr_a + 16'd1;
                     if (clr_a == 16'h7fff) q <= Q_IDLE;
                 end
@@ -537,8 +558,8 @@ module sc55_mcu #(
 
                     if (!behind) begin
                         // MCU_UpdateUART_RX / TX
-                        if (dev[7'h5a][4] && rx_wp != rx_rp && !dev[7'h5c][6] && !(cycles < uart_rx_delay)) begin
-                            uart_rx_byte <= rxbuf[rx_rp];
+                        if (dev[7'h5a][4] && rx_ready && !dev[7'h5c][6] && !(cycles < uart_rx_delay)) begin
+                            uart_rx_byte <= rx_rd;
                             rx_rp <= rx_rp + 1'b1;
                             d = dev[7'h5c] | 8'h40;
                             int_req[19] <= dev[7'h5a][6];
