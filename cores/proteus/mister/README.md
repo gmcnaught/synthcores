@@ -31,6 +31,7 @@ MIDI, screenshots and reads back the audio capture over SSH (`MISTER=root@<addre
 | ENTER | Enter | button 4 (Y) |
 | Data-entry knob −1 / +1 | Left, Down, `-` / Right, Up, `=` (repeats while held) | left/down / right/up |
 | Volume knob | OSD **Volume** (Max/75/50/25 %) | |
+| (core) output level | OSD **Output Level**: +12 dB (default), +6, 0, +18 dB, saturating | |
 
 On screen: the LCD, LEDs (MIDI, MASTER, EDIT) and one level bar per voice.
 Wiring (from the firmware, verified in simulation): buttons on MFP GPIP0–3 (active low:
