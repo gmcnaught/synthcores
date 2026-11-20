@@ -4,7 +4,8 @@
 #   MISTER=root@<address> scripts/mister/sc55_run.sh RBF [MIDI_HEX...]
 #
 # Installs RBF as /media/fat/_Other/SC55_<date>.rbf and the ROM pack (made
-# from $SC55_ROM_DIR, default firmware/, with tools/romset.py pack) as
+# from $SC55_ROM_DIR, default firmware/, with tools/romset.py pack --romset
+# $ROMSET, default mk1-v1.21; e.g. ROMSET=mk2-v1.01) as
 # /media/fat/games/SC-55/boot.rom; loads the core; waits WAIT seconds
 # (default 8) for the firmware to start; sends MIDI_HEX byte strings (e.g.
 # 90403f for a note) to the core's UART at 9600 baud (the core detects 9600
@@ -15,11 +16,11 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: sc55_run.sh RBF [MIDI_HEX...]}; shift
 DEV=${MISTER:?set MISTER to root@<address of the MiSTer>}
-ROMS=${SC55_ROM_DIR:-firmware}; TAG=${TAG:-run}
+ROMS=${SC55_ROM_DIR:-firmware}; TAG=${TAG:-run}; ROMSET=${ROMSET:-mk1-v1.21}
 OUT=out/mister; mkdir -p "$OUT"
 DATE=$(date +%Y%m%d)
 
-python3 tools/romset.py pack "$ROMS" "$OUT/boot.rom" >/dev/null
+python3 tools/romset.py pack "$ROMS" "$OUT/boot.rom" --romset "$ROMSET" >/dev/null
 ssh "$DEV" "mkdir -p /media/fat/_Other /media/fat/games/SC-55; rm -f /media/fat/_Other/SC55_*.rbf /media/fat/screenshots/SC-55/*.png"
 scp -q "$RBF" "$DEV:/media/fat/_Other/SC55_$DATE.rbf"
 scp -q "$OUT/boot.rom" "$DEV:/media/fat/games/SC-55/boot.rom"
