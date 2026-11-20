@@ -263,14 +263,23 @@ int main(int argc, char** argv)
         size_t fp = 0;
         uint64_t c0 = clocks, steps0 = 0, worst = 0, last = clocks;
         t->step_gate = 1;
-        t->pace_enable = 1;
+        t->pace_enable = stall_len ? 1 : 0;   // throughput: as fast as possible; stall test: paced
         auto* R = t->rootp;
+        uint64_t prof[5] = {0, 0, 0, 0, 0};
+        uint64_t cst[64] = {};   // clocks: Q_IDLE, Q_CPU (PCM access pending), Q_CPU (other), Q_TIMERS, other
         bool lag_before = false, ur_before = false;
         for (uint64_t i = 0; i < free_run; ++i)
         {
             if (stall_len && i == stall_at) { lag_before = R->sc55_board__DOT__lag_seen; ur_before = t->underruns != 0; }
             t->step_gate = !(stall_len && i >= stall_at && i < stall_at + stall_len);
             if ((i % 16000) == 0 && fp < fm.size() && clocks - c0 > 40'000'000) { t->midi_inject = 1; t->midi_inject_data = fm[fp++]; }
+            {
+                int q = R->sc55_board__DOT__core__DOT__mcu__DOT__q;
+                bool preq = R->sc55_board__DOT__core__DOT__p_req;
+                bool hold = R->sc55_board__DOT__core__DOT__mcu__DOT__int_hold && R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state == 2;   // S_INT
+                prof[q == 0 ? 0 : q == 1 ? (preq ? 1 : hold ? 4 : 2) : q == 2 ? 3 : 4]++;
+                if (q == 1 && !preq && !hold) cst[R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state & 63]++;
+            }
             tick();
             t->midi_inject = 0;
             if (t->step_done) { ++steps0; worst = std::max(worst, clocks - last); last = clocks; }
@@ -278,6 +287,11 @@ int main(int argc, char** argv)
         if (stall_len)
             printf("stall of %" PRIu64 " clocks at %" PRIu64 ": lag_seen %d -> %d, underruns %d -> %u, lag_us %u\n", stall_len, stall_at,
                    lag_before, (int)R->sc55_board__DOT__lag_seen, ur_before, (unsigned)t->underruns, (unsigned)t->lag_us);
+        {
+            const char* nm[5] = {"idle", "cpu, PCM access pending", "cpu, other", "timers", "cpu, int_hold (S_INT)"};
+            for (int k = 0; k < 5; ++k) printf("  %-24s %6.2f clocks/step\n", nm[k], (double)prof[k] / (double)steps0);
+            for (int k = 0; k < 64; ++k) if (cst[k] * 100 > prof[2]) printf("    cpu state %2d %6.2f clocks/step\n", k, (double)cst[k] / (double)steps0);
+        }
         printf("free run: %" PRIu64 " clocks, %" PRIu64 " steps: %.2f clocks/step (real time at 50 MHz needs <= 30), longest step %" PRIu64 " clocks, MIDI bytes %zu\n",
                clocks - c0, steps0, (double)(clocks - c0) / (double)steps0, worst, fp);
         return 0;
