@@ -31,7 +31,7 @@ from your own dumps.
 2. Copy `boot.rom` to `games/SC-55/` on the MiSTer's SD card (it loads at
    core start; OSD "Load ROM pack" loads another).
 3. Copy the newest core from [`releases/`](releases/) (`SC55_YYYYMMDD.rbf`)
-   to `_Other/` (or install it with the MiSTer downloader from this
+   to a core folder on the SD card, e.g. `_Devices/` (or install it with the MiSTer downloader from this
    repository).
 4. Set the UART to MidiLink (MiSTer menu) and send MIDI.
 
