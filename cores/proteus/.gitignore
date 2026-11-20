@@ -25,3 +25,5 @@ mister/incremental_db/
 mister/build.log
 mister/build_id.v
 mister/*.qws
+sim/obj_sys/
+sim/sys_build.log
