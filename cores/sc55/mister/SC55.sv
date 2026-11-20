@@ -47,6 +47,7 @@ localparam CONF_STR = {
 	"-,Panel keys: Q W E R T Y U I O P [;",
 	"-,A S D F G H J K, arrows: part;",
 	"-;",
+	"O[3:2],Output gain,0 dB,+6 dB,+12 dB,+18 dB;",
 	"O[1],Real-time pacing,On,Off;",
 	"-;",
 	"T[0],Reset;",
@@ -130,6 +131,7 @@ sc55_board #(.CLK_HZ(50_000_000)) board
 	.buttons(panel_buttons),
 
 	.pace_enable(~status[1]),
+	.gain(status[3:2]),
 	.step_gate(1'b1),
 
 	.audio_l(audio_l),

@@ -28,6 +28,7 @@ module sc55_board #(
     input  logic [31:0] buttons,
 
     input  logic        pace_enable,
+    input  logic [1:0]  gain,             // output gain: 0, +6, +12, +18 dB (after the PCM, saturating)
     input  logic        step_gate,        // 1 on hardware; the bench opens it one step at a time
 
     output logic signed [15:0] audio_l,
@@ -207,9 +208,10 @@ module sc55_board #(
     // ---------------------------------------------------------- audio
     // the renderer's s16 conversion (Normalize: clamp(x >> 15)), 64 -> 48 kHz
     // (resample.sv), then a FIFO that plays at 48 kHz in real time
-    function automatic logic signed [15:0] to16(input logic signed [31:0] v);
+    // with `gain` in 6 dB steps (like the reference front ends' --gain): clamp(x >> (15 - gain))
+    function automatic logic signed [15:0] to16(input logic signed [31:0] v, input logic [1:0] g);
         logic signed [31:0] s;
-        s = v >>> 15;
+        s = v >>> (5'd15 - {3'd0, g});
         if (s > 32'sd32767) return 16'sh7fff;
         if (s < -32'sd32768) return 16'sh8000;
         return s[15:0];
@@ -219,7 +221,7 @@ module sc55_board #(
     logic signed [15:0] rs_l, rs_r;
     resample rs (
         .clk, .rst(core_rst), .mk2,
-        .in_valid(sample_valid), .in_l(to16(sample_l)), .in_r(to16(sample_r)),
+        .in_valid(sample_valid), .in_l(to16(sample_l, gain)), .in_r(to16(sample_r, gain)),
         .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
     );
 
