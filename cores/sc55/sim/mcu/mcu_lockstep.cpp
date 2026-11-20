@@ -281,8 +281,8 @@ int main(int argc, char** argv)
 
     // memories at the end
     size_t bad = 0;
-    for (size_t i = 0; i < sizeof m.sram; ++i) bad += R->sc55_mcu__DOT__sram[i] != m.sram[i];
-    for (size_t i = 0; i < sizeof m.ram; ++i) bad += R->sc55_mcu__DOT__ram[i] != m.ram[i];
+    for (size_t i = 0; i < sizeof m.sram; ++i) bad += R->sc55_mcu__DOT__u_sram__DOT__mem[i] != m.sram[i];
+    for (size_t i = 0; i < sizeof m.ram; ++i) bad += R->sc55_mcu__DOT__u_ram__DOT__mem[i] != m.ram[i];
     if (bad) return fail(std::to_string(bad) + " SRAM/RAM bytes differ at the end");
 
     printf("OK: %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, ended at %02x:%04x\n",

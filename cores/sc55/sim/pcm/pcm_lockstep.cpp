@@ -233,8 +233,8 @@ int main(int argc, char** argv)
         }
         if ((s % 1000) == 0 || s + 1 == steps)
             for (int i = 0; i < 0x4000; ++i)
-                if (R->sc55_pcm__DOT__eram[i] != p.eram[i])
-                    cmp("eram[" + std::to_string(i) + "]", R->sc55_pcm__DOT__eram[i], p.eram[i]);
+                if (R->sc55_pcm__DOT__u_eram__DOT__mem[i] != p.eram[i])
+                    cmp("eram[" + std::to_string(i) + "]", R->sc55_pcm__DOT__u_eram__DOT__mem[i], p.eram[i]);
         if (!diff.empty())
             return fail("step " + std::to_string(s) + ": " + diff);
     }
