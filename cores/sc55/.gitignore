@@ -1,0 +1,11 @@
+# User-supplied Roland ROMs: never commit (plan.md R6)
+/firmware/
+*.zip
+
+# Build and scratch output
+/out/
+/build/
+.DS_Store
+
+# Session notes (Remember plugin)
+/.remember/
