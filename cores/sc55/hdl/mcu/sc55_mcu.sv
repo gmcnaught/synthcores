@@ -246,9 +246,12 @@ module sc55_mcu #(
         endcase
     endfunction
     wire [9:0] an_v [8];
-    for (genvar gc = 0; gc < 8; gc++) begin : g_an
-        assign an_v[gc] = analog_pin(3'(gc), mk2, sc155, io_sd, dev[7'h7f]);
-    end
+    genvar gc;
+    generate
+        for (gc = 0; gc < 8; gc = gc + 1) begin : g_an
+            assign an_v[gc] = analog_pin(3'(gc), mk2, sc155, io_sd, dev[7'h7f]);
+        end
+    endgenerate
     function automatic logic [7:0] adc_hi(input logic [9:0] v);
         return v[9:2];
     endfunction
