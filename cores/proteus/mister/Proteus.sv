@@ -1,10 +1,11 @@
 //============================================================================
-//  E-mu Proteus/1 sound demo core for MiSTer
+//  E-mu Proteus/1 XR core for MiSTer
 //
-//  Plays a register-write event stream (captured from MAME running the
-//  Proteus/1 XR firmware) through an HDL model of the Proteus/1 sound chip.
-//  Load the demo image (tools/make_demo.py) with "Load Demo"; the image is
-//  never part of the core.
+//  68000 (fx68k) running the original firmware, MC68901 MFP (timers, MIDI
+//  USART), HD44780 LCD and an HDL model of the Proteus/1 sound chip.
+//  Load the system image (tools/make_system.py: sample ROMs, firmware,
+//  preset RAM, LCD font) with "Load System"; no ROM data is part of the core.
+//  MIDI in/out on the MiSTer UART (MidiLink, UART mode MIDI).
 //
 //  This program is free software; you can redistribute it and/or modify it
 //  under the terms of the GNU General Public License as published by the Free
@@ -19,7 +20,6 @@ module emu
 
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
-assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 
@@ -41,14 +41,15 @@ assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"Proteus;;",
+	"Proteus;UART31250,MIDI;",
 	"-;",
-	"F1,BIN,Load Demo;",
+	"F1,BIN,Load System;",
 	"-;",
+	"O[9:8],Volume,Max,75%,50%,25%;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
-	"T[0],Restart Demo;",
-	"R[0],Restart and close OSD;",
+	"T[0],Reset;",
+	"R[0],Reset and close OSD;",
 	"V,v",`BUILD_DATE
 };
 
@@ -83,7 +84,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 
 ///////////////////////   CLOCKS   ///////////////////////////////
 
-wire clk_sys;   // 80 MHz: 2048 clocks per 39062.5 Hz output sample
+wire clk_sys;   // 80 MHz: 68000 at 10 MHz, 2048 clocks per 39062.5 Hz output sample
 pll pll
 (
 	.refclk(CLK_50M),
@@ -91,64 +92,71 @@ pll pll
 	.outclk_0(clk_sys)
 );
 
-///////////////////////   DEMO   ///////////////////////////////
+///////////////////////   SYSTEM   ///////////////////////////////
 
-wire demo_load = ioctl_download && (ioctl_index[5:0] == 6'd1);
+wire loading = ioctl_download && (ioctl_index[5:0] == 6'd1);
 reg  loaded = 0;
-reg  dl_d;
+reg  ld_d;
 always @(posedge clk_sys) begin
-	dl_d <= demo_load;
-	if (dl_d && !demo_load) loaded <= 1;
-	if (demo_load) loaded <= 0;
+	ld_d <= loading;
+	if (ld_d && !loading) loaded <= 1;
+	if (loading) loaded <= 0;
 end
 
-wire reset = RESET | status[0] | buttons[1] | demo_load;
+wire reset = RESET | status[0] | buttons[1] | loading | ~loaded;
 
-wire        snd_wr, pan_wr, snd_start, snd_busy, snd_done, mem_req, mem_ack;
+wire        snd_wr, snd_pan, snd_wr_full, snd_rb, snd_rb_done;
 wire  [4:0] snd_voice;
 wire  [3:0] snd_word;
-wire [15:0] snd_data;
-wire  [7:0] pan_data;
-wire signed [15:0] snd_l, snd_r;
-wire [21:0] mem_addr;
-wire [15:0] mem_s0, mem_s1;
-wire [15:0] overruns;
-wire [31:0] samples;
+wire [15:0] snd_data, snd_mask, snd_rb_data, snd_raw;
+wire        lcd_line, lcd_is_cg, lcd_cursor, lcd_on;
+wire  [3:0] lcd_pos;
+wire  [2:0] lcd_row;
+wire  [7:0] lcd_code, font_data;
+wire  [4:0] lcd_cgbits;
+wire [11:0] font_addr;
+wire        midi_out;
 
-demo_ctrl demo_ctrl
+wire [7:0] volume = 8'd255 - {status[9:8], 6'd0};
+
+proteus_sys sys
 (
-	.clk(clk_sys), .reset(reset), .run(loaded),
-	.ioctl_download(demo_load), .ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
-	.snd_wr(snd_wr), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data),
-	.pan_wr(pan_wr), .pan_data(pan_data), .snd_start(snd_start), .snd_busy(snd_busy), .snd_done(snd_done),
-	.snd_l(snd_l), .snd_r(snd_r), .mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_s0(mem_s0), .mem_s1(mem_s1),
-	.overruns(overruns), .samples(samples),
+	.clk(clk_sys), .reset(reset), .loading(loading),
+	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
+	.midi_in(UART_RXD), .midi_out(midi_out), .buttons(8'd0), .volume(volume),
+	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
+	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
+	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
+	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
+	.dbg_pc_addr(), .bus_wr_strobe(), .bus_wr_addr(), .bus_wr_data(), .bus_wr_ds()
+);
+
+assign UART_TXD = midi_out;
+assign UART_RTS = 0;
+assign UART_DTR = 0;
+
+wire signed [15:0] out_l, out_r;
+wire [4:0] disp_voice;
+wire [7:0] disp_level;
+
+snd_ctrl snd_ctrl
+(
+	.clk(clk_sys), .reset(reset), .loading(loading),
+	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
+	.cpu_wr(snd_wr), .cpu_pan(snd_pan), .cpu_voice(snd_voice), .cpu_word(snd_word), .cpu_data(snd_data), .cpu_mask(snd_mask),
+	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw),
+	.out_l(out_l), .out_r(out_r), .sample_strobe(),
+	.disp_voice(disp_voice), .disp_level(disp_level),
 	.DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR), .DDRAM_DOUT(DDRAM_DOUT),
 	.DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD), .DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE)
 );
 assign DDRAM_CLK = clk_sys;
 
-wire [4:0] disp_voice;
-wire [7:0] disp_level;
-
-proteus_snd proteus_snd
-(
-	.clk(clk_sys), .reset(reset),
-	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data),
-	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(pan_data),
-	.start(snd_start), .busy(snd_busy), .done(snd_done), .out_l(snd_l), .out_r(snd_r),
-	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_s0(mem_s0), .mem_s1(mem_s1),
-	.disp_voice(disp_voice), .disp_level(disp_level)
-);
-
 ///////////////////////   AUDIO   ///////////////////////////////
 
-reg [15:0] aud_l, aud_r;
-always @(posedge clk_sys) if (snd_done) begin aud_l <= snd_l; aud_r <= snd_r; end
-
 assign AUDIO_S   = 1;
-assign AUDIO_L   = aud_l;
-assign AUDIO_R   = aud_r;
+assign AUDIO_L   = out_l;
+assign AUDIO_R   = out_r;
 assign AUDIO_MIX = 0;
 
 ///////////////////////   VIDEO   ///////////////////////////////
@@ -156,10 +164,12 @@ assign AUDIO_MIX = 0;
 wire ce_pix, hs, vs, hbl, vbl;
 wire [7:0] r, g, b;
 
-level_display level_display
+display display
 (
-	.clk(clk_sys), .ce_pix(ce_pix), .hsync(hs), .vsync(vs), .hblank(hbl), .vblank(vbl),
-	.r(r), .g(g), .b(b), .voice(disp_voice), .level(disp_level), .running(loaded)
+	.clk(clk_sys), .ce_pix(ce_pix), .hsync(hs), .vsync(vs), .hblank(hbl), .vblank(vbl), .r(r), .g(g), .b(b),
+	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
+	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
+	.voice(disp_voice), .level(disp_level), .running(loaded)
 );
 
 assign CLK_VIDEO = clk_sys;

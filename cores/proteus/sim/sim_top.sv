@@ -42,7 +42,8 @@ demo_ctrl ctrl
 proteus_snd snd
 (
 	.clk(clk), .reset(reset),
-	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data),
+	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data), .wr_mask(16'hFFFF),
+	.rd_voice(5'd0), .rd_word(4'd0), .rd_raw(), .rd_start(1'b0), .rd_done(), .rd_data(),
 	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(pan_data),
 	.start(snd_start), .busy(snd_busy), .done(snd_done), .out_l(snd_l), .out_r(snd_r),
 	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_s0(mem_s0), .mem_s1(mem_s1),
