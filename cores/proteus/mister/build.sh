@@ -13,6 +13,10 @@ done
 status=0
 "$QSH" --flow compile Proteus 2>&1 | tee build.log || status=1
 [ -f output_files/Proteus.fit.summary ] && cat output_files/Proteus.fit.summary
+if [ -f output_files/Proteus.sta.rpt ]; then
+    "$(dirname "$QSH")/quartus_sta" -t sta_paths.tcl > output_files/sta_paths.log 2>&1 || tail -5 output_files/sta_paths.log
+    [ -f output_files/worst_paths.txt ] && head -80 output_files/worst_paths.txt
+fi
 if [ -f output_files/Proteus.sta.summary ]; then
     cat output_files/Proteus.sta.summary
     if grep -E "^Slack *: *-" output_files/Proteus.sta.summary >/dev/null; then echo "ERROR: negative slack" >&2; status=1; fi

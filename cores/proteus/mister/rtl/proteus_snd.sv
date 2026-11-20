@@ -98,14 +98,21 @@ wire [31:0] wr_val  = wr_word[0] ? {raw_hi[wr_voice][wr_long], wr_data}
                                  : {wr_data, raw_lo[wr_voice][wr_long]};
 
 // ---------------------------------------------------------------- engine
-localparam S_IDLE = 3'd0, S_WAIT = 3'd1, S_C1 = 3'd2, S_C2 = 3'd3, S_C3 = 3'd4, S_C4 = 3'd5, S_NEXT = 3'd6;
-reg  [2:0]  state;
+// Per voice: S_WAIT latches the voice state and its two sample words, then
+// S_C1..S_C5 compute in registered steps (80 MHz), S_NEXT writes back.
+localparam S_IDLE = 4'd0, S_WAIT = 4'd1, S_C1 = 4'd2, S_C2 = 4'd3, S_C3 = 4'd4,
+           S_C4 = 4'd5, S_C5 = 4'd6, S_NEXT = 4'd7, S_OUT = 4'd8;
+reg  [3:0]  state;
 reg  [4:0]  v;                // voice being computed
-reg         fetch_pending;    // a request for voice v is outstanding or its data is latched
-reg         have_data;
 reg  [15:0] s0_r, s1_r;
 reg  [15:0] nx_s0, nx_s1;     // prefetched words for voice v+1
 reg         nx_valid;
+
+// latched voice state
+reg  [23:0] r_addr, r_ls, r_le, r_env;
+reg  [11:0] r_frac, r_level;
+reg  [18:0] r_pitch;
+reg  [3:0]  r_pan;
 
 reg  [11:0] lvl_n;
 reg  signed [16:0] diff;
@@ -114,18 +121,14 @@ reg  signed [16:0] smp;
 reg  [16:0] gain;
 reg  signed [33:0] mul2;
 reg  signed [16:0] vout;
+reg  signed [21:0] pl, pr;
 reg  signed [31:0] acc_l, acc_r;
 
-wire [23:0] cur_addr = v_addr[v];
-wire [21:0] fetch_addr_next = v_addr[v + 5'd1][21:0] + 22'd4;
+reg  [12:0] pos;
+reg  [23:0] addr1, lspan, addr_wrap, addr_st;
+reg         wrap1, wrap2;
 
-// address step (uses the current voice's state)
-wire [16:0] inc     = v_pitch[v][16:0];
-wire [12:0] pos     = {1'b0, v_frac[v]} + {1'b0, inc[11:0]};
-wire [23:0] addr1   = cur_addr + {19'd0, inc[16:12]} + {23'd0, pos[12]};
-wire [23:0] ls      = v_lstart[v];
-wire [23:0] le      = v_lend[v];
-wire [23:0] addr_st = ((addr1 > le) && (le >= ls)) ? (addr1 - (le - ls)) : addr1;
+wire [21:0] fetch_addr_next = v_addr[v + 5'd1][21:0] + 22'd4;
 
 function signed [15:0] clamp16(input signed [31:0] x);
 	begin
@@ -145,6 +148,7 @@ always @(posedge clk) begin
 		mem_req  <= 0;
 		out_l    <= 0;
 		out_r    <= 0;
+		nx_valid <= 0;
 		for (i = 0; i < 32; i = i + 1) begin
 			for (j = 0; j < 6; j = j + 1) begin
 				raw_hi[i][j] <= 0;
@@ -190,6 +194,14 @@ always @(posedge clk) begin
 			end
 
 		S_WAIT: begin
+			r_addr  <= v_addr[v];
+			r_frac  <= v_frac[v];
+			r_pitch <= v_pitch[v];
+			r_env   <= v_env[v];
+			r_ls    <= v_lstart[v];
+			r_le    <= v_lend[v];
+			r_level <= v_level[v];
+			r_pan   <= v_pan[v];
 			// data for voice v: either prefetched or arriving now
 			if (nx_valid) begin
 				s0_r <= nx_s0; s1_r <= nx_s1; nx_valid <= 0;
@@ -204,43 +216,60 @@ always @(posedge clk) begin
 		end
 
 		S_C1: begin
-			lvl_n <= env_next(v_level[v], v_env[v]);
+			lvl_n <= env_next(r_level, r_env);
 			diff  <= $signed({s1_r[15], s1_r}) - $signed({s0_r[15], s0_r});
+			pos   <= {1'b0, r_frac} + {1'b0, r_pitch[11:0]};
+			lspan <= r_le - r_ls;
+			wrap2 <= (r_le >= r_ls);
 			state <= S_C2;
 		end
 
 		S_C2: begin
-			prod  <= diff * $signed({1'b0, v_frac[v]});
+			prod  <= diff * $signed({1'b0, r_frac});
 			gain  <= level_to_gain(lvl_n);
+			addr1 <= r_addr + {19'd0, r_pitch[16:12]} + {23'd0, pos[12]};
 			state <= S_C3;
 		end
 
 		S_C3: begin
-			smp   <= $signed({s0_r[15], s0_r}) + (prod >>> 12);
-			state <= S_C4;
+			smp       <= $signed({s0_r[15], s0_r}) + (prod >>> 12);
+			wrap1     <= (addr1 > r_le);
+			addr_wrap <= addr1 - lspan;
+			state     <= S_C4;
 		end
 
 		S_C4: begin
-			mul2  <= smp * $signed({1'b0, gain});
+			mul2    <= smp * $signed({1'b0, gain});
+			addr_st <= (wrap1 && wrap2) ? addr_wrap : addr1;
+			state   <= S_C5;
+		end
+
+		S_C5: begin
+			vout  <= mul2 >>> 16;
 			state <= S_NEXT;
 		end
 
 		S_NEXT: begin
-			vout = mul2 >>> 16;
-			acc_l <= acc_l + vout * $signed({1'b0, v_pan[v]});
-			acc_r <= acc_r + vout * $signed({1'b0, 4'd15 - v_pan[v]});
+			pl <= vout * $signed({1'b0, r_pan});
+			pr <= vout * $signed({1'b0, 4'd15 - r_pan});
 			v_level[v] <= lvl_n;
 			v_disp[v]  <= lvl_n[11:4];
-			if (!v_pitch[v][18]) begin
+			if (!r_pitch[18]) begin
 				v_frac[v] <= pos[11:0];
 				v_addr[v] <= addr_st;
 			end
+			state <= S_OUT;
+		end
+
+		S_OUT: begin
+			acc_l <= acc_l + pl;
+			acc_r <= acc_r + pr;
 			if (v == 5'd31) begin
 				state <= S_IDLE;
 				busy  <= 0;
 				done  <= 1;
-				out_l <= clamp16((acc_l + vout * $signed({1'b0, v_pan[v]})) >>> 6);
-				out_r <= clamp16((acc_r + vout * $signed({1'b0, 4'd15 - v_pan[v]})) >>> 6);
+				out_l <= clamp16((acc_l + pl) >>> 6);
+				out_r <= clamp16((acc_r + pr) >>> 6);
 			end
 			else begin
 				v     <= v + 5'd1;
