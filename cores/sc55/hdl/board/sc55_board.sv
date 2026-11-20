@@ -204,7 +204,7 @@ module sc55_board #(
     logic        rs_valid;
     logic signed [15:0] rs_l, rs_r;
     resample rs (
-        .clk, .rst(core_rst),
+        .clk, .rst(core_rst), .mk2(1'b0),
         .in_valid(sample_valid), .in_l(to16(sample_l)), .in_r(to16(sample_r)),
         .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
     );
