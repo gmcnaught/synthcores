@@ -29,3 +29,5 @@ sim/obj_sys/
 sim/sys_build.log
 sim/panel/obj_dir/
 sim/panel/build.log
+sim/obj_core/
+sim/core_build.log

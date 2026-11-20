@@ -34,6 +34,14 @@ module proteus_sys
 	output            midi_out,
 	input       [7:0] buttons,        // MFP GPIP inputs (wiring unknown; 0 = released)
 	input       [7:0] volume,         // front-panel volume 0..255
+	input             cpu_pause,      // freeze the 68000 (phase enables stop)
+
+	// battery RAM save/restore port (nv_ctrl); byte address, RAM order
+	input             nv_active,
+	input             nv_we,
+	input      [15:0] nv_addr,
+	input       [7:0] nv_wdata,
+	output      [7:0] nv_rdata,
 
 	// sound chip
 	output reg        snd_wr,
@@ -78,8 +86,8 @@ reg [7:0] sdiv;
 reg       phi1, phi2, ce_timer, ce_ser;
 always @(posedge clk) begin
 	ph       <= ph + 1'd1;
-	phi1     <= (ph == 3'd3);
-	phi2     <= (ph == 3'd7);
+	phi1     <= (ph == 3'd3) && !cpu_pause;
+	phi2     <= (ph == 3'd7) && !cpu_pause;
 	ce_timer <= 0;
 	ce_ser   <= 0;
 	tdiv <= tdiv + 1'd1;
@@ -133,9 +141,14 @@ wire ld_font = loading && ioctl_wr && (ioctl_addr[26:12] == 15'h0830);   // 0x83
 
 // CPU writes to RAM happen in the first cycle of a write access (see the bus FSM)
 wire cpu_wr_go = !reset && !ASn && !bus_busy && ds_act && !eRWn && !iack_cycle && sel_ram;
-wire ram_we_hi = ld_ram ? !ioctl_addr[0] : (cpu_wr_go && !UDSn);
-wire ram_we_lo = ld_ram ?  ioctl_addr[0] : (cpu_wr_go && !LDSn);
-wire [14:0] ram_wa = ld_ram ? ioctl_addr[15:1] : addr[15:1];
+wire ram_we_hi = ld_ram ? !ioctl_addr[0] : nv_active ? (nv_we && !nv_addr[0]) : (cpu_wr_go && !UDSn);
+wire ram_we_lo = ld_ram ?  ioctl_addr[0] : nv_active ? (nv_we &&  nv_addr[0]) : (cpu_wr_go && !LDSn);
+wire [14:0] ram_wa = ld_ram ? ioctl_addr[15:1] : nv_active ? nv_addr[15:1] : addr[15:1];
+wire  [7:0] ram_wd_hi = (ld_ram || nv_active) ? (ld_ram ? ioctl_dout : nv_wdata) : oEdb[15:8];
+wire  [7:0] ram_wd_lo = (ld_ram || nv_active) ? (ld_ram ? ioctl_dout : nv_wdata) : oEdb[7:0];
+wire [14:0] ram_ra = nv_active ? nv_addr[15:1] : addr[15:1];
+reg         nv_lo_q;
+always @(posedge clk) nv_lo_q <= nv_addr[0];
 
 wire [7:0] rom_qh, rom_ql, ram_qh, ram_ql;
 wire [15:0] rom_q = {rom_qh, rom_ql};
@@ -143,8 +156,9 @@ wire [15:0] ram_q = {ram_qh, ram_ql};
 
 bram #(16, 8) rom_hi (.clk(clk), .we(ld_rom && !ioctl_addr[0]), .waddr(ioctl_addr[16:1]), .wdata(ioctl_dout), .raddr(addr[16:1]), .rdata(rom_qh));
 bram #(16, 8) rom_lo (.clk(clk), .we(ld_rom &&  ioctl_addr[0]), .waddr(ioctl_addr[16:1]), .wdata(ioctl_dout), .raddr(addr[16:1]), .rdata(rom_ql));
-bram #(15, 8) ram_hi (.clk(clk), .we(ram_we_hi), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[15:8]), .raddr(addr[15:1]), .rdata(ram_qh));
-bram #(15, 8) ram_lo (.clk(clk), .we(ram_we_lo), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[7:0]),  .raddr(addr[15:1]), .rdata(ram_ql));
+bram #(15, 8) ram_hi (.clk(clk), .we(ram_we_hi), .waddr(ram_wa), .wdata(ram_wd_hi), .raddr(ram_ra), .rdata(ram_qh));
+bram #(15, 8) ram_lo (.clk(clk), .we(ram_we_lo), .waddr(ram_wa), .wdata(ram_wd_lo), .raddr(ram_ra), .rdata(ram_ql));
+assign nv_rdata = nv_lo_q ? ram_ql : ram_qh;
 bram #(12, 8) fontm  (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font_addr), .rdata(font_data));
 bram #(12, 8) fontm2 (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font2_addr), .rdata(font2_data));
 
