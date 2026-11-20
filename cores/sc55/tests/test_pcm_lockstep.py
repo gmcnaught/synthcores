@@ -29,5 +29,11 @@ def test_rom_latency():
     bench("--midi-demo", "2", "--steps", "7000000", "--rom-latency", "11")
 
 
+def test_mk2_loud():
+    need_roms("mk2-v1.01")
+    line = bench("--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "12000000", "--rom-latency", "7")
+    assert " 0 non-zero" not in line, line
+
+
 if __name__ == "__main__":
     run(globals())

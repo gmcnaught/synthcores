@@ -3,8 +3,9 @@
 #
 #   MISTER=root@<address> scripts/mister/sc55_run.sh RBF [MIDI_HEX...]
 #
-# Installs RBF as /media/fat/_Other/SC55_<date>.rbf and the ROM pack (made
-# from $SC55_ROM_DIR, default firmware/, with tools/romset.py pack) as
+# Installs RBF as /media/fat/_Devices/SC55_<date>.rbf (CORE_DIR) and the ROM pack (made
+# from $SC55_ROM_DIR, default firmware/, with tools/romset.py pack --romset
+# $ROMSET, default mk1-v1.21; e.g. ROMSET=mk2-v1.01) as
 # /media/fat/games/SC-55/boot.rom; loads the core; waits WAIT seconds
 # (default 8) for the firmware to start; sends MIDI_HEX byte strings (e.g.
 # 90403f for a note) to the core's UART at 9600 baud (the core detects 9600
@@ -15,18 +16,19 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: sc55_run.sh RBF [MIDI_HEX...]}; shift
 DEV=${MISTER:?set MISTER to root@<address of the MiSTer>}
-ROMS=${SC55_ROM_DIR:-firmware}; TAG=${TAG:-run}
+ROMS=${SC55_ROM_DIR:-firmware}; TAG=${TAG:-run}; ROMSET=${ROMSET:-mk1-v1.21}
+CORE_DIR=${CORE_DIR:-/media/fat/_Devices}
 OUT=out/mister; mkdir -p "$OUT"
 DATE=$(date +%Y%m%d)
 
-python3 tools/romset.py pack "$ROMS" "$OUT/boot.rom" >/dev/null
-ssh "$DEV" "mkdir -p /media/fat/_Other /media/fat/games/SC-55; rm -f /media/fat/_Other/SC55_*.rbf /media/fat/screenshots/SC-55/*.png"
-scp -q "$RBF" "$DEV:/media/fat/_Other/SC55_$DATE.rbf"
+python3 tools/romset.py pack "$ROMS" "$OUT/boot.rom" --romset "$ROMSET" >/dev/null
+ssh "$DEV" "mkdir -p $CORE_DIR /media/fat/games/SC-55; rm -f /media/fat/_Other/SC55_*.rbf $CORE_DIR/SC55_*.rbf /media/fat/screenshots/SC-55/*.png"
+scp -q "$RBF" "$DEV:$CORE_DIR/SC55_$DATE.rbf"
 scp -q "$OUT/boot.rom" "$DEV:/media/fat/games/SC-55/boot.rom"
 # Zaparoo reopens ttyS1 every second and resets its speed (synclavierii notes)
 ssh "$DEV" "[ -x /media/fat/Scripts/zaparoo.sh ] && /media/fat/Scripts/zaparoo.sh -service stop >/dev/null 2>&1 || true"
 # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
-ssh "$DEV" "timeout 10 sh -c 'echo load_core /media/fat/_Other/SC55_$DATE.rbf > /dev/MiSTer_cmd'; sleep ${WAIT:-8}"
+ssh "$DEV" "timeout 10 sh -c 'echo load_core $CORE_DIR/SC55_$DATE.rbf > /dev/MiSTer_cmd'; sleep ${WAIT:-8}"
 if [ $# -gt 0 ]; then
     ssh "$DEV" "stty -F /dev/ttyS1 9600 raw -echo"
     for m in "$@"; do

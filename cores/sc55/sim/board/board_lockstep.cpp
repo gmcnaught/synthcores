@@ -13,6 +13,7 @@
 #include "../common/midi_demo.h"
 #include "emu.h"
 #include "mcu.h"
+#include "submcu.h"
 #include "lcd.h"
 #include "pcm.h"
 #include "rom_loader.h"
@@ -83,7 +84,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 
 int main(int argc, char** argv)
 {
-    std::string rom_dir, pack_path;
+    std::string rom_dir, pack_path, romset = "mk1-v1.21";
     uint64_t    steps = 6'000'000, seed = 1;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
@@ -95,6 +96,7 @@ int main(int argc, char** argv)
     {
         std::string a = argv[i];
         if (a == "--roms" && i + 1 < argc) rom_dir = argv[++i];
+        else if (a == "--romset" && i + 1 < argc) romset = argv[++i];
         else if (a == "--pack" && i + 1 < argc) pack_path = argv[++i];
         else if (a == "--steps" && i + 1 < argc) steps = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
@@ -111,11 +113,13 @@ int main(int argc, char** argv)
     }
     std::ifstream pf(pack_path, std::ios::binary);
     std::vector<uint8_t> pack((std::istreambuf_iterator<char>(pf)), {});
-    if (pack.size() != 0x348100) { fprintf(stderr, "pack %s: %zu bytes\n", pack_path.c_str(), pack.size()); return 2; }
+    // pack v2 (tools/romset.py, hdl/board/rom_loader.sv)
+    const size_t ROM1_AT = 0x100, ROM2_AT = 0x8100, SM_AT = 0x88100, WAVE_AT = 0x89100;
+    if (pack.size() != 0x489100 || pack[4] != 2) { fprintf(stderr, "pack %s: %zu bytes, not a v2 pack\n", pack_path.c_str(), pack.size()); return 2; }
 
     common::LoadRomsetResult load;
     common::RomOverrides     ov{};
-    if (auto err = common::LoadRomset(rom_dir, "mk1-v1.21", common::RomLoader::Hashing, ov, load); err != common::LoadRomsetError{})
+    if (auto err = common::LoadRomset(rom_dir, romset, common::RomLoader::Hashing, ov, load); err != common::LoadRomsetError{})
     {
         fprintf(stderr, "romset load failed: %s\n", common::ToCString(err));
         return 2;
@@ -132,13 +136,17 @@ int main(int argc, char** argv)
     {
         // the pack must hold the wave ROMs as the model has them (unscrambled)
         pcm_t& pm = emu.GetPCM();
+        const bool mk2p = !m.is_mk1;
+        if (pack[5] != (uint8_t)((mk2p ? 2 : 0) | (m.is_sc155 ? 1 : 0))) { fprintf(stderr, "pack model %d does not match %s\n", pack[5], romset.c_str()); return 2; }
         for (uint32_t i = 0; i < 0x300000; ++i)
         {
-            uint8_t want = i < 0x100000 ? pm.waverom1[i] : i < 0x200000 ? pm.waverom2[i - 0x100000] : pm.waverom3[i - 0x200000];
-            if (pack[0x48100 + i] != want) { fprintf(stderr, "pack wave byte %06x: %02x, model %02x\n", i, pack[0x48100 + i], want); return 2; }
+            uint8_t want = mk2p ? (i < 0x200000 ? pm.waverom1[i] : pm.waverom2[i - 0x200000])
+                                : (i < 0x100000 ? pm.waverom1[i] : i < 0x200000 ? pm.waverom2[i - 0x100000] : pm.waverom3[i - 0x200000]);
+            if (pack[WAVE_AT + i] != want) { fprintf(stderr, "pack wave byte %06x: %02x, model %02x\n", i, pack[WAVE_AT + i], want); return 2; }
         }
-        for (uint32_t i = 0; i < 0x8000; ++i) if (pack[0x100 + i] != m.rom1[i]) { fprintf(stderr, "pack ROM1 differs at %x\n", i); return 2; }
-        for (uint32_t i = 0; i < 0x40000; ++i) if (pack[0x8100 + i] != m.rom2[i]) { fprintf(stderr, "pack ROM2 differs at %x\n", i); return 2; }
+        for (uint32_t i = 0; i < 0x8000; ++i) if (pack[ROM1_AT + i] != m.rom1[i]) { fprintf(stderr, "pack ROM1 differs at %x\n", i); return 2; }
+        for (uint32_t i = 0; i <= m.rom2_mask; ++i) if (pack[ROM2_AT + i] != m.rom2[i]) { fprintf(stderr, "pack ROM2 differs at %x\n", i); return 2; }
+        if (mk2p) for (uint32_t i = 0; i < 0x1000; ++i) if (pack[SM_AT + i] != m.sm->rom[i]) { fprintf(stderr, "pack sub-MCU ROM differs at %x\n", i); return 2; }
     }
 
     VerilatedContext ctx;
@@ -149,7 +157,7 @@ int main(int argc, char** argv)
     uint64_t clocks = 0;
 
     // DDR3 model: 64-bit words, BUSY on random clocks, reads back in order after 8..24 clocks
-    std::vector<uint64_t> ddr(1 << 19, 0);      // 4 MB from WAVE_BASE
+    std::vector<uint64_t> ddr(0x88000, 0);      // 4 MB of wave ROM, then ROM2's upper 256 KB, from WAVE_BASE
     const uint32_t base_w = 0x30000000u >> 3;
     std::deque<std::pair<uint64_t, uint32_t>> rdq;
     std::vector<Frame> hdl;
@@ -203,10 +211,10 @@ int main(int argc, char** argv)
             if (romcheck.empty()) { fprintf(stderr, "wave ROM: data without a request at clock %" PRIu64 " (rst %d core_rst %d running %d)\n", clocks, t->rst, R->sc55_board__DOT__core_rst, t->running); exit(1); }
             uint32_t a = romcheck.front();
             romcheck.pop_front();
-            if (R->sc55_board__DOT__rom_data != pack[0x48100 + a])
+            if (R->sc55_board__DOT__rom_data != pack[WAVE_AT + a])
             {
                 fprintf(stderr, "wave ROM byte %06x: got %02x, pack %02x (clock %" PRIu64 ")\n", a, R->sc55_board__DOT__rom_data,
-                        pack[0x48100 + a], clocks);
+                        pack[WAVE_AT + a], clocks);
                 exit(1);
             }
         }
@@ -248,10 +256,11 @@ int main(int argc, char** argv)
         for (size_t i = 0; i < 0x40000; ++i) if (R->sc55_board__DOT__core__DOT__mcu__DOT__u_rom2__DOT__mem[i] != m.rom2[i]) { if (!bad2 && first == ~0ull) first = i; ++bad2; }
         if (bad1 || bad2) { fprintf(stderr, "after load: ROM1 %zu bytes differ, ROM2 %zu (first at %zx)\n", bad1, bad2, first); return 1; }
     }
-    for (uint32_t w = 0; w < 0x60000; ++w)
+    for (uint32_t w = 0; w < 0x88000; ++w)
     {
         uint64_t want = 0;
-        for (int b = 0; b < 8; ++b) want |= (uint64_t)pack[0x48100 + w * 8 + b] << (8 * b);
+        size_t at = w < 0x80000 ? WAVE_AT + (size_t)w * 8 : ROM2_AT + 0x40000 + (size_t)(w - 0x80000) * 8;
+        for (int b = 0; b < 8; ++b) want |= (uint64_t)pack[at + b] << (8 * b);
         if (ddr[w] != want) { fprintf(stderr, "DDR3 word %x after load: %016" PRIx64 ", pack %016" PRIx64 "\n", w, ddr[w], want); return 1; }
     }
 
@@ -263,21 +272,77 @@ int main(int argc, char** argv)
         size_t fp = 0;
         uint64_t c0 = clocks, steps0 = 0, worst = 0, last = clocks;
         t->step_gate = 1;
-        t->pace_enable = 1;
+        t->pace_enable = stall_len ? 1 : 0;   // throughput: as fast as possible; stall test: paced
         auto* R = t->rootp;
+        uint64_t prof[5] = {0, 0, 0, 0, 0};
+        uint64_t hold_sm = 0, hold_pcm = 0, prof_steps = 0, q_sm = 0;
+        const uint64_t prof_from = std::getenv("PROF_FROM") ? std::strtoull(std::getenv("PROF_FROM"), nullptr, 0) : 0;
+        uint64_t win_c0 = clocks, win_max = 0, win_at = 0;
+        int lag_reports = 0;
+        uint64_t per_steps0 = 0;
+        uint64_t cst[64] = {};   // clocks: Q_IDLE, Q_CPU (PCM access pending), Q_CPU (other), Q_TIMERS, other
         bool lag_before = false, ur_before = false;
         for (uint64_t i = 0; i < free_run; ++i)
         {
             if (stall_len && i == stall_at) { lag_before = R->sc55_board__DOT__lag_seen; ur_before = t->underruns != 0; }
             t->step_gate = !(stall_len && i >= stall_at && i < stall_at + stall_len);
             if ((i % 16000) == 0 && fp < fm.size() && clocks - c0 > 40'000'000) { t->midi_inject = 1; t->midi_inject_data = fm[fp++]; }
+            {
+                int q = R->sc55_board__DOT__core__DOT__mcu__DOT__q;
+                bool preq = R->sc55_board__DOT__core__DOT__p_req;
+                bool hold = R->sc55_board__DOT__core__DOT__mcu__DOT__int_hold && R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state == 2;   // S_INT
+                if (clocks - c0 >= prof_from)
+                {
+                    prof[q == 0 ? 0 : q == 1 ? (preq ? 1 : hold ? 4 : 2) : q == 2 ? 3 : 4]++;
+                    if (hold)
+                    {
+                        auto* M = R;
+                        bool irq1 = M->sc55_board__DOT__core__DOT__mcu__DOT__mk2 && !M->sc55_board__DOT__core__DOT__mcu__DOT__sm_caught_up
+                                    && !((M->sc55_board__DOT__core__DOT__mcu__DOT__int_req >> 2) & 1);
+                        bool irq0 = !M->sc55_board__DOT__core__DOT__p_known && !M->sc55_board__DOT__core__DOT__p_irq0;
+                        hold_sm += irq1; hold_pcm += irq0;
+                    }
+                    if (t->step_done) ++prof_steps;
+                    if (q == 7) ++q_sm;
+                }
+                if (q == 1 && !preq && !hold && clocks - c0 >= prof_from) cst[R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state & 63]++;
+            }
+            if (((clocks - c0) % 10'000'000) == 0 && clocks > c0)
+            {
+                printf("t %.1f s: %.2f clocks/step over the last 10 M clocks, underruns %u, lag_us %u\n", (double)(clocks - c0) / 50e6,
+                       10e6 / (double)std::max<uint64_t>(1, steps0 - per_steps0), (unsigned)t->underruns, (unsigned)t->lag_us);
+                per_steps0 = steps0;
+            }
+            uint32_t lag_before = t->lag_us;
             tick();
             t->midi_inject = 0;
+            if (stall_len && t->lag_us != lag_before && clocks - c0 > 50'000'000 && lag_reports < 8)
+            {
+                ++lag_reports;
+                printf("lag +%u us at clock %" PRIu64 " (step %" PRIu64 "), %.2f clocks/step over the last 2,000-step window start, credit %" PRId64 "\n",
+                       t->lag_us - lag_before, clocks - c0, steps0, (double)(clocks - win_c0) / (double)std::max<uint64_t>(1, steps0 % 2000),
+                       (int64_t)R->sc55_board__DOT__pacer__DOT__credit);
+            }
+            if (t->step_done && (steps0 % 2000) == 0)
+            {
+                // the slowest 2,000-step window (pacing has 200 us of credit)
+                if (steps0 > 0 && clocks - win_c0 > win_max) { win_max = clocks - win_c0; win_at = steps0; }
+                win_c0 = clocks;
+            }
             if (t->step_done) { ++steps0; worst = std::max(worst, clocks - last); last = clocks; }
         }
         if (stall_len)
             printf("stall of %" PRIu64 " clocks at %" PRIu64 ": lag_seen %d -> %d, underruns %d -> %u, lag_us %u\n", stall_len, stall_at,
                    lag_before, (int)R->sc55_board__DOT__lag_seen, ur_before, (unsigned)t->underruns, (unsigned)t->lag_us);
+        {
+            const char* nm[5] = {"idle", "cpu, PCM access pending", "cpu, other", "timers", "cpu, int_hold (S_INT)"};
+            const double ns = (double)std::max<uint64_t>(1, prof_from ? prof_steps : steps0);
+            for (int k = 0; k < 5; ++k) printf("  %-24s %6.2f clocks/step\n", nm[k], (double)prof[k] / ns);
+            printf("  int_hold: sub-MCU (IRQ1) %.2f, PCM (IRQ0) %.2f; waiting for the sub-MCU at the device phase %.2f clocks/step\n",
+                   (double)hold_sm / ns, (double)hold_pcm / ns, (double)q_sm / ns);
+            for (int k = 0; k < 64; ++k) if (cst[k] * 100 > prof[2]) printf("    cpu state %2d %6.2f clocks/step\n", k, (double)cst[k] / ns);
+        }
+        printf("slowest 2,000-step window: %.2f clocks/step, ending at step %" PRIu64 "\n", (double)win_max / 2000.0, win_at);
         printf("free run: %" PRIu64 " clocks, %" PRIu64 " steps: %.2f clocks/step (real time at 50 MHz needs <= 30), longest step %" PRIu64 " clocks, MIDI bytes %zu\n",
                clocks - c0, steps0, (double)(clocks - c0) / (double)steps0, worst, fp);
         return 0;
@@ -383,12 +448,15 @@ int main(int argc, char** argv)
         tick();
         t->step_gate = 0;
         for (int g = 0; g < 50'000'000 && !t->step_done; ++g) tick();
+        const bool step_finished = t->step_done;
         max_step = std::max(max_step, clocks - c0);
+        // mk2: the sub-MCU runs this step's SM_Update alongside the next step; let it finish before comparing
+        if (!m.is_mk1) for (int g = 0; g < 10000 && !t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__sm_caught_up; ++g) tick();
         run_clocks += clocks - c0;
         {
             auto* R = t->rootp;
             std::string d;
-            if (R->sc55_board__DOT__core__DOT__mcu__DOT__uart_rx_byte != m.uart_rx_byte) d += "uart_rx_byte ";
+            if ((m.is_mk1 ? R->sc55_board__DOT__core__DOT__mcu__DOT__uart_rx_byte : R->sc55_board__DOT__core__DOT__mcu__DOT__sm__DOT__rx_byte) != m.uart_rx_byte) d += "uart_rx_byte ";
             uint32_t hc = (uint32_t)(R->sc55_board__DOT__core__DOT__mcu__DOT__rx_wp - R->sc55_board__DOT__core__DOT__mcu__DOT__rx_rp) & 2047;
             if (hc != (m.uart_write_ptr - m.uart_read_ptr) % uart_buffer_size) d += "rx_count(hdl " + std::to_string(hc) + " ref " + std::to_string((m.uart_write_ptr - m.uart_read_ptr) % uart_buffer_size) + ") ";
             for (int a = 0; a < 0x80; ++a)
@@ -402,10 +470,20 @@ int main(int argc, char** argv)
             if (R->sc55_board__DOT__lcd__DOT__dd_ram != lc.LCD_DD_RAM) d += "lcd dd_ram ";
             if (!d.empty()) { fprintf(stderr, "MCU state differs at step %" PRIu64 ": %s\n", s, d.c_str()); return 1; }
         }
-        if (!t->step_done || t->dbg_pc != m.pc || t->dbg_cp != m.cp)
+        if (!step_finished || t->dbg_pc != m.pc || t->dbg_cp != m.cp)
         {
             fprintf(stderr, "MISMATCH at step %" PRIu64 ": HDL %02x:%04x (done %d), model %02x:%04x\n", s, t->dbg_cp, t->dbg_pc,
-                    t->step_done, m.cp, m.pc);
+                    (int)step_finished, m.cp, m.pc);
+            {
+                auto* R = t->rootp;
+                fprintf(stderr, "  mcu q=%d cpu state=%d c_req=%d sm_wait=%d sm_caught_up=%d sm q=%d sm cycles=%" PRIu64 " tgt5=%" PRIu64 " rom2x_req=%d cache st=%d ln_req=%d mk2=%d model=%d running=%d\n",
+                        (int)R->sc55_board__DOT__core__DOT__mcu__DOT__q, (int)R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state,
+                        (int)R->sc55_board__DOT__core__DOT__mcu__DOT__c_req, (int)R->sc55_board__DOT__core__DOT__mcu__DOT__sm_wait,
+                        (int)R->sc55_board__DOT__core__DOT__mcu__DOT__sm_caught_up, (int)R->sc55_board__DOT__core__DOT__mcu__DOT__sm__DOT__q,
+                        (uint64_t)R->sc55_board__DOT__core__DOT__mcu__DOT__sm__DOT__cycles, (uint64_t)R->sc55_board__DOT__core__DOT__mcu__DOT__sm_tgt5,
+                        (int)R->sc55_board__DOT__core__DOT__mcu__DOT__rom2x_req, (int)R->sc55_board__DOT__cache__DOT__st, (int)R->sc55_board__DOT__ln_req,
+                        (int)R->sc55_board__DOT__mk2, (int)R->sc55_board__DOT__model, (int)t->running);
+            }
             return 1;
         }
         if (!drain()) { pcm_check(s, true); return 1; }

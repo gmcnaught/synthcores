@@ -12,10 +12,13 @@
 // back as `pcm_irq0`.
 
 module sc55_mcu #(
-    parameter int RXBUF_BITS = 11          // MIDI receive buffer: 2^RXBUF_BITS bytes
+    parameter int RXBUF_BITS = 11,         // MIDI receive buffer: 2^RXBUF_BITS bytes
+    parameter int ROM2_AW = 18             // ROM2 block RAM: 18 = 256 KB (mk1), 19 = 512 KB (mk2)
 ) (
     input  logic        clk,
     input  logic        rst,
+    input  logic        mk2,             // SC-55mk2 / SC-155mk2: memory map, timer tables, sub-MCU (0: mk1)
+    input  logic        sc155,           // SC-155 / SC-155mk2: A/D sliders, P9DR model bit
 
     // one model step per run_step pulse; step_done when the devices have advanced
     input  logic        run_step,
@@ -26,8 +29,8 @@ module sc55_mcu #(
 
     // memory load port (ROMs, savestates): sel 0 rom1, 1 rom2, 2 sram, 3 ram
     input  logic        ld_we,
-    input  logic [1:0]  ld_sel,
-    input  logic [17:0] ld_addr,
+    input  logic [2:0]  ld_sel,          // 0 ROM1, 1 ROM2, 2 SRAM, 3 RAM, 4 sub-MCU ROM
+    input  logic [18:0] ld_addr,
     input  logic [7:0]  ld_data,
 
     // MIDI bytes into the UART receive buffer (MCU_PostUART)
@@ -48,6 +51,12 @@ module sc55_mcu #(
     output logic        pcm_tick,        // `cycles` advanced: the PCM runs the frames now due, alongside the CPU
     input  logic        pcm_irq0,        // INTERRUPT_SOURCE_IRQ0 request
     input  logic        pcm_irq_known,   // pcm_irq0 already has its value for the frames due by `cycles`
+
+    // ROM2's upper 256 KB outside (mk2 with ROM2_AW = 18: DDR3 through a cache)
+    output logic        rom2x_req,       // held until rom2x_ack
+    output logic [17:0] rom2x_addr,
+    input  logic        rom2x_ack,
+    input  logic [7:0]  rom2x_data,
 
     // LCD
     output logic        lcd_we,          // LCD_Write(address = lcd_rs, data)
@@ -97,7 +106,8 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // CPU
     // ------------------------------------------------------------------
-    logic        c_req, c_we, c_ack, c_step, c_done, c_reset;
+    logic        c_req, c_we, c_ack, c_step, c_done, c_reset, c_more;
+    wire         c_step_now;                 // the CPU starts the step in the clock run_step is seen (below)
     logic [23:0] c_addr;
     logic [7:0]  c_wdata, c_rdata;
     logic [20:0] int_pend;
@@ -105,9 +115,9 @@ module sc55_mcu #(
 
     h8_cpu cpu (
         .clk, .rst,
-        .step(c_step), .step_done(c_done),
+        .step(c_step_now), .step_done(c_done),
         .bus_req(c_req), .bus_we(c_we), .bus_addr(c_addr), .bus_wdata(c_wdata),
-        .bus_rdata(c_rdata), .bus_ack(c_ack),
+        .bus_rdata(c_rdata), .bus_ack(c_ack), .bus_more(c_more),
         .int_pending(int_pend),
         .ipra(dev[7'h70]), .iprb(dev[7'h71]), .iprc(dev[7'h72]), .iprd(dev[7'h73]), .p1cr(dev[7'h7c]),
         .int_hold(int_hold),
@@ -120,9 +130,39 @@ module sc55_mcu #(
     );
 
     // The interrupt check waits only when IRQ0 is enabled, would beat the
-    // mask, is not already requested, and the PCM has not settled it yet.
+    // mask, is not already requested, and the PCM has not settled it yet;
+    // likewise for IRQ1 while the sub-MCU (mk2) is still running the last
+    // step's SM_Update (it can raise IRQ1 through GA line 5, never clear it).
     logic int_hold;
-    assign int_hold = !pcm_irq_known && !pcm_irq0 && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8]);
+    assign int_hold = (!pcm_irq_known && !pcm_irq0 && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8])) ||
+                      (mk2 && !sm_caught_up && !int_req[2] && dev[7'h7c][6] && (dev[7'h70][2:0] > dbg_sr[10:8]));
+
+    // ------------------------------------------------------------------
+    // Sub-MCU (mk2): EC00-EFFF window, MIDI from the receive buffer, GA line 5
+    // ------------------------------------------------------------------
+    logic        sm_req, sm_we, sm_ack, sm_run, sm_done, sm_reset, sm_reset_done;
+    logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we, sm_caught_up, sm_ready;
+    logic [7:0]  sm_addr, sm_wdata, sm_rdata, sm_rx_byte;
+    logic [47:0] sm_dly_wv;
+    // The sub-MCU runs each step's SM_Update alongside the next step: the
+    // device phase publishes 5 * cycles and the receive-buffer bytes it may
+    // take (those that were there at the device phase).
+    logic [47:0] sm_tgt5;
+    logic [RXBUF_BITS-1:0] sm_wp;
+    sc55_submcu sm (
+        .clk, .rst,
+        .ld_we(ld_we && ld_sel == 3'd4), .ld_addr(ld_addr[11:0]), .ld_data,
+        .ld_en(1'b0), .ld_pc(16'h0), .ld_a(8'h0), .ld_x(8'h0), .ld_y(8'h0), .ld_s(8'h0), .ld_sr(8'h0), .ld_sleep(1'b0),
+        .reset_start(sm_reset), .reset_done(sm_reset_done), .ready(sm_ready),
+        .run(mk2), .target5(sm_tgt5), .done(sm_done), .caught_up(sm_caught_up),
+        .sys_req(sm_req && !sm_ack), .sys_we(sm_we), .sys_addr(sm_addr), .sys_wdata(sm_wdata), .sys_rdata(sm_rdata), .sys_ack(sm_ack),
+        .rx_avail(mk2 && sm_wp != rx_rp), .rx_data(rx_rd), .rx_pop(sm_rx_pop), .rx_byte(sm_rx_byte),
+        .rx_delay_we(sm_dly_we), .rx_delay_wv(sm_dly_wv),
+        .buttons, .ga5_we(sm_ga5_we), .ga5_val(sm_ga5_val),
+        .st_pc(), .st_a(), .st_x(), .st_y(), .st_s(), .st_sr(), .st_cycles(), .st_sleep(),
+        .st_p0_data(), .st_p0_dir(), .st_p1_dir(), .st_p1_data(), .st_prescaler(), .st_counter(),
+        .st_timer_cycles(), .st_rx_delay(), .st_gotbyte(), .st_instructions()
+    );
 
     assign mon_req = c_req; assign mon_we = c_we; assign mon_addr = c_addr;
     assign mon_wdata = c_wdata; assign mon_rdata = c_rdata; assign mon_ack = c_ack;
@@ -160,6 +200,9 @@ module sc55_mcu #(
     logic [2:0]  ga_trigger;
     logic        ga_int1;
     logic [7:0]  io_sd;
+    // gate array (mk2): interrupt enable (E402 write << 1), line 5 from the sub-MCU
+    logic [7:0]  ga_en;
+    logic        ga_int5;
 
     // MIDI receive buffer (MCU_PostUART ring buffer)
     logic [RXBUF_BITS-1:0] rx_wp, rx_rp, rx_wp_d1, rx_wp_d2;
@@ -168,14 +211,14 @@ module sc55_mcu #(
     // a byte is taken only once it is surely in the RAM (two clocks after its write)
     wire rx_ready = rx_wp_d2 != rx_rp;
 
-    // timer step tables (mk1)
-    function automatic logic [7:0] frt_stride_for(input logic [1:0] cks);
-        case (cks) 2'd0: return 8'd4; 2'd1: return 8'd8; 2'd2: return 8'd32; default: return 8'd4; endcase
+    // timer step tables (mcu_timer.cpp: mk1, or generic for the mk2)
+    function automatic logic [7:0] frt_stride_for(input logic [1:0] cks, input logic gen);
+        case (cks) 2'd0: return 8'd4; 2'd1: return 8'd8; 2'd2: return 8'd32; default: return gen ? 8'd2 : 8'd4; endcase
     endfunction
-    function automatic logic [15:0] tmr_stride_for(input logic [2:0] cks);
+    function automatic logic [15:0] tmr_stride_for(input logic [2:0] cks, input logic gen);
         case (cks)
             3'd1: return 16'd8; 3'd2: return 16'd64; 3'd3: return 16'd1024;
-            3'd5, 3'd6, 3'd7: return 16'd4;
+            3'd5, 3'd6, 3'd7: return gen ? 16'd2 : 16'd4;
             default: return 16'd0;
         endcase
     endfunction
@@ -185,18 +228,35 @@ module sc55_mcu #(
         return (v + m) & ~m;
     endfunction
 
-    // A/D pin values (mk1 SC-55: channel 7 = battery, others read 0 through the RCU path)
-    function automatic logic [9:0] analog_pin(input logic [2:0] ch);
-        return (ch == 3'd7) ? 10'h2a0 : 10'h000;
+    // A/D pin values (MCU_AnalogReadPin; the RCU path and the SC-155 sliders read 0)
+    //   mk1: channel 7 = battery unless an SC-155 selects its sliders (P9DR bits 0/1)
+    //   mk2: channel 7 by io_sd[3:2]: battery, NC, the switch (sw_pos 3: 0x3ff), RCU
+    function automatic logic [9:0] analog_pin(input logic [2:0] ch, input logic m2, input logic s155,
+                                              input logic [7:0] iosd, input logic [7:0] p9);
+        if (!m2) begin
+            if (s155 && p9[0]) return 10'h000;
+            if (ch != 3'd7) return 10'h000;
+            return (s155 && p9[1]) ? 10'h000 : 10'h2a0;
+        end
+        if (s155 && iosd[4]) return 10'h000;
+        if (ch != 3'd7) return 10'h000;
+        case (iosd[3:2])
+            2'd0: return 10'h2a0;
+            2'd2: return 10'h3ff;
+            default: return 10'h000;
+        endcase
     endfunction
-    function automatic logic [7:0] adc_hi(input logic [2:0] ch);
-        logic [9:0] v;
-        v = analog_pin(ch);
+    wire [9:0] an_v [8];
+    genvar gc;
+    generate
+        for (gc = 0; gc < 8; gc = gc + 1) begin : g_an
+            assign an_v[gc] = analog_pin(3'(gc), mk2, sc155, io_sd, dev[7'h7f]);
+        end
+    endgenerate
+    function automatic logic [7:0] adc_hi(input logic [9:0] v);
         return v[9:2];
     endfunction
-    function automatic logic [7:0] adc_lo(input logic [2:0] ch);
-        logic [9:0] v;
-        v = analog_pin(ch);
+    function automatic logic [7:0] adc_lo(input logic [9:0] v);
         return {v[1:0], 6'h0};
     endfunction
 
@@ -204,7 +264,7 @@ module sc55_mcu #(
     // Sequencer
     // ------------------------------------------------------------------
     typedef enum logic [3:0] {
-        Q_IDLE, Q_CPU, Q_TIMERS, Q_RESET, Q_RESET_CPU, Q_CLEAR
+        Q_IDLE, Q_CPU, Q_TIMERS, Q_RESET, Q_RESET_CPU, Q_CLEAR, Q_RESET_SM, Q_SM
     } q_t;
     q_t q;
     // two-clock reads: block RAM data registers and the source chosen in the first clock
@@ -212,22 +272,74 @@ module sc55_mcu #(
     logic [2:0] rsel;
     logic       rd_b;
     logic [15:0] clr_a;
-    assign ready = (q != Q_CLEAR);
+    assign ready = (q != Q_CLEAR) && sm_ready;
+    assign c_step_now = (q == Q_IDLE) && !reset_start && run_step;
 
     wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
 
     // bus decode
     wire [3:0]  page = c_addr[19:16];
     wire [15:0] a16  = c_addr[15:0];
-    // (address & 0x3ffff) | (bit 19 ? 0x40000 : 0), then & rom2_mask (256 KB: 0x3ffff) -> address & 0x3ffff
-    wire [17:0] rom2_a = c_addr[17:0];
+    // (address & 0x3ffff) | (bit 19 ? 0x40000 : 0), then & rom2_mask (mk1 256 KB, mk2 512 KB)
+    wire [18:0] rom2_a19 = {mk2 & c_addr[19], c_addr[17:0]};
+    wire rom2_ext = (ROM2_AW < 19) && rom2_a19[18];
+
+    // Sequential reads: while a block-RAM byte is delivered, the block RAMs
+    // already read the next address (same page); if the CPU's next read is
+    // that address and decodes to a block RAM, it is answered when taken
+    // (one clock instead of two). Any write, load or clear drops it.
+    logic [23:0] spec_a;
+    logic        spec_v;
+    logic [2:0]  bram_rs;                  // the block RAM c_addr decodes to (0: none)
+    wire  [23:0] c_next = {c_addr[23:16], c_addr[15:0] + 16'd1};
+    wire         accept = c_req && !c_ack && !pcm_req && !sm_req && !rom2x_req && !rd_b && !sm_wait;
+    wire         hit = accept && !c_we && spec_v && c_addr == spec_a && bram_rs != 3'd0;
+    // streaming: while byte A of a sequential read burst is being acknowledged and the block RAMs
+    // hold A + 1 (spec), A + 1 is answered the next clock without a request
+    wire  [23:0] c_next2 = {c_next[23:16], c_next[15:0] + 16'd1};
+    wire  [2:0]  bram_rs_n = bram_of(c_next, mk2, dev[7'h79][7]);
+    wire         stream = c_ack && c_req && !c_we && c_more && spec_v && spec_a == c_next && bram_rs_n != 3'd0
+                          && !pcm_req && !sm_req && !rom2x_req && !rd_b;
+    wire  [23:0] bram_a = stream ? c_next2 : (rd_b || hit) ? c_next : accept ? c_addr : spec_a;   // the block RAMs' read address
+    wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], bram_a[17:0]};
+    // the PCM and sub-MCU windows (page 0)
+    wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
+    wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
+    // the block RAM an address decodes to (0: none; 1 ROM1, 2 ROM2, 3 SRAM, 4 on-chip RAM)
+    function automatic logic [2:0] bram_of(input logic [23:0] ad, input logic m2, input logic ramcr);
+        logic [15:0] a;
+        logic        pcm, smw, ext;
+        a = ad[15:0];
+        pcm = a >= 16'he000 && (m2 ? a < 16'he400 : a < 16'he040);
+        smw = m2 && a >= 16'hec00 && a < 16'hf000;
+        ext = (ROM2_AW < 19) && m2 && ad[19];
+        case (ad[19:16])
+            4'd0: begin
+                if (!a[15]) return 3'd1;
+                if (!pcm && !smw && a < 16'hff80) begin
+                    if (a >= 16'hfb80 && ramcr) return 3'd4;
+                    if (a < 16'he000) return 3'd3;
+                end
+                return 3'd0;
+            end
+            4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: return ext ? 3'd0 : 3'd2;
+            4'd5: return m2 ? 3'd0 : 3'd3;
+            4'd10, 4'd11: return m2 ? 3'd3 : 3'd0;
+            default: return 3'd0;
+        endcase
+    endfunction
+    assign bram_rs = bram_of(c_addr, mk2, dev[7'h79][7]);
+    // accesses that see or change what the running sub-MCU uses: wait until it has caught up
+    wire sm_sync = mk2 && page == 4'd0 && (in_sm || a16 == 16'he402 || a16 == 16'hffdd || (c_we && a16 == 16'hffdc));
+    wire sm_wait = sm_sync && !sm_caught_up;
 
 
     // ------------------------------------------------------------------
     // Memories and their write ports: clear (power-on), load port, CPU write
     // ------------------------------------------------------------------
-    wire cpu_wr_now = !pcm_req && !rd_b && c_req && !c_ack && c_we;
-    wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) || c_addr[19:16] == 4'd5;
+    wire cpu_wr_now = !pcm_req && !sm_req && !rom2x_req && !rd_b && c_req && !c_ack && c_we && !sm_wait;
+    wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) ||
+                      c_addr[19:16] == (mk2 ? 4'd10 : 4'd5);
     wire dec_ram    = c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'hfb80 && c_addr[15:0] < 16'hff80 && dev[7'h79][7];
     always_comb begin
         sram_we = 1'b0; sram_wa = c_addr[14:0]; sram_wd = c_wdata;
@@ -236,22 +348,22 @@ module sc55_mcu #(
             sram_we = 1'b1; sram_wa = clr_a[14:0]; sram_wd = 8'h00;
             ram_we = (clr_a[15:10] == 6'd0); ram_wa = clr_a[9:0]; ram_wd = 8'h00;
         end else if (ld_we) begin
-            sram_we = (ld_sel == 2'd2); sram_wa = ld_addr[14:0]; sram_wd = ld_data;
-            ram_we = (ld_sel == 2'd3); ram_wa = ld_addr[9:0]; ram_wd = ld_data;
+            sram_we = (ld_sel == 3'd2); sram_wa = ld_addr[14:0]; sram_wd = ld_data;
+            ram_we = (ld_sel == 3'd3); ram_wa = ld_addr[9:0]; ram_wd = ld_data;
         end else if (cpu_wr_now) begin
             sram_we = dec_sram;
             ram_we = dec_ram;
         end
     end
 
-    sdp_ram #(.AW(15), .DW(8)) u_rom1 (.clk, .we(ld_we && ld_sel == 2'd0), .wa(ld_addr[14:0]), .wd(ld_data),
-                                      .ra(c_addr[14:0]), .rd(rom1_rd));
-    sdp_ram #(.AW(18), .DW(8)) u_rom2 (.clk, .we(ld_we && ld_sel == 2'd1), .wa(ld_addr), .wd(ld_data),
-                                      .ra(rom2_a), .rd(rom2_rd));
+    sdp_ram #(.AW(15), .DW(8)) u_rom1 (.clk, .we(ld_we && ld_sel == 3'd0), .wa(ld_addr[14:0]), .wd(ld_data),
+                                      .ra(bram_a[14:0]), .rd(rom1_rd));
+    sdp_ram #(.AW(ROM2_AW), .DW(8)) u_rom2 (.clk, .we(ld_we && ld_sel == 3'd1), .wa(ld_addr[ROM2_AW-1:0]), .wd(ld_data),
+                                      .ra(bram_a_rom2[ROM2_AW-1:0]), .rd(rom2_rd));
     sdp_ram #(.AW(15), .DW(8)) u_sram (.clk, .we(sram_we), .wa(sram_wa), .wd(sram_wd),
-                                      .ra(c_addr[14:0]), .rd(sram_rd));
+                                      .ra(bram_a[14:0]), .rd(sram_rd));
     sdp_ram #(.AW(10), .DW(8)) u_ram  (.clk, .we(ram_we), .wa(ram_wa), .wd(ram_wd),
-                                      .ra(10'(c_addr[15:0] - 16'hfb80)), .rd(ram_rd));
+                                      .ra(10'(bram_a[15:0] - 16'hfb80)), .rd(ram_rd));
     sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),
                                       .ra(rx_rp), .rd(rx_rd));
 
@@ -269,17 +381,39 @@ module sc55_mcu #(
         reset_done <= 1'b0;
         pcm_tick <= 1'b0;
         lcd_we <= 1'b0;
+        sm_run <= 1'b0;
+        sm_reset <= 1'b0;
+        sm_dly_we <= 1'b0;
 
         if (midi_valid && !midi_full) rx_wp <= rx_wp + 1'b1;
+        if (sm_rx_pop) rx_rp <= rx_rp + 1'b1;
+        // the block RAMs read `bram_a` this clock
+        if (stream) begin spec_a <= c_next2; spec_v <= 1'b1; end
+        else if (rd_b || hit) begin spec_a <= c_next; spec_v <= 1'b1; end
+        else if (accept) spec_v <= 1'b0;
+        if (ld_we || q == Q_CLEAR || (accept && c_we)) spec_v <= 1'b0;
+        // GA line 5 (MCU_GA_SetGAInt(5, v)): trigger 5 on a rising edge when enabled; IRQ1 = trigger != 0
+        if (sm_ga5_we) begin : b_sc55_mcu_ga5
+            logic [2:0] tg;
+            tg = (sm_ga5_val && !ga_int5 && ga_en[5]) ? 3'd5 : ga_trigger;
+            ga_trigger <= tg;
+            int_req[2] <= tg != 3'd0;
+            ga_int5 <= sm_ga5_val;
+        end
         rx_wp_d1 <= rx_wp;
         rx_wp_d2 <= rx_wp_d1;
 
         if (rst) begin
             rd_b <= 1'b0;
+            spec_v <= 1'b0;
             q <= Q_CLEAR;
             clr_a <= 16'd0;
             cycles <= 48'd0;
             pcm_req <= 1'b0;
+            sm_req <= 1'b0;
+            rom2x_req <= 1'b0;
+            ga_en <= 8'h00; ga_int5 <= 1'b0;
+            sm_tgt5 <= 48'd0; sm_wp <= '0;
             rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
@@ -295,6 +429,18 @@ module sc55_mcu #(
                     c_rdata <= pcm_rdata;
                     c_ack <= 1'b1;
                 end
+            end else if (rom2x_req) begin
+                if (rom2x_ack) begin
+                    rom2x_req <= 1'b0;
+                    c_rdata <= rom2x_data;
+                    c_ack <= 1'b1;
+                end
+            end else if (sm_req) begin
+                if (sm_ack) begin
+                    sm_req <= 1'b0;
+                    c_rdata <= sm_rdata;
+                    c_ack <= 1'b1;
+                end
             end else if (rd_b) begin
                 // second clock of a read: the block RAMs' data is here
                 case (rsel)
@@ -306,16 +452,36 @@ module sc55_mcu #(
                 endcase
                 c_ack <= 1'b1;
                 rd_b <= 1'b0;
-            end else if (c_req && !c_ack) begin
+            end else if (stream) begin
+                // the next byte of a sequential read burst (its request comes with this acknowledge)
+                case (bram_rs_n)
+                    3'd1: c_rdata <= rom1_rd;
+                    3'd2: c_rdata <= rom2_rd;
+                    3'd3: c_rdata <= sram_rd;
+                    default: c_rdata <= ram_rd;
+                endcase
+                c_ack <= 1'b1;
+            end else if (hit) begin
+                // the speculative read was this address: its data is here now
+                case (bram_rs)
+                    3'd1: c_rdata <= rom1_rd;
+                    3'd2: c_rdata <= rom2_rd;
+                    3'd3: c_rdata <= sram_rd;
+                    default: c_rdata <= ram_rd;
+                endcase
+                c_ack <= 1'b1;
+            end else if (c_req && !c_ack && !sm_wait) begin
                 d = 8'hff;
                 rs = 3'd0;
                 if (!c_we) begin
-                    // MCU_Read (mk1)
+                    // MCU_Read
                     case (page)
                         4'd0: begin
                             if (!a16[15]) rs = 3'd1;
-                            else if (a16 >= 16'he000 && a16 < 16'he040) begin
+                            else if (in_pcm) begin
                                 pcm_req <= 1'b1; pcm_we <= 1'b0; pcm_addr <= a16[5:0];
+                            end else if (in_sm) begin
+                                sm_req <= 1'b1; sm_we <= 1'b0; sm_addr <= a16[7:0];
                             end else if (a16 >= 16'hff80) begin
                                 // MCU_DeviceRead
                                 ra = 4'd0;
@@ -344,16 +510,22 @@ module sc55_mcu #(
                                     case (a16[6:0])
                                         7'h68: begin adf_rd <= dev[7'h68][7]; d = dev[7'h68]; end   // ADCSR
                                         7'h5c: begin ssr_rd <= dev[7'h5c]; d = dev[7'h5c]; end      // SSR
-                                        7'h5d: d = uart_rx_byte;                                    // RDR
+                                        7'h5d: d = mk2 ? sm_rx_byte : uart_rx_byte;                 // RDR
                                         7'h00: d = 8'hff;
                                         7'h0e: d = 8'hff;                                           // P7DR (not JV-880)
-                                        7'h7f: d = dev[7'h7f] & dev[7'h7e];                         // P9DR (mk1 cfg 0)
+                                        7'h7f: d = ((mk2 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end
                             end else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 3'd4;
                             else if (a16 < 16'he000) rs = 3'd3;
-                            else if (a16 >= 16'hf000 && a16 < 16'hf100) begin
+                            else if (mk2) begin
+                                if (a16 == 16'he402) begin
+                                    d = {5'h0, ga_trigger};
+                                    ga_trigger <= 3'd0;
+                                    int_req[2] <= 1'b0;
+                                end
+                            end else if (a16 >= 16'hf000 && a16 < 16'hf100) begin
                                 io_sd <= a16[7:0];
                                 lcd_enable <= a16[3];
                                 d = 8'hff;
@@ -368,21 +540,31 @@ module sc55_mcu #(
                             end
                         end
                         4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: rs = 3'd2;
-                        4'd5: rs = 3'd3;
-                        4'd10, 4'd11, 4'd12, 4'd13: d = 8'hff;
+                        4'd5: if (!mk2) rs = 3'd3;
+                        4'd10, 4'd11: if (mk2) rs = 3'd3;
+                        4'd12, 4'd13: d = 8'hff;
                         default: d = 8'h00;
                     endcase
-                    if (!(page == 4'd0 && a16 >= 16'he000 && a16 < 16'he040)) begin
+                    if (rs == 3'd2 && rom2_ext) begin
+                        rom2x_req <= 1'b1;            // ROM2's upper half, outside
+                        rom2x_addr <= rom2_a19[17:0];
+                    end else if (!in_pcm && !in_sm) begin
                         rd_dev <= d;
                         rsel <= rs;
                         rd_b <= 1'b1;
                     end
                 end else begin
-                    // MCU_Write (mk1)
+                    // MCU_Write
                     d = c_wdata;
                     if (page == 4'd0 && a16[15]) begin
-                        if (a16 >= 16'he000 && a16 < 16'he040) begin
+                        if (in_pcm) begin
                             pcm_req <= 1'b1; pcm_we <= 1'b1; pcm_addr <= a16[5:0]; pcm_wdata <= d;
+                        end else if (in_sm) begin
+                            sm_req <= 1'b1; sm_we <= 1'b1; sm_addr <= a16[7:0]; sm_wdata <= d;
+                        end else if (mk2 && a16 >= 16'he400 && a16 < 16'he800) begin
+                            if (a16 == 16'he404 || a16 == 16'he405) begin lcd_we <= 1'b1; lcd_rs <= a16[0]; lcd_data <= d; end
+                            else if (a16 == 16'he401) begin io_sd <= d; lcd_enable <= !d[0]; end
+                            else if (a16 == 16'he402) ga_en <= {d[6:0], 1'b0};
                         end else if (a16 >= 16'hff80) begin
                             // MCU_DeviceWrite
                             if (a16[6:0] >= 7'h10 && a16[6:0] < 7'h40) begin
@@ -390,8 +572,8 @@ module sc55_mcu #(
                                 case (a16[3:0])
                                     4'h0: begin
                                         frt_tcr[t] <= d;
-                                        frt_stride[t] <= frt_stride_for(d[1:0]);
-                                        frt_deadline[t] <= align_fwd(tcyc, {8'h0, frt_stride_for(d[1:0])});
+                                        frt_stride[t] <= frt_stride_for(d[1:0], mk2);
+                                        frt_deadline[t] <= align_fwd(tcyc, {8'h0, frt_stride_for(d[1:0], mk2)});
                                     end
                                     4'h1: begin : b_sc55_mcu_2
                                         logic [7:0] ts, sr;
@@ -414,9 +596,9 @@ module sc55_mcu #(
                                 case (a16[2:0])
                                     3'd0: begin
                                         tmr_tcr <= d;
-                                        tmr_stride <= tmr_stride_for(d[2:0]);
-                                        if (tmr_stride_for(d[2:0]) == 16'd0) tmr_deadline <= 48'hffffffffffff;
-                                        else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0]));
+                                        tmr_stride <= tmr_stride_for(d[2:0], mk2);
+                                        if (tmr_stride_for(d[2:0], mk2) == 16'd0) tmr_deadline <= 48'hffffffffffff;
+                                        else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0], mk2));
                                     end
                                     3'd1: begin : b_sc55_mcu_3
                                         logic [7:0] ts, sr;
@@ -442,19 +624,23 @@ module sc55_mcu #(
                             end else if (a16[6:0] == 7'h5c) begin
                                 // SSR: flag clears, then the whole register is overwritten (reference behaviour)
                                 if (!d[7] && ssr_rd[7]) begin uart_tx_delay <= cycles + 48'd3000; int_req[20] <= 1'b0; end
-                                if (!d[6] && ssr_rd[6]) begin uart_rx_delay <= cycles + 48'd3000; int_req[19] <= 1'b0; end
+                                if (!d[6] && ssr_rd[6]) begin
+                                    uart_rx_delay <= cycles + 48'd3000; int_req[19] <= 1'b0;
+                                    sm_dly_we <= mk2; sm_dly_wv <= cycles + 48'd3000;   // mk2: the sub-MCU's (shared) delay
+                                end
                                 dev[7'h5c] <= d;
                             end else begin
                                 dev[a16[6:0]] <= d;
                             end
                         end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
                         else if (a16 < 16'he000) ;                          // SRAM: write port below
+                        else if (mk2) ;
                         else if (a16 >= 16'hf000 && a16 < 16'hf100) begin io_sd <= a16[7:0]; lcd_enable <= a16[3]; end
                         else if (a16 == 16'hf105) begin lcd_we <= 1'b1; lcd_rs <= 1'b0; lcd_data <= d; ga_lcd_counter <= 9'd500; end
                         else if (a16 == 16'hf104) begin lcd_we <= 1'b1; lcd_rs <= 1'b1; lcd_data <= d; ga_lcd_counter <= 9'd500; end
                         else if (a16 == 16'hf107) io_sd <= d;
                     end
-                    if (!(page == 4'd0 && a16 >= 16'he000 && a16 < 16'he040))
+                    if (!in_pcm && !in_sm)
                         c_ack <= 1'b1;
                 end
             end
@@ -493,7 +679,11 @@ module sc55_mcu #(
                     if (clr_a == 16'h7fff) q <= Q_IDLE;
                 end
                 Q_RESET: begin c_reset <= 1'b1; q <= Q_RESET_CPU; end
-                Q_RESET_CPU: if (c_done) begin reset_done <= 1'b1; q <= Q_IDLE; end
+                Q_RESET_CPU: if (c_done) begin
+                    if (mk2) begin sm_reset <= 1'b1; q <= Q_RESET_SM; end
+                    else begin reset_done <= 1'b1; q <= Q_IDLE; end
+                end
+                Q_RESET_SM: if (sm_reset_done) begin reset_done <= 1'b1; q <= Q_IDLE; end
 
                 Q_CPU: if (c_done) begin
                     cycles <= cycles + 48'd12;
@@ -512,7 +702,7 @@ module sc55_mcu #(
                     behind = 1'b0;
                     for (int i = 0; i < 3; i++) begin
                         frc_n[i] = frt_frc[i]; ts_n[i] = frt_tcsr[i]; dl_n[i] = frt_deadline[i];
-                        for (int k = 0; k < 2; k++) begin
+                        for (int k = 0; k < 3; k++) begin
                             if (dl_n[i] < tcyc) begin : b_sc55_mcu_6
                                 logic ma, mb;
                                 ma = frc_n[i] == frt_ocra[i];
@@ -534,7 +724,7 @@ module sc55_mcu #(
                         frt_frc[i] <= frc_n[i]; frt_tcsr[i] <= ts_n[i]; frt_deadline[i] <= dl_n[i];
                     end
                     cnt_n = tmr_tcnt; tts_n = tmr_tcsr; tdl_n = tmr_deadline;
-                    for (int k = 0; k < 2; k++) begin
+                    for (int k = 0; k < 3; k++) begin
                         if (tdl_n < tcyc) begin : b_sc55_mcu_7
                             logic ma, mb;
                             ma = cnt_n == tmr_tcora;
@@ -557,14 +747,14 @@ module sc55_mcu #(
                     tmr_tcnt <= cnt_n; tmr_tcsr <= tts_n; tmr_deadline <= tdl_n;
 
                     if (!behind) begin
-                        // MCU_UpdateUART_RX / TX
-                        if (dev[7'h5a][4] && rx_ready && !dev[7'h5c][6] && !(cycles < uart_rx_delay)) begin
+                        // MCU_UpdateUART_RX / TX (mk1; on the mk2 the sub-MCU runs instead, below)
+                        if (!mk2 && dev[7'h5a][4] && rx_ready && !dev[7'h5c][6] && !(cycles < uart_rx_delay)) begin
                             uart_rx_byte <= rx_rd;
                             rx_rp <= rx_rp + 1'b1;
                             d = dev[7'h5c] | 8'h40;
                             int_req[19] <= dev[7'h5a][6];
                         end else d = dev[7'h5c];
-                        if (dev[7'h5a][5] && !d[7] && !(cycles < uart_tx_delay)) begin
+                        if (!mk2 && dev[7'h5a][5] && !d[7] && !(cycles < uart_tx_delay)) begin
                             d = d | 8'h80;
                             int_req[20] <= dev[7'h5a][7];
                         end
@@ -576,15 +766,15 @@ module sc55_mcu #(
                             if (analog_end == 48'd0) analog_end <= cycles + 48'd200;
                             else if (analog_end < cycles) begin
                                 if (d[4]) begin
-                                    begin dev[7'h60] <= adc_hi({d[2], 2'd0}); dev[7'h61] <= adc_lo({d[2], 2'd0}); end
-                                    if (2'd1 <= d[1:0]) begin dev[7'h62] <= adc_hi({d[2], 2'd1}); dev[7'h63] <= adc_lo({d[2], 2'd1}); end
-                                    if (2'd2 <= d[1:0]) begin dev[7'h64] <= adc_hi({d[2], 2'd2}); dev[7'h65] <= adc_lo({d[2], 2'd2}); end
-                                    if (2'd3 <= d[1:0]) begin dev[7'h66] <= adc_hi({d[2], 2'd3}); dev[7'h67] <= adc_lo({d[2], 2'd3}); end
+                                    begin dev[7'h60] <= adc_hi(an_v[{d[2], 2'd0}]); dev[7'h61] <= adc_lo(an_v[{d[2], 2'd0}]); end
+                                    if (2'd1 <= d[1:0]) begin dev[7'h62] <= adc_hi(an_v[{d[2], 2'd1}]); dev[7'h63] <= adc_lo(an_v[{d[2], 2'd1}]); end
+                                    if (2'd2 <= d[1:0]) begin dev[7'h64] <= adc_hi(an_v[{d[2], 2'd2}]); dev[7'h65] <= adc_lo(an_v[{d[2], 2'd2}]); end
+                                    if (2'd3 <= d[1:0]) begin dev[7'h66] <= adc_hi(an_v[{d[2], 2'd3}]); dev[7'h67] <= adc_lo(an_v[{d[2], 2'd3}]); end
                                     analog_end <= cycles + 48'd200;
                                     dev[7'h68] <= d | 8'h80;
                                 end else begin
-                                    dev[{4'h6, d[1:0], 1'b0}] <= adc_hi(d[2:0]);
-                                    dev[{4'h6, d[1:0], 1'b1}] <= adc_lo(d[2:0]);
+                                    dev[{3'h6, 1'b0, d[1:0], 1'b0}] <= adc_hi(an_v[d[2:0]]);   // ADDRxH: 0x60 + 2 * (ch & 3)
+                                    dev[{3'h6, 1'b0, d[1:0], 1'b1}] <= adc_lo(an_v[d[2:0]]);
                                     dev[7'h68] <= (d & ~8'h20) | 8'h80;
                                     analog_end <= 48'd0;
                                 end
@@ -593,7 +783,7 @@ module sc55_mcu #(
                         end else analog_end <= 48'd0;
 
                         // mk1 gate array: LCD busy counter -> GA line 1 -> IRQ1
-                        if (ga_lcd_counter != 9'd0) begin
+                        if (!mk2 && ga_lcd_counter != 9'd0) begin
                             ga_lcd_counter <= ga_lcd_counter - 9'd1;
                             if (ga_lcd_counter == 9'd1) begin
                                 ga_trigger <= 3'd1;
@@ -601,9 +791,23 @@ module sc55_mcu #(
                                 int_req[2] <= 1'b1;
                             end
                         end
-                        step_done <= 1'b1;
-                        q <= Q_IDLE;
+                        if (mk2 && !sm_caught_up) begin
+                            q <= Q_SM;                      // the last step's SM_Update is still running
+                        end else begin
+                            if (mk2) begin                  // SM_Update(cycles), alongside the next step
+                                sm_tgt5 <= (cycles << 2) + cycles;
+                                sm_wp <= rx_wp_d2;
+                            end
+                            step_done <= 1'b1;
+                            q <= Q_IDLE;
+                        end
                     end
+                end
+                Q_SM: if (sm_caught_up) begin
+                    sm_tgt5 <= (cycles << 2) + cycles;
+                    sm_wp <= rx_wp_d2;
+                    step_done <= 1'b1;
+                    q <= Q_IDLE;
                 end
                 default: q <= Q_IDLE;
             endcase

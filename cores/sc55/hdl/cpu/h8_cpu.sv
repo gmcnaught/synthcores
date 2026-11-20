@@ -29,6 +29,7 @@ module h8_cpu (
     output logic [7:0]  bus_wdata,
     input  logic [7:0]  bus_rdata,
     input  logic        bus_ack,
+    output logic        bus_more,         // this read will be followed at once by one of the next address (same 64 KB)
 
     // MCU_Interrupt_Source bits (0 NMI .. 20 UART TX) and the registers
     // MCU_Interrupt_GetVL reads
@@ -187,6 +188,17 @@ module h8_cpu (
     logic        m_we;
     logic [31:0] m_data;        // read: accumulated; write: bytes from [15:8] then [7:0] (len 2) or [7:0] (len 1)
 
+    // step_done: the reset's end (registered), or S_END without a pending write (in that clock,
+    // so the MCU takes its device phase one clock earlier)
+    logic step_done_r;
+    assign step_done = step_done_r || (state == S_END && !g_do_write);
+
+    // sequential read bursts: instruction fetch (f_n bytes left) and memory reads (m_n left)
+    // let the bus answer the next byte without a new request (sc55_mcu streams them)
+    assign bus_more = bus_req && !bus_we &&
+                      ((state == S_FETCH && f_n > 2'd1) || (state == S_MEM && m_n > 3'd1 && m_addr[15:0] != 16'hffff));
+
+
     // instruction registers
     logic [7:0]  op1;
     logic [7:0]  opc_b;         // opcode byte (general) after extension
@@ -269,9 +281,13 @@ module h8_cpu (
     // ------------------------------------------------------------------
     // Engine entry macros
     // ------------------------------------------------------------------
-    `define FETCH(N, RET) begin f_n <= 2'(N); f_data <= 24'h0; ret <= RET; state <= S_FETCH; end
-    `define READ(A, N, RET) begin m_addr <= (A); m_n <= 3'(N); m_we <= 1'b0; m_data <= 32'h0; ret <= RET; state <= S_MEM; end
-    `define WRITE(A, N, D, RET) begin m_addr <= (A); m_n <= 3'(N); m_we <= 1'b1; m_data <= {16'h0, 16'(D)}; ret <= RET; state <= S_MEM; end
+    // the bus request goes out in the same clock (S_FETCH/S_MEM then wait for the acknowledges)
+    `define FETCH(N, RET) begin f_n <= 2'(N); f_data <= 24'h0; ret <= RET; state <= S_FETCH; \
+        bus_req <= 1'b1; bus_we <= 1'b0; bus_addr <= {cp, pc}; pc <= pc + 16'd1; end
+    `define READ(A, N, RET) begin m_addr <= (A); m_n <= 3'(N); m_we <= 1'b0; m_data <= 32'h0; ret <= RET; state <= S_MEM; \
+        bus_req <= 1'b1; bus_we <= 1'b0; bus_addr <= (A); end
+    `define WRITE(A, N, D, RET) begin m_addr <= (A); m_n <= 3'(N); m_we <= 1'b1; m_data <= {16'h0, 16'(D)}; ret <= RET; state <= S_MEM; \
+        bus_req <= 1'b1; bus_we <= 1'b1; bus_addr <= (A); bus_wdata <= (3'(N) == 3'd2) ? 8'((16'(D)) >> 8) : 8'(D); end
     `define PUSH(D, RET) begin if (r[7][0]) begin exc_v <= 1'b1; exc_t <= 2'd0; end r[7] <= r[7] - 16'd2; `WRITE({8'h00, (r[7] - 16'd2) & 16'hfffe}, 2, D, RET) end
     `define POP(RET) begin if (r[7][0]) begin exc_v <= 1'b1; exc_t <= 2'd0; end r[7] <= r[7] + 16'd2; `READ({8'h00, r[7] & 16'hfffe}, 2, RET) end
     `define TRAP ntr = ntr + 32'd1
@@ -287,7 +303,7 @@ module h8_cpu (
     logic        ran;
 
     always_ff @(posedge clk) begin
-        step_done <= 1'b0;
+        step_done_r <= 1'b0;
         ntr = 32'd0;
         if (rst) begin
             state <= S_IDLE;
@@ -316,7 +332,7 @@ module h8_cpu (
             end
             S_RESET: begin
                 cp <= m_data[23:16]; pc <= m_data[15:0];
-                step_done <= 1'b1;
+                step_done_r <= 1'b1;
                 state <= S_IDLE;
             end
 
@@ -1092,8 +1108,7 @@ module h8_cpu (
                 end else begin
                     // MCU_ReadInstruction's trace check (only when an instruction ran)
                     if (ran && sr[ST_T]) begin exc_v <= 1'b1; exc_t <= 2'd2; end
-                    step_done <= 1'b1;
-                    state <= S_IDLE;
+                    state <= S_IDLE;                 // step_done: combinational in this clock
                 end
             end
 

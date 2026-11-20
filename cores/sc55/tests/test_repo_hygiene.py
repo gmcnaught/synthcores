@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""No Roland ROMs, MIDI-derived renders or built cores in the repository (plan.md R6)."""
+"""No Roland ROMs or MIDI-derived renders in the repository (plan.md R6); built cores
+only as dated releases (releases/SC55_YYYYMMDD.rbf, the MiSTer-devel convention, D8)."""
 import hashlib
+import re
 import subprocess
 import sys
 
@@ -15,13 +17,16 @@ def tracked():
     return [p for p in out.decode().split("\0") if p and not p.startswith("third_party/")]
 
 
+RELEASE = re.compile(r"releases/SC55_\d{8}\.rbf")
+
+
 def test_no_forbidden_types():
-    bad = [p for p in tracked() if p.lower().endswith(FORBIDDEN)]
+    bad = [p for p in tracked() if p.lower().endswith(FORBIDDEN) and not RELEASE.fullmatch(p)]
     assert not bad, f"files that must not be committed: {bad}"
 
 
 def test_no_large_files():
-    big = [p for p in tracked() if (ROOT / p).is_file() and (ROOT / p).stat().st_size > MAX_BYTES]
+    big = [p for p in tracked() if (ROOT / p).is_file() and (ROOT / p).stat().st_size > MAX_BYTES and not RELEASE.fullmatch(p)]
     assert not big, f"files over {MAX_BYTES} bytes: {big}"
 
 

@@ -69,7 +69,7 @@ Status strip under the LCD: state band (green = running), MIDI (white
 flash), underrun (red flash; dark red once any underrun has happened),
 real-time lag (amber once the pacer lost time after the first second).
 
-| Run (2026-11-20, the .62, build seed 3) | Result |
+| Run (2026-11-20, the test MiSTer, build seed 3) | Result |
 |---|---|
 | boot, no MIDI | LCD "01 001 Piano 1", as in the bench |
 | GM reset, C major chord | part 1 level bar, Piano 1 |
