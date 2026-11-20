@@ -30,7 +30,8 @@ ssh "$DEV" "timeout 10 sh -c 'echo load_core /media/fat/_Other/SC55_$DATE.rbf > 
 if [ $# -gt 0 ]; then
     ssh "$DEV" "stty -F /dev/ttyS1 9600 raw -echo"
     for m in "$@"; do
-        ssh "$DEV" "printf '$(echo "$m" | sed 's/\(..\)/\\\\x\1/g')' > /dev/ttyS1; sleep 0.3"
+        # the bytes go over ssh's stdin: no shell escaping of \x sequences on either side
+        printf '%s' "$m" | xxd -r -p | ssh "$DEV" "cat > /dev/ttyS1; sleep 0.3"
     done
     sleep 1
 fi
