@@ -50,5 +50,17 @@ word after every step, and all of eram every 1000 steps.
 | boot, 3 M steps | identical |
 | GM reset + random MIDI traffic (8,333 bytes), 9 M steps, ROM latency 3 and 7 | identical: 458,522 samples (324,092 non-zero, peak −14.1 dBFS), 54,997 register accesses |
 
-Speed (bench): up to 745 clocks per 24-voice frame with a 3-cycle ROM, 1,225
-with 7 cycles; the real-time budget is set in M5 (`docs/plan.md` R3).
+## Timing and memories (M5)
+
+* The frame's pre-scan runs every voice's address generator from the rows
+  at frame start and issues all its wave-ROM reads as an in-order stream, so
+  ROM latency hides behind the reverb section; it also finds the voice that
+  will raise IRQ0 (the CPU's interrupt check waits only for this).
+* Each clock does at most one multiply or a short chain of adds: the voice
+  datapath is split (DPCM 2 clocks, filter 4, volume 4, mix 2) and so are
+  the reverb steps with two multiplies in a row (two halves).
+* eram is a block RAM (`hdl/common/sdp_ram.sv`) with registered requests;
+  after a read the reverb program waits two clocks.
+
+Speed (bench): at most 658 clocks per 24-voice frame with a 7-clock ROM
+(budget at 50 MHz: 625 reference cycles = 31.25 µs = 1,562 clocks).
