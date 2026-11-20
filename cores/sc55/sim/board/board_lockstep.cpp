@@ -275,6 +275,11 @@ int main(int argc, char** argv)
         t->pace_enable = stall_len ? 1 : 0;   // throughput: as fast as possible; stall test: paced
         auto* R = t->rootp;
         uint64_t prof[5] = {0, 0, 0, 0, 0};
+        uint64_t hold_sm = 0, hold_pcm = 0, prof_steps = 0, q_sm = 0;
+        const uint64_t prof_from = std::getenv("PROF_FROM") ? std::strtoull(std::getenv("PROF_FROM"), nullptr, 0) : 0;
+        uint64_t win_c0 = clocks, win_max = 0, win_at = 0;
+        int lag_reports = 0;
+        uint64_t per_steps0 = 0;
         uint64_t cst[64] = {};   // clocks: Q_IDLE, Q_CPU (PCM access pending), Q_CPU (other), Q_TIMERS, other
         bool lag_before = false, ur_before = false;
         for (uint64_t i = 0; i < free_run; ++i)
@@ -286,11 +291,44 @@ int main(int argc, char** argv)
                 int q = R->sc55_board__DOT__core__DOT__mcu__DOT__q;
                 bool preq = R->sc55_board__DOT__core__DOT__p_req;
                 bool hold = R->sc55_board__DOT__core__DOT__mcu__DOT__int_hold && R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state == 2;   // S_INT
-                prof[q == 0 ? 0 : q == 1 ? (preq ? 1 : hold ? 4 : 2) : q == 2 ? 3 : 4]++;
-                if (q == 1 && !preq && !hold) cst[R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state & 63]++;
+                if (clocks - c0 >= prof_from)
+                {
+                    prof[q == 0 ? 0 : q == 1 ? (preq ? 1 : hold ? 4 : 2) : q == 2 ? 3 : 4]++;
+                    if (hold)
+                    {
+                        auto* M = R;
+                        bool irq1 = M->sc55_board__DOT__core__DOT__mcu__DOT__mk2 && !M->sc55_board__DOT__core__DOT__mcu__DOT__sm_caught_up
+                                    && !((M->sc55_board__DOT__core__DOT__mcu__DOT__int_req >> 2) & 1);
+                        bool irq0 = !M->sc55_board__DOT__core__DOT__p_known && !M->sc55_board__DOT__core__DOT__p_irq0;
+                        hold_sm += irq1; hold_pcm += irq0;
+                    }
+                    if (t->step_done) ++prof_steps;
+                    if (q == 7) ++q_sm;
+                }
+                if (q == 1 && !preq && !hold && clocks - c0 >= prof_from) cst[R->sc55_board__DOT__core__DOT__mcu__DOT__cpu__DOT__state & 63]++;
             }
+            if (((clocks - c0) % 10'000'000) == 0 && clocks > c0)
+            {
+                printf("t %.1f s: %.2f clocks/step over the last 10 M clocks, underruns %u, lag_us %u\n", (double)(clocks - c0) / 50e6,
+                       10e6 / (double)std::max<uint64_t>(1, steps0 - per_steps0), (unsigned)t->underruns, (unsigned)t->lag_us);
+                per_steps0 = steps0;
+            }
+            uint32_t lag_before = t->lag_us;
             tick();
             t->midi_inject = 0;
+            if (stall_len && t->lag_us != lag_before && clocks - c0 > 50'000'000 && lag_reports < 8)
+            {
+                ++lag_reports;
+                printf("lag +%u us at clock %" PRIu64 " (step %" PRIu64 "), %.2f clocks/step over the last 2,000-step window start, credit %" PRId64 "\n",
+                       t->lag_us - lag_before, clocks - c0, steps0, (double)(clocks - win_c0) / (double)std::max<uint64_t>(1, steps0 % 2000),
+                       (int64_t)R->sc55_board__DOT__pacer__DOT__credit);
+            }
+            if (t->step_done && (steps0 % 2000) == 0)
+            {
+                // the slowest 2,000-step window (pacing has 200 us of credit)
+                if (steps0 > 0 && clocks - win_c0 > win_max) { win_max = clocks - win_c0; win_at = steps0; }
+                win_c0 = clocks;
+            }
             if (t->step_done) { ++steps0; worst = std::max(worst, clocks - last); last = clocks; }
         }
         if (stall_len)
@@ -298,9 +336,13 @@ int main(int argc, char** argv)
                    lag_before, (int)R->sc55_board__DOT__lag_seen, ur_before, (unsigned)t->underruns, (unsigned)t->lag_us);
         {
             const char* nm[5] = {"idle", "cpu, PCM access pending", "cpu, other", "timers", "cpu, int_hold (S_INT)"};
-            for (int k = 0; k < 5; ++k) printf("  %-24s %6.2f clocks/step\n", nm[k], (double)prof[k] / (double)steps0);
-            for (int k = 0; k < 64; ++k) if (cst[k] * 100 > prof[2]) printf("    cpu state %2d %6.2f clocks/step\n", k, (double)cst[k] / (double)steps0);
+            const double ns = (double)std::max<uint64_t>(1, prof_from ? prof_steps : steps0);
+            for (int k = 0; k < 5; ++k) printf("  %-24s %6.2f clocks/step\n", nm[k], (double)prof[k] / ns);
+            printf("  int_hold: sub-MCU (IRQ1) %.2f, PCM (IRQ0) %.2f; waiting for the sub-MCU at the device phase %.2f clocks/step\n",
+                   (double)hold_sm / ns, (double)hold_pcm / ns, (double)q_sm / ns);
+            for (int k = 0; k < 64; ++k) if (cst[k] * 100 > prof[2]) printf("    cpu state %2d %6.2f clocks/step\n", k, (double)cst[k] / ns);
         }
+        printf("slowest 2,000-step window: %.2f clocks/step, ending at step %" PRIu64 "\n", (double)win_max / 2000.0, win_at);
         printf("free run: %" PRIu64 " clocks, %" PRIu64 " steps: %.2f clocks/step (real time at 50 MHz needs <= 30), longest step %" PRIu64 " clocks, MIDI bytes %zu\n",
                clocks - c0, steps0, (double)(clocks - c0) / (double)steps0, worst, fp);
         return 0;
