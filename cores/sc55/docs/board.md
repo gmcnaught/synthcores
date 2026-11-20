@@ -48,3 +48,29 @@ device registers every step, the PCM's state whenever it has caught up.
 
 Found by the board bench: the pack first held the raw (scrambled) wave
 ROMs; the PCM state check pointed at a voice's first nibble, read from ROM.
+
+## On the MiSTer (`scripts/mister/`)
+
+```bash
+MISTER=root@<address> scripts/mister/sc55_run.sh SC55_YYYYMMDD.rbf 0000000000000000 f07e7f0901f7 90407f
+python3 scripts/mister/smf2events.py song.mid /tmp/song.txt          # timed bytes
+scp /tmp/song.txt scripts/mister/play_tty.py root@<address>:/tmp/
+ssh root@<address> python3 /tmp/play_tty.py /tmp/song.txt 100       # 100 s, song repeated
+```
+
+`sc55_run.sh` installs the RBF and the ROM pack, loads the core, sends MIDI
+at 9600 baud and takes a screenshot. The core decodes 31250 (MidiLink) and
+9600; it starts at 31250 and switches after 3 framing errors there while the
+9600 receiver decodes 4 clean bytes, so start a 9600 session with a few
+0x00 bytes (framing errors at 31250, data bytes the firmware ignores) and a
+GM reset: bytes sent at 9600 before the switch arrive as garbage.
+
+Status strip under the LCD: state band (green = running), MIDI (white
+flash), underrun (red flash; dark red once any underrun has happened),
+real-time lag (amber once the pacer lost time after the first second).
+
+| Run (2026-11-20, the .62, build seed 3) | Result |
+|---|---|
+| boot, no MIDI | LCD "01 001 Piano 1", as in the bench |
+| GM reset, C major chord | part 1 level bar, Piano 1 |
+| avmidi `0A.mid` repeated, 100 s at 9600 baud, screenshot every ~2 s | 45 screenshots: underrun flash never lit, MIDI lit in 41, bars moving in 42 (the gap between repeats in the others) |
