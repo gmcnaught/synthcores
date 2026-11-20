@@ -58,7 +58,7 @@ module proteus_sys
 	output            lcd_cursor,
 	output            lcd_on,
 	input      [11:0] font_addr,
-	output reg  [7:0] font_data,
+	output      [7:0] font_data,
 
 	// debug
 	output     [23:0] dbg_pc_addr,
@@ -105,30 +105,10 @@ fx68k cpu
 );
 
 wire [23:0] addr = {eab, 1'b0};
+reg  bus_busy;          // access in progress (until AS rises)
+wire ds_act = !UDSn || !LDSn;
 assign dbg_pc_addr = addr;
 wire iack_cycle = FC0 & FC1 & FC2;
-
-// ---------------------------------------------------------------- memories
-reg  [15:0] rom [0:65535];
-reg  [15:0] ram [0:32767];
-reg  [7:0]  font [0:4095];
-reg  [15:0] rom_q, ram_q;
-reg  [7:0]  ld_hi;
-
-always @(posedge clk) begin
-	font_data <= font[font_addr];
-	if (loading && ioctl_wr) begin
-		if (ioctl_addr[26:16] == 11'h080 || ioctl_addr[26:16] == 11'h081) begin   // 0x800000-0x81FFFF
-			if (!ioctl_addr[0]) ld_hi <= ioctl_dout;
-			else rom[ioctl_addr[16:1]] <= {ld_hi, ioctl_dout};
-		end
-		if (ioctl_addr[26:16] == 11'h082) begin                                    // 0x820000-0x82FFFF
-			if (!ioctl_addr[0]) ld_hi <= ioctl_dout;
-			else ram[ioctl_addr[15:1]] <= {ld_hi, ioctl_dout};
-		end
-		if (ioctl_addr[26:12] == 15'h0830) font[ioctl_addr[11:0]] <= ioctl_dout; // 0x830000-0x830FFF
-	end
-end
 
 // ---------------------------------------------------------------- bus decode
 wire sel_rom  = (addr[23:17] == 7'd0);
@@ -141,11 +121,31 @@ wire sel_vol  = (addr[23:1] == 23'h500000);                  // A00000
 wire sel_jack = (addr[23:1] == 23'h600000);                  // C00000/1
 wire sel_acia = (addr[23:2] == 22'h340000);                  // D00000-D00003
 
-// one access per AS assertion, started when a data strobe is active
-reg  bus_busy;          // access in progress (until AS rises)
-reg  bus_go;            // single-cycle strobe at the start of the access
-reg  [2:0] wait_cnt;
-wire ds_act = !UDSn || !LDSn;
+// ---------------------------------------------------------------- memories
+// Byte-wide block RAMs (high and low byte of each 16-bit word). The loader writes
+// image bytes directly: even offsets -> high byte, odd offsets -> low byte.
+wire ld_rom  = loading && ioctl_wr && (ioctl_addr[26:17] == 10'h040);    // 0x800000-0x81FFFF
+wire ld_ram  = loading && ioctl_wr && (ioctl_addr[26:16] == 11'h082);    // 0x820000-0x82FFFF
+wire ld_font = loading && ioctl_wr && (ioctl_addr[26:12] == 15'h0830);   // 0x830000-0x830FFF
+
+// CPU writes to RAM happen in the first cycle of a write access (see the bus FSM)
+wire cpu_wr_go = !reset && !ASn && !bus_busy && ds_act && !eRWn && !iack_cycle && sel_ram;
+wire ram_we_hi = ld_ram ? !ioctl_addr[0] : (cpu_wr_go && !UDSn);
+wire ram_we_lo = ld_ram ?  ioctl_addr[0] : (cpu_wr_go && !LDSn);
+wire [14:0] ram_wa = ld_ram ? ioctl_addr[15:1] : addr[15:1];
+
+wire [7:0] rom_qh, rom_ql, ram_qh, ram_ql;
+wire [15:0] rom_q = {rom_qh, rom_ql};
+wire [15:0] ram_q = {ram_qh, ram_ql};
+
+bram #(16, 8) rom_hi (.clk(clk), .we(ld_rom && !ioctl_addr[0]), .waddr(ioctl_addr[16:1]), .wdata(ioctl_dout), .raddr(addr[16:1]), .rdata(rom_qh));
+bram #(16, 8) rom_lo (.clk(clk), .we(ld_rom &&  ioctl_addr[0]), .waddr(ioctl_addr[16:1]), .wdata(ioctl_dout), .raddr(addr[16:1]), .rdata(rom_ql));
+bram #(15, 8) ram_hi (.clk(clk), .we(ram_we_hi), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[15:8]), .raddr(addr[15:1]), .rdata(ram_qh));
+bram #(15, 8) ram_lo (.clk(clk), .we(ram_we_lo), .waddr(ram_wa), .wdata(ld_ram ? ioctl_dout : oEdb[7:0]),  .raddr(addr[15:1]), .rdata(ram_ql));
+bram #(12, 8) fontm  (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font_addr), .rdata(font_data));
+
+
+// one access per AS assertion, started when a data strobe is active (bus_busy, ds_act above)
 
 reg  mfp_cs_wr, mfp_cs_rd, mfp_iack, lcd_wr, lcd_rd;
 wire [7:0] mfp_dout, mfp_vector, lcd_dout;
@@ -173,8 +173,6 @@ always @(posedge clk) begin
 
 	if (vol_cnt != 0) vol_cnt <= vol_cnt - 1'd1;
 
-	rom_q <= rom[addr[16:1]];
-	ram_q <= ram[addr[15:1]];
 
 	if (reset) begin
 		bus_busy <= 0;
@@ -197,10 +195,7 @@ always @(posedge clk) begin
 			else if (!eRWn) begin
 				// ------------------------------ write
 				bus_wr_strobe <= 1; bus_wr_addr <= addr; bus_wr_data <= oEdb; bus_wr_ds <= {~UDSn, ~LDSn};
-				if (sel_ram) begin
-					if (!UDSn) ram[addr[15:1]][15:8] <= oEdb[15:8];
-					if (!LDSn) ram[addr[15:1]][7:0]  <= oEdb[7:0];
-				end
+				// RAM bytes are written by the block RAMs (cpu_wr_go)
 				if (sel_mfp) mfp_cs_wr <= 1;
 				if (sel_lcd) lcd_wr <= 1;
 				if (sel_snd || sel_pan) begin
