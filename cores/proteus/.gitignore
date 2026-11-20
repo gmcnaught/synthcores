@@ -31,3 +31,4 @@ sim/panel/obj_dir/
 sim/panel/build.log
 sim/obj_core/
 sim/core_build.log
+third_party/fx68k/
