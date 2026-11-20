@@ -19,7 +19,8 @@ This is a FUNCTIONAL reconstruction, not a dump:
   * Output: 8 chip images in the ProtoLogic chip layout (word n -> pair n&3, address n>>2,
     hi byte -> "hi" chip, lo byte -> "lo" chip) plus a combined big-endian 4 MB image.
 
-Usage: rebuild_proteus1_rom.py FIRMWARE_XR_V200 EBL_DIR OUT_DIR [--sine PROTOLOGIC_DIR]
+Usage: rebuild_proteus1_rom.py FIRMWARE EBL_DIR OUT_DIR [--sine PROTOLOGIC_DIR]
+FIRMWARE: interleaved XR v2.00 or ProtoLogic XR v2.30 image (the table is detected).
 """
 import argparse
 import os
@@ -34,9 +35,23 @@ TABLE_BASE = 0x112EE
 TABLE_RECORDS = 194
 
 
-def load_records(fw):
-    d = open(fw, "rb").read()
-    return [struct.unpack(">4I", d[TABLE_BASE + 16 * i:TABLE_BASE + 16 * i + 16]) for i in range(TABLE_RECORDS)]
+# Sample tables (16-byte records). The first 194 records of v2.30 equal the v2.00 table;
+# v2.30 records 194.. are the ProtoLogic expansion (bank B).
+TABLES = {"v2.00": (0x112EE, 194), "v2.30": (0x18A12, 194)}
+
+
+def load_records(fw, base=TABLE_BASE, count=TABLE_RECORDS):
+    d = open(fw, "rb").read() if isinstance(fw, str) else fw
+    return [struct.unpack(">4I", d[base + 16 * i:base + 16 * i + 16]) for i in range(count)]
+
+
+def detect_table(fw_bytes):
+    """Find which known firmware table is present (by its first two records)."""
+    for name, (base, count) in TABLES.items():
+        recs = load_records(fw_bytes, base, 2)
+        if recs[0] == (0x1C0, 0x1C0, 0x1C0, 0x1C0) and recs[1][0] == 0x1E8:
+            return name, base, count
+    raise SystemExit("no known Proteus/1 sample table in this firmware image")
 
 
 def load_ebl(dirpath):
@@ -172,16 +187,8 @@ def match(records, samples):
     return placed, pending
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("firmware")
-    ap.add_argument("ebl_dir")
-    ap.add_argument("out_dir")
-    ap.add_argument("--sine", help="ProtoLogic ROM dir (ip505..ip708) to copy the test sine from")
-    a = ap.parse_args()
-
-    records = load_records(a.firmware)
-    samples = load_ebl(a.ebl_dir)
+def build(records, samples, sine_words=None):
+    """Return (rom words, placed, unmatched, words written). sine_words: 0x70 words for 0x150-0x1BF."""
     placed, unmatched = match(records, samples)
 
     rom = [0] * WORDS
@@ -207,11 +214,9 @@ def main():
     for c, ch in enumerate(ident):
         for p in range(4):
             rom[4 + 4 * c + p] = ch << 8 | ch
-    if a.sine:
-        lo = [open(os.path.join(a.sine, f"ip50{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
-        hi = [open(os.path.join(a.sine, f"ip70{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
+    if sine_words:
         for n in range(0x150, 0x1C0):
-            rom[n] = hi[n & 3][n >> 2] << 8 | lo[n & 3][n >> 2]
+            rom[n] = sine_words[n - 0x150]
 
     def chip_bytes(p, lane):
         return [(rom[n] >> (8 * lane)) & 0xFF for n in range(p, WORDS, 4)]
@@ -235,12 +240,37 @@ def main():
             rom[0x20 + p] |= lo_b << (8 * lane)
             rom[0x24 + p] |= hi_b << (8 * lane)
             assert sum(chip_bytes(p, lane)) & 0xFFFF == (hi_b << 8 | lo_b)
+    return rom, placed, unmatched, sum(written)
+
+
+def to_bytes(rom):
+    return b"".join(struct.pack(">H", v) for v in rom)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("firmware")
+    ap.add_argument("ebl_dir")
+    ap.add_argument("out_dir")
+    ap.add_argument("--sine", help="ProtoLogic ROM dir (ip505..ip708) to copy the test sine from")
+    a = ap.parse_args()
+
+    fw = open(a.firmware, "rb").read()
+    name, base, count = detect_table(fw)
+    records = load_records(fw, base, count)
+    samples = load_ebl(a.ebl_dir)
+    sine = None
+    if a.sine:
+        lo = [open(os.path.join(a.sine, f"ip50{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
+        hi = [open(os.path.join(a.sine, f"ip70{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
+        sine = [hi[n & 3][n >> 2] << 8 | lo[n & 3][n >> 2] for n in range(0x150, 0x1C0)]
+    rom, placed, unmatched, nwritten = build(records, samples, sine)
+
+    def chip_bytes(p, lane):
+        return [(rom[n] >> (8 * lane)) & 0xFF for n in range(p, WORDS, 4)]
 
     os.makedirs(a.out_dir, exist_ok=True)
-    big = bytearray()
-    for v in rom:
-        big += struct.pack(">H", v)
-    open(os.path.join(a.out_dir, "proteus1_waves.bin"), "wb").write(big)
+    open(os.path.join(a.out_dir, "proteus1_waves.bin"), "wb").write(to_bytes(rom))
     for p in range(4):
         open(os.path.join(a.out_dir, f"rebuilt_hi{p}.bin"), "wb").write(bytes(chip_bytes(p, 1)))
         open(os.path.join(a.out_dir, f"rebuilt_lo{p}.bin"), "wb").write(bytes(chip_bytes(p, 0)))
@@ -251,7 +281,7 @@ def main():
             tiers[tier] += 1
         f.write(f"records: {len(records) - 1} (excluding placeholder 0)\n")
         f.write(f"tier A (exact loops): {tiers['A']}\ntier B (shifted): {tiers['B']}\ntier C (loop end aligned, loop start differs): {tiers['C']}\ntier D (length + 5, loops differ): {tiers['D']}\ntier E (length + 0..39, loops differ): {tiers['E']}\ntier F (ROM-order neighbour): {tiers['F']}\ntier G (nearest length): {tiers['G']}\ntier H (single-cycle, order only): {tiers['H']}\nunmatched (silent): {len(unmatched)}\n")
-        f.write(f"words written from .ebl: {sum(written)} of {WORDS - 0x1C0}\n\n")
+        f.write(f"words written from .ebl: {nwritten} of {WORDS - 0x1C0}\n\n")
         for i, x, sh, tier in sorted(placed, key=lambda t: t[0]):
             s, e, ls, le = records[i]
             f.write(f"rec {i:3d} start={s:06x} len={e - s:6d} tier={tier} shift={sh:6d} <- {x['file']} '{x['name']}'\n")

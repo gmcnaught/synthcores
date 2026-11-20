@@ -44,6 +44,14 @@ Verified on a MiSTer (build 6, 2026-11-20) with keys injected through uinput (`t
 Right ×2 → `002 InChoirIrie`. A MIDI controller sending MIDI clock (e.g. a Launchkey at 120 BPM,
 48 bytes/s) keeps the MIDI LED lit, since the LED is stretched to 60 ms per received byte.
 
+## Saving presets
+The image is loaded with `FS1` in CONF_STR, so MiSTer mounts `saves/Proteus/<image>.sav` on SD
+slot 0. `rtl/nv_ctrl.sv` restores the 64 KB battery RAM from it before the CPU starts (if the file
+holds 64 KB) and writes it back on OSD **Save Presets** or when the OSD opens (**Autosave**).
+Images from `tools/build_image.py` have blank RAM and flag byte 0x831000 = 1: with no save file,
+`rtl/init_macro.sv` drives the panel lines through the firmware's diagnostics *Initialize*
+(MASTER+EDIT at power-on, knob to item 13, ENTER, knob, ENTER), restarts the CPU and saves 4 s later.
+
 ## Design
 | Block | File | Notes |
 |---|---|---|
