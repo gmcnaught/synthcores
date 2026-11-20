@@ -25,8 +25,7 @@ begin : b_sc55_pcm_reverb_1
             m2_ = multi(rcsum[1], w1[7:0]) >>> 5;
             `G1(29, 1) <= addclip20(m1_ >>> 1, m2_ >>> 1, (m1_ | m2_) & 1);
             // calc_tv(1, ram2[30][0], &ram2[30][9], okey of slot 31)
-            ct_ = calc_tv(1, `G2(30, 0), `G2(30, 9), `G2(31, 7)[5], tv_counter, nfs);
-            `G2(30, 9) <= ct_[31:16];
+            `G2(30, 9) <= tv_out[31:16];      // calc_tv(1, ram2[30][0], &ram2[30][9], okey of row 31): shared instance
             // ram1[29][0] from ram2[30][1] and rcsum[0]
             w1 = `G2(30, 1);
             m1_ = multi(`G1(29, 0), w1[15:8]) >>> 5;
