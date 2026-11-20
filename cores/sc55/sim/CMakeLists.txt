@@ -51,3 +51,7 @@ verilate(resample_tb SOURCES "${HDL}/common/sdp_ram.sv" "${HDL}/board/resample.s
 # model-only analysis: ROM2 access statistics (mk2 ROM2-in-SDRAM design)
 add_executable(rom2_stats tools/rom2_stats.cpp common/midi_demo.cpp)
 target_link_libraries(rom2_stats PRIVATE sc55_common_traced)
+
+add_executable(rom2x_cache_tb board/rom2x_cache_tb.cpp)
+verilate(rom2x_cache_tb SOURCES "${HDL}/common/sdp_ram.sv" "${HDL}/board/rom2x_cache.sv" TOP_MODULE rom2x_cache PREFIX Vrom2x_cache
+         VERILATOR_ARGS ${VFLAGS})

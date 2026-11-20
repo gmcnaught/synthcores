@@ -239,9 +239,9 @@ int main(int argc, char** argv)
         if (hdl_pops != model_pops) return fail(s, "bytes taken", hdl_pops, model_pops);
         if (ga5 != (bool)m.ga_int[5]) return fail(s, "GA int 5", ga5, m.ga_int[5]);
         for (int i = 0; i < 128; ++i)
-            if (R->sc55_submcu__DOT__ram[i] != sm.ram[i]) return fail(s, ("ram " + std::to_string(i)).c_str(), R->sc55_submcu__DOT__ram[i], sm.ram[i]);
+            if (R->sc55_submcu__DOT__u_ram__DOT__mem[i] != sm.ram[i]) return fail(s, ("ram " + std::to_string(i)).c_str(), R->sc55_submcu__DOT__u_ram__DOT__mem[i], sm.ram[i]);
         for (int i = 0; i < 192; ++i)
-            if (R->sc55_submcu__DOT__shared[i] != sm.shared_ram[i]) return fail(s, ("shared " + std::to_string(i)).c_str(), R->sc55_submcu__DOT__shared[i], sm.shared_ram[i]);
+            if (R->sc55_submcu__DOT__u_shared__DOT__mem[i] != sm.shared_ram[i]) return fail(s, ("shared " + std::to_string(i)).c_str(), R->sc55_submcu__DOT__u_shared__DOT__mem[i], sm.shared_ram[i]);
         for (int i = 0; i < 24; ++i)
             if (R->sc55_submcu__DOT__access[i] != sm.access[i]) return fail(s, ("access " + std::to_string(i)).c_str(), R->sc55_submcu__DOT__access[i], sm.access[i]);
         for (int i = 0; i < 32; ++i)

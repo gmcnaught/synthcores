@@ -33,6 +33,7 @@ module sc55_submcu (
 
     input  logic        reset_start,      // SM_Reset
     output logic        reset_done,
+    output logic        ready,            // power-on clear of the RAMs finished
     input  logic        run,
     input  logic [47:0] target5,
     output logic        done,
@@ -79,8 +80,15 @@ module sc55_submcu (
     logic [7:0]  a, x, y, s, sr;
     logic [47:0] cycles, timer_cycles, rx_delay;
     logic        sleep, gotbyte;
-    logic [7:0]  ram    [128];
-    logic [7:0]  shared [192];
+    // RAM (128 B) and shared RAM (192 B) are block RAMs: reads as the ROM's
+    // (address from the state, data next clock); writes go through a
+    // one-entry buffer (written the next clock), forwarded to a read of the
+    // same byte in that clock.
+    logic        wq_v, wq_ram;               // pending write: valid, to RAM (else shared)
+    logic [7:0]  wq_a, wq_d;
+    logic [7:0]  ram_q, sh_q;
+    logic [7:0]  clr_i;
+    logic        clr_on;
     logic [7:0]  access [24];
     logic [7:0]  dm     [32];
     logic [7:0]  p0_data, p0_dir, p1_dir, p1_data, presc, counter;
@@ -90,6 +98,14 @@ module sc55_submcu (
     logic [7:0]  rom_q;
     sdp_ram #(.AW(12), .DW(8)) u_rom (
         .clk, .we(ld_we), .wa(ld_addr), .wd(ld_data), .ra(rom_ra), .rd(rom_q));
+    logic [15:0] mem_ra;                       // the address read this clock (see the state mux below)
+    logic [7:0]  sh_ra;
+    sdp_ram #(.AW(7), .DW(8)) u_ram (
+        .clk, .we(clr_on || (wq_v && wq_ram)), .wa(clr_on ? clr_i[6:0] : wq_a[6:0]), .wd(clr_on ? 8'h00 : wq_d),
+        .ra(mem_ra[6:0]), .rd(ram_q));
+    sdp_ram #(.AW(8), .DW(8)) u_shared (
+        .clk, .we(clr_on || (wq_v && !wq_ram)), .wa(clr_on ? clr_i : wq_a), .wd(clr_on ? 8'h00 : wq_d),
+        .ra(sh_ra), .rd(sh_q));
 
     // MCU_ReadP1
     function automatic logic [7:0] read_p1(input logic [7:0] p0, input logic [31:0] b);
@@ -240,29 +256,49 @@ module sc55_submcu (
     logic [1:0]  pcnt;
     logic        in_reset;         // the vector fetch is SM_Reset's
     logic        tcont;            // Q_TIMER continues (cycles already advanced)
-    logic        rd_rom;
+    logic [47:0] cyc48;            // cycles + 48
+    logic signed [48:0] tlag, tlag48;   // cycles - timer_cycles, and + 48
+    logic [1:0]  rd_src;                     // 0 rd_reg, 1 ROM, 2 RAM, 3 shared
     logic [7:0]  rd_reg;
-    wire  [7:0]  rdata = rd_rom ? rom_q : rd_reg;
-    assign caught_up = (q == Q_IDLE) && !(cycles < target5);
+    wire  [7:0]  rdata = (rd_src == 2'd1) ? rom_q : (rd_src == 2'd2) ? ram_q : (rd_src == 2'd3) ? sh_q : rd_reg;
+    logic        sys_rd;                     // a sys read of the shared RAM: data next clock
+    assign caught_up = (q == Q_IDLE) && !(cycles < target5) && !sys_rd;
+    assign ready = !clr_on;
 
+    // the address each state reads (dispatch: the operand or pointer, or mem[X] for T-mode ORA/AND)
+    function automatic logic [15:0] dispatch_ra(input logic [15:0] e, input mode_t m, input kind_t k,
+                                                input logic ind, input logic t, input logic [7:0] xv);
+        if ((m == M_INDX || m == M_INDY) && !ind) return e;
+        if (t && (k == K_ORA || k == K_AND)) return {8'h00, xv};
+        return e;
+    endfunction
     always_comb begin
         case (q)
-            Q_LOOP, Q_F, Q_OPC, Q_B1, Q_TIMER: rom_ra = pc[11:0];
-            Q_VEC_LO, Q_VEC_HI:      rom_ra = npc[11:0];
-            Q_POP:                   rom_ra = {4'h0, s};
-            default:                 rom_ra = ea[11:0];
+            Q_LOOP, Q_F, Q_OPC, Q_TIMER: mem_ra = pc;
+            Q_B1:                    mem_ra = nb2 ? pc : dispatch_ra(calc_ea(md, rdata, 8'h00, x, y), md, kd, ind_done, sr[F_T], x);
+            Q_VEC_LO, Q_VEC_HI:      mem_ra = npc;
+            Q_POP:                   mem_ra = {8'h00, s};
+            Q_ADDR:                  mem_ra = dispatch_ra(ea, md, kd, ind_done, sr[F_T], x);
+            default:                 mem_ra = ea;
         endcase
+        rom_ra = mem_ra[11:0];
+        sh_ra = (q == Q_IDLE) ? sys_addr : mem_ra[7:0];
     end
 
     // SM_Read: side effects now, data next clock (rdata)
     task automatic issue_read(input logic [15:0] addr);
         logic [12:0] ad;
         ad = addr[12:0];
-        rd_rom <= ad[12];
+        // synthesis translate_off
+        if (ad != mem_ra[12:0]) $error("sc55_submcu: read of %h issued with mem_ra %h (state %0d)", ad, mem_ra[12:0], q);
+        // synthesis translate_on
+        rd_src <= 2'd0;
         rd_reg <= 8'h00;
         if (ad[12]) begin
+            rd_src <= 2'd1;
         end else if (ad < 13'h80) begin
-            rd_reg <= ram[ad[6:0]];
+            if (wq_v && wq_ram && wq_a[6:0] == ad[6:0]) rd_reg <= wq_d;
+            else rd_src <= 2'd2;
         end else if (ad >= 13'hc0 && ad < 13'hd8) begin
             rd_reg <= access[5'(ad[4:0])];
         end else if (ad >= 13'he0 && ad < 13'h100) begin
@@ -279,7 +315,8 @@ module sc55_submcu (
             endcase
         end else if (ad >= 13'h200 && ad < 13'h2c0) begin
             if (dm[D_RAM_DIR][ad[7:5]]) access[5'(ad[7:3])][ad[2:0]] <= 1'b0;
-            rd_reg <= shared[ad[7:0]];
+            if (wq_v && !wq_ram && wq_a == ad[7:0]) rd_reg <= wq_d;
+            else rd_src <= 2'd3;
         end
     endtask
 
@@ -289,7 +326,7 @@ module sc55_submcu (
         logic [7:0]  m0d, m0e;
         ad = addr[12:0];
         if (ad < 13'h80) begin
-            ram[ad[6:0]] <= d;
+            wq_v <= 1'b1; wq_ram <= 1'b1; wq_a <= {1'b0, ad[6:0]}; wq_d <= d;
         end else if (ad >= 13'he0 && ad < 13'h100) begin
             m0d = dm[D_U3_MS];
             m0e = dm[D_U3_CTRL];
@@ -308,7 +345,7 @@ module sc55_submcu (
             end
         end else if (ad >= 13'h200 && ad < 13'h2c0) begin
             access[5'(ad[7:3])][ad[2:0]] <= 1'b1;
-            shared[ad[7:0]] <= d;
+            wq_v <= 1'b1; wq_ram <= 1'b0; wq_a <= ad[7:0]; wq_d <= d;
         end
     endtask
 
@@ -400,29 +437,38 @@ module sc55_submcu (
         sys_ack <= 1'b0;
         rx_pop <= 1'b0;
         ga5_we <= 1'b0;
+        wq_v <= 1'b0;                              // the pending write goes to its RAM at this edge
         if (rx_delay_we) rx_delay <= rx_delay_wv;
+        if (clr_on) begin
+            clr_i <= clr_i + 8'd1;
+            if (clr_i == 8'd191) clr_on <= 1'b0;
+        end
         if (rst) begin
             q <= Q_IDLE;
+            clr_on <= 1'b1; clr_i <= 8'd0; sys_rd <= 1'b0;
             pc <= '0; a <= '0; x <= '0; y <= '0; s <= '0; sr <= '0;
             cycles <= '0; timer_cycles <= '0; rx_delay <= '0; sleep <= 1'b0; gotbyte <= 1'b0;
-            for (int i = 0; i < 128; i++) ram[i] <= 8'h00;
-            for (int i = 0; i < 192; i++) shared[i] <= 8'h00;
+            cyc48 <= 48'd48; tlag <= '0; tlag48 <= 49'sd48;
             for (int i = 0; i < 24; i++) access[i] <= 8'h00;
             for (int i = 0; i < 32; i++) dm[i] <= 8'h00;
             p0_data <= '0; p0_dir <= '0; p1_dir <= '0; p1_data <= '0; presc <= '0; counter <= '0;
-            rx_byte <= '0; ninstr <= '0; rd_rom <= 1'b0; rd_reg <= '0; in_reset <= 1'b0;
+            rx_byte <= '0; ninstr <= '0; rd_src <= 2'd0; rd_reg <= '0; in_reset <= 1'b0;
             ea <= '0; npc <= '0; sys_rdata <= '0; ga5_val <= 1'b0; tcont <= 1'b0;
         end else begin
             case (q)
             // ---------------------------------------------------- idle: sys port, reset, run
             Q_IDLE: begin
-                if (sys_req && !sys_ack) begin
+                if (sys_rd) begin
+                    sys_rd <= 1'b0;                    // the shared RAM's data (read last clock)
+                    sys_rdata <= sh_q;
+                    sys_ack <= 1'b1;
+                end else if (sys_req && !sys_ack) begin
                     sys_ack <= 1'b1;
                     if (sys_we) begin
                         // SM_SysWrite
                         if (sys_addr < 8'hc0) begin
                             access[5'(sys_addr[7:3])][sys_addr[2:0]] <= 1'b1;
-                            shared[sys_addr] <= sys_wdata;
+                            wq_v <= 1'b1; wq_ram <= 1'b0; wq_a <= sys_addr; wq_d <= sys_wdata;
                         end else if (sys_addr >= 8'hf8 && sys_addr < 8'hfc) begin
                             dm[D_IPCM0 + 5'(sys_addr[1:0])] <= sys_wdata;
                             if (sys_addr[1:0] == 2'd0) begin
@@ -443,7 +489,8 @@ module sc55_submcu (
                         sys_rdata <= 8'h00;
                         if (sys_addr < 8'hc0) begin
                             if (!dm[D_RAM_DIR][sys_addr[7:5]]) access[5'(sys_addr[7:3])][sys_addr[2:0]] <= 1'b0;
-                            sys_rdata <= shared[sys_addr];
+                            if (wq_v && !wq_ram && wq_a == sys_addr) sys_rdata <= wq_d;
+                            else begin sys_ack <= 1'b0; sys_rd <= 1'b1; end     // block RAM: data next clock
                         end else if (sys_addr >= 8'hf8 && sys_addr < 8'hfc) begin
                             if (sys_addr[1:0] == 2'd0) dm[D_INT_REQ] <= dm[D_INT_REQ] | 8'h10;
                             sys_rdata <= dm[D_IPCE0 + 5'(sys_addr[1:0])];
@@ -521,6 +568,9 @@ module sc55_submcu (
                     in_reset <= 1'b0;
                     a <= '0; x <= '0; y <= '0; s <= '0; sr <= '0;
                     cycles <= '0; sleep <= 1'b0;
+                    cyc48 <= 48'd48;
+                    tlag <= -$signed({1'b0, timer_cycles});            // cycles - timer_cycles
+                    tlag48 <= 49'sd48 - $signed({1'b0, timer_cycles});
                     reset_done <= 1'b1;
                     q <= Q_IDLE;
                 end else begin
@@ -670,11 +720,16 @@ module sc55_submcu (
             Q_TIMER: begin : b_timer             // cycles += 48; SM_UpdateTimer (up to three 16-cycle ticks a clock); SM_UpdateUART
                 logic [7:0]  pr, ct, ir;
                 logic [47:0] tc, cy;
-                cy = tcont ? cycles : cycles + 48'd48;
+                logic signed [48:0] d;               // cy - timer_cycles
+                logic [1:0]  n;                      // ticks this clock
+                cy = tcont ? cycles : cyc48;
+                d  = tcont ? tlag : tlag48;
                 cycles <= cy;
                 pr = presc; ct = counter; ir = dm[D_INT_REQ]; tc = timer_cycles;
+                // ticks while timer_cycles < cy: tick k (k = 0, 1, 2) when d > 16 k
+                n = (d > 49'sd32) ? 2'd3 : (d > 49'sd16) ? 2'd2 : (d > 49'sd0) ? 2'd1 : 2'd0;
                 for (int k = 0; k < 3; k++) begin
-                    if (tc < cy) begin
+                    if (2'(k) < n) begin
                         if (!dm[D_TCTRL][5] && !sleep) begin
                             if (pr == 8'h00) begin
                                 pr = dm[D_PRESC];
@@ -684,12 +739,13 @@ module sc55_submcu (
                                 end else ct = ct - 8'd1;
                             end else pr = pr - 8'd1;
                         end
-                        tc = tc + 48'd16;
                     end
                 end
+                tc = timer_cycles + {42'h0, n, 4'h0};
+                tlag <= d - $signed({43'h0, n, 4'h0});
                 presc <= pr; counter <= ct; timer_cycles <= tc;
                 tcont <= 1'b1;
-                if (!(tc < cy)) begin
+                if (!(d > 49'sd48)) begin            // caught up: timer_cycles >= cy now
                     // SM_UpdateUART
                     if (dm[D_U1_CTRL][2] && rx_avail && !gotbyte && !(cy < rx_delay)) begin
                         rx_byte <= rx_data;
@@ -699,6 +755,8 @@ module sc55_submcu (
                         rx_delay <= cy + 48'd12000;
                     end
                     tcont <= 1'b0;
+                    cyc48 <= cy + 48'd48;
+                    tlag48 <= d - $signed({43'h0, n, 4'h0}) + 49'sd48;
                     // the next iteration (Q_LOOP's work) with the request register as now updated
                     if (!(cy < target5)) begin
                         done <= 1'b1;
