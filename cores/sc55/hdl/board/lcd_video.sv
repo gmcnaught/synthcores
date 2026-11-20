@@ -70,6 +70,63 @@ module lcd_video (
         end else x <= x + 11'd1;
     end
 
+    // ------------------------------------------------------------ stage 0: per-axis cells
+    // x and y separately: position in the LCD, the text/bar cell and the offset
+    // in it (one constant division each); stage 1 combines them
+    logic [10:0] x0;
+    logic [9:0]  y0;
+    logic        in_area0;
+    logic [9:0]  lx0, ly0;
+    logic [1:0]  tx_in3, tx_in16;       // per side: inside 3 (side 1 also 16) cells
+    logic [3:0]  tx_q [2];              // cell number (35-pixel pitch)
+    logic [5:0]  tx_cm [2];             // offset in the cell
+    logic        bx_in;
+    logic [1:0]  bx_q;                  // bar column (130-pixel pitch)
+    logic [7:0]  bx_cm;
+    logic [3:0]  ty_in;                 // per text field: inside its 42 rows
+    logic [5:0]  ty_d [4];
+    logic [1:0]  by_in;                 // per bar row: inside its 86 rows
+    logic [6:0]  by_d [2];
+
+    function automatic logic [9:0] div35(input logic [9:0] v); return v / 10'd35; endfunction
+    function automatic logic [9:0] mod35(input logic [9:0] v); return v % 10'd35; endfunction
+    function automatic logic [9:0] div130(input logic [9:0] v); return v / 10'd130; endfunction
+    function automatic logic [9:0] mod130(input logic [9:0] v); return v % 10'd130; endfunction
+
+    always_ff @(posedge clk) begin : stage0
+        logic [10:0] lxs, lys;          // x - X0, y - Y0 (two's complement, 11 bits)
+        logic [9:0]  lx, ly, c;
+        lxs = x - 11'(X0);
+        lys = {1'b0, y} - 11'(Y0);
+        lx = lxs[9:0];
+        ly = lys[9:0];
+        x0 <= x;
+        y0 <= y;
+        in_area0 <= !lxs[10] && !lys[10] && lxs < 11'(LW) && lys < 11'(LH);
+        lx0 <= lx;
+        ly0 <= ly;
+        // text columns 34 (3 cells) and 153 (3 cells, or 16 in field 0)
+        for (int sd = 0; sd < 2; sd++) begin
+            c = lx - ((sd != 0) ? 10'd153 : 10'd34);
+            tx_in3[sd]  <= lx >= ((sd != 0) ? 10'd153 : 10'd34) && c < 10'd105;
+            tx_in16[sd] <= lx >= ((sd != 0) ? 10'd153 : 10'd34) && c < 10'd560;
+            tx_q[sd]  <= 4'(div35(c));
+            tx_cm[sd] <= 6'(mod35(c));
+        end
+        c = lx - 10'd293;
+        bx_in <= lx >= 10'd293 && c < 10'd520;
+        bx_q  <= 2'(div130(c));
+        bx_cm <= 8'(mod130(c));
+        for (int f = 0; f < 4; f++) begin
+            ty_in[f] <= ly >= 10'(11 + 64 * f) && ly < 10'(11 + 64 * f + 42);
+            ty_d[f]  <= 6'(ly - 10'(11 + 64 * f));
+        end
+        for (int i = 0; i < 2; i++) begin
+            by_in[i] <= ly >= 10'(71 + 88 * i) && ly < 10'(71 + 88 * i + 86);
+            by_d[i]  <= 7'(ly - 10'(71 + 88 * i));
+        end
+    end
+
     // ------------------------------------------------------------ stage 1: what is at this pixel
     // kind: 0 background, 1 text dot, 2 level dot, 3 LR mark
     logic [1:0]  k1;
@@ -80,87 +137,59 @@ module lcd_video (
     logic [17:0] p1;
     logic [9:0]  lx1;
     logic [8:0]  ly1;
-    // narrow helpers (10-bit unsigned): cell of a pitch and the offset in it
-    function automatic logic [9:0] div35(input logic [9:0] v); return v / 10'd35; endfunction
-    function automatic logic [9:0] mod35(input logic [9:0] v); return v % 10'd35; endfunction
-    function automatic logic [9:0] div6(input logic [9:0] v);  return v / 10'd6;  endfunction
-    function automatic logic [9:0] mod6(input logic [9:0] v);  return v % 10'd6;  endfunction
-    function automatic logic [9:0] div11(input logic [9:0] v); return v / 10'd11; endfunction
-    function automatic logic [9:0] mod11(input logic [9:0] v); return v % 10'd11; endfunction
-    function automatic logic [9:0] div26(input logic [9:0] v); return v / 10'd26; endfunction
-    function automatic logic [9:0] mod26(input logic [9:0] v); return v % 10'd26; endfunction
-    function automatic logic [9:0] div130(input logic [9:0] v); return v / 10'd130; endfunction
-    function automatic logic [9:0] mod130(input logic [9:0] v); return v % 10'd130; endfunction
 
     always_ff @(posedge clk) begin : stage1
-        logic [10:0] lxs, lys;          // x - X0, y - Y0 (two's complement, 11 bits)
-        logic [9:0]  lx, ly, d, c, cm;
-        logic        in_area;
-        lxs = x - 11'(X0);
-        lys = {1'b0, y} - 11'(Y0);
-        in_area = !lxs[10] && !lys[10] && lxs < 11'(LW) && lys < 11'(LH);
-        lx = lxs[9:0];
-        ly = lys[9:0];
-        hb1 <= x >= 11'd800;
-        vb1 <= y >= 10'd600;
-        hs1 <= (x >= 11'd840 && x < 11'd968);
-        vs1 <= (y >= 10'd601 && y < 10'd605);
-        in_lcd1 <= in_area;
-        lx1 <= lx;
-        ly1 <= ly[8:0];
-        p1 <= 18'(ly) * 18'(LW) + 18'(lx);
+        logic [5:0] cm;
+        logic [7:0] bm;
+        logic       inn;
+        hb1 <= x0 >= 11'd800;
+        vb1 <= y0 >= 10'd600;
+        hs1 <= (x0 >= 11'd840 && x0 < 11'd968);
+        vs1 <= (y0 >= 10'd601 && y0 < 10'd605);
+        in_lcd1 <= in_area0;
+        lx1 <= lx0;
+        ly1 <= ly0[8:0];
+        p1 <= 18'(ly0) * 18'(LW) + 18'(lx0);
         k1 <= 2'd0;
         ch_idx1 <= 7'd0;
         frow1 <= 4'd0;
         fbit1 <= 3'd0;
-        // text fields: rows 11, 75, 139, 203; columns 34 (3 chars) and 153 (16 or 3 chars)
+        // text fields: rows 11, 75, 139, 203; dots 5 x 5 on a 6-pixel pitch, cells of 35
         for (int f = 0; f < 4; f++) begin
-            if (in_area && ly >= 10'(11 + 64 * f) && ly < 10'(11 + 64 * f + 42)) begin
-                d = ly - 10'(11 + 64 * f);
-                if (mod6(d) < 10'd5) begin
-                    for (int side = 0; side < 2; side++) begin : b_lcd_video_1
-                        logic [9:0] c0, n;
-                        logic [6:0] base;
-                        c0 = (side != 0) ? 10'd153 : 10'd34;
-                        n = (side != 0 && f == 0) ? 10'd16 : 10'd3;
-                        case (f * 2 + side)
-                            0: base = 7'd0;  1: base = 7'd3;  2: base = 7'd40; 3: base = 7'd43;
-                            4: base = 7'd49; 5: base = 7'd46; 6: base = 7'd52; default: base = 7'd55;
-                        endcase
-                        if (lx >= c0 && lx < c0 + 10'd35 * n) begin
-                            c = lx - c0;
-                            cm = mod35(c);
-                            if (cm < 10'd30 && mod6(cm) < 10'd5) begin
-                                k1 <= 2'd1;
-                                ch_idx1 <= base + 7'(div35(c));
-                                frow1 <= 4'(div6(d));
-                                fbit1 <= 3'(10'd4 - div6(cm));
-                            end
-                        end
+            if (in_area0 && ty_in[f] && (ty_d[f] % 6'd6) < 6'd5) begin
+                for (int sd = 0; sd < 2; sd++) begin : b_lcd_video_1
+                    logic [6:0] base;
+                    case (f * 2 + sd)
+                        0: base = 7'd0;  1: base = 7'd3;  2: base = 7'd40; 3: base = 7'd43;
+                        4: base = 7'd49; 5: base = 7'd46; 6: base = 7'd52; default: base = 7'd55;
+                    endcase
+                    inn = (sd != 0 && f == 0) ? tx_in16[sd] : tx_in3[sd];
+                    cm = tx_cm[sd];
+                    if (inn && cm < 6'd30 && (cm % 6'd6) < 6'd5) begin
+                        k1 <= 2'd1;
+                        ch_idx1 <= base + 7'(tx_q[sd]);
+                        frow1 <= 4'(ty_d[f] / 6'd6);
+                        fbit1 <= 3'(6'd4 - cm / 6'd6);
                     end
                 end
             end
         end
         // level bars: rows 71 + 88 i, 8 dots of 9 rows on 11; columns 293 + 130 j, dots 24 wide on 26
         for (int i = 0; i < 2; i++) begin
-            if (in_area && ly >= 10'(71 + 88 * i) && ly < 10'(71 + 88 * i + 86)) begin
-                d = ly - 10'(71 + 88 * i);
-                if (mod11(d) < 10'd9 && lx >= 10'd293 && lx < 10'd293 + 10'd520) begin
-                    c = lx - 10'd293;
-                    cm = mod130(c);
-                    if (mod26(cm) < 10'd24 && div26(cm) < ((div130(c) == 10'd3) ? 10'd1 : 10'd5)) begin
-                        k1 <= 2'd2;
-                        ch_idx1 <= 7'd20 + 7'(div130(c)) + 7'(40 * i);
-                        frow1 <= 4'(div11(d));
-                        fbit1 <= 3'(10'd4 - div26(cm));
-                    end
+            if (in_area0 && by_in[i] && (by_d[i] % 7'd11) < 7'd9 && bx_in) begin
+                bm = bx_cm;
+                if ((bm % 8'd26) < 8'd24 && (bm / 8'd26) < ((bx_q == 2'd3) ? 8'd1 : 8'd5)) begin
+                    k1 <= 2'd2;
+                    ch_idx1 <= 7'd20 + 7'(bx_q) + 7'(40 * i);
+                    frow1 <= 4'(by_d[i] / 7'd11);
+                    fbit1 <= 3'(8'd4 - bm / 8'd26);
                 end
             end
         end
         // LR marks at rows 70 and 232, columns 264..274
         for (int l = 0; l < 2; l++) begin
-            if (in_area && ly >= 10'((l != 0) ? 232 : 70) && ly < 10'((l != 0) ? 244 : 82) && lx >= 10'd264 && lx < 10'd275) begin
-                if (lr_dot(1'(l), 4'(ly - 10'((l != 0) ? 232 : 70)), 4'(lx - 10'd264))) begin
+            if (in_area0 && ly0 >= 10'((l != 0) ? 232 : 70) && ly0 < 10'((l != 0) ? 244 : 82) && lx0 >= 10'd264 && lx0 < 10'd275) begin
+                if (lr_dot(1'(l), 4'(ly0 - 10'((l != 0) ? 232 : 70)), 4'(lx0 - 10'd264))) begin
                     k1 <= 2'd3;
                     ch_idx1 <= 7'd58;
                     frow1 <= 4'd0;
