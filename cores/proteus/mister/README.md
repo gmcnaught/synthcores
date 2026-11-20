@@ -38,6 +38,11 @@ Wiring (from the firmware, verified in simulation): buttons on MFP GPIP0–3 (ac
 with GPIP5 as direction (1 = −1); LEDs = latch 0xB00001 bits 0 (MASTER), 1 (EDIT), 3 (MIDI), active
 low. Holding MASTER + EDIT at power-on enters the diagnostics menu (GPIP0–3 = 1100).
 
+Verified on a MiSTer (build 6, 2026-11-20) with keys injected through uinput (`tools/mister_keys.py`):
+`M` → `MASTER TUNE +00` with the MASTER LED on, `E` → `PRESET NAME` with the EDIT LED on,
+Right ×2 → `002 InChoirIrie`. A MIDI controller sending MIDI clock (e.g. a Launchkey at 120 BPM,
+48 bytes/s) keeps the MIDI LED lit, since the LED is stretched to 60 ms per received byte.
+
 ## Design
 | Block | File | Notes |
 |---|---|---|
