@@ -38,7 +38,8 @@ scp -q "$OUT/Proteus-demo.mgl" "$DEV:/media/fat/Proteus-demo.mgl"
 ssh "$DEV" "timeout 10 sh -c 'echo load_core /media/fat/Proteus-demo.mgl > /dev/MiSTer_cmd'"
 echo "core loading; waiting $SECS s"
 sleep "$SECS"
-# 4 bytes per output sample at 39062.5 Hz; read whole MiB blocks from 0x31000000 (784 MiB)
+# 4 bytes per output sample at 39062.5 Hz; read whole MiB from physical 0x31000000
 MIB=$(( (SECS * 39063 * 4 + 1048575) / 1048576 ))
-ssh "$DEV" "dd if=/dev/mem bs=1M skip=784 count=$MIB 2>/dev/null" > "$OUT/mister_capture.raw"
+# read() on /dev/mem fails for this range ("Bad address"); mmap works
+ssh "$DEV" "python3 -c 'import mmap,os,sys; fd=os.open(\"/dev/mem\",os.O_RDONLY|os.O_SYNC); m=mmap.mmap(fd,$MIB<<20,mmap.MAP_SHARED,mmap.PROT_READ,offset=0x31000000); sys.stdout.buffer.write(m[:])'" > "$OUT/mister_capture.raw"
 python3 -I tools/compare_capture.py "$OUT/mister_capture.raw" "$DEMO" "$SECS"
