@@ -22,8 +22,8 @@ from your own dumps.
 
 ## Using the core
 
-1. Make the ROM pack from your own ROM dumps (mk1 v1.21 or v2.00, SC-155,
-   SC-55mk2, SC-155mk2):
+1. Make the ROM pack from your own ROM dumps (tested: mk1 v1.21, SC-155 rev1,
+   SC-55mk2 v1.01; other mk1 and SC-155mk2 sets are packed the same way):
    `python3 tools/romset.py pack DIR boot.rom --romset mk1-v1.21`
    (`python3 tools/romset.py check DIR` lists what DIR holds; the files are
    checked by SHA-256 against the reference's table, the wave ROMs are
