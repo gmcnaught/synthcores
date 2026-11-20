@@ -291,8 +291,8 @@ int main(int argc, char** argv)
             cmp("sm.gotbyte", R->sc55_mcu__DOT__sm__DOT__gotbyte, sm.uart_rx_gotbyte);
             cmp("p0_data", R->sc55_mcu__DOT__sm__DOT__p0_data, m.p0_data);
             for (int i = 0; i < 32; ++i) if (R->sc55_mcu__DOT__sm__DOT__dm[i] != sm.device_mode[i]) cmp(("sm.dev" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__dm[i], sm.device_mode[i]);
-            for (int i = 0; i < 128; ++i) if (R->sc55_mcu__DOT__sm__DOT__ram[i] != sm.ram[i]) cmp(("sm.ram" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__ram[i], sm.ram[i]);
-            for (int i = 0; i < 192; ++i) if (R->sc55_mcu__DOT__sm__DOT__shared[i] != sm.shared_ram[i]) cmp(("sm.shared" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__shared[i], sm.shared_ram[i]);
+            for (int i = 0; i < 128; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i] != sm.ram[i]) cmp(("sm.ram" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i], sm.ram[i]);
+            for (int i = 0; i < 192; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i] != sm.shared_ram[i]) cmp(("sm.shared" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i], sm.shared_ram[i]);
             cmp("ga_int5", R->sc55_mcu__DOT__ga_int5, m.ga_int[5]);
             cmp("ga_enable", R->sc55_mcu__DOT__ga_en, m.ga_int_enable);
         }

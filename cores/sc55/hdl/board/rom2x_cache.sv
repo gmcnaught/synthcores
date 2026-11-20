@@ -17,15 +17,17 @@ module rom2x_cache (
     input  logic [63:0] ldata
 );
     logic [255:0] valid;
-    logic [6:0]   tags [256];
     logic         lwe;
     logic [63:0]  line_q;
+    logic [6:0]   tag_q;
     sdp_ram #(.AW(8), .DW(64)) u_data (
         .clk, .we(lwe), .wa(addr[10:3]), .wd(ldata), .ra(addr[10:3]), .rd(line_q));
+    sdp_ram #(.AW(8), .DW(7)) u_tags (
+        .clk, .we(lwe), .wa(addr[10:3]), .wd(addr[17:11]), .ra(addr[10:3]), .rd(tag_q));
 
     typedef enum logic [1:0] { C_IDLE, C_LOOK, C_FILL } c_t;
     c_t st;
-    wire hit = valid[addr[10:3]] && tags[addr[10:3]] == addr[17:11];
+    wire hit = valid[addr[10:3]] && tag_q == addr[17:11];
 
     always_ff @(posedge clk) begin
         ack <= 1'b0;
@@ -36,7 +38,7 @@ module rom2x_cache (
             lreq <= 1'b0;
         end else begin
             case (st)
-                C_IDLE: if (req && !ack) st <= C_LOOK;      // the line's data is read this clock
+                C_IDLE: if (req && !ack) st <= C_LOOK;      // the line's data and tag are read this clock
                 C_LOOK: begin
                     if (hit) begin
                         data <= line_q[8 * addr[2:0] +: 8];
@@ -53,7 +55,6 @@ module rom2x_cache (
                         lreq <= 1'b0;
                         lwe <= 1'b1;
                         valid[addr[10:3]] <= 1'b1;
-                        tags[addr[10:3]] <= addr[17:11];
                         data <= ldata[8 * addr[2:0] +: 8];
                         ack <= 1'b1;
                         st <= C_IDLE;

@@ -82,7 +82,7 @@ SUBMCU_MUTATIONS = [
     ("compare carry inverted", "r[F_C] = !df[8];", "r[F_C] = df[8];"),
     ("BBx A sense inverted", "if (a[opc[7:5]] != opc[4]) pc <= pc", "if (a[opc[7:5]] == opc[4]) pc <= pc"),
     ("collision write sets bit 7", "D_COLL:    dm[D_COLL] <= {d[7] & dm[D_COLL][7], d[6:0]};", "D_COLL:    dm[D_COLL] <= {d[7], d[6:0]};"),
-    ("instruction 47 cycles", "cy = tcont ? cycles : cycles + 48'd48;", "cy = tcont ? cycles : cycles + 48'd47;"),
+    ("instruction 47 cycles", "cyc48 <= cy + 48'd48;", "cyc48 <= cy + 48'd47;"),
     ("P1 button group swapped", "if (!p0[1]) d &= ~b[15:8];", "if (!p0[1]) d &= ~b[23:16];"),
 ]
 

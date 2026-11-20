@@ -140,7 +140,7 @@ module sc55_mcu #(
     // Sub-MCU (mk2): EC00-EFFF window, MIDI from the receive buffer, GA line 5
     // ------------------------------------------------------------------
     logic        sm_req, sm_we, sm_ack, sm_run, sm_done, sm_reset, sm_reset_done;
-    logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we, sm_caught_up;
+    logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we, sm_caught_up, sm_ready;
     logic [7:0]  sm_addr, sm_wdata, sm_rdata, sm_rx_byte;
     logic [47:0] sm_dly_wv;
     // The sub-MCU runs each step's SM_Update alongside the next step: the
@@ -152,7 +152,7 @@ module sc55_mcu #(
         .clk, .rst,
         .ld_we(ld_we && ld_sel == 3'd4), .ld_addr(ld_addr[11:0]), .ld_data,
         .ld_en(1'b0), .ld_pc(16'h0), .ld_a(8'h0), .ld_x(8'h0), .ld_y(8'h0), .ld_s(8'h0), .ld_sr(8'h0), .ld_sleep(1'b0),
-        .reset_start(sm_reset), .reset_done(sm_reset_done),
+        .reset_start(sm_reset), .reset_done(sm_reset_done), .ready(sm_ready),
         .run(mk2), .target5(sm_tgt5), .done(sm_done), .caught_up(sm_caught_up),
         .sys_req(sm_req && !sm_ack), .sys_we(sm_we), .sys_addr(sm_addr), .sys_wdata(sm_wdata), .sys_rdata(sm_rdata), .sys_ack(sm_ack),
         .rx_avail(mk2 && sm_wp != rx_rp), .rx_data(rx_rd), .rx_pop(sm_rx_pop), .rx_byte(sm_rx_byte),
@@ -271,7 +271,7 @@ module sc55_mcu #(
     logic [2:0] rsel;
     logic       rd_b;
     logic [15:0] clr_a;
-    assign ready = (q != Q_CLEAR);
+    assign ready = (q != Q_CLEAR) && sm_ready;
 
     wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
 
