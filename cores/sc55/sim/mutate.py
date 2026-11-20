@@ -67,15 +67,15 @@ SUBMCU_MUTATIONS = [
     ("LDA ignores T", "K_LDA: if (t_mode) do_write({8'h00, x}, d);", "K_LDA: if (1'b0) do_write({8'h00, x}, d);"),
     ("IPCM0 interrupt to the timer vector", "begin int_go = 1; int_vec = 4'd5; int_clr = 8'h10; end",
      "begin int_go = 1; int_vec = 4'd4; int_clr = 8'h10; end"),
-    ("timer reload one less", "counter <= dm[D_TIMER];", "counter <= dm[D_TIMER] - 8'd1;"),
-    ("MIDI byte delay 11000", "rx_delay <= cycles + 48'd12000;", "rx_delay <= cycles + 48'd11000;"),
+    ("timer reload one less", "ct = dm[D_TIMER];", "ct = dm[D_TIMER] - 8'd1;"),
+    ("MIDI byte delay 11000", "rx_delay <= cy + 48'd12000;", "rx_delay <= cy + 48'd11000;"),
     ("sys read keeps IPCE", "dm[D_IPCE0 + 5'(sys_addr[1:0])] <= 8'h00;", "dm[D_IPCE0 + 5'(sys_addr[1:0])] <= dm[D_IPCE0 + 5'(sys_addr[1:0])];"),
     ("SM read clears access when RAM_DIR clear", "if (dm[D_RAM_DIR][ad[7:5]]) access", "if (!dm[D_RAM_DIR][ad[7:5]]) access"),
     ("GA line 5 from UART3 control bit 4", "ga5_val <= m0d[7] && !m0e[5];", "ga5_val <= m0d[7] && !m0e[4];"),
     ("compare carry inverted", "r[F_C] = !df[8];", "r[F_C] = df[8];"),
     ("BBx A sense inverted", "if (a[opc[7:5]] != opc[4]) pc <= pc", "if (a[opc[7:5]] == opc[4]) pc <= pc"),
     ("collision write sets bit 7", "D_COLL:    dm[D_COLL] <= {d[7] & dm[D_COLL][7], d[6:0]};", "D_COLL:    dm[D_COLL] <= {d[7], d[6:0]};"),
-    ("instruction 47 cycles", "cycles <= cycles + 48'd48;", "cycles <= cycles + 48'd47;"),
+    ("instruction 47 cycles", "cy = tcont ? cycles : cycles + 48'd48;", "cy = tcont ? cycles : cycles + 48'd47;"),
     ("P1 button group swapped", "if (!p0[1]) d &= ~b[15:8];", "if (!p0[1]) d &= ~b[23:16];"),
 ]
 

@@ -16,6 +16,7 @@
 #include "../common/midi_demo.h"
 #include "emu.h"
 #include "mcu.h"
+#include "submcu.h"
 #include "pcm.h"
 #include "rom_loader.h"
 #include "smf.h"
@@ -37,7 +38,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 
 int main(int argc, char** argv)
 {
-    std::string rom_dir, smf_path, out_path;
+    std::string rom_dir, smf_path, out_path, romset = "mk1-v1.21";
     uint64_t    steps = 0, reset_steps = 24'000'000;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
@@ -47,6 +48,7 @@ int main(int argc, char** argv)
     {
         std::string a = argv[i];
         if (a == "--roms" && i + 1 < argc) rom_dir = argv[++i];
+        else if (a == "--romset" && i + 1 < argc) romset = argv[++i];
         else if (a == "--smf" && i + 1 < argc) smf_path = argv[++i];
         else if (a == "--out" && i + 1 < argc) out_path = argv[++i];
         else if (a == "--steps" && i + 1 < argc) steps = std::strtoull(argv[++i], nullptr, 0);
@@ -60,7 +62,7 @@ int main(int argc, char** argv)
 
     common::LoadRomsetResult load;
     common::RomOverrides     ov{};
-    if (auto err = common::LoadRomset(rom_dir, "mk1-v1.21", common::RomLoader::Hashing, ov, load); err != common::LoadRomsetError{})
+    if (auto err = common::LoadRomset(rom_dir, romset, common::RomLoader::Hashing, ov, load); err != common::LoadRomsetError{})
     {
         fprintf(stderr, "romset load failed: %s\n", common::ToCString(err));
         return 2;
@@ -81,11 +83,31 @@ int main(int argc, char** argv)
     std::vector<Frame> hdl;
     std::deque<uint8_t> midi_q;
     std::deque<std::pair<uint64_t, uint32_t>> romq;
+    const bool mk2 = !emu.GetMCU().is_mk1;
     auto rom_byte = [&](uint32_t a) -> uint8_t {
+        if (mk2) return a < 0x200000 ? p.waverom1[a] : a < 0x300000 ? p.waverom2[a - 0x200000] : 0;
         uint32_t bank = a >> 20, off = a & 0xfffff;
         return bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
     };
+    uint64_t prof[8] = {}, prof_sm = 0, prof_ga5 = 0;   // clocks by MCU state: idle, cpu (PCM access), cpu (int_hold), cpu (sub-MCU sync wait), cpu, timers, Q_SM, other
+    auto* RR = t->rootp;
     auto tick = [&]() {
+        {
+            int q = RR->sc55_core__DOT__mcu__DOT__q;
+            int k = 7;
+            if (q == 0) k = 0;
+            else if (q == 1) k = RR->sc55_core__DOT__p_req ? 1 : (RR->sc55_core__DOT__mcu__DOT__int_hold && RR->sc55_core__DOT__mcu__DOT__cpu__DOT__state == 2) ? 2
+                               : RR->sc55_core__DOT__mcu__DOT__sm_wait && RR->sc55_core__DOT__mcu__DOT__c_req ? 3 : 4;
+            else if (q == 2) k = 5;
+            else if (q == 7) k = 6;
+            prof[k]++;
+            if (k == 2) {
+                auto* M = RR;
+                bool irq1 = M->sc55_core__DOT__mcu__DOT__mk2 && !M->sc55_core__DOT__mcu__DOT__sm_caught_up && !((M->sc55_core__DOT__mcu__DOT__int_req >> 2) & 1);
+                prof_sm += irq1;
+                prof_ga5 += irq1 && ((M->sc55_core__DOT__mcu__DOT__ga_en >> 5) & 1);
+            }
+        }
         t->rom_ready = rom_backpressure ? (bp_rng() % 3) != 0 : 1;
         if (t->rom_req && t->rom_ready) romq.push_back({clocks + (uint64_t)rom_latency, (uint32_t)t->rom_addr});
         t->rom_rvalid = 0;
@@ -113,15 +135,17 @@ int main(int argc, char** argv)
     t->rst = 0;
     for (int g = 0; g < 20000 && !t->ready; ++g) tick();
     auto load_mem = [&](int sel, const uint8_t* src, size_t n) {
-        t->mk2 = 0; t->sc155 = 0;
+        t->mk2 = mk2; t->sc155 = m.is_sc155;
         t->ld_we = 1; t->ld_sel = sel;
         for (size_t i = 0; i < n; ++i) { t->ld_addr = (uint32_t)i; t->ld_data = src[i]; tick(); }
         t->ld_we = 0;
     };
     load_mem(0, m.rom1, sizeof m.rom1);
-    load_mem(1, m.rom2, 0x40000);
+    load_mem(1, m.rom2, (size_t)m.rom2_mask + 1);
     load_mem(2, m.sram, sizeof m.sram);
     load_mem(3, m.ram, sizeof m.ram);
+    if (mk2) load_mem(4, m.sm->rom, 4096);
+    t->mk2 = mk2; t->sc155 = m.is_sc155;
     t->reset_start = 1; tick(); t->reset_start = 0;
     for (int g = 0; g < 1000 && !t->reset_done; ++g) tick();
     if (!t->reset_done) { fprintf(stderr, "HDL reset did not finish\n"); return 1; }
@@ -203,7 +227,7 @@ int main(int argc, char** argv)
         SMF_Track merged = SMF_MergeTracks(data);
         SMF_SetDeltasFromTimestamps(merged);
         uint64_t division = data.header.division, us_per_qn = 500000, ns_sim = 0;
-        const uint64_t ns_per_step = 600;
+        const uint64_t ns_per_step = mk2 ? 500 : 600;   // R_NSPerStep
         for (const SMF_Event& ev : merged.events)
         {
             const uint64_t when = ns_sim + 1000 * SMF_TicksToUS(ev.delta_time, us_per_qn, division);
@@ -251,6 +275,11 @@ int main(int argc, char** argv)
            " HDL clocks (%.1f/step, max %" PRIu64 ")\n",
            step_no, total_samples, peak > 0 ? 20.0 * std::log10((double)peak / 2147483648.0) : -999.0, out.size() / 2, clocks,
            (double)clocks / (double)std::max<uint64_t>(step_no, 1), max_step_clocks);
+    {
+        const char* nm[8] = {"idle", "cpu: PCM access", "cpu: int_hold", "cpu: sub-MCU sync", "cpu", "timers", "wait for sub-MCU", "other"};
+        printf("  int_hold from the sub-MCU (IRQ1): %.2f clocks/step, with GA line 5 enabled: %.2f\n", (double)prof_sm / (double)std::max<uint64_t>(step_no, 1), (double)prof_ga5 / (double)std::max<uint64_t>(step_no, 1));
+        for (int k = 0; k < 8; ++k) printf("  %-18s %6.2f clocks/step\n", nm[k], (double)prof[k] / (double)std::max<uint64_t>(step_no, 1));
+    }
     delete t;
     return 0;
 }

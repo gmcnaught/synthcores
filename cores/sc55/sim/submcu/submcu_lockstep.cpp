@@ -141,7 +141,7 @@ int main(int argc, char** argv)
         if (t->ga5_we) ga5 = t->ga5_val;
     };
 
-    t->ld_en = 0; t->rx_delay_we = 0;
+    t->ld_en = 0; t->rx_delay_we = 0; t->target5 = 0;
     t->rst = 1; t->run = 0; t->reset_start = 0; t->sys_req = 0; t->ld_we = 0; t->buttons = 0;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
@@ -210,12 +210,11 @@ int main(int argc, char** argv)
             ++n_sys;
             n_reads += !acc.write;
         }
-        t->target = m.cycles;
+        t->target5 = m.cycles * 5;
         t->run = 1;
         tick_io();
-        t->run = 0;
-        for (int g = 0; g < 2000 && !t->done; ++g) tick_io();
-        if (!t->done) return fail(s, "no done", 0, 0);
+        for (int g = 0; g < 2000 && !t->caught_up; ++g) tick_io();
+        if (!t->caught_up) return fail(s, "not caught up", 0, 0);
         max_clk = std::max<uint64_t>(max_clk, clocks - c0);
 
         // compare

@@ -10,11 +10,13 @@
 // rows 28..31 (reverb/mix state) are copied into registers for the frame.
 // The voice loop assumes reg_slots <= 28 (the SC-55 uses 24; checked by the bench).
 //
-// mk1 only for now: wave ROM banks 0..2 = waverom1..3 (1 MB each), mk1 filter.
+// mk1: wave ROM banks 0..2 = waverom1..3 (1 MB each), the mk1 filter (multi/addclip20).
+// mk2: bank 0 = waverom1 (2 MB), bank 1 = waverom2; the filter in plain 32-bit arithmetic.
 
 module sc55_pcm (
     input  logic        clk,
     input  logic        rst,
+    input  logic        mk2,                // SC-55mk2: wave ROM layout, filter arithmetic
 
     // CPU side (e000-e03f)
     input  logic        cpu_req,
@@ -32,7 +34,8 @@ module sc55_pcm (
     output logic        irq0,               // INTERRUPT_SOURCE_IRQ0 request (= irq_assert)
     input  logic        enable_oversampling,
 
-    // wave ROM: byte reads at a linear address (bank * 1 MB + offset).
+    // wave ROM: byte reads at a linear address: mk1 bank * 1 MB + offset;
+    // mk2 bank 0 at 0 (2 MB), bank 1 at 2 MB, bank 2 at 3 MB (reads 0).
     // A request is taken in a clock with rom_req && rom_ready; data comes back
     // in request order, one byte per rom_rvalid, any number of clocks later.
     output logic        rom_req,
@@ -112,6 +115,15 @@ module sc55_pcm (
         logic signed [31:0] p;
         p = sx20(a) * $signed({{24{b[7]}}, b});
         return p;
+    endfunction
+    // the filter's products and sums: mk1 multi/addclip20 (20-bit operands), mk2 plain 32-bit
+    function automatic logic signed [31:0] fmul(input logic [31:0] a, input logic [7:0] b, input logic m2);
+        logic signed [31:0] p;
+        p = (m2 ? $signed(a) : sx20(a)) * $signed({{24{b[7]}}, b});
+        return p;
+    endfunction
+    function automatic logic signed [31:0] fadd(input logic [31:0] a, input logic [31:0] b, input logic [31:0] cin, input logic m2);
+        return m2 ? $signed(a) + $signed(b) + $signed(cin) : sx20(a) + sx20(b) + $signed(cin);
     endfunction
     function automatic logic signed [31:0] s8(input logic [7:0] b);
         return {{24{b[7]}}, b};
@@ -230,14 +242,14 @@ module sc55_pcm (
     // ------------------------------------------------------------------
     // ROM bank decode (PCM_ReadROM, mk1)
     // ------------------------------------------------------------------
-    function automatic logic [22:0] rom_map(input logic [31:0] address, input logic [7:0] r3d);
+    function automatic logic [22:0] rom_map(input logic [31:0] address, input logic [7:0] r3d, input logic m2);
         // {valid, linear address}
         logic [2:0] bank;
         bank = r3d[5] ? address[23:21] : address[21:19];
         case (bank)
-            3'd0: return {1'b1, 2'd0, address[19:0]};
-            3'd1: return {1'b1, 2'd1, address[19:0]};
-            3'd2: return {1'b1, 2'd2, address[19:0]};
+            3'd0: return m2 ? {1'b1, 1'b0, address[20:0]} : {1'b1, 2'd0, address[19:0]};
+            3'd1: return {1'b1, m2 ? 2'd2 : 2'd1, address[19:0]};
+            3'd2: return {1'b1, m2 ? 2'd3 : 2'd2, address[19:0]};
             default: return {1'b0, 22'h0};
         endcase
     endfunction
@@ -444,7 +456,7 @@ module sc55_pcm (
                             2'd3: begin
                                 t32 = (wave_read_address & ~32'h0000ff) | {24'h0, cpu_wdata};
                                 wave_read_address <= t32;
-                                rm = rom_map(t32, config_reg_3d);
+                                rm = rom_map(t32, config_reg_3d, mk2);
                                 if (rm[22]) begin
                                     // read the byte before acknowledging the CPU
                                     cpu_ack <= 1'b0;
@@ -635,8 +647,8 @@ module sc55_pcm (
                     sl_oldn[pre_i[4:0]] <= ag_oldn; sl_spo[pre_i[4:0]] <= ag_spo; sl_ratio[pre_i[4:0]] <= ag_ratio;
                     for (int k = 2; k <= 6; k++) sl_ncmp[pre_i[4:0]][k] <= ag_ncmp[k];
                     sl_r14_we[pre_i[4:0]] <= ag_r14_we; sl_r14[pre_i[4:0]] <= ag_r14; sl_r28[pre_i[4:0]] <= ag_r28;
-                    m[0] = rom_map({8'h0, ag_hi, ag_wave}, config_reg_3d);
-                    for (int k = 0; k < 4; k++) m[k + 1] = rom_map({8'h0, ag_hi, 20'h0} | ag_addr[k], config_reg_3d);
+                    m[0] = rom_map({8'h0, ag_hi, ag_wave}, config_reg_3d, mk2);
+                    for (int k = 0; k < 4; k++) m[k + 1] = rom_map({8'h0, ag_hi, 20'h0} | ag_addr[k], config_reg_3d, mk2);
                     got = 5'b0;
                     for (int k = 0; k < 5; k++) begin
                         iss_addr[k] <= m[k][21:0];
@@ -824,9 +836,9 @@ module sc55_pcm (
 
             P_SLOT_FILT: begin
                 // mk1 filter, 1/4: the products of reg1 (ram1[1]); filter = ram2[11] before its envelope update
-                pp[0] <= multi(r1[1], r2[11][15:8]);
-                pp[1] <= multi(r1[1], {1'b0, r2[11][7:1]});
-                pp[2] <= multi(r1[1], {1'b0, r2[6][14:8]});
+                pp[0] <= fmul(r1[1], r2[11][15:8], mk2);
+                pp[1] <= fmul(r1[1], {1'b0, r2[11][7:1]}, mk2);
+                pp[2] <= fmul(r1[1], {1'b0, r2[6][14:8]}, mk2);
                 r1[5] <= v_reference;
                 // irq
                 if (v_active && r2[6][0] && !r2[8][14] && !irq_assert && v_irq_flag) begin
@@ -840,26 +852,27 @@ module sc55_pcm (
             P_SLOT_FILT2: begin : b_filt2
                 // 2/4: ram1[3] and v3
                 logic signed [31:0] vv1, vv2, subvar;
-                vv2 = addclip20(r1[3], pp[0] >>> 6, (pp[0] >>> 5) & 1);
-                vv1 = addclip20(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1);
-                subvar = addclip20(vv1, pp[2] >>> 6, (pp[2] >>> 5) & 1);
+                vv2 = fadd(r1[3], pp[0] >>> 6, (pp[0] >>> 5) & 1, mk2);
+                vv1 = fadd(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1, mk2);
+                subvar = fadd(vv1, pp[2] >>> 6, (pp[2] >>> 5) & 1, mk2);
                 r1[3] <= vv1;
-                v_v3 <= addclip20(v_test, subvar ^ 32'hfffff, 1);
+                // mk1: addclip20(test, subvar ^ 0xfffff, 1); mk2: sx20(test) - subvar
+                v_v3 <= mk2 ? sx20(v_test) - subvar : addclip20(v_test, subvar ^ 32'hfffff, 1);
                 ps <= P_SLOT_FILT3;
             end
 
             P_SLOT_FILT3: begin
                 // 3/4: the products of v3
-                pp[0] <= multi(v_v3, r2[11][15:8]);
-                pp[1] <= multi(v_v3, {1'b0, r2[11][7:1]});
+                pp[0] <= fmul(v_v3, r2[11][15:8], mk2);
+                pp[1] <= fmul(v_v3, {1'b0, r2[11][7:1]}, mk2);
                 ps <= P_SLOT_FILT4;
             end
 
             P_SLOT_FILT4: begin : b_filt4
                 // 4/4: ram1[1]
                 logic signed [31:0] v4;
-                v4 = addclip20(r1[1], pp[0] >>> 6, (pp[0] >>> 5) & 1);
-                r1[1] <= addclip20(v4, pp[1] >>> 13, (pp[1] >>> 12) & 1);
+                v4 = fadd(r1[1], pp[0] >>> 6, (pp[0] >>> 5) & 1, mk2);
+                r1[1] <= fadd(v4, pp[1] >>> 13, (pp[1] >>> 12) & 1, mk2);
                 ps <= P_SLOT_TV0;
             end
 

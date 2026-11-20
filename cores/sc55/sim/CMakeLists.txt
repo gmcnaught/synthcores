@@ -34,7 +34,7 @@ add_executable(system_lockstep system/system_lockstep.cpp common/midi_demo.cpp "
 target_include_directories(system_lockstep PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-sc55/src/renderer")
 target_link_libraries(system_lockstep PRIVATE sc55_common_traced)
 verilate(system_lockstep SOURCES "${HDL}/common/sdp_ram.sv" "${HDL}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${HDL}/mcu/sc55_mcu.sv" "${HDL}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
-         TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${HDL}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw)
+         TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${HDL}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19)
 
 file(GLOB BOARD_SV "${HDL}/board/*.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)

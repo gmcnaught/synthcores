@@ -207,6 +207,7 @@ int main(int argc, char** argv)
             done = t->step_done;
         }
         t->pcm_ack = 0;
+        if (mk2) for (int g = 0; g < 4000 && !R->sc55_mcu__DOT__sm_caught_up; ++g) tick();   // the sub-MCU runs alongside the next step
         n_acc += k;
         if (!done) return fail("HDL step did not finish");
         if (k != g_rec.size())

@@ -70,7 +70,7 @@ module sc55_core #(
     );
 
     sc55_pcm pcm (
-        .clk, .rst,
+        .clk, .rst, .mk2,
         .cpu_req(p_req), .cpu_we(p_we), .cpu_addr(p_addr), .cpu_wdata(p_wdata), .cpu_rdata(p_rdata), .cpu_ack(p_ack),
         .run(p_tick), .target(cycles), .done(p_done),
         .irq0(p_irq0), .enable_oversampling,
