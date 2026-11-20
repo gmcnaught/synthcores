@@ -2,7 +2,9 @@
 //  HD44780 LCD controller (8-bit interface), modelled on MAME's
 //  hd44780_base_device: DDRAM 128 x 8, CGRAM 64 x 8, address counter
 //  correction, entry mode, display/cursor shift, display control.
-//  Busy flag always reads 0 (instructions complete immediately).
+//  Busy flag timing as MAME: 10 controller cycles per access, 410 for clear,
+//  home and reset, at the 270 kHz clock the proteusxr driver uses
+//  (37 us / 1.52 ms = 2963 / 121481 cycles of the 80 MHz clock).
 //
 //  Render port: for a display line/position returns the character code and,
 //  for codes < 0x10, the CGRAM row bits; the font ROM lives in the display.
@@ -39,6 +41,9 @@ reg        shift_on;
 reg  [6:0] disp_shift;
 reg        disp_on, cursor_on, blink_on;
 reg        two_line;
+reg [16:0] busy_cnt;
+localparam [16:0] BUSY_SHORT = 17'd2963, BUSY_LONG = 17'd121481;
+wire       busy = (busy_cnt != 0);
 
 assign display_on = disp_on;
 
@@ -73,12 +78,15 @@ endfunction
 
 integer i;
 always @(posedge clk) begin
+	if (busy_cnt != 0) busy_cnt <= busy_cnt - 1'd1;
 	if (reset) begin
+		busy_cnt <= BUSY_LONG;
 		ac <= 0; active_cg <= 0; dir_inc <= 1; shift_on <= 0; disp_shift <= 0;
 		disp_on <= 0; cursor_on <= 0; blink_on <= 0; two_line <= 0;
 		for (i = 0; i < 128; i = i + 1) ddram[i] <= 8'h20;
 	end
 	else if (cs && wr) begin
+		busy_cnt <= (!rs && din[7:2] == 6'd0 && din[1:0] != 2'd0) ? BUSY_LONG : BUSY_SHORT;
 		if (!rs) begin
 			// instruction
 			if (din[7]) begin
@@ -121,11 +129,12 @@ always @(posedge clk) begin
 	end
 	else if (cs && rd && rs) begin
 		ac <= step_ac(ac, dir_inc, active_cg, two_line);
+		busy_cnt <= BUSY_SHORT;
 	end
 end
 
 always @* begin
-	if (!rs) dout = {1'b0, ac[6:0]};                         // busy flag 0
+	if (!rs) dout = {busy, ac[6:0]};
 	else     dout = active_cg ? cgram[ac[5:0]] : ddram[ac[6:0]];
 end
 

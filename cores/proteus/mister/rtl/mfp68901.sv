@@ -224,7 +224,7 @@ always @(posedge clk) begin
 
 		// ---------------- interrupt acknowledge
 		if (iack) begin
-			vector <= hi_any ? {vr[7:4], hi_ch} : 8'h0F;  // 0x0F: uninitialized vector
+			vector <= hi_any ? {vr[7:4], hi_ch} : 8'h18;  // nothing pending: spurious interrupt vector, as MAME
 			if (hi_any) begin
 				if (vr[3]) isr[hi_ch] <= 1;
 				ipr[hi_ch] <= 0;

@@ -151,14 +151,14 @@ reg  mfp_cs_wr, mfp_cs_rd, mfp_iack, lcd_wr, lcd_rd;
 wire [7:0] mfp_dout, mfp_vector, lcd_dout;
 
 // volume one-shot: TBI high for 12..201 timer-B counts (50 kHz each)
-reg  [17:0] vol_cnt;
+reg  [19:0] vol_cnt;
 wire        vol_pulse = (vol_cnt != 0);
-// counts = 12 + volume * 190 / 256 (12..201), 1600 clocks (50 kHz) per count
-wire [15:0] vol_scaled = {8'd0, volume} * 16'd190;
-reg  [17:0] vol_load;
-always @(posedge clk) vol_load <= ({10'd0, 8'd12 + vol_scaled[15:8]}) * 18'd1600;
+// counts = 12 + volume * 191 / 256 (12..202), 1600 clocks (50 kHz) per count
+wire [15:0] vol_scaled = {8'd0, volume} * 16'd191;   // 255 -> 190, total 202 counts as MAME at 100 %
+reg  [19:0] vol_load;
+always @(posedge clk) vol_load <= {12'd0, 8'd12 + vol_scaled[15:8]} * 20'd1600;   // up to 321,600 clocks
 
-localparam B_IDLE = 3'd0, B_RAMRD = 3'd1, B_ACK = 3'd2, B_SNDWR = 3'd3, B_SNDRB = 3'd4, B_IACK = 3'd5;
+localparam B_IDLE = 3'd0, B_RAMRD = 3'd1, B_ACK = 3'd2, B_SNDWR = 3'd3, B_SNDRB = 3'd4, B_IACK = 3'd5, B_IACK2 = 3'd6;
 reg  [2:0] bstate;
 
 always @(posedge clk) begin
@@ -253,7 +253,8 @@ always @(posedge clk) begin
 				end
 			B_SNDRB:
 				if (snd_rb_done) begin iEdb <= snd_rb_data; DTACKn <= 0; bstate <= B_IDLE; end
-			B_IACK: begin iEdb <= {8'h00, mfp_vector}; DTACKn <= 0; bstate <= B_IDLE; end
+			B_IACK:  bstate <= B_IACK2;   // the MFP latches the vector on the clock after the iack strobe
+			B_IACK2: begin iEdb <= {8'h00, mfp_vector}; DTACKn <= 0; bstate <= B_IDLE; end
 			default: ;
 		endcase
 	end
