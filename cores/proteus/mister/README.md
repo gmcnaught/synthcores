@@ -41,5 +41,10 @@ DDR3 map (physical): `0x30000000` sample words (8 MB, big-endian), `0x30800000` 
   through ioctl, compares outputs and the capture ring with `tools/proteus_model.py`.
 - On hardware: `tools/mister_demo.sh` reads the capture ring back over SSH (`/dev/mem`) and compares it.
 
+## Status (2026-11-20)
+- Build 2 (`Build RBF` run 44805460547): 32 % ALMs, 37 DSP blocks, all clocks meet timing (80 MHz setup slack +0.82 ns).
+- On a MiSTer (DE10-Nano, Linux 6.18.38-MiSTer): the DDR3 capture equals `tools/proteus_model.py` for the
+  first 2,578,125 samples (66.0 s, including the demo's restart at 46.7 s). Listening test: pending.
+
 ## Build
 `bash mister/build.sh` with Quartus Lite 17.0, or the `Build RBF` GitHub workflow (raetro/quartus:17.0).
