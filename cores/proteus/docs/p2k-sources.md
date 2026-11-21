@@ -273,3 +273,11 @@ image explorer), e-dumper (P2K/CS preset/pattern/song loader), e-sysex, e-sds, e
 - synth-diy.org yg-archives2 message pages: Anubis JS challenge; only search-result snippets used.
 - web.archive.org CDX API: "Temporarily Offline"; individual snapshots worked.
 - emu.tools subpages: HTTP 403 to non-browser clients.
+
+## Added 2026-11-21
+- Pistol Instruments Proteus 2000 Editor (https://www.pistolinstruments.com/e-mu-proteus-2000-editor/,
+  app https://proteus2000editor.pistolinstruments.com/): free Web MIDI editor/librarian for the
+  whole P2K family. `llms-full.txt` gives the SysEx frame (`F0 18 0F dev 55 cmd … F7`), every
+  parameter ID/range/default, the 50 filter types with SysEx values, 73 cord sources / 66
+  destinations, effect A (44) / B (32) algorithm counts, preset dump layout [O]. Code is
+  "© 2026 Patrik Pistol … do not republish"; contact for hardware findings on the About page.
