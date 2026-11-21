@@ -32,16 +32,18 @@ CPU is a ColdFire with MBAR at **0x20000000** and the MCF5206e SIM register layo
 | DRAM bank 0 | 0x01000000 | 4 MB | — | — | OS + data (SSP 0x0115BB20) |
 | DRAM bank 1 | 0x01400000 | 4 MB (size-probed at boot) | — | — | P2K 8 MB total; probe falls back if absent |
 | CS0 | 0x02000000 | 2 MB | 0x0F0B / 0x0F8B / 0x1341, chosen from the boot port-size bits read back from CSCR0 (7/6) | — | boot + OS flash |
-| CS1 | 0x00400000 | 4 MB | 0x009F | 16-bit, 0 wait | sound chips: H at 0x500000, G at 0x600000 |
-| CS2 | 0x00800000 | 64 KB | 0x0595 | 16-bit, 1 wait | [U] |
-| CS3 | 0x00800000 | 4 MB | 0x055A | 8-bit, 1 wait | byte writes to 0x900000, 0xA00000, 0xB00000 (panel/LCD/LED [U]) |
+| CS1 | 0x00400000 | 4 MB | 0x009F | 16-bit, 0 wait | LCD 0x400000/0x408000, H chips 0x500000, G05 0x600000, G20 voice registers 0x77F000 |
+| CS2 | 0x00800000 | 64 KB | 0x0595 | 16-bit, 1 wait | word read at 0x800000, bit 8 tested at boot [I: panel buttons] |
+| CS3 | 0x00800000 | 4 MB | 0x055A | 8-bit, 1 wait | 0x900000 / 0xA00000 LED latches (RAM shadows), 0xB00000 control latch (0x8E/0x9E/0x8F at boot) [U] |
 | CS4 | 0x00F00000 | 64 KB | 0x3D81 | 16-bit, 15 waits | board ID word read at 0x00F00000 ("Board ID = %x") |
 | CS6 | 0x00C00000 | 64 KB | 0x215F | 8-bit, 8 waits | [U] |
 | MBAR | 0x20000000 | — | — | — | on-chip SIM, timers, 2 UARTs (MIDI A/B [I]) |
 
 CS2/CS3 overlap at 0x00800000; how the CSCR read/write enables split them is [U].
 
-## G chip (voice engine) interface [O]
+## G05 chip (U28) interface [O]
+The boot block names it: the chip behind this port is **G05, U28** ("Err: G05 chip U28 failed"
+when register `0x181E` does not read 0x30). It is not one of the two voice chips.
 - Index/data port at **0x600000**: write the index to **0x60000E**, then access the word or long
   register at `0x600000 + offset`. Helper calls encode a register as `offset << 8 | index`
   (`0x102F60C` read word, `0x102F640` read long, `0x102F674` write word, `0x102F6A8` write long;
@@ -61,9 +63,12 @@ CS2/CS3 overlap at 0x00800000; how the CSCR read/write enables split them is [U]
   registers, or shares its bus].
 - [U] How 128 voices (2 G chips) map onto a 5-bit index; the second chip's address.
 
-## Voice register block [O, base address U]
-A second, memory-mapped register file at a base held in `0x01120800` (stored at run time through
-a pointer; the value is [U], [I] inside CS1), **64 bytes per voice** (`voice << 6`, `0x10323AC`):
+## Voice register block (G20 chips) [O]
+The two voice chips are **G20, U15 and U24** (boot block). Their register files are contiguous at
+**0x0077F000**, **64 bytes per voice**: U15 = voices 0–63 at 0x77F000, U24 = voices 64–127 at
+0x780000 (boot test `0x020011F0`: writes 0x8211 to voice 16 +0x3E and expects 0x211, writes
+0x01234567 / 0x76543210 to +0x10 and reads it back, sets voice 32 +0x3E to 0x140 / 0x1C0, clears
+64 voices). The OS keeps the base in `0x01120800` and indexes it with `voice << 6` (`0x10323AC`).
 
 | Offset | Use | Evidence |
 |---|---|---|
@@ -119,10 +124,25 @@ Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMM
 and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave ROMs were.
 
 ## Next
-1. Base address of the voice register block (trace the pointer store, or boot the OS in MAME
-   with a stub machine and log it).
+1. A MAME stub machine (MCF5206e, the v1.24 flash, DRAM, stub devices) to boot the boot block and
+   OS 2.26 and log every device access.
 2. Voice start path (`0x102C8D4` → `0x10323CC` / `0x10327E0`): per-voice G registers in use.
 3. Output rate: pitch computation for the 440 Hz test tone vs. a known sample root.
-4. Boot flash dump: not in the .dli; needed for an emulator boot (Ray Bellis's Audity 2000
-   method, or a unit).
+4. Boot block: done, see below (from a public v1.24 flash dump).
 5. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
+
+## Boot block (v1.24 flash dump) [O]
+Source: `e-mu-proteus-2k-flash-analysis.zip` (dbwbp.com via the Wayback Machine): a 2 MB
+TH28F160 dump of a v1.24 unit, `proteus-2k-v124-28f160.bin`, SHA-1
+7cd9c92114f1ef583adacd7f533856f5c0031742, stored **byte-swapped** (swap each 16-bit word).
+- 0x000000–0x00FFFF: boot block, linked at **0x02000000** (CS0). SSP 0x01210600, reset PC 0x02000402.
+  "Proteus2000Loader", "Searching for OS...", MIDI download protocol messages: this is the
+  E-Loader receiver.
+- 0x010000: "lib_CODE … CPLG … 1.24 ProteusGenericOS" directory header; 0x010100: the OS image
+  (identical to `p2k124.dli`'s payload per the dump's notes; the OS is copied to DRAM at 0x01000000).
+- 0x0A0000 onward: user presets and setups ("lib_USER").
+- Boot tests: address/data line stuck tests, "Testing DRAM SIMM", G05 U28, G20 U15, G20 U24.
+- LCD: HD44780-style at **0x400000** (instruction: init 0x38, 0x0C, 0x06, 0x01) and **0x408000**
+  (data), byte access (`0x02003AD4–0x02003B2C`).
+- LEDs: 0x900000 and 0xA00000 byte latches with RAM shadows at 0x0120FE00/0x0120FE04
+  (`0x0200151C`); boot steps light LEDs 4, 5, 6.
