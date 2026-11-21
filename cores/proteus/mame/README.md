@@ -1,12 +1,13 @@
 # MAME reference model
 
-Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch` (base commit in `patches/BASE`).
+Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch` and `patches/0002-emup2k-proteus2000-research.patch` (apply in order; base commit in `patches/BASE`).
 
 ```sh
 git clone https://github.com/mamedev/mame.git third_party/mame
 git -C third_party/mame checkout $(cut -d' ' -f3 mame/patches/BASE)
 git -C third_party/mame apply ../../mame/patches/0001-emu68k-proteusxr-sound.patch
-make -C third_party/mame SUBTARGET=proteus SOURCES=src/mame/emusys/emu68k.cpp NOWERROR=1 REGENIE=1 -j8
+git -C third_party/mame apply ../../mame/patches/0002-emup2k-proteus2000-research.patch
+make -C third_party/mame SUBTARGET=proteus SOURCES=src/mame/emusys/emu68k.cpp,src/mame/emusys/emup2k.cpp NOWERROR=1 REGENIE=1 -j8
 ```
 
 What the patch adds:
@@ -30,3 +31,19 @@ Verified 2026-11-20 (`proteusxrpl`, firmware v2.30):
 - MIDI files given with `-midiin` start playing about 10 s after power-on.
 - MIDI notes 48/60/72 play at 131.1/262.3/521.7 Hz (expected 130.8/261.6/523.3).
 - Presets 0–23 all audible, no clipping (`build/demo_presets.wav`).
+
+## Proteus 2000 research machine (`proteus2k`, patch 0002)
+`src/mame/emusys/emup2k.cpp`: MCF5206e, 8 MB DRAM, the 2 MB flash, every device stubbed and logged
+(memory map in `docs/p2k-findings.md`). Not a working emulation; it exists to run the real boot
+block and OS and log what they do. `mcf5206e.cpp`: core logging reduced to invalid/timer/SIM.
+
+ROMs in `roms/proteus2k/`: `proteus-2k-v124-28f160.bin` (required; dbwbp.com
+`e-mu-proteus-2k-flash-analysis.zip`) and optionally `p2k226.dli` (OS 2.26 E-Loader file), which
+replaces the flash OS at 0x010100. Run: `tools/p2k-run.sh WALL OUTDIR -seconds_to_run N
+[-autoboot_script ../../../mame/scripts/p2k_pc.lua]` (host-time limit and a ~200 MB log cap).
+
+Verified 2026-11-21:
+- Boot block: chip selects, DRAM SIMM test, G05 ID (0x30), G20 U15/U24 tests, OS copy and jump.
+- With `p2k226.dli`: OS 2.26 shows "E-mu Systems, Inc. presents", passes its G chip, G05 and FX RAM
+  tests, reports "No Sound Roms detected" and idles (0x010372DC, RTOS idle task).
+- With the dump's own OS 1.24: "Fatal: Bus Address error" (jump to 0x00044EB9) after start-up.

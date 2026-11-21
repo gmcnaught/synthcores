@@ -1,0 +1,393 @@
+diff --git a/src/devices/cpu/m68000/mcf5206e.cpp b/src/devices/cpu/m68000/mcf5206e.cpp
+index 667a3bab..abdc62e8 100644
+--- a/src/devices/cpu/m68000/mcf5206e.cpp
++++ b/src/devices/cpu/m68000/mcf5206e.cpp
+@@ -37,7 +37,7 @@
+ #define LOG_DRAM        (1U << 7)
+ #define LOG_SIM         (1U << 8)
+ #define LOG_DMA         (1U << 9)
+-#define VERBOSE         ( LOG_DEBUG | LOG_UART | LOG_SWDT | LOG_MBUS | LOG_DRAM | LOG_SIM | LOG_DMA | LOG_TIMER )
++#define VERBOSE         ( LOG_INVALID | LOG_TIMER | LOG_SIM )
+ #include "logmacro.h"
+ 
+ #define INT_LEVEL(N)    ((N&0x1c) >> 2)
+diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
+new file mode 100644
+index 00000000..b3011bb4
+--- /dev/null
++++ b/src/mame/emusys/emup2k.cpp
+@@ -0,0 +1,363 @@
++// license:BSD-3-Clause
++// copyright-holders:emu-proteus-xr-MiSTer contributors
++/*
++    E-mu Proteus 2000 (1999) - research skeleton
++
++    Boots the boot block of a v1.24 flash dump and the OS it holds, with every
++    device stubbed and logged. The memory map comes from the firmware
++    (docs/p2k-findings.md in the emu-proteus-xr-MiSTer repository):
++
++    CPU: Motorola MCF5206e, MBAR 0x20000000 (clock not measured)
++    0x00000000  CS0 boot flash (global chip select at reset; mirrored)
++    0x01000000  DRAM, 2 x 4 MB
++    0x02000000  CS0: 2 MB flash (TH28F160, byte-swapped in the dump)
++    0x00400000  LCD (HD44780-type) instruction / busy
++    0x00408000  LCD data
++    0x00500000  H1.5 filter chips (stub: RAM)
++    0x00600000  G05 chip U28: index at +0x0E, 32 word registers; reg 0x18 index 0x1E reads 0x30
++    0x0077F000  G20 chips U15 (voices 0-63) / U24 (voices 64-127, 0x780000): 64 bytes a voice
++                +0x1C/+0x1E sound-memory read data A/B, +0x30/+0x34 read address (word) A/B
++    0x00800000  panel input (bit 8 = button, active low)
++    0x00900000, 0x00A00000  LED latches
++    0x00B00000  control latch
++    0x00C00000  CS6 (unknown, 8-bit)
++    0x00F00000  board ID (word)
++
++    Nothing here is verified against hardware.
++*/
++
++#include "emu.h"
++#include "cpu/m68000/mcf5206e.h"
++#include "video/hd44780.h"
++#include "emupal.h"
++#include "screen.h"
++#include "speaker.h"
++
++#define LOG_IO    (1U << 1)
++#define LOG_G05   (1U << 2)
++#define LOG_G20   (1U << 3)
++#define LOG_H     (1U << 4)
++#define LOG_LCD   (1U << 5)
++#define LOG_SND   (1U << 6)
++#define VERBOSE   (LOG_IO | LOG_G05 | LOG_LCD | LOG_SND)
++#include "logmacro.h"
++
++namespace {
++
++class emup2k_state : public driver_device
++{
++public:
++	emup2k_state(const machine_config &mconfig, device_type type, const char *tag)
++		: driver_device(mconfig, type, tag)
++		, m_maincpu(*this, "maincpu")
++		, m_lcdc(*this, "lcdc")
++		, m_sound(*this, "sound")
++		, m_panel(*this, "PANEL")
++	{ }
++
++	void proteus2k(machine_config &config) ATTR_COLD;
++	void init_proteus2k() ATTR_COLD;
++
++protected:
++	virtual void machine_start() override ATTR_COLD;
++	virtual void machine_reset() override ATTR_COLD;
++
++private:
++	void mem_map(address_map &map) ATTR_COLD;
++	void palette_init(palette_device &palette) ATTR_COLD;
++	HD44780_PIXEL_UPDATE(lcd_pixel_update);
++
++	u16 unk_r(offs_t offset, u16 mem_mask);
++	void unk_w(offs_t offset, u16 data, u16 mem_mask);
++	u8 lcd_ctrl_r();
++	void lcd_ctrl_w(u8 data);
++	u8 lcd_data_r();
++	void lcd_data_w(u8 data);
++	u16 h_r(offs_t offset, u16 mem_mask);
++	void h_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 g05_r(offs_t offset, u16 mem_mask);
++	void g05_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 g20_r(offs_t offset, u16 mem_mask);
++	void g20_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 panel_r();
++	void led_w(offs_t offset, u8 data);
++	u16 boardid_r();
++	TIMER_CALLBACK_MEMBER(lcd_dump);
++
++	required_device<mcf5206e_device> m_maincpu;
++	required_device<hd44780_device> m_lcdc;
++	optional_region_ptr<u16> m_sound;
++	required_ioport m_panel;
++
++	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
++	u16 m_g05_index = 0;
++	u16 m_g05[32][64]{};
++	u16 m_g20[128][32]{};                 // 64-byte voice blocks
++	u32 m_snd_addr[2]{};
++	u8 m_leds[3]{};
++	u32 m_open_bus = 0;
++	u8 m_scan_row = 0, m_scan_in = 0x00;
++	// LCD text shadow (DDRAM 0x00-0x27 line 1, 0x40-0x67 line 2)
++	u8 m_ddram[0x80]{};
++	u8 m_ddaddr = 0;
++	bool m_lcd_dirty = false;
++	emu_timer *m_lcd_timer = nullptr;
++};
++
++void emup2k_state::machine_start()
++{
++	m_h = std::make_unique<u16[]>(0x80000);
++	std::fill_n(m_ddram, std::size(m_ddram), ' ');
++	save_pointer(NAME(m_h), 0x80000);
++	save_item(NAME(m_g05_index));
++	save_item(NAME(m_g05));
++	save_item(NAME(m_g20));
++	save_item(NAME(m_snd_addr));
++	save_item(NAME(m_leds));
++	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
++	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
++}
++
++void emup2k_state::machine_reset()
++{
++}
++
++void emup2k_state::init_proteus2k()
++{
++	// Dump repair [I]: flash 0x000DFE reads 4E38 0200 3B30, not an opcode. The words after it are
++	// the target of "jsr 0x02003B30" (4EB9), used elsewhere in the boot block; 4E38 differs
++	// from 4EB9 in two bits of one byte. Without the fix the boot takes an illegal-instruction
++	// exception at 0x02000DFE.
++	u32 *rom = reinterpret_cast<u32 *>(memregion("flash")->base());
++	u32 &w = rom[0xdfc / 4];   // 32-bit region words: 0x000DFC-0x000DFF
++	if ((w & 0xffff) == 0x4e38)
++		w = (w & 0xffff0000) | 0x4eb9;
++	else
++		logerror("flash 0x000DFC = %08x: expected xxxx4E38, repair not applied\n", w);
++
++	// OS 2.26 overlay: .dli header 0x1A0 bytes, then the image (linked at 0x01000000).
++	const u8 *dli = memregion("dli")->base();
++	if (dli[0x1a0] | dli[0x1a1] | dli[0x1a2] | dli[0x1a3])
++	{
++		const u32 len = (dli[0x30 - 8] << 24) | (dli[0x30 - 7] << 16) | (dli[0x30 - 6] << 8) | dli[0x30 - 5];
++		for (u32 i = 0; i < len; i += 4)
++			rom[(0x10100 + i) / 4] = (dli[0x1a0 + i] << 24) | (dli[0x1a1 + i] << 16) | (dli[0x1a2 + i] << 8) | dli[0x1a3 + i];
++		logerror("OS image from p2k226.dli (%u bytes) placed at flash 0x010100\n", len);
++	}
++}
++
++// ---------------------------------------------------------------- unknown space
++
++u16 emup2k_state::unk_r(offs_t offset, u16 mem_mask)
++{
++	LOGMASKED(LOG_IO, "%s: unknown read %08x & %04x\n", machine().describe_context(), 0x00400000 + offset * 2, mem_mask);
++	return 0xffff;
++}
++
++void emup2k_state::unk_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	LOGMASKED(LOG_IO, "%s: unknown write %08x = %04x & %04x\n", machine().describe_context(), 0x00400000 + offset * 2, data, mem_mask);
++}
++
++// ---------------------------------------------------------------- LCD
++
++u8 emup2k_state::lcd_ctrl_r() { return m_lcdc->control_r(); }
++u8 emup2k_state::lcd_data_r() { return m_lcdc->data_r(); }
++
++void emup2k_state::lcd_ctrl_w(u8 data)
++{
++	if (data & 0x80)
++		m_ddaddr = data & 0x7f;
++	else if (data == 0x01)
++	{
++		std::fill_n(m_ddram, std::size(m_ddram), ' ');
++		m_ddaddr = 0;
++		m_lcd_dirty = true;
++	}
++	else if ((data & 0xfe) == 0x02)
++		m_ddaddr = 0;
++	m_lcdc->control_w(data);
++}
++
++void emup2k_state::lcd_data_w(u8 data)
++{
++	m_ddram[m_ddaddr & 0x7f] = data;
++	m_ddaddr = (m_ddaddr + 1) & 0x7f;
++	m_lcd_dirty = true;
++	m_lcdc->data_w(data);
++}
++
++TIMER_CALLBACK_MEMBER(emup2k_state::lcd_dump)
++{
++	if (!m_lcd_dirty)
++		return;
++	m_lcd_dirty = false;
++	std::string l1, l2;
++	for (int i = 0; i < 24; i++)
++	{
++		l1 += (m_ddram[i] >= 0x20 && m_ddram[i] < 0x7f) ? char(m_ddram[i]) : '.';
++		l2 += (m_ddram[0x40 + i] >= 0x20 && m_ddram[0x40 + i] < 0x7f) ? char(m_ddram[0x40 + i]) : '.';
++	}
++	LOGMASKED(LOG_LCD, "LCD |%s|%s|\n", l1, l2);
++}
++
++HD44780_PIXEL_UPDATE(emup2k_state::lcd_pixel_update)
++{
++	if (x < 5 && y < 8 && line < 2 && pos < 24)
++		bitmap.pix(line * 8 + y, pos * 6 + x) = state;
++}
++
++void emup2k_state::palette_init(palette_device &palette)
++{
++	palette.set_pen_color(0, rgb_t(131, 136, 139));
++	palette.set_pen_color(1, rgb_t( 92,  83,  88));
++}
++
++// ---------------------------------------------------------------- sound chips
++
++u16 emup2k_state::h_r(offs_t offset, u16 mem_mask)
++{
++	return m_h[offset];
++}
++
++void emup2k_state::h_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	COMBINE_DATA(&m_h[offset]);
++	LOGMASKED(LOG_H, "%s: H %06x = %04x\n", machine().describe_context(), 0x500000 + offset * 2, data);
++}
++
++u16 emup2k_state::g05_r(offs_t offset, u16 mem_mask)
++{
++	const unsigned reg = offset * 2, idx = m_g05_index & 0x1f;
++	u16 v = m_g05[idx][offset];
++	if (reg == 0x0e)
++		v = m_g05_index;
++	else if (reg == 0x18 && idx == 0x1e)
++		v = 0x30;           // chip ID the boot and diagnostics test for
++	LOGMASKED(LOG_G05, "%s: G05 read  idx %02x reg %02x -> %04x\n", machine().describe_context(), idx, reg, v);
++	return v;
++}
++
++void emup2k_state::g05_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	const unsigned reg = offset * 2;
++	if (reg == 0x0e)
++	{
++		COMBINE_DATA(&m_g05_index);
++		return;
++	}
++	COMBINE_DATA(&m_g05[m_g05_index & 0x1f][offset]);
++	LOGMASKED(LOG_G05, "%s: G05 write idx %02x reg %02x = %04x\n", machine().describe_context(), m_g05_index & 0x1f, reg, data);
++}
++
++u16 emup2k_state::g20_r(offs_t offset, u16 mem_mask)
++{
++	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
++	if (reg == 0x1c || reg == 0x1e)
++	{
++		const int port = reg == 0x1e;
++		const u32 a = m_snd_addr[port];
++		m_snd_addr[port] = (a + 1) & 0x3ffffff;
++		if (m_sound && a < m_sound.length())
++			return m_sound[a];
++		return 0;
++	}
++	return m_g20[voice][offset & 31];
++}
++
++void emup2k_state::g20_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
++	if (reg == 0x3e)
++		data &= 0x03ff;     // boot test writes 0x8211, expects 0x0211 [I: width unknown]
++	COMBINE_DATA(&m_g20[voice][offset & 31]);
++	if (reg == 0x30 || reg == 0x32)
++		m_snd_addr[0] = ((m_g20[voice][0x30 / 2] << 16) | m_g20[voice][0x32 / 2]) & 0x3ffffff;
++	else if (reg == 0x34 || reg == 0x36)
++		m_snd_addr[1] = ((m_g20[voice][0x34 / 2] << 16) | m_g20[voice][0x36 / 2]) & 0x3ffffff;
++	LOGMASKED(LOG_G20, "%s: G20 v%03d reg %02x = %04x\n", machine().describe_context(), voice, reg, data);
++}
++
++// ---------------------------------------------------------------- panel / misc
++
++u16 emup2k_state::panel_r()
++{
++	return m_panel->read();
++}
++
++void emup2k_state::led_w(offs_t offset, u8 data)
++{
++	if (m_leds[offset] != data)
++		LOGMASKED(LOG_IO, "%s: latch %08x = %02x\n", machine().describe_context(), 0x900000 + offset * 0x100000, data);
++	m_leds[offset] = data;
++}
++
++u16 emup2k_state::boardid_r()
++{
++	LOGMASKED(LOG_IO, "%s: board ID read\n", machine().describe_context());
++	return 0x0000;
++}
++
++void emup2k_state::mem_map(address_map &map)
++{
++	map(0x00000000, 0x001fffff).rom().region("flash", 0);
++	map(0x00400000, 0x00ffffff).rw(FUNC(emup2k_state::unk_r), FUNC(emup2k_state::unk_w));
++	map(0x00400000, 0x00400000).rw(FUNC(emup2k_state::lcd_ctrl_r), FUNC(emup2k_state::lcd_ctrl_w));
++	map(0x00408000, 0x00408000).rw(FUNC(emup2k_state::lcd_data_r), FUNC(emup2k_state::lcd_data_w));
++	map(0x00500000, 0x005fffff).rw(FUNC(emup2k_state::h_r), FUNC(emup2k_state::h_w));
++	map(0x00600000, 0x0060007f).rw(FUNC(emup2k_state::g05_r), FUNC(emup2k_state::g05_w));
++	map(0x0077f000, 0x00780fff).rw(FUNC(emup2k_state::g20_r), FUNC(emup2k_state::g20_w));
++	map(0x00800000, 0x00800001).r(FUNC(emup2k_state::panel_r));
++	map(0x00900000, 0x00900000).lw8(NAME([this] (u8 d) { led_w(0, d); }));
++	map(0x00a00000, 0x00a00000).lw8(NAME([this] (u8 d) { led_w(1, d); }));
++	map(0x00b00000, 0x00b00000).lw8(NAME([this] (u8 d) { led_w(2, d); }));
++	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_scan_in; }), NAME([this] (u8 d) { m_scan_row = d; })); // [I] panel key matrix: row 0x08-0x0F out, columns in
++	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
++	map(0x01000000, 0x017fffff).ram();
++	map(0x02000000, 0x021fffff).rom().region("flash", 0);
++	// No chip select here (DMCR default-acknowledge). The boot data-line test (0x02000DE4) writes a
++	// bit pattern and reads it back [I: relies on the bus holding the last value]; the cache test
++	// (0x02000CB0) writes 2 M longs here.
++	map(0x50000000, 0x53ffffff).lrw32(NAME([this] () { return m_open_bus; }), NAME([this] (u32 d) { m_open_bus = d; }));
++}
++
++static INPUT_PORTS_START( proteus2k )
++	PORT_START("PANEL")
++	PORT_BIT( 0xfe7f, IP_ACTIVE_LOW, IPT_UNKNOWN )
++	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_UNKNOWN )   // boot waits at 0x02000BD2 while this reads 1 [I: status, not a key]
++	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Panel bit 8")
++INPUT_PORTS_END
++
++void emup2k_state::proteus2k(machine_config &config)
++{
++	MCF5206E(config, m_maincpu, 33'000'000); // TODO: clock not measured
++	m_maincpu->set_addrmap(AS_PROGRAM, &emup2k_state::mem_map);
++
++	screen_device &screen(SCREEN(config, "screen").set_lcd());
++	screen.set_refresh_hz(60);
++	screen.set_vblank_time(ATTOSECONDS_IN_USEC(2500));
++	screen.set_screen_update("lcdc", FUNC(hd44780_device::screen_update));
++	screen.set_size(6 * 24, 8 * 2);
++	screen.set_visarea_full();
++	screen.set_palette("palette");
++	PALETTE(config, "palette", FUNC(emup2k_state::palette_init), 2);
++
++	HD44780(config, m_lcdc, 270'000); // TODO: controller type and clock not verified
++	m_lcdc->set_lcd_size(2, 24);
++	m_lcdc->set_pixel_update_cb(FUNC(emup2k_state::lcd_pixel_update));
++
++	SPEAKER(config, "speaker", 2).front();
++}
++
++ROM_START( proteus2k )
++	ROM_REGION32_BE( 0x200000, "flash", 0 )
++	ROM_LOAD16_WORD_SWAP( "proteus-2k-v124-28f160.bin", 0x000000, 0x200000, CRC(bd878bcb) SHA1(7cd9c92114f1ef583adacd7f533856f5c0031742) ) // one bad word, repaired in init_proteus2k
++
++	// Optional: OS 2.26 E-Loader file; when present its image replaces the flash OS at 0x010100.
++	ROM_REGION( 0x82a28, "dli", ROMREGION_ERASE00 )
++	ROM_LOAD_OPTIONAL( "p2k226.dli", 0x000000, 0x82a28, CRC(9ed58354) SHA1(932acd05bdcfdf8442f35428f6261a262c04d3ca) )
++ROM_END
++
++} // anonymous namespace
++
++SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
+diff --git a/src/mame/mame.lst b/src/mame/mame.lst
+--- a/src/mame/mame.lst
++++ b/src/mame/mame.lst
+@@ -18811,4 +18811,7 @@ emu2
+ emu3
+ 
++@source:emusys/emup2k.cpp
++proteus2k
++
+ @source:emusys/emu68k.cpp
+ carnaval
