@@ -1,4 +1,5 @@
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/bram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/tone_lut.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/proteus_snd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/snd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mfp68901.sv

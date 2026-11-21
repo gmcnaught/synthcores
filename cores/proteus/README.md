@@ -11,15 +11,19 @@ download yourself (below).
 ## What you need
 | File | Where | Used for |
 |---|---|---|
-| `Proteus 1 XR w Protologic - v2.30.zip` | dbwbp.com synth EPROM archive | firmware v2.30 and the ProtoLogic expansion sound ROMs |
-| `Proteus 1.zip` | archive.org `e-mu-sample-sets` | E-mu's Emulator X conversion of the Proteus/1 sounds (rebuilds the main sound ROM) |
+| `Proteus 1 XR w Protologic - v2.30.zip` | dbwbp.com synth EPROM archive (also on proteus.nekoweb.org) | firmware v2.30 and the ProtoLogic expansion sound ROMs |
+| `poprockroms.zip` | proteus.nekoweb.org ("Proteus/1 Waverom Dump") | the Proteus/1 sound ROMs (IP382–IP385, IP402–IP405) |
 | `hd44780.zip` | a MAME ROM set | LCD character generator |
+
+Without the sound ROM dump, `--samples "Proteus 1.zip"` (archive.org `e-mu-sample-sets`, E-mu's
+Emulator X conversion) rebuilds an approximation instead: 29 samples silent and others wrong or
+at a different level.
 
 ## Build the system image
 ```sh
 python3 tools/build_image.py \
     --protologic "Proteus 1 XR w Protologic - v2.30.zip" \
-    --samples "Proteus 1.zip" --font hd44780.zip -o proteus_system.bin
+    --waverom poprockroms.zip --font hd44780.zip -o proteus_system.bin
 ```
 The script checks every input by SHA-1 and needs only Python 3.
 
@@ -54,17 +58,19 @@ firmware and have not been verified on the core yet.
 | Data-entry knob −1 / +1 | Left, Down, `-` / Right, Up, `=` | left, down / right, up |
 
 OSD: **Volume** (front-panel volume knob), **Output Level** (extra gain, 0 dB default; the MiSTer core
-volume boost also works), **Save Presets**, **Autosave on OSD open** (on by default),
-**Factory Reset Presets** (re-runs the initialisation; overwrites your presets on the next save).
+volume boost also works), **Tone Filter** (on by default, see Known limits), **Save Presets**,
+**Autosave on OSD open** (on by default), **Factory Reset Presets** (re-runs the initialisation;
+overwrites your presets on the next save).
 
 The screen shows the LCD, the MIDI / MASTER / EDIT LEDs and a level bar per voice.
 
 ## Known limits
-- The main Proteus/1 sound ROM is rebuilt from E-mu's Emulator X conversion, not dumped: 164 of
-  193 samples are placed (85 % of the sample data); the rest are silent, mostly drum one-shots.
-  Several samples had their loops re-done in the conversion. A real ROM dump would fix this.
 - The sound chip is modelled from the firmware's use of it; interpolation, envelope slew rate and
   the pan law are inferred and have not been compared with recordings of a real unit.
+- Tone: the firmware gives each voice a tone value (the "Dark" instruments use it, and notes
+  played above a sample's root get more of it). What the chip does with it is unknown; the core
+  applies an inferred low-pass filter (`tools/tone_lut.py`). The OSD **Tone Filter** option turns
+  it off.
 - Only the configuration above (XR v2.30 + ProtoLogic) is supported.
 
 ## How it was made / verification

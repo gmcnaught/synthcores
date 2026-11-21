@@ -43,6 +43,7 @@ module proteus_core
 	input             autosave,        // save when the OSD opens
 	input             osd_open,
 	input             factory_reset,   // "Factory Reset Presets" (level)
+	input             tone_en,         // tone filter on
 
 	// inputs
 	input      [10:0] ps2_key,
@@ -193,7 +194,7 @@ wire [7:0] disp_level;
 
 snd_ctrl snd_ctrl
 (
-	.clk(clk), .reset(cpu_reset), .loading(loading),
+	.clk(clk), .reset(cpu_reset), .loading(loading), .tone_en(tone_en),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
 	.cpu_wr(snd_wr), .cpu_pan(snd_pan), .cpu_voice(snd_voice), .cpu_word(snd_word), .cpu_data(snd_data), .cpu_mask(snd_mask),
 	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw),

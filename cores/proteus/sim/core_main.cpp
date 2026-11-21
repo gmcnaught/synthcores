@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
 	};
 
 	t->reset_in = 1; t->midi_in = 1; t->ioctl_wr = 0; t->ioctl_download = 0; t->ioctl_index = 1;
-	t->volume_sel = 0; t->gain_sel = 0; t->save_req = 0; t->autosave = 1; t->osd_open = 0; t->factory_reset = 0;
+	t->volume_sel = 0; t->gain_sel = 0; t->save_req = 0; t->autosave = 1; t->osd_open = 0; t->factory_reset = 0; t->tone_en = 1;
 	t->ps2_key = 0; t->joy = 0; t->sd_ack = 0; t->sd_buff_wr = 0; t->img_mounted = 0;
 	for (int i = 0; i < 64; i++) step();
 	t->reset_in = 0;

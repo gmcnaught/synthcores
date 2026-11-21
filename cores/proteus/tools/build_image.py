@@ -4,8 +4,10 @@
 Inputs (zip files, used as downloaded):
   --protologic  "Proteus 1 XR w Protologic - v2.30.zip": firmware EPROMs IP485/IP486 (v2.30) and
                 the ProtoLogic sound ROMs IP505-IP508 / IP705-IP708
-  --samples     "Proteus 1.zip": E-mu's Emulator X conversion of the Proteus/1 sound set
-                (SamplePool/*.ebl), used to rebuild the 4 MB Proteus/1 sound ROM
+  --waverom     "poprockroms.zip": dump of the Proteus/1 sound ROMs IP382-IP385 / IP402-IP405
+  --samples     (fallback when the dump is not available) "Proteus 1.zip": E-mu's Emulator X
+                conversion of the Proteus/1 sound set (SamplePool/*.ebl), used to rebuild the
+                Proteus/1 sound ROM approximately (85 % of the sample data, some of it wrong)
   --font        MAME's "hd44780.zip" (hd44780_a00.bin, the HD44780 A00 character set)
 Output: proteus_system.bin (copy to games/Proteus/ on the MiSTer, load with "Load System").
 
@@ -14,8 +16,8 @@ ROM (128 KB), 0x820000 RAM (64 KB, blank), 0x830000 font (4 KB), 0x831000 flags 
 presets on first boot). On first boot without a save file the core runs the firmware's own
 diagnostics "Initialize" to load the factory presets, then saves the RAM to the save file.
 
-Every input file is checked by SHA-1 against the known dumps before use.
-Usage: build_image.py --protologic ZIP --samples ZIP --font ZIP [-o proteus_system.bin]
+Every ROM file is checked by SHA-1 against the known dumps before use.
+Usage: build_image.py --protologic ZIP (--waverom ZIP | --samples ZIP) --font ZIP [-o proteus_system.bin]
 """
 import argparse
 import hashlib
@@ -27,8 +29,21 @@ import zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rebuild_proteus1_rom as rb  # noqa: E402
 
-# SHA-1 of the known dumps (dbwbp.com "Proteus 1 XR w Protologic - v2.30", MAME hd44780)
+# SHA-1 of the known dumps (dbwbp.com "Proteus 1 XR w Protologic - v2.30", proteus.nekoweb.org
+# "poprockroms", MAME hd44780)
+WAVE_CHIPS = {  # Proteus/1 sound ROMs: (byte lane, chip pair)
+    "IP402": ("hi", 0), "IP403": ("hi", 1), "IP404": ("hi", 2), "IP405": ("hi", 3),
+    "IP382": ("lo", 0), "IP383": ("lo", 1), "IP384": ("lo", 2), "IP385": ("lo", 3),
+}
 KNOWN = {
+    "IP382": "5eacb2208e254043676de685b545d8f17f284f5c",
+    "IP383": "c3abe07987703fe4a19f27de40ca10ae3cf6b706",
+    "IP384": "c246851b97e13fdd057fcfe0fbe6af7016a22e07",
+    "IP385": "4d662ac18bc2bd8f5fdeb45124b48a62e0ac5489",
+    "IP402": "edb714212bce3a84d5b76abbff1ac4af2961a42a",
+    "IP403": "7ff5eb2c83ea45f33b9fc8983f94b8cf7cca4d4c",
+    "IP404": "a1c02c379d97faac2680507244b863fc3730d069",
+    "IP405": "66361832d6f9a160f49068e0730a80ae65b85fe3",
     "IP486": "7e8f6474545bf24e6af318db4cd573ad05c66cbb",   # v2.30 MSB (even bytes)
     "IP485": "bcd668ac2c5ffbf43dc1c50a3bbd85a87b537845",   # v2.30 LSB (odd bytes)
     "IP505": "e7c587010713bd911b9805c8616e1e920c4307e1",
@@ -64,13 +79,16 @@ def checked(name, data):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--protologic", required=True)
-    ap.add_argument("--samples", required=True)
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--waverom", help="zip with the Proteus/1 sound ROM dump (IP382-385, IP402-405)")
+    src.add_argument("--samples", help="fallback: Emulator X 'Proteus 1.zip', rebuilds the ROM approximately")
     ap.add_argument("--font", required=True)
     ap.add_argument("-o", "--output", default="proteus_system.bin")
     a = ap.parse_args()
 
     with zipfile.ZipFile(a.protologic) as zf:
-        roms = {k: checked(k, zip_member(zf, k)) for k in KNOWN if k.startswith("IP")}
+        roms = {k: checked(k, zip_member(zf, k)) for k in KNOWN
+                if k.startswith("IP") and k not in WAVE_CHIPS}
     with zipfile.ZipFile(a.font) as zf:
         font = checked("hd44780_a00.bin", zip_member(zf, "hd44780_a00"))
 
@@ -87,21 +105,37 @@ def main():
         bank_b[2 * n + 1] = lo[n & 3][n >> 2]
     sine = [bank_b[2 * n] << 8 | bank_b[2 * n + 1] for n in range(0x150, 0x1C0)]
 
-    # Proteus/1 bank: rebuilt from the Emulator X samples, placed by the firmware's sample table
-    name, base, count = rb.detect_table(bytes(fw))
-    records = rb.load_records(bytes(fw), base, count)
-    with tempfile.TemporaryDirectory() as tmp:
-        with zipfile.ZipFile(a.samples) as zf:
-            members = [i for i in zf.infolist() if i.filename.lower().endswith(".ebl")
-                       and not os.path.basename(i.filename).startswith("._")]
-            if not members:
-                raise SystemExit(f"no .ebl samples in {a.samples}")
-            for i in members:
-                with open(os.path.join(tmp, os.path.basename(i.filename)), "wb") as out:
-                    out.write(zf.read(i))
-        samples = rb.load_ebl(tmp)
-    rom, placed, unmatched, nwritten = rb.build(records, samples, sine)
-    bank_a = rb.to_bytes(rom)
+    if a.waverom:
+        # Proteus/1 bank from the dump: same interleave as the ProtoLogic bank
+        with zipfile.ZipFile(a.waverom) as zf:
+            chips = {k: checked(k, zip_member(zf, k)) for k in WAVE_CHIPS}
+        hi = [next(chips[k] for k, (lane, p) in WAVE_CHIPS.items() if lane == "hi" and p == q) for q in range(4)]
+        lo = [next(chips[k] for k, (lane, p) in WAVE_CHIPS.items() if lane == "lo" and p == q) for q in range(4)]
+        bank_a = bytearray(0x400000)
+        for n in range(0x200000):
+            bank_a[2 * n] = hi[n & 3][n >> 2]
+            bank_a[2 * n + 1] = lo[n & 3][n >> 2]
+        bank_a = bytes(bank_a)
+        summary = "Proteus/1 bank: ROM dump"
+    else:
+        # Proteus/1 bank rebuilt from the Emulator X samples, placed by the firmware's sample table
+        name, base, count = rb.detect_table(bytes(fw))
+        records = rb.load_records(bytes(fw), base, count)
+        with tempfile.TemporaryDirectory() as tmp:
+            with zipfile.ZipFile(a.samples) as zf:
+                members = [i for i in zf.infolist() if i.filename.lower().endswith(".ebl")
+                           and not os.path.basename(i.filename).startswith("._")]
+                if not members:
+                    raise SystemExit(f"no .ebl samples in {a.samples}")
+                for i in members:
+                    with open(os.path.join(tmp, os.path.basename(i.filename)), "wb") as out:
+                        out.write(zf.read(i))
+            samples = rb.load_ebl(tmp)
+        rom, placed, unmatched, nwritten = rb.build(records, samples, sine)
+        bank_a = rb.to_bytes(rom)
+        summary = (f"Proteus/1 bank REBUILT (approximate; firmware table {name}): "
+                   f"{len(placed)} of {len(records) - 1} samples placed, {len(unmatched)} silent, "
+                   f"{nwritten * 100 // (rb.WORDS - 0x1C0)} % of sample words")
 
     img = bytearray(bank_a + bytes(bank_b))   # 0x000000
     img += fw                                  # 0x800000
@@ -110,9 +144,7 @@ def main():
     img += bytes([0x01]) + bytes(0xFFF)        # 0x831000 flags
     with open(a.output, "wb") as f:
         f.write(img)
-    print(f"{a.output}: {len(img)} bytes; firmware table {name}; Proteus/1 bank: "
-          f"{len(placed)} of {len(records) - 1} samples placed, {len(unmatched)} silent, "
-          f"{nwritten * 100 // (rb.WORDS - 0x1C0)} % of sample words")
+    print(f"{a.output}: {len(img)} bytes; {summary}")
 
 
 if __name__ == "__main__":

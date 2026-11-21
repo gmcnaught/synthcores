@@ -57,7 +57,7 @@ Register meanings: see the table below and the header of `proteus_snd.cpp`.
 | Offset | Written as | Meaning | Evidence |
 |---|---|---|---|
 | `+0x00` | long | current/start address (ROM word address) = record.start − 4 (+0x200000 for expansion bank B) | [O] `0x3964–0x396A`, `0x4902` |
-| `+0x04` | long | pitch / phase increment (`0x41000` and `0xC4000` used by ROM tests; test reads step 1 or 4 words) [I] | [O] `0x2BE0`, `0x2D86` |
+| `+0x04` | long | bits 17..0: signed increment, 12 fraction bits (Reverse Sound negates it: `neg.l; andi.l #$3FFFF`); bit 18: ROM-test step mode [I] (`0x41000`, `0xC4000`); bits 23..21: tone 0–5 (instrument base 4 for "Dark" instruments, else 0; at or above the sample root 1 + 1 per 5 semitones up, max 5) | [O] `0x2BE0`, `0x2D86`, `0x49E8–0x4A2E`, `0x3B8A–0x3BC0`, `0x33E8` |
 | `+0x08` | long | envelope: `(level << 12) | 0xC00 | rate(9 bits)` [I] | [O] `0x4882–0x4896` |
 | `+0x0C` | long | `0xFFF000` in ROM tests [U] | [O] |
 | `+0x10` | long | loop start = record.loop_start − 4 | [O] `0x48F2` |
@@ -73,4 +73,6 @@ Register meanings: see the table below and the header of `proteus_snd.cpp`.
 ## Output and level (implemented in the MAME model)
 - Output rate 39062.5 Hz = 10 MHz / 256 [O]: the frequency-response test pitches (`0x10625`, `0x1D7DC`, `0x1F213` for 10/18/19 kHz on the 64-sample sine) all give 39062 Hz with 12 fraction bits.
 - Envelope runs in firmware (timer C ISR); the chip slews a 12-bit float level (3-bit exponent, 9-bit mantissa, 0x200 per 6 dB) toward the target [I from the firmware level tables at `0x176D0`, `0x177D0`, `0x187D0`].
-- Pitch bit 18 is set only by the ROM tests; modelled as "step on CPU read of +0x18" [I]; with it the firmware's Sound ROM test passes on the real ProtoLogic dump.
+- Pitch bit 18 is set only by the ROM tests; modelled as "step on CPU read of +0x18" [I]; with it the firmware's Sound ROM test passes on both the ProtoLogic and Proteus/1 dumps.
+- Reverse Sound [O `0x39B0–0x39DA`]: start = sample end − 0x64 − sound start; loop end = previous sample's end + 9, loop start = loop end + 0x18 (a backward loop in the zero gap). Modelled: the loop wraps when the address passes loop end in the direction of travel.
+- Tone [U]: the filter it selects is unknown. Modelled [I] as a one-pole low-pass, cutoff 0.5 × 2^(−5·tone/12) cycles per source word (`tools/tone_lut.py`); OSD "Tone Filter" turns it off. Instrument table flag byte: `0x80` normal, `0x90` "Dark" (v2.30 `0x19ECE…`).

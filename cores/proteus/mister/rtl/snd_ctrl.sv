@@ -19,6 +19,7 @@ module snd_ctrl #(parameter SAMPLE_DIV = 2048)
 	input             clk,
 	input             reset,          // sound + sequencing reset
 	input             loading,        // image download in progress (DDR loader active)
+	input             tone_en,        // tone filter on (OSD)
 
 	// HPS download
 	input             ioctl_wr,
@@ -78,7 +79,7 @@ reg  [15:0] mem_s0, mem_s1;
 
 proteus_snd snd
 (
-	.clk(clk), .reset(reset),
+	.clk(clk), .reset(reset), .tone_en(tone_en),
 	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data), .wr_mask(snd_mask),
 	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(snd_data[7:0]),
 	.rd_voice(rb_start ? cpu_voice : cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),

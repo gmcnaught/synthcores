@@ -35,7 +35,7 @@ index 14b405e9..dcc3dda7 100644
  		}
  
 diff --git a/src/mame/emusys/emu68k.cpp b/src/mame/emusys/emu68k.cpp
-index d3d7d6a9..429029ce 100644
+index d3d7d6a9..8fb1fda2 100644
 --- a/src/mame/emusys/emu68k.cpp
 +++ b/src/mame/emusys/emu68k.cpp
 @@ -7,11 +7,19 @@
@@ -173,7 +173,7 @@ index d3d7d6a9..429029ce 100644
  INPUT_PORTS_END
  
  static INPUT_PORTS_START(procuss)
-@@ -181,8 +251,32 @@ void emu68k_state::proteusxr(machine_config &config)
+@@ -181,13 +251,50 @@ void emu68k_state::proteusxr(machine_config &config)
  	// TODO: NVRAM = 2x CXK5864BP-12L + DS1210 + battery?
  
  	MC68901(config, m_mfp, 40_MHz_XTAL / 4); // MC68901P
@@ -207,14 +207,32 @@ index d3d7d6a9..429029ce 100644
  
  	add_lcd(config);
  }
-@@ -199,12 +293,39 @@ ROM_START(proteusxr)
+ 
+-// TODO: all of these have sample ROMs as well (none currently dumped)
++// TODO: the other models have sample ROMs as well (not dumped)
++
++// Proteus/1 sound set: 8x 512 KB mask ROMs (AKN62314BP), 16-bit signed samples, 4-way word
++// interleave: word n = { IP40x[n >> 2], IP38x[n >> 2] }, x = 2 + (n & 3). The per-chip checksums
++// in the ROM header match.
++#define PROTEUS1_WAVES \
++	ROMX_LOAD("ip402_b0msb.bin", 0x000000, 0x80000, CRC(ecb30a59) SHA1(edb714212bce3a84d5b76abbff1ac4af2961a42a), ROM_SKIP(7)) \
++	ROMX_LOAD("ip382_b0lsb.bin", 0x000001, 0x80000, CRC(f30101b6) SHA1(5eacb2208e254043676de685b545d8f17f284f5c), ROM_SKIP(7)) \
++	ROMX_LOAD("ip403_b1msb.bin", 0x000002, 0x80000, CRC(ab2086ec) SHA1(7ff5eb2c83ea45f33b9fc8983f94b8cf7cca4d4c), ROM_SKIP(7)) \
++	ROMX_LOAD("ip383_b1lsb.bin", 0x000003, 0x80000, CRC(8df7c2d2) SHA1(c3abe07987703fe4a19f27de40ca10ae3cf6b706), ROM_SKIP(7)) \
++	ROMX_LOAD("ip404_b2msb.bin", 0x000004, 0x80000, CRC(fd8fd68a) SHA1(a1c02c379d97faac2680507244b863fc3730d069), ROM_SKIP(7)) \
++	ROMX_LOAD("ip384_b2lsb.bin", 0x000005, 0x80000, CRC(b1bea229) SHA1(c246851b97e13fdd057fcfe0fbe6af7016a22e07), ROM_SKIP(7)) \
++	ROMX_LOAD("ip405_b3msb.bin", 0x000006, 0x80000, CRC(80d1a873) SHA1(66361832d6f9a160f49068e0730a80ae65b85fe3), ROM_SKIP(7)) \
++	ROMX_LOAD("ip385_b3lsb.bin", 0x000007, 0x80000, CRC(375ca330) SHA1(4d662ac18bc2bd8f5fdeb45124b48a62e0ac5489), ROM_SKIP(7))
+ 
+ ROM_START(proteus1)
+ 	ROM_REGION16_BE(0x20000, "program", 0)
+@@ -199,12 +306,38 @@ ROM_START(proteusxr)
  	ROM_REGION16_BE(0x20000, "program", 0)
  	ROM_LOAD16_BYTE("ip441c_emu__5089.ic38", 0x00000, 0x10000, CRC(01f11633) SHA1(a0612007b22c8e06c803ee5a5bad98e3f2bc4421)) // NMC27C512AN
  	ROM_LOAD16_BYTE("ip442c_emu__5089.ic37", 0x00001, 0x10000, CRC(e8154a65) SHA1(1ec834712dc9ea4f4f01090b2fd5e558c1f08208)) // NMC27C512AN
 +
-+	// 8x 512 KB mask ROMs per 4 MB sound set; layout and order unverified
 +	ROM_REGION16_BE(0x800000, "snd", ROMREGION_ERASE00)
-+	ROM_LOAD("proteus1_waves.bin", 0x000000, 0x400000, NO_DUMP)
++	PROTEUS1_WAVES
 +ROM_END
 +
 +// Proteus/1 XR with the ProtoLogic 4 MB sound expansion (InVision Interactive)
@@ -226,7 +244,7 @@ index d3d7d6a9..429029ce 100644
 +	// Sound ROMs: 16-bit signed samples, 4-way word interleave across chip pairs:
 +	// word n = { IP70x[n >> 2], IP50x[n >> 2] }, x = 5 + (n & 3)  (verified against a WAV conversion of the set)
 +	ROM_REGION16_BE(0x800000, "snd", ROMREGION_ERASE00)
-+	ROM_LOAD("proteus1_waves.bin", 0x000000, 0x400000, NO_DUMP)
++	PROTEUS1_WAVES
 +	ROMX_LOAD("ip705.bin", 0x400000, 0x80000, CRC(9291ac91) SHA1(35c2ee0fafa9bf99643a34a610a8ab0b32a0f42d), ROM_SKIP(7))
 +	ROMX_LOAD("ip505.bin", 0x400001, 0x80000, CRC(26c3cbc5) SHA1(e7c587010713bd911b9805c8616e1e920c4307e1), ROM_SKIP(7))
 +	ROMX_LOAD("ip706.bin", 0x400002, 0x80000, CRC(e23d5890) SHA1(f02a46f2bbfa928356a0c4521b021f9fa38049b1), ROM_SKIP(7))
@@ -247,7 +265,7 @@ index d3d7d6a9..429029ce 100644
  ROM_END
  
  ROM_START(vintkeys)
-@@ -242,6 +363,7 @@ ROM_END
+@@ -242,6 +375,7 @@ ROM_END
  
  SYST(1989, proteus1,  0, 0, proteus1,  proteus1,  emu68k_state, empty_init, "E-mu Systems", "Proteus/1 16-Bit Multi-Timbral Digital Sound Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
  SYST(1989, proteusxr, 0, 0, proteusxr, proteus1,  emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
@@ -257,10 +275,10 @@ index d3d7d6a9..429029ce 100644
  SYST(1996, orbit9090, 0, 0, phatt,     orbit9090, emu68k_state, empty_init, "E-mu Systems", "Orbit 9090 - The Dance Planet", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
 diff --git a/src/mame/emusys/proteus_snd.cpp b/src/mame/emusys/proteus_snd.cpp
 new file mode 100644
-index 00000000..89c006c6
+index 00000000..1921e4c4
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.cpp
-@@ -0,0 +1,207 @@
+@@ -0,0 +1,271 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/***************************************************************************
@@ -276,10 +294,15 @@ index 00000000..89c006c6
 +    Per-voice registers (CPU 0x800000 + voice * 0x20, written as 32-bit longs,
 +    high word first):
 +      +0x00  current ROM word address, 24 bits. Firmware writes sample start - 4 [O].
-+      +0x04  pitch: bits 16..0 = increment in words per output sample, 12 fraction
-+             bits [O]. Bit 18 set only by the ROM tests: [I] "step on CPU read"
-+             (the voice advances once per read of +0x18 instead of per sample).
-+             Bits 21..23 vary per voice in normal play [U]; ignored.
++      +0x04  pitch: bits 17..0 = signed (two's complement) increment in words per
++             output sample, 12 fraction bits [O]. Reverse Sound negates it
++             (neg.l; andi.l #$3ffff at 0x49f2). Bit 18 set only by the ROM tests:
++             [I] "step on CPU read" (the voice advances once per read of +0x18
++             instead of per sample). Bits 23..21: tone, 0..5 [O: 0x3b8a..0x3bc0,
++             0x33e8], per instrument plus one step per 5 semitones of upward
++             transposition. The filter it selects is [U]; modelled [I] as a one-pole
++             low-pass with cutoff 0.5 * 2^(-5 * tone / 12) cycles per source word
++             (see tools/tone_lut.py, which generates the same table for the HDL).
 +      +0x08  envelope: bits 23..12 = target level (12-bit float), bits 11..9 mode,
 +             bits 8..0 = signed rate [O: 0x4882..0x4896]. Mode bit 9 set: [I] jump
 +             to target immediately (written at note-on with target 0). Otherwise
@@ -290,8 +313,12 @@ index 00000000..89c006c6
 +      +0x18  read: ROM word at the current position (used by the Sound ROM test) [O]
 +      +0x1c  [U] (voice 2 +0x1c = 0x27 at init: global control?); stored only.
 +
-+    Looping [I]: when the address passes loop end, subtract (loop end - loop start).
-+    Non-looping samples have their loop placed in the zero padding after the sample.
++    Looping [I]: when the address passes loop end in the direction of travel,
++    subtract (loop end - loop start). Non-looping samples have their loop placed
++    in the zero padding after the sample. Reversed voices [O: 0x39b0..0x39da]
++    start at sample end - 0x64 and get loop end = previous sample end + 9,
++    loop start = loop end + 0x18, i.e. a backward loop in the zero gap before
++    the sample.
 +
 +    Interpolation [I]: linear between the words at address+4 and address+5 (the
 +    firmware programs start - 4).
@@ -308,6 +335,8 @@ index 00000000..89c006c6
 +
 +#include "emu.h"
 +#include "proteus_snd.h"
++
++#include <cmath>
 +
 +#define LOG_REGS (1U << 1)
 +#define VERBOSE (0)
@@ -326,6 +355,20 @@ index 00000000..89c006c6
 +void proteus_snd_device::device_start()
 +{
 +	m_stream = stream_alloc(0, 2, clock() / 256);
++
++	// tone filter coefficients: index {tone[2:0], e[3:0], m[2:0]} (tools/tone_lut.py)
++	for (unsigned i = 0; i < 1024; i++)
++	{
++		const unsigned tone = i >> 7, e = (i >> 3) & 15, m = i & 7;
++		if (tone == 0 || e == 15)
++		{
++			m_tone_alpha[i] = 4096;
++			continue;
++		}
++		const double rep = e ? (8 + m + 0.5) * std::ldexp(1.0, e - 1) : (m + 0.5);
++		const double fc = 0.5 * std::pow(2.0, -5.0 * tone / 12.0) * rep / 4096.0;
++		m_tone_alpha[i] = u16(std::clamp<long>(std::lround(4096.0 * (1.0 - std::exp(-2.0 * M_PI * fc))), 0, 4096));
++	}
 +	save_item(NAME(m_regs));
 +	save_item(STRUCT_MEMBER(m_voice, addr));
 +	save_item(STRUCT_MEMBER(m_voice, frac));
@@ -335,13 +378,14 @@ index 00000000..89c006c6
 +	save_item(STRUCT_MEMBER(m_voice, loop_end));
 +	save_item(STRUCT_MEMBER(m_voice, level));
 +	save_item(STRUCT_MEMBER(m_voice, pan));
++	save_item(STRUCT_MEMBER(m_voice, lp));
 +}
 +
 +void proteus_snd_device::device_reset()
 +{
 +	std::fill(std::begin(m_regs), std::end(m_regs), 0);
 +	for (voice &vc : m_voice)
-+		vc = voice{0, 0, 0, 0, 0, 0, 0, 0x08};
++		vc = voice{0, 0, 0, 0, 0, 0, 0, 0x08, 0};
 +}
 +
 +u32 proteus_snd_device::reg_long(unsigned v, unsigned word) const
@@ -361,13 +405,37 @@ index 00000000..89c006c6
 +	return e ? ((0x200 | m) << (e - 1)) : m;
 +}
 +
++unsigned proteus_snd_device::tone_index(unsigned tone, u32 mag)
++{
++	unsigned e, m;
++	if (mag < 8)
++	{
++		e = 0;
++		m = mag;
++	}
++	else
++	{
++		unsigned p = 3; // position of the top set bit, 3..16
++		while (mag >> (p + 1))
++			p++;
++		e = p - 2;
++		m = (mag >> (p - 3)) & 7;
++	}
++	return (tone << 7) | (e << 3) | m;
++}
++
 +void proteus_snd_device::step(voice &vc)
 +{
-+	const u32 inc = vc.pitch & 0x1ffff;
-+	const u32 pos = (vc.frac & 0xfff) + (inc & 0xfff);
++	// 18-bit signed increment: integer part bits 17..12 (signed), fraction bits 11..0
++	const bool reverse = BIT(vc.pitch, 17);
++	const s32 whole = util::sext((vc.pitch >> 12) & 0x3f, 6);
++	const u32 pos = (vc.frac & 0xfff) + (vc.pitch & 0xfff);
 +	vc.frac = pos & 0xfff;
-+	vc.addr = (vc.addr + (inc >> 12) + (pos >> 12)) & ADDR_MASK;
-+	if (vc.addr > vc.loop_end && vc.loop_end >= vc.loop_start)
++	vc.addr = (vc.addr + u32(whole) + (pos >> 12)) & ADDR_MASK;
++	const bool passed = reverse
++			? (vc.addr < vc.loop_end && vc.loop_end < vc.loop_start)
++			: (vc.addr > vc.loop_end && vc.loop_end >= vc.loop_start);
++	if (passed)
 +		vc.addr = (vc.addr - (vc.loop_end - vc.loop_start)) & ADDR_MASK;
 +}
 +
@@ -402,6 +470,7 @@ index 00000000..89c006c6
 +	case 0x00 / 2: case 0x02 / 2:
 +		vc.addr = reg_long(v, 0) & ADDR_MASK;
 +		vc.frac = 0;
++		vc.lp = 0;
 +		break;
 +	case 0x04 / 2: case 0x06 / 2:
 +		vc.pitch = reg_long(v, 2);
@@ -452,7 +521,20 @@ index 00000000..89c006c6
 +			// linear interpolation at address + 4
 +			const s32 s0 = rom_word(vc.addr + 4);
 +			const s32 s1 = rom_word(vc.addr + 5);
-+			const s32 smp = s0 + (((s1 - s0) * s32(vc.frac)) >> 12);
++			s32 smp = s0 + (((s1 - s0) * s32(vc.frac)) >> 12);
++
++			// tone filter [I]: one-pole low-pass by tone (pitch bits 23..21) and |increment|
++			const unsigned tone = (vc.pitch >> 21) & 7;
++			if (tone)
++			{
++				const u32 mag = std::min<u32>(std::abs(util::sext(vc.pitch & 0x3ffff, 18)), 0x1ffff);
++				const s64 a = m_tone_alpha[tone_index(tone, mag)];
++				vc.lp += s32(((s64(smp) * 256 - vc.lp) * a) >> 12);
++				smp = vc.lp >> 8;
++			}
++			else
++				vc.lp = smp * 256;
++
 +			const s32 out = (smp * s32(level_to_gain(vc.level))) >> 16;
 +
 +			const s32 p = vc.pan & 0x0f;
@@ -470,10 +552,10 @@ index 00000000..89c006c6
 +}
 diff --git a/src/mame/emusys/proteus_snd.h b/src/mame/emusys/proteus_snd.h
 new file mode 100644
-index 00000000..c3531b2b
+index 00000000..e2561e03
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.h
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,69 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/***************************************************************************
@@ -524,17 +606,20 @@ index 00000000..c3531b2b
 +		u32 loop_end;  // NOT of register +0x14
 +		u16 level;     // current 12-bit float level
 +		u8 pan;        // 0x50000x byte
++		s32 lp;        // tone filter state (sample << 8)
 +	};
 +
 +	u32 reg_long(unsigned v, unsigned word) const;
 +	void step(voice &vc);
 +	s16 rom_word(u32 addr) const;
 +	static u32 level_to_gain(u16 level);
++	static unsigned tone_index(unsigned tone, u32 mag);
 +
 +	required_region_ptr<u16> m_waves;
 +	sound_stream *m_stream;
 +	u16 m_regs[VOICES * WORDS_PER_VOICE];
 +	voice m_voice[VOICES];
++	u16 m_tone_alpha[1024];
 +};
 +
 +DECLARE_DEVICE_TYPE(PROTEUS_SND, proteus_snd_device)
