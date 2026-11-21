@@ -84,3 +84,12 @@ Filters, effects, LEDs (2026-11-21), all approximations marked [I] in the driver
   -rompath roms` (keys listed above; master volume and knobs under Slider Controls).
 - Stress test: 400 notes on two channels with sustain and mod wheel, no clipping, ~8× real time
   headless (`build/p2k/stress.txt` pattern).
+
+Full synthetic SIMM from the Composer WAV set (2026-11-21):
+- `tools/p2k_spec_from_dir.py "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples" build/p2k/simm/composer_spec.json`
+  then `tools/p2k_build_simm.py build/p2k/simm/composer_spec.json build/p2k/simm/composer`:
+  1797 samples, 1062 instruments, 1024 presets (8 banks), 31 MB Big + 1.2 MB Baby.
+  Instrument and preset names use "cat:name" (the OS builds Sound Navigator categories from them).
+- First boot with `P2K_CLEAN=1` (~60 s emulated) builds factory-default user data; afterwards
+  bank MSB 4, LSB 0-7 + program change select the SIMM presets (verified: 5 presets in banks 0,
+  names on the LCD, audio). Instrument numbers and presets are ours, not E-mu's Composer layout.
