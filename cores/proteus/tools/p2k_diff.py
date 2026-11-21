@@ -41,9 +41,15 @@ def run(name, edits, note=60, vel=100):
     open(os.path.join(d, "script.txt"), "w").write("\n".join(script) + "\n")
     mid = os.path.join(d, "run.mid")
     subprocess.run([sys.executable, os.path.join(ROOT, "tools", "mkmidi.py"), os.path.join(d, "script.txt"), mid], check=True)
+    nv = os.path.join(ROOT, "build", "p2k", "simm", "demo", "flash_clean.nv")
+    if os.path.exists(nv):   # factory-default user data (the dump's own has MIDI channel 1 off)
+        os.makedirs(os.path.join(d, "nvram", "proteus2k"), exist_ok=True)
+        import shutil
+        shutil.copy(nv, os.path.join(d, "nvram", "proteus2k", "flash"))
     env = dict(os.environ, P2K_TRACE="1", P2K_SIMM1=os.path.join(simm, "big.bin"), P2K_BABY1=os.path.join(simm, "baby.bin"))
+    extra = ["-autoboot_script", os.environ["P2K_DIFF_LUA"]] if os.environ.get("P2K_DIFF_LUA") else []
     subprocess.run([os.path.join(ROOT, "tools", "p2k-run.sh"), "300", d, "-seconds_to_run", "29", "-midiin", mid,
-                    "-wavwrite", os.path.join(d, "out.wav")], env=env, check=True, stdout=subprocess.DEVNULL)
+                    "-wavwrite", os.path.join(d, "out.wav")] + extra, env=env, check=True, stdout=subprocess.DEVNULL)
     os.remove(os.path.join(simm, "big.bin"))
     return parse(d)
 

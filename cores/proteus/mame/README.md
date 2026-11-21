@@ -74,3 +74,13 @@ Front panel and storage (2026-11-21):
   `P2K_CLEAN=1` (first run, no NVRAM) erases the dump owner's user data so the OS builds defaults;
   let it run ~60 s emulated once.
 - MIDI Out: `-midiout` (UART1 TX).
+
+Filters, effects, LEDs (2026-11-21), all approximations marked [I] in the driver:
+- Filter: per-voice SVF classed from the OS's section patterns, cutoff from the frequency byte
+  (`P2K_NOFILTER=1` bypasses). Effects: behavioural reverb/delay/chorus/flange from the OS's
+  active FX settings (`P2K_NOFX=1` disables). Output −6 dB headroom.
+- LEDs: MAME outputs `led0`–`led15`.
+- Interactive use (window, sound): `P2K_SIMM1=… P2K_BABY1=… third_party/mame/proteus proteus2k
+  -rompath roms` (keys listed above; master volume and knobs under Slider Controls).
+- Stress test: 400 notes on two channels with sustain and mod wheel, no clipping, ~8× real time
+  headless (`build/p2k/stress.txt` pattern).

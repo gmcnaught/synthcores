@@ -144,8 +144,8 @@ and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave 
 ## Next
 Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SIMM/Baby format,
 level/pan/envelope path.
-1. H filter section (block +0x00–+0x2F at note-on; filter type/frequency/Q sweeps with
-   `tools/p2k_diff.py`; coefficient block 0x010205DC).
+1. Exact H filter arithmetic (Z-plane frame bytes) and G05 effects microcode: need hardware
+   captures or the EMU8000 effects semantics; MAME uses approximations.
 2. Sound memory flash writes (port B) for user flash SIMMs (the main user flash is done).
 3. Effects (G05 / FX RAM) and output routing (6 outputs).
 4. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
@@ -281,3 +281,27 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
 - **MIDI Out** = UART1 TX: device inquiry F0 7E 7F 06 01 F7 answers
   F0 7E 00 06 02 18 04 04 03 00 "2.26" F7 (device ID 0). E-mu parameter requests
   (F0 18 0F 00 55 02 …) answer with command 0x70 (error) [U: the edit-buffer protocol].
+
+## Filters and effects (MAME, 2026-11-21)
+- **Filter registers** [O]: per voice, three 16-byte sections at H block +0x00/+0x10/+0x20 (four
+  coefficient words, four zero words). Classic 4-pole LP = `8408 ffcf ffcf ffcf` twice; Smooth 2-pole
+  = one such section and one `ffcf ffcf ffcf ffcf` (pass); Deeper HPF puts `8004` in words 2-3; the
+  third section is `ffcf ffcf 00f2 00f2` in all non-12th-order types. Q changes the low-pass words
+  (word 0: 0x8408 / 0x6A07 / 0x5205 at Q 0 / 64 / 127). Frequency goes to the previous slot's block
+  +0x3C/+0x3E (one byte, both halves): filter frequency 0 → 0xBD, 64 → 0xFD, ≥128 → 0xFF with the
+  template's velocity cord. 12th-order types also program a second voice's block. [I] Each word is
+  a pair of Z-plane frame bytes interpolated by the frequency byte; the arithmetic is unknown.
+- **MAME filter model** [I]: sections classed LP/HP/pass from the patterns above; cutoff from the
+  frequency byte with the OS readout curve 20 kHz × (1002/1024)^(255−F); resonance from the LP word-0
+  high byte; trapezoidal 2-pole SVF per section. Not the H1.5 arithmetic.
+- **G05 = EMU8000-style effects engine** [O]: the OS holds the EMU8000 init1 table (0x0102F8C4) and
+  AWE32-shaped reverb parameter words (0x0103014A…); FX parameters go to G05 channels 0-31,
+  registers 0x28/0x2A/0x38/0x3A (the EMU8000 INIT1-4 layout [I]), with parameter bytes OR-ed into
+  table words (0x0102FA60…) and ramped over successive writes. Sends: G05 channels 0x00/0x02/0x10/
+  0x12, registers 0x14/0x16, 0x64/0x66, 0x74/0x76 change with the A/B send amounts [O, encoding U].
+- **Active FX state** [O]: pointer at 0x01120500 → +0x12 A algorithm, decay, HF damping, B→A,
+  sends 1-4; +0x1A B algorithm, feedback, LFO rate, delay (signed), sends 1-4; a copy follows at
+  +0x22 (found by DRAM dump diffs over preset FX edits).
+- **Mix output** [O]: H block +0x7B = 0x72 (Main), 0x7B (Sub 1), 0x44 (Sub 2) at note-on.
+- **MAME FX model** [I]: behavioural reverb (comb/all-pass), delay, chorus/flange/delay by algorithm
+  family, parameters from the active FX state, every voice on bus 1. Not the G05 microcode.
