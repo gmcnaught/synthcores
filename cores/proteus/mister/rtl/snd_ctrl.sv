@@ -8,6 +8,10 @@
 //    FIFO to be empty and the engine to be idle, then runs a read-back.
 //  - DDR3: image loader (byte offsets < 8 MB), sample reads, output capture
 //    ring at 0x31000000 (left/right s16 LE per sample).
+//  - Status word at 0x30FFFF00, rewritten every 4096 samples (64-bit LE):
+//    bits 31..0 samples produced, 47..32 missed sample deadlines (a tick arrived
+//    while the previous one was still pending), 63..48 worst clocks from a tick
+//    to its sample (of 2048 available).
 //============================================================================
 
 module snd_ctrl #(parameter SAMPLE_DIV = 2048)
@@ -58,6 +62,7 @@ module snd_ctrl #(parameter SAMPLE_DIV = 2048)
 
 localparam [28:0] DDR_BASE  = 29'h6000000;          // 0x30000000 >> 3
 localparam [28:0] CAPT_BASE = DDR_BASE + 29'h200000; // 0x31000000
+localparam [28:0] STAT_ADDR = DDR_BASE + 29'h1FFFE0; // 0x30FFFF00
 
 // ---------------------------------------------------------------- sound chip
 reg         snd_wr, pan_wr, snd_start, rb_start;
@@ -103,6 +108,11 @@ reg         cap_half;
 reg  [63:0] cap_word;
 reg         cap_pend;
 reg  [20:0] cap_ptr;
+reg  [31:0] st_samples;
+reg  [15:0] st_missed;
+reg  [15:0] st_worst;
+reg  [15:0] st_busy;         // clocks since the current tick
+reg         st_pend;
 
 // ---------------------------------------------------------------- DDR arbiter
 localparam M_IDLE = 2'd0, M_ISSUE = 2'd1, M_READ = 2'd2;
@@ -127,6 +137,10 @@ always @(posedge clk) begin
 		end
 		else if (cap_pend) begin
 			m_client <= 2'd1; DDRAM_ADDR <= CAPT_BASE + {8'd0, cap_ptr}; DDRAM_DIN <= cap_word;
+			DDRAM_BURSTCNT <= 8'd1; DDRAM_WE <= 1; m_state <= M_ISSUE;
+		end
+		else if (st_pend) begin
+			m_client <= 2'd2; DDRAM_ADDR <= STAT_ADDR; DDRAM_DIN <= {st_worst, st_missed, st_samples};
 			DDRAM_BURSTCNT <= 8'd1; DDRAM_WE <= 1; m_state <= M_ISSUE;
 		end
 		else if (mem_req && !mem_ack) begin
@@ -219,13 +233,24 @@ always @(posedge clk) begin
 		cap_ptr      <= 0;
 		out_l        <= 0;
 		out_r        <= 0;
+		st_samples   <= 0;
+		st_missed    <= 0;
+		st_worst     <= 0;
+		st_busy      <= 0;
+		st_pend      <= 0;
 	end
 	else begin
 		if (cpu_wr && !cpu_wr_full) f_wp <= f_wp + 1'd1;
 		if (cpu_rb) rb_pending <= 1;
 
-		if (div == SAMPLE_DIV - 1) begin div <= 0; tick_pending <= 1; end
+		if (div == SAMPLE_DIV - 1) begin
+			div <= 0;
+			tick_pending <= 1;
+			if (tick_pending) st_missed <= st_missed + 1'd1;
+		end
 		else div <= div + 1'd1;
+		if (st_busy != 16'hFFFF) st_busy <= st_busy + 1'd1;
+		if (wr_done && m_client == 2'd2) st_pend <= 0;
 
 		if (wr_done && m_client == 2'd1) begin
 			cap_pend <= 0;
@@ -236,6 +261,7 @@ always @(posedge clk) begin
 		Q_IDLE:
 			if (tick_pending) begin
 				tick_pending <= 0;
+				st_busy <= 0;
 				q_state <= Q_DRAIN;
 			end
 			else if (rb_pending && f_empty && !snd_busy && wgap == 0) begin
@@ -261,6 +287,9 @@ always @(posedge clk) begin
 				out_l <= snd_l;
 				out_r <= snd_r;
 				sample_strobe <= 1;
+				st_samples <= st_samples + 1'd1;
+				if (st_busy > st_worst) st_worst <= st_busy;
+				if (st_samples[11:0] == 12'hFFF) st_pend <= 1;
 				if (!cap_half) begin
 					cap_lo   <= {snd_r, snd_l};
 					cap_half <= 1;

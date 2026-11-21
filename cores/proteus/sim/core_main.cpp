@@ -107,6 +107,11 @@ int main(int argc, char **argv) {
 	while (cycle < end) { step(); sd_service(); }
 	fclose(wlog);
 	fprintf(stderr, "%.3f s; restored %d chunks, saved %d chunks\n", cycle / CLK, restored_chunks, saved_chunks);
+	{
+		uint64_t st = 0; for (int i = 0; i < 8; i++) st |= uint64_t(mem[0xFFFF00 + i]) << (8 * i);
+		fprintf(stderr, "status: samples %u, missed %u, worst %u clocks of 2048\n",
+		        unsigned(st & 0xFFFFFFFF), unsigned(st >> 32 & 0xFFFF), unsigned(st >> 48));
+	}
 	if (saved_chunks) { FILE *s = fopen(argv[5], "wb"); fwrite(save.data(), 1, save.size(), s); fclose(s); }
 	delete t;
 	return 0;
