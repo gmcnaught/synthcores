@@ -257,12 +257,12 @@ index d3d7d6a9..429029ce 100644
  SYST(1996, orbit9090, 0, 0, phatt,     orbit9090, emu68k_state, empty_init, "E-mu Systems", "Orbit 9090 - The Dance Planet", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
 diff --git a/src/mame/emusys/proteus_snd.cpp b/src/mame/emusys/proteus_snd.cpp
 new file mode 100644
-index 00000000..0656ce8d
+index 00000000..89c006c6
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.cpp
-@@ -0,0 +1,206 @@
+@@ -0,0 +1,207 @@
 +// license:BSD-3-Clause
-+// copyright-holders:emu-proteus-2k-MiSTer contributors
++// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/***************************************************************************
 +
 +    E-mu Proteus/1 sound generator (custom chip, 32 voices)
@@ -462,19 +462,20 @@ index 00000000..0656ce8d
 +			if (!BIT(vc.pitch, 18))
 +				step(vc);
 +		}
-+		// 32 voices at full scale would be 32x; leave 4x headroom before clipping
-+		stream.put_int_clamp(0, i, s32(left / 15 / 4), 32768);
-+		stream.put_int_clamp(1, i, s32(right / 15 / 4), 32768);
++		// pan weights sum to 15; >> 6 (arithmetic) leaves ~4x headroom for 32 voices.
++		// Power-of-two scaling so the HDL matches this model sample for sample.
++		stream.put_int_clamp(0, i, s32(left >> 6), 32768);
++		stream.put_int_clamp(1, i, s32(right >> 6), 32768);
 +	}
 +}
 diff --git a/src/mame/emusys/proteus_snd.h b/src/mame/emusys/proteus_snd.h
 new file mode 100644
-index 00000000..44987e8b
+index 00000000..c3531b2b
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.h
 @@ -0,0 +1,66 @@
 +// license:BSD-3-Clause
-+// copyright-holders:emu-proteus-2k-MiSTer contributors
++// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/***************************************************************************
 +
 +    E-mu Proteus/1 sound generator (custom chip, 32 voices)
