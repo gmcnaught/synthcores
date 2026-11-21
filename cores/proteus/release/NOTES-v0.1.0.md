@@ -28,11 +28,14 @@ OSD open, Factory Reset Presets.
   MAME from power-on; MIDI note-on programs MAME's exact voice parameters.
 - On a MiSTer: boots to `000 Stereo Piano`; MIDI plays at correct pitch (C4 = 262.2 Hz); front panel
   and LEDs; first-boot preset initialisation, save, and restore across reloads.
-- Soak test: SOAK_RESULT
+- Soak test on a MiSTer: 30 minutes of dense random MIDI on 16 channels (14,829 bursts: chords,
+  voice stealing beyond 32 voices, program changes, pitch bend, CC7/CC10): 0 missed sample
+  deadlines, worst case 1,257 of 2,048 clocks per sample, sample count matches 39,062.5 Hz exactly;
+  the firmware stayed responsive and had applied the CC7/CC10 changes (`Vol122 Pan+5`).
 
 ## Known limits
 - The main Proteus/1 sound ROM is rebuilt from E-mu's Emulator X conversion, not a dump: 164 of 193
   samples placed (85 % of sample data); the rest are silent, mostly drum one-shots.
 - Sound-chip interpolation, envelope slew and pan law are inferred, not compared with a real unit.
-- Untested so far: assignable MIDI controllers, SysEx, multitimbral setups.
+- Not yet verified: assignable controllers A–D, SysEx, multitimbral setups (CC7 volume and CC10 pan work).
 - Only XR v2.30 + ProtoLogic is supported.

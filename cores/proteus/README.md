@@ -40,9 +40,9 @@ and saves the presets to `saves/Proteus/proteus_system.sav`. Later boots restore
 
 ## MIDI
 Set the core's UART mode to **MIDI** in the OSD and connect a USB MIDI keyboard to the MiSTer
-(MidiLink). Notes and program changes are tested; the Proteus/1's other MIDI features
-(16-channel multitimbral setup, pitch bend, assignable controllers A–D, SysEx) come from the
-original firmware and have not been tested on the core yet.
+(MidiLink). Notes, program changes, CC7 (volume) and CC10 (pan) are tested; the Proteus/1's other
+MIDI features (multitimbral setups, assignable controllers A–D, SysEx) come from the original
+firmware and have not been verified on the core yet.
 
 ## Controls
 | Front panel | Keyboard | Joystick |
