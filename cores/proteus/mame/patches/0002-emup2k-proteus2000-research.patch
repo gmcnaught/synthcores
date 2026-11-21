@@ -13,17 +13,21 @@ index 667a3bab..abdc62e8 100644
  #define INT_LEVEL(N)    ((N&0x1c) >> 2)
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..b3011bb4
+index 00000000..f3851c42
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,363 @@
+@@ -0,0 +1,553 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
 +    E-mu Proteus 2000 (1999) - research skeleton
 +
-+    Boots the boot block of a v1.24 flash dump and the OS it holds, with every
-+    device stubbed and logged. The memory map comes from the firmware
++    Boots the boot block of a v1.24 flash dump and OS 2.26 (from p2k226.dli), with the
++    devices stubbed and logged. Sound ROM SIMMs are loaded from files named by the environment
++    variables P2K_SIMM1..4 (Big: samples + EOS header) and P2K_BABY1..4 (Baby: the Proteus
++    "lib_" library); tools/p2k_build_simm.py builds synthetic ones. MIDI In A is UART1.
++    p2k_g20_device plays the voices (address, loop, pitch; no envelopes, filters or effects).
++    The memory map comes from the firmware
 +    (docs/p2k-findings.md in the emu-proteus-xr-MiSTer repository):
 +
 +    CPU: Motorola MCF5206e, MBAR 0x20000000 (clock not measured)
@@ -38,7 +42,7 @@ index 00000000..b3011bb4
 +                +0x1C/+0x1E sound-memory read data A/B, +0x30/+0x34 read address (word) A/B
 +    0x00800000  panel input (bit 8 = button, active low)
 +    0x00900000, 0x00A00000  LED latches
-+    0x00B00000  control latch
++    0x00B00000  control latch; bit 6 selects the SIMM Baby device for sound-memory access
 +    0x00C00000  CS6 (unknown, 8-bit)
 +    0x00F00000  board ID (word)
 +
@@ -48,9 +52,13 @@ index 00000000..b3011bb4
 +#include "emu.h"
 +#include "cpu/m68000/mcf5206e.h"
 +#include "video/hd44780.h"
++#include "bus/midi/midi.h"
 +#include "emupal.h"
 +#include "screen.h"
 +#include "speaker.h"
++
++#include <cstdlib>
++#include <fstream>
 +
 +#define LOG_IO    (1U << 1)
 +#define LOG_G05   (1U << 2)
@@ -61,6 +69,103 @@ index 00000000..b3011bb4
 +#define VERBOSE   (LOG_IO | LOG_G05 | LOG_LCD | LOG_SND)
 +#include "logmacro.h"
 +
++// ---------------------------------------------------------------- G20 voice model (research)
++// Behavioural model from the OS 2.26 voice programming (docs/p2k-findings.md, docs/p2k-lib-formats.md):
++//   +0x18 long  current word address (26 bits); a write restarts the voice there [O 0x0103282A]
++//   +0x04 long  bits 31-16: phase increment, 4.12 fixed point (0x1000 = 1 word per output sample)
++//               [O: notes 60/72 on samples at 18000/20000 Hz give 0x629/0x6D9 at 44.1 kHz]
++//   +0x0C long  NOT(loop end), low 26 bits [O]
++//   +0x14 long  bit 26 set: loop start of the sample; clear: address to jump to after the loop end
++//               (release / one-shot end into the idle silence loop at SIMM header word 0x27+8) [O/I]
++//   +0x08 long  low 26 bits NOT(end of the idle loop) used after such a jump [I]
++// Not modelled: amplitude envelopes, pan, H-chip filters and effects (constant gain) [U].
++class p2k_g20_device : public device_t, public device_sound_interface
++{
++public:
++	p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	void set_memory(const u16 *regs, const u16 *mem, u32 words) { m_regs = regs; m_mem = mem; m_words = words; }
++	void restart(int voice);
++	void update() { m_stream->update(); }
++	u32 address(int v) { m_stream->update(); return m_addr[v]; }
++
++protected:
++	virtual void device_start() override ATTR_COLD;
++	virtual void sound_stream_update(sound_stream &stream) override;
++
++private:
++	u32 reg32(int v, int r) const { return (u32(m_regs[v * 32 + r / 2]) << 16) | m_regs[v * 32 + r / 2 + 1]; }
++	s16 mem(u32 a) const { return a < m_words ? s16(m_mem[a]) : 0; }
++
++	sound_stream *m_stream = nullptr;
++	const u16 *m_regs = nullptr;
++	const u16 *m_mem = nullptr;
++	u32 m_words = 0;
++	u32 m_addr[128]{};
++	u32 m_frac[128]{};
++	bool m_idle[128]{};
++};
++
++DEFINE_DEVICE_TYPE(P2K_G20, p2k_g20_device, "p2k_g20", "E-mu Proteus 2000 G20 voice model (research)")
++
++p2k_g20_device::p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: device_t(mconfig, P2K_G20, tag, owner, clock)
++	, device_sound_interface(mconfig, *this)
++{
++}
++
++void p2k_g20_device::device_start()
++{
++	m_stream = stream_alloc(0, 2, clock());
++	save_item(NAME(m_addr));
++	save_item(NAME(m_frac));
++	save_item(NAME(m_idle));
++}
++
++void p2k_g20_device::restart(int v)
++{
++	m_addr[v] = reg32(v, 0x18) & 0x3ffffff;
++	m_frac[v] = 0;
++	m_idle[v] = false;
++}
++
++void p2k_g20_device::sound_stream_update(sound_stream &stream)
++{
++	if (!m_regs)
++		return;
++	for (int i = 0; i < stream.samples(); i++)
++	{
++		s32 sum = 0;
++		for (int v = 0; v < 128; v++)
++		{
++			const u32 inc = reg32(v, 0x04) >> 16;
++			if (!inc)
++				continue;
++			const u32 a = m_addr[v];
++			const s32 s0 = mem(a), s1 = mem(a + 1);
++			sum += s0 + (((s1 - s0) * s32(m_frac[v])) >> 12);
++			u32 f = m_frac[v] + inc;
++			u32 na = a + (f >> 12);
++			m_frac[v] = f & 0xfff;
++			const u32 next = reg32(v, 0x14);
++			const u32 le = m_idle[v] ? (~reg32(v, 0x08) & 0x3ffffff) : (~reg32(v, 0x0c) & 0x3ffffff);
++			if (na > le)
++			{
++				const u32 ls = next & 0x3ffffff;
++				if (!BIT(next, 26))
++					m_idle[v] = true;
++				const u32 over = (na - le - 1);
++				const u32 len = m_idle[v] ? 1 : std::max<u32>(1, le + 1 - ls);
++				na = ls + (m_idle[v] ? 0 : over % len);
++			}
++			m_addr[v] = na & 0x3ffffff;
++		}
++		stream.put_int_clamp(0, i, sum >> 3, 32768);
++		stream.put_int_clamp(1, i, sum >> 3, 32768);
++	}
++}
++
++
 +namespace {
 +
 +class emup2k_state : public driver_device
@@ -70,12 +175,14 @@ index 00000000..b3011bb4
 +		: driver_device(mconfig, type, tag)
 +		, m_maincpu(*this, "maincpu")
 +		, m_lcdc(*this, "lcdc")
-+		, m_sound(*this, "sound")
++		, m_sound(*this, "simm")
 +		, m_panel(*this, "PANEL")
++		, m_voice(*this, "g20")
 +	{ }
 +
 +	void proteus2k(machine_config &config) ATTR_COLD;
 +	void init_proteus2k() ATTR_COLD;
++	void load_simms() ATTR_COLD;
 +
 +protected:
 +	virtual void machine_start() override ATTR_COLD;
@@ -101,18 +208,24 @@ index 00000000..b3011bb4
 +	u16 panel_r();
 +	void led_w(offs_t offset, u8 data);
 +	u16 boardid_r();
++	void midi_rx_w(int state);
 +	TIMER_CALLBACK_MEMBER(lcd_dump);
 +
 +	required_device<mcf5206e_device> m_maincpu;
 +	required_device<hd44780_device> m_lcdc;
 +	optional_region_ptr<u16> m_sound;
 +	required_ioport m_panel;
++	required_device<p2k_g20_device> m_voice;
 +
 +	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
 +	u16 m_g05_index = 0;
 +	u16 m_g05[32][64]{};
 +	u16 m_g20[128][32]{};                 // 64-byte voice blocks
 +	u32 m_snd_addr[2]{};
++	u16 m_snd_latch[2]{};
++	std::vector<u16> m_baby;              // Baby flash/ROM of each SIMM (1 M words a slot)
++	bool m_baby_sel = false;
++	int m_midi_rx = 1;              // latch 0xB00000 bit 6 [O: 0x01035944 on / 0x01035968 off]
 +	u8 m_leds[3]{};
 +	u32 m_open_bus = 0;
 +	u8 m_scan_row = 0, m_scan_in = 0x00;
@@ -133,6 +246,7 @@ index 00000000..b3011bb4
 +	save_item(NAME(m_g20));
 +	save_item(NAME(m_snd_addr));
 +	save_item(NAME(m_leds));
++	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length());
 +	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
 +	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
 +}
@@ -149,6 +263,7 @@ index 00000000..b3011bb4
 +	// exception at 0x02000DFE.
 +	u32 *rom = reinterpret_cast<u32 *>(memregion("flash")->base());
 +	u32 &w = rom[0xdfc / 4];   // 32-bit region words: 0x000DFC-0x000DFF
++	load_simms();
 +	if ((w & 0xffff) == 0x4e38)
 +		w = (w & 0xffff0000) | 0x4eb9;
 +	else
@@ -161,7 +276,44 @@ index 00000000..b3011bb4
 +		const u32 len = (dli[0x30 - 8] << 24) | (dli[0x30 - 7] << 16) | (dli[0x30 - 6] << 8) | dli[0x30 - 5];
 +		for (u32 i = 0; i < len; i += 4)
 +			rom[(0x10100 + i) / 4] = (dli[0x1a0 + i] << 24) | (dli[0x1a1 + i] << 16) | (dli[0x1a2 + i] << 8) | dli[0x1a3 + i];
++		// The 1.24 boot block leaves start mode 0x1E in the DRAM mailbox 0x010003FC (0x020033CA).
++		// OS 2.26 reads it at 0x010009B0 and treats bits 0x16 as "commit the OS to flash": it stops
++		// at "Press Enter to commit OS to flash" (0x0107A414). Make 2.26 read 0 (normal start):
++		// move.l (1020,a3),d7 -> moveq #0,d7; nop. Research patch, only with the overlay.
++		if (rom[(0x10100 + 0x9b0) / 4] == 0x2e2b03fc)
++			rom[(0x10100 + 0x9b0) / 4] = 0x7e004e71;
 +		logerror("OS image from p2k226.dli (%u bytes) placed at flash 0x010100\n", len);
++	}
++}
++
++// Research only: sound ROM SIMM images (big-endian byte files, up to 32 MB each) from the
++// environment variables P2K_SIMM1..P2K_SIMM4 (slots 1-4; slot n at word address (n-1) << 24).
++void emup2k_state::load_simms()
++{
++	m_baby.assign(4 << 20, 0xffff);
++	for (int slot = 0; slot < 4; slot++)
++	{
++		const char *path = std::getenv(util::string_format("P2K_BABY%d", slot + 1).c_str());
++		if (!path || !*path)
++			continue;
++		std::ifstream f(path, std::ios::binary);
++		std::vector<u8> b((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
++		const size_t words = std::min<size_t>(b.size() / 2, 1 << 20);
++		for (size_t i = 0; i < words; i++)
++			m_baby[(slot << 20) + i] = (b[2 * i] << 8) | b[2 * i + 1];
++		logerror("Baby slot %d: %s, %u bytes\n", slot + 1, path, unsigned(b.size()));
++	}
++	for (int slot = 0; slot < 4; slot++)
++	{
++		const char *path = std::getenv(util::string_format("P2K_SIMM%d", slot + 1).c_str());
++		if (!path || !*path)
++			continue;
++		std::ifstream f(path, std::ios::binary);
++		std::vector<u8> b((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
++		const size_t words = std::min<size_t>(b.size() / 2, 0x1000000);
++		for (size_t i = 0; i < words; i++)
++			m_sound[(slot << 24) + i] = (b[2 * i] << 8) | b[2 * i + 1];
++		logerror("SIMM slot %d: %s, %u bytes\n", slot + 1, path, unsigned(b.size()));
 +	}
 +}
 +
@@ -274,12 +426,26 @@ index 00000000..b3011bb4
 +	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
 +	if (reg == 0x1c || reg == 0x1e)
 +	{
++		// Pipelined [O: the OS discards one word (tst.w +0x1C) after every address write]: a read
++		// returns the latched word and fetches the next one.
 +		const int port = reg == 0x1e;
 +		const u32 a = m_snd_addr[port];
++		const u16 v = m_snd_latch[port];
 +		m_snd_addr[port] = (a + 1) & 0x3ffffff;
-+		if (m_sound && a < m_sound.length())
-+			return m_sound[a];
-+		return 0;
++		if (m_baby_sel)
++		{
++			// [I] Baby device: same slot decode (bits 25-24 of the word address), 1 M words
++			const u32 off = a & 0xffffff;
++			m_snd_latch[port] = off < (1 << 20) ? m_baby[((a >> 24) & 3) << 20 | off] : 0xffff;
++		}
++		else
++			m_snd_latch[port] = (m_sound && a < m_sound.length()) ? m_sound[a] : 0;
++		return v;
++	}
++	if (reg == 0x18 || reg == 0x1a)
++	{
++		const u32 a = m_voice->address(voice);   // [I] current address read back live
++		return reg == 0x18 ? a >> 16 : a & 0xffff;
 +	}
 +	return m_g20[voice][offset & 31];
 +}
@@ -289,15 +455,30 @@ index 00000000..b3011bb4
 +	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
 +	if (reg == 0x3e)
 +		data &= 0x03ff;     // boot test writes 0x8211, expects 0x0211 [I: width unknown]
++	m_voice->update();
 +	COMBINE_DATA(&m_g20[voice][offset & 31]);
++	if (reg == 0x1a)
++		m_voice->restart(voice);
 +	if (reg == 0x30 || reg == 0x32)
++	{
 +		m_snd_addr[0] = ((m_g20[voice][0x30 / 2] << 16) | m_g20[voice][0x32 / 2]) & 0x3ffffff;
++		if (reg == 0x32)
++			LOGMASKED(LOG_SND, "%s: sound read address A = %07x (byte %08x)\n", machine().describe_context(), m_snd_addr[0], m_snd_addr[0] * 2);
++	}
 +	else if (reg == 0x34 || reg == 0x36)
 +		m_snd_addr[1] = ((m_g20[voice][0x34 / 2] << 16) | m_g20[voice][0x36 / 2]) & 0x3ffffff;
 +	LOGMASKED(LOG_G20, "%s: G20 v%03d reg %02x = %04x\n", machine().describe_context(), voice, reg, data);
 +}
 +
 +// ---------------------------------------------------------------- panel / misc
++
++void emup2k_state::midi_rx_w(int state)
++{
++	if (m_midi_rx != state)
++		LOGMASKED(LOG_IO, "MIDI rx %d\n", state);
++	m_midi_rx = state;
++	m_maincpu->rx1_w(state);
++}
 +
 +u16 emup2k_state::panel_r()
 +{
@@ -329,7 +510,7 @@ index 00000000..b3011bb4
 +	map(0x00800000, 0x00800001).r(FUNC(emup2k_state::panel_r));
 +	map(0x00900000, 0x00900000).lw8(NAME([this] (u8 d) { led_w(0, d); }));
 +	map(0x00a00000, 0x00a00000).lw8(NAME([this] (u8 d) { led_w(1, d); }));
-+	map(0x00b00000, 0x00b00000).lw8(NAME([this] (u8 d) { led_w(2, d); }));
++	map(0x00b00000, 0x00b00000).lw8(NAME([this] (u8 d) { led_w(2, d); m_baby_sel = BIT(d, 6); }));
 +	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_scan_in; }), NAME([this] (u8 d) { m_scan_row = d; })); // [I] panel key matrix: row 0x08-0x0F out, columns in
 +	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
 +	map(0x01000000, 0x017fffff).ram();
@@ -349,7 +530,7 @@ index 00000000..b3011bb4
 +
 +void emup2k_state::proteus2k(machine_config &config)
 +{
-+	MCF5206E(config, m_maincpu, 33'000'000); // TODO: clock not measured
++	MCF5206E(config, m_maincpu, 33'000'000); // [O] OS 2.26 computes UART baud rates from 33000000 (0x0100B07A)
 +	m_maincpu->set_addrmap(AS_PROGRAM, &emup2k_state::mem_map);
 +
 +	screen_device &screen(SCREEN(config, "screen").set_lcd());
@@ -365,7 +546,13 @@ index 00000000..b3011bb4
 +	m_lcdc->set_lcd_size(2, 24);
 +	m_lcdc->set_pixel_update_cb(FUNC(emup2k_state::lcd_pixel_update));
 +
++	// MIDI In A on UART1 [O: OS 2.26 0x0100B070 sets up UART1 (MBAR+0x140) and UART2 (+0x180) with a 33 MHz clock]
++	MIDI_PORT(config, "mdin", midiin_slot, "midiin").rxd_handler().set(FUNC(emup2k_state::midi_rx_w));
++
 +	SPEAKER(config, "speaker", 2).front();
++	P2K_G20(config, m_voice, 44'100); // [I] output rate 44.1 kHz (P2K specification); clock source not traced
++	m_voice->add_route(0, "speaker", 1.0, 0);
++	m_voice->add_route(1, "speaker", 1.0, 1);
 +}
 +
 +ROM_START( proteus2k )
@@ -375,11 +562,14 @@ index 00000000..b3011bb4
 +	// Optional: OS 2.26 E-Loader file; when present its image replaces the flash OS at 0x010100.
 +	ROM_REGION( 0x82a28, "dli", ROMREGION_ERASE00 )
 +	ROM_LOAD_OPTIONAL( "p2k226.dli", 0x000000, 0x82a28, CRC(9ed58354) SHA1(932acd05bdcfdf8442f35428f6261a262c04d3ca) )
++
++	// Sound memory: 4 SIMM slots of 32 MB (16 M words each). No dumps exist; filled by load_simms().
++	ROM_REGION16_BE( 0x8000000, "simm", ROMREGION_ERASE00 )
 +ROM_END
 +
 +} // anonymous namespace
 +
-+SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
++SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
 diff --git a/src/mame/mame.lst b/src/mame/mame.lst
 --- a/src/mame/mame.lst
 +++ b/src/mame/mame.lst
