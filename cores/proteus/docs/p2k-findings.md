@@ -182,3 +182,45 @@ TH28F160 dump of a v1.24 unit, `proteus-2k-v124-28f160.bin`, SHA-1
   (`0x02004E60`, CRC-32 table at 0x020060D0, initial value 0) does not match the stored
   0xF29AF737 in our computation [U: further read errors in the OS region, or a different range].
 - **OS 2.26** (from the .dli, placed at flash 0x010100) runs to "No Sound Roms detected".
+
+## SIMM detection and the Baby device (MAME, 2026-11-21)
+- **Read port pipeline** [O]: after every address write to G20 +0x30 the OS discards one word
+  (`tst.w +0x1C`, `0x01031F24`, `0x01032044`). The MAME model returns the latched word and fetches
+  the next; with it the header and block checksums of a synthetic SIMM pass.
+- **Start-mode mailbox** [O]: the 1.24 boot block stores 0x1E at DRAM 0x010003FC (`0x020033CA`);
+  OS 2.26 reads it at `0x010009B0`, and bits 0x16 send it to "Press Enter to commit OS to flash"
+  (`0x0107A414`). The 1.24 boot block sets 0x1E when its directory check (`0x020036A4`, names
+  "ROMLIB"/"ROM") fails. The research driver patches 2.26 to read 0 (normal start).
+- **ROM ID** (header +0x3E) [O]: 0 means a flash SIMM identified by +0x5AA ("EROM V1.2" → 1,
+  "EROM 2 V1.0A" → 2); otherwise the long is the ID. The Sound Authoring guide (E-mu FI10993)
+  reserves 106–119 for user flash SIMMs and says the ID is the bank-select MSB.
+- **Big and Baby memory** [O]: E-mu's Sound Authoring guide says a SIMM holds "Big Flash" (sample
+  data and EOS presets) and "Baby Flash" (Proteus sample headers, instruments, default presets).
+  The OS selects Baby with latch 0xB00000 bit 6 (`0x01035944` sets it, `0x01035968` clears it)
+  around reads in the same sound-memory window. Every slot is first probed for a JEDEC flash
+  (`0x0102DAF0`, 16-bit, 0xAAAA/0x5555/0x9090; Intel 0x89 or Sharp 0xB0 accepted); otherwise
+  the OS opens a read-only library at Baby offset 0x10, size 0x1FFFF0 (`0x0100DDF4`).
+- **Baby library** [O]: the same `lib_` container as the flash user banks (flash 0xA0000
+  `lib_USER`): 16-byte header, then objects {4cc, u32 length incl. 12-byte header, u16 id,
+  u16 flags}. SIMM object types: `yh_1` (library header: ROM ID, short name), `yp_1` (presets,
+  980 bytes = user `pr01` data), `ys_1` (sample headers, 52 bytes), `yi_1` (instruments),
+  `yd_1`, `ya_1` (141 bytes), `yr_1`. Field layouts: docs/p2k-lib-formats.md.
+- **MIDI In A** = ColdFire UART1 (UBG 33, 31250 baud from 33 MHz) [O]; MAME's MIDI file player
+  starts 10 s after power-on, and the OS shows its main screen at about 20 s.
+
+## Voice playback (G20) from a note-on [O unless marked]
+MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice per note
+(`0x010327E0` and following):
+- +0x18 = sample start (26-bit word address; slot base + ys_1 start), written last in the start
+  sequence; +0x14 = 0x04000000 | loop start; +0x0C = NOT(loop end); +0x00 = 0x1800; +0x20–0x2E = 0.
+- +0x04 bits 31-16 = phase increment, 4.12 fixed point: (pitch & 0x3FFFF) << 16 (`0x0103271C`);
+  +0x10 gets the same value in its high half. +0x08 bits 31-26 = a value from the table at
+  0x0112069C indexed by increment >> 10 [I: interpolation/anti-alias selector, like the
+  Proteus/1 "tone"]. Notes 60 and 72 on samples at 18000 and 20000 Hz (roots 61, 73) gave
+  0x629 and 0x6D9 = rate / 44100 × 2^((note − root)/12) × 4096, so the output rate is 44.1 kHz [I].
+- Note-off: +0x14 = idle-loop start (0x2F, bit 26 clear), +0x08 low 26 bits = NOT(idle-loop
+  end 0x43), +0x04 low 10 bits = 0x300, +0x10 = 0xA2 [O]; meaning of the last two [U].
+- No CPU-driven envelope steps follow the note-on [O]: envelopes run in hardware [I]. The H chip
+  gets per-voice writes at note-on (voice blocks at 0x500700/0x502700…: 0x...780–0x...7AE filter
+  sections, 0x...73C/0x...73E, 0x...7B0–0x...7B6, 0x...7F0/0x...7F2) [O], layout [U].
+- MAME `p2k_g20_device`: plays address/loop/pitch with linear interpolation and constant gain.

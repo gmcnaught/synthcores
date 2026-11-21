@@ -47,3 +47,17 @@ Verified 2026-11-21:
 - With `p2k226.dli`: OS 2.26 shows "E-mu Systems, Inc. presents", passes its G chip, G05 and FX RAM
   tests, reports "No Sound Roms detected" and idles (0x010372DC, RTOS idle task).
 - With the dump's own OS 1.24: "Fatal: Bus Address error" (jump to 0x00044EB9) after start-up.
+
+Verified 2026-11-21 (synthetic SIMM, OS 2.26):
+- Build a SIMM from WAVs: `tools/p2k_build_simm.py tests/p2k_simm_demo.json build/p2k/simm/demo`
+  (spec paths point at the local, git-ignored sample set in `roms/_src/p2k/mf/`). Run with
+  `P2K_SIMM1=$PWD/build/p2k/simm/demo/big.bin P2K_BABY1=$PWD/build/p2k/simm/demo/baby.bin
+  tools/p2k-run.sh 300 build/p2k/run -seconds_to_run 32 -midiin $PWD/build/p2k/p2k_demo.mid
+  -wavwrite $PWD/build/p2k/run/demo.wav` (MIDI from `tools/mkmidi.py tests/midi/p2k_demo.txt`).
+- The OS accepts the SIMM (header, 8 block checksums, Baby library), shows bank "P2Ksy" on the
+  main screen, takes bank select MSB 4 + program change from MIDI In A, and plays: note 60 on
+  the piano instrument is periodic at 261.6 Hz, note 72 at 523.3 Hz, A4 on preset 1 "wav:Sine"
+  at 440 Hz.
+- Not modelled: amplitude envelopes, pan, filters, effects (H chip, G05). The user flash is
+  read-only, so the OS reports "FlashInit error" at start-up and continues.
+
