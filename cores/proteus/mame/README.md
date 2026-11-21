@@ -58,6 +58,11 @@ Verified 2026-11-21 (synthetic SIMM, OS 2.26):
   main screen, takes bank select MSB 4 + program change from MIDI In A, and plays: note 60 on
   the piano instrument is periodic at 261.6 Hz, note 72 at 523.3 Hz, A4 on preset 1 "wav:Sine"
   at 440 Hz.
-- Not modelled: amplitude envelopes, pan, filters, effects (H chip, G05). The user flash is
-  read-only, so the OS reports "FlashInit error" at start-up and continues.
+- Levels: the knob ADC at 0xC00000 is modelled (MAME adjusters; master volume defaults to full).
+  The OS then writes per-voice level bytes and the model applies them: layer volume −20 dB →
+  −18 dB, pan, velocity, the factory and time-based envelopes all change the output.
+- `tools/p2k_diff.py run NAME ID=VALUE…` builds a SIMM variant with layer-0 parameters set and
+  logs the note-on/note-off register writes (`P2K_TRACE=1`); `p2k_diff.py diff BASE NAME`.
+- Not modelled: filters, effects (H chip, G05). The user flash is read-only, so the OS reports
+  "FlashInit error" at start-up and continues.
 

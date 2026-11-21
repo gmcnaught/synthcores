@@ -9,7 +9,9 @@ are ours; the PCM comes from whatever WAVs are given.
 SPEC:
   {"id": 4, "name": "P2Ksy",
    "instruments": [{"name": "Piano 1", "files": ["path/a.wav", ...], "stereo": false}, ...],
-   "presets": [{"name": "kb1:Piano 1", "instrument": 1}, ...]}      (instrument numbers start at 1)
+   "presets": [{"name": "kb1:Piano 1", "instrument": 1, "params": {"1410": -20}}, ...]}
+  Instrument numbers start at 1; "params" sets layer-0 parameters by SysEx ID (tools/p2k_params.py).
+  Presets start from the first user preset of the flash dump ("kb1:DynamicGrand"), layers 1-3 off.
 Writes OUTDIR/big.bin (32 MB) and OUTDIR/baby.bin (2 MB); MAME: P2K_SIMM1=big.bin P2K_BABY1=baby.bin.
 """
 import json
@@ -79,12 +81,15 @@ def instrument(name, zones):
     return name16(name) + bytes([len(zones), 0, 0, 0]) + b"".join(zones)
 
 
-def preset(template, name, rom_id, inst):
+def preset(template, name, rom_id, inst, params=None):
     p = bytearray(template)
     p[8:24] = name16(name)
     for k, off in enumerate((0xA4, 0x170, 0x23C, 0x308)):
         p[off + 5] = rom_id
         struct.pack_into(">H", p, off + 6, inst if k == 0 else 0)
+    if params:
+        import p2k_params
+        p2k_params.apply(p, params)
     return bytes(p)
 
 
@@ -128,7 +133,7 @@ def build(spec, template):
     for r in yi:
         objs.append(obj(b"yi_1", oid, r)); oid += 1
     for p in spec.get("presets", []):
-        objs.append(obj(b"yp_1", oid, preset(template, p["name"], rom_id, p["instrument"]))); oid += 1
+        objs.append(obj(b"yp_1", oid, preset(template, p["name"], rom_id, p["instrument"], p.get("params")))); oid += 1
     body = b"".join(objs)
     baby = bytearray(b"\xff" * BABY)
     size = BABY - LIB
