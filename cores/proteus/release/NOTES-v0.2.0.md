@@ -34,6 +34,9 @@ the old reconstructed sound ROM. Your saved presets (`saves/Proteus/proteus_syst
 - The firmware's own Sound ROM test passes on the dump (MAME).
 - Sound chip HDL bit-exact against the reference model on a 57 s preset demo and on a reversed
   note recorded from the firmware in MAME.
+- On a MiSTer: a sample the v0.1.0 image left silent (program 46, C4) plays; Reverse Sound
+  (SysEx parameter 40) plays the note backwards; 5-minute dense-MIDI soak with 0 missed sample
+  deadlines, worst case 1,376 of 2,048 clocks per sample. Quartus timing met (setup slack 0.505 ns).
 
 ## Known limits
 - Tone 1–5 cutoffs, envelope slew and pan law are inferred; nothing has been compared with a real
