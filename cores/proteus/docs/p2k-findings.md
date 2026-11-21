@@ -164,3 +164,21 @@ TH28F160 dump of a v1.24 unit, `proteus-2k-v124-28f160.bin`, SHA-1
   (data), byte access (`0x02003AD4–0x02003B2C`).
 - LEDs: 0x900000 and 0xA00000 byte latches with RAM shadows at 0x0120FE00/0x0120FE04
   (`0x0200151C`); boot steps light LEDs 4, 5, 6.
+
+## MAME boot (proteus2k research machine) [O unless marked]
+`mame/patches/0002-emup2k-proteus2000-research.patch`; see `mame/README.md`.
+- **Dump repair**: flash 0x000DFE reads `4E38`; the boot block needs `4EB9` (`jsr 0x02003B30`)
+  there, or it takes an illegal-instruction exception. [I] A two-bit read error in the dump.
+- **Data-line test** (`0x02000DE4`) writes `1 << n` to 0x50000000 (no chip select) and reads it back,
+  checking D23–D0: it passes only if the bus returns the last value written [I: bus hold on the
+  board]. The cache test (`0x02000CB0`) writes 2 M longs over 0x50000000–0x53FFFFFF.
+- **Boot wait**: `0x02000BD2` loops while 0x800000 bit 7 reads 1 (CSCR0 port-size bit 7 = 0 path).
+- **Port A** is bit-banged right after reset (`0x020008B0`, ~100 k writes); the flash holds a block
+  of FPGA-configuration-like data from 0x001780 [I: configures the Xilinx XCS05XL the sources
+  survey found on the board].
+- **CS6 0xC00000**: the OS writes 0x08–0x0F and reads back in a loop [I: front-panel key matrix].
+- **Timers**: the OS programs ColdFire timer 1 (TRR 0x80E8, TMR 0x001B) as its tick.
+- **OS 1.24 from the dump** stops with "Fatal: Bus Address error", PC 0x00044EB9; its directory CRC
+  (`0x02004E60`, CRC-32 table at 0x020060D0, initial value 0) does not match the stored
+  0xF29AF737 in our computation [U: further read errors in the OS region, or a different range].
+- **OS 2.26** (from the .dli, placed at flash 0x010100) runs to "No Sound Roms detected".
