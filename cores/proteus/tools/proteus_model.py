@@ -4,7 +4,7 @@
 A line-by-line port of third_party/mame/src/mame/emusys/proteus_snd.cpp (the MAME model);
 the HDL (mister/rtl/proteus_snd.sv) must match its output sample for sample.
 
-Usage: proteus_model.py DEMO.bin OUT.raw [--ticks N] [--wav OUT.wav]
+Usage: proteus_model.py DEMO.bin OUT.raw [--ticks N] [--wav OUT.wav] [--no-tone]
 OUT.raw: per output sample, two little-endian s16 (left, right).
 """
 import argparse
@@ -12,6 +12,8 @@ import array
 import struct
 import sys
 import wave
+
+from tone_lut import TABLE as TONE_ALPHA, index as tone_index
 
 ADDR_MASK = 0xFFFFFF
 SAMPLE_BYTES = 0x800000
@@ -28,17 +30,19 @@ def level_to_gain(level):
 
 
 class Voice:
-    __slots__ = ("addr", "frac", "pitch", "env", "loop_start", "loop_end", "level", "pan")
+    __slots__ = ("addr", "frac", "pitch", "env", "loop_start", "loop_end", "level", "pan", "lp")
 
     def __init__(self):
         self.addr = self.frac = self.pitch = self.env = 0
         self.loop_start = self.loop_end = self.level = 0
         self.pan = 0x08
+        self.lp = 0  # tone filter state, sample << 8
 
 
 class Chip:
-    def __init__(self, rom_words):
+    def __init__(self, rom_words, tone=True):
         self.rom = rom_words  # array('h') of signed words
+        self.tone = tone
         self.mask = len(rom_words) - 1
         self.regs = [0] * (32 * 16)
         self.v = [Voice() for _ in range(32)]
@@ -52,6 +56,7 @@ class Chip:
         if w in (0, 1):
             vc.addr = self.reg_long(v, 0) & ADDR_MASK
             vc.frac = 0
+            vc.lp = 0
         elif w in (2, 3):
             vc.pitch = self.reg_long(v, 2)
         elif w in (4, 5):
@@ -67,11 +72,17 @@ class Chip:
         self.v[v].pan = data
 
     def step(self, vc):
-        inc = vc.pitch & 0x1FFFF
-        pos = (vc.frac & 0xFFF) + (inc & 0xFFF)
+        # 18-bit signed increment: integer part bits 17..12 (signed), fraction bits 11..0
+        reverse = vc.pitch & 0x20000
+        whole = sext((vc.pitch >> 12) & 0x3F, 6)
+        pos = (vc.frac & 0xFFF) + (vc.pitch & 0xFFF)
         vc.frac = pos & 0xFFF
-        vc.addr = (vc.addr + (inc >> 12) + (pos >> 12)) & ADDR_MASK
-        if vc.addr > vc.loop_end and vc.loop_end >= vc.loop_start:
+        vc.addr = (vc.addr + whole + (pos >> 12)) & ADDR_MASK
+        if reverse:
+            passed = vc.addr < vc.loop_end and vc.loop_end < vc.loop_start
+        else:
+            passed = vc.addr > vc.loop_end and vc.loop_end >= vc.loop_start
+        if passed:
             vc.addr = (vc.addr - (vc.loop_end - vc.loop_start)) & ADDR_MASK
 
     def sample(self):
@@ -89,6 +100,14 @@ class Chip:
             s0 = rom[(vc.addr + 4) & mask]
             s1 = rom[(vc.addr + 5) & mask]
             smp = s0 + (((s1 - s0) * vc.frac) >> 12)
+            # tone filter [I]: one-pole low-pass, coefficient by tone (pitch bits 23..21) and |increment|
+            t = (vc.pitch >> 21) & 7 if self.tone else 0
+            if t:
+                mag = min(abs(sext(vc.pitch & 0x3FFFF, 18)), 0x1FFFF)
+                vc.lp += (((smp << 8) - vc.lp) * TONE_ALPHA[tone_index(t, mag)]) >> 12
+                smp = vc.lp >> 8
+            else:
+                vc.lp = smp << 8
             out = (smp * level_to_gain(vc.level)) >> 16
             p = vc.pan & 0x0F
             left += out * p
@@ -110,8 +129,8 @@ def load(path):
     return rom, events
 
 
-def run(rom, events, ticks):
-    chip = Chip(rom)
+def run(rom, events, ticks, tone=True):
+    chip = Chip(rom, tone)
     out = array.array("h")
     ev, wait = 0, 0
     for _ in range(ticks):
@@ -142,10 +161,11 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--ticks", type=int, default=0)
     ap.add_argument("--wav")
+    ap.add_argument("--no-tone", action="store_true", help="tone filter off (OSD option)")
     a = ap.parse_args()
     rom, events = load(a.demo)
     total = a.ticks or sum(e for e in events if e and not e & 0x80000000)
-    out = run(rom, events, total)
+    out = run(rom, events, total, not a.no_tone)
     if sys.byteorder == "big":
         out.byteswap()
     open(a.out, "wb").write(out.tobytes())

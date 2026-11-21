@@ -41,7 +41,7 @@ demo_ctrl ctrl
 
 proteus_snd snd
 (
-	.clk(clk), .reset(reset),
+	.clk(clk), .reset(reset), .tone_en(1'b1),
 	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data), .wr_mask(16'hFFFF),
 	.rd_voice(5'd0), .rd_word(4'd0), .rd_raw(), .rd_start(1'b0), .rd_done(), .rd_data(),
 	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(pan_data),

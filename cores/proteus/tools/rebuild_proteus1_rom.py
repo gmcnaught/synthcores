@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Rebuild a Proteus/1 (4 MB) sound ROM image from E-mu's Emulator X "Proteus 1" pack.
 
+Fallback only: a dump of the real ROM exists (tools/build_image.py --waverom). Against that dump
+this reconstruction is bit-exact for about 86 of 193 samples; some others differ in gain (the
+conversion rescaled them), 44 are the wrong data and 29 are silent.
+
 This is a FUNCTIONAL reconstruction, not a dump:
   * Sample placement comes from the firmware's sample table (XR v2.00 at 0x112EE:
     16-byte records {start, end, loop_start, loop_end}, ROM word addresses).
   * Each record is matched to an .ebl sample by its loop points:
-      tier A  loop start/end offsets equal                  -> .ebl[0] at record start
-      tier B  both loop offsets differ by the same shift k  -> .ebl[0] at start - k
+      tier A  loop start/end offsets equal                  -> .ebl[0] at record start - 1
+      tier B  both loop offsets differ by the same shift k  -> .ebl[0] at start - k - 1
     Unmatched records stay zero (silent) and are listed in the report.
   * Header (words 0x000-0x1BF) follows the layout verified on the ProtoLogic ROM:
       0x000-0x003  0x0100 0x0302 0x0504 0x0706   (byte-lane test pattern)
@@ -198,7 +202,9 @@ def build(records, samples, sine_words=None):
     for i, x, sh, tier in placed:
         s = records[i][0]
         nxt = starts[bisect.bisect_right(starts, s)] if bisect.bisect_right(starts, s) < len(starts) else WORDS
-        base = s - sh
+        # the .ebl data begins one word before the record start (checked against a dump of the
+        # real ROM: with this, tier A/D/E samples are bit-identical where the gain is unchanged)
+        base = s - sh - 1
         for j, v in enumerate(x["pcm"]):  # negative shift: .ebl starts after the record start
             n = base + j
             if n >= nxt:

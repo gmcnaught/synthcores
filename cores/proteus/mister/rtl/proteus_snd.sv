@@ -11,12 +11,16 @@
 //
 //  Register writes (`wr`) and pan writes (`pan_wr`) must not overlap a
 //  sample computation (the demo controller only issues them between samples).
+//
+//  Tone filter [I] (pitch bits 23..21, tools/tone_lut.py): one-pole low-pass per
+//  voice after interpolation, coefficient from tone_lut by tone and |increment|.
 //============================================================================
 
 module proteus_snd
 (
 	input             clk,
 	input             reset,
+	input             tone_en,         // tone filter on (OSD)
 
 	// register write port: voice, 16-bit word index 0..15, data
 	input             wr,
@@ -59,13 +63,15 @@ module proteus_snd
 reg [15:0] raw    [0:31][0:15];  // all 16 register words, as MAME m_regs
 reg [23:0] v_addr  [0:31];
 reg [11:0] v_frac  [0:31];
-reg [18:0] v_pitch [0:31];       // bits 18..0 used
+reg [18:0] v_pitch [0:31];       // 17..0 signed increment, 18 = step on read-back
 reg [23:0] v_env   [0:31];       // target 23..12, mode 11..9, rate 8..0
 reg [23:0] v_lstart[0:31];
 reg [23:0] v_lend  [0:31];
 reg [11:0] v_level [0:31];
 reg  [3:0] v_pan   [0:31];
 reg  [7:0] v_disp  [0:31];
+reg  [2:0] v_tone  [0:31];       // pitch bits 23..21
+reg signed [24:0] v_lp [0:31];   // tone filter state, sample << 8
 
 assign disp_level = v_disp[disp_voice];
 
@@ -115,10 +121,11 @@ assign rd_raw = raw[rd_voice][rd_word];
 // ---------------------------------------------------------------- engine
 // Per voice: S_WAIT latches the voice state and its two sample words, then
 // S_C1..S_C5 compute in registered steps (80 MHz), S_NEXT writes back.
-localparam S_IDLE = 4'd0, S_WAIT = 4'd1, S_C1 = 4'd2, S_C2 = 4'd3, S_C3 = 4'd4,
-           S_C4 = 4'd5, S_C5 = 4'd6, S_NEXT = 4'd7, S_OUT = 4'd8,
-           R_WAIT = 4'd9, R_C1 = 4'd10, R_C2 = 4'd11, R_C3 = 4'd12, R_C4 = 4'd13, R_WB = 4'd14;
-reg  [3:0]  state;
+localparam S_IDLE = 5'd0, S_WAIT = 5'd1, S_C1 = 5'd2, S_C2 = 5'd3, S_C3 = 5'd4,
+           S_C4 = 5'd5, S_C5 = 5'd6, S_NEXT = 5'd7, S_OUT = 5'd8,
+           R_WAIT = 5'd9, R_C1 = 5'd10, R_C2 = 5'd11, R_C3 = 5'd12, R_C4 = 5'd13, R_WB = 5'd14,
+           S_F1 = 5'd15, S_F2 = 5'd16, S_F3 = 5'd17;
+reg  [4:0]  state;
 reg  [4:0]  v;                // voice being computed
 reg  [15:0] s0_r, s1_r;
 reg  [15:0] nx_s0, nx_s1;     // prefetched words for voice v+1
@@ -129,6 +136,33 @@ reg  [23:0] r_addr, r_ls, r_le, r_env;
 reg  [11:0] r_frac, r_level;
 reg  [18:0] r_pitch;
 reg  [3:0]  r_pan;
+reg  [2:0]  r_tone;
+reg  signed [24:0] r_lp;
+
+// tone filter
+reg  [17:0] t_mag;
+reg  [9:0]  t_idx;
+reg         t_on;
+wire [12:0] t_alpha;
+reg  signed [25:0] t_d;
+reg  signed [39:0] t_p;
+reg  signed [24:0] t_lp;
+
+tone_lut tone_lut (.clk(clk), .idx(t_idx), .alpha(t_alpha));
+
+// low 7 bits of the table index, {e, m}, for |increment| (tools/tone_lut.py index())
+function [6:0] mag_bucket(input [16:0] mag);
+	integer k;
+	reg [4:0] p;
+	reg [16:0] sh;
+	begin
+		p = 5'd3;
+		for (k = 4; k <= 16; k = k + 1) if (mag[k]) p = k[4:0];
+		sh = mag >> (p - 5'd3);
+		if (mag < 17'd8) mag_bucket = {4'd0, mag[2:0]};
+		else             mag_bucket = {p[3:0] - 4'd2, sh[2:0]};
+	end
+endfunction
 
 reg  [11:0] lvl_n;
 reg  signed [16:0] diff;
@@ -171,6 +205,7 @@ always @(posedge clk) begin
 			for (j = 0; j < 16; j = j + 1) raw[i][j] <= 0;
 			v_addr[i] <= 0; v_frac[i] <= 0; v_pitch[i] <= 0; v_env[i] <= 0;
 			v_lstart[i] <= 0; v_lend[i] <= 0; v_level[i] <= 0; v_pan[i] <= 4'h8; v_disp[i] <= 0;
+			v_tone[i] <= 0; v_lp[i] <= 0;
 		end
 	end
 	else begin
@@ -187,8 +222,8 @@ always @(posedge clk) begin
 		if (wq) begin
 			raw[wq_voice][wq_word] <= wr_new;
 			if (wq_word < 4'd12) case (wr_long)
-				3'd0: begin v_addr[wq_voice] <= wr_val[23:0]; v_frac[wq_voice] <= 0; end
-				3'd1: v_pitch[wq_voice] <= wr_val[18:0];
+				3'd0: begin v_addr[wq_voice] <= wr_val[23:0]; v_frac[wq_voice] <= 0; v_lp[wq_voice] <= 0; end
+				3'd1: begin v_pitch[wq_voice] <= wr_val[18:0]; v_tone[wq_voice] <= wr_val[23:21]; end
 				3'd2: begin
 					v_env[wq_voice] <= wr_val[23:0];
 					if (wq_word[0] && wr_val[9]) v_level[wq_voice] <= wr_val[23:12];
@@ -233,6 +268,8 @@ always @(posedge clk) begin
 			r_le    <= v_lend[v];
 			r_level <= v_level[v];
 			r_pan   <= v_pan[v];
+			r_tone  <= v_tone[v];
+			r_lp    <= v_lp[v];
 			// data for voice v: either prefetched or arriving now
 			if (nx_valid) begin
 				s0_r <= nx_s0; s1_r <= nx_s1; nx_valid <= 0;
@@ -251,26 +288,45 @@ always @(posedge clk) begin
 			diff  <= $signed({s1_r[15], s1_r}) - $signed({s0_r[15], s0_r});
 			pos   <= {1'b0, r_frac} + {1'b0, r_pitch[11:0]};
 			lspan <= r_le - r_ls;
-			wrap2 <= (r_le >= r_ls);
+			wrap2 <= (r_le >= r_ls) ^ r_pitch[17];   // loop enabled: forward le >= ls, reverse le < ls
+			t_mag <= r_pitch[17] ? 18'd0 - {1'b0, r_pitch[17:0]} : {1'b0, r_pitch[16:0]};
+			t_on  <= tone_en && r_tone != 3'd0;
 			state <= S_C2;
 		end
 
 		S_C2: begin
 			prod  <= diff * $signed({1'b0, r_frac});
 			gain  <= level_to_gain(lvl_n);
-			addr1 <= r_addr + {19'd0, r_pitch[16:12]} + {23'd0, pos[12]};
+			addr1 <= r_addr + {{18{r_pitch[17]}}, r_pitch[17:12]} + {23'd0, pos[12]};
+			t_idx <= {r_tone, mag_bucket(t_mag[17] ? 17'h1ffff : t_mag[16:0])};
 			state <= S_C3;
 		end
 
 		S_C3: begin
 			smp       <= $signed({s0_r[15], s0_r}) + (prod >>> 12);
-			wrap1     <= (addr1 > r_le);
+			wrap1     <= r_pitch[17] ? (addr1 < r_le) : (addr1 > r_le);   // passed loop end
 			addr_wrap <= addr1 - lspan;
-			state     <= S_C4;
+			state     <= S_F1;
+		end
+
+		// tone filter: lp += ((x << 8) - lp) * alpha >> 12  (alpha from tone_lut, valid from S_F1)
+		S_F1: begin
+			t_d   <= $signed({smp, 8'd0}) - $signed({r_lp[24], r_lp});
+			state <= S_F2;
+		end
+
+		S_F2: begin
+			t_p   <= t_d * $signed({1'b0, t_alpha});
+			state <= S_F3;
+		end
+
+		S_F3: begin
+			t_lp  <= r_lp + t_p[36:12];
+			state <= S_C4;
 		end
 
 		S_C4: begin
-			mul2    <= smp * $signed({1'b0, gain});
+			mul2    <= (t_on ? $signed(t_lp[24:8]) : smp) * $signed({1'b0, gain});
 			addr_st <= (wrap1 && wrap2) ? addr_wrap : addr1;
 			state   <= S_C5;
 		end
@@ -285,6 +341,7 @@ always @(posedge clk) begin
 			pr <= vout * $signed({1'b0, 4'd15 - r_pan});
 			v_level[v] <= lvl_n;
 			v_disp[v]  <= lvl_n[11:4];
+			v_lp[v]    <= t_on ? t_lp : $signed({smp[16:0], 8'd0});
 			if (!r_pitch[18]) begin
 				v_frac[v] <= pos[11:0];
 				v_addr[v] <= addr_st;
@@ -323,17 +380,17 @@ always @(posedge clk) begin
 		R_C1: begin
 			pos   <= {1'b0, r_frac} + {1'b0, r_pitch[11:0]};
 			lspan <= r_le - r_ls;
-			wrap2 <= (r_le >= r_ls);
+			wrap2 <= (r_le >= r_ls) ^ r_pitch[17];
 			state <= R_C2;
 		end
 
 		R_C2: begin
-			addr1 <= r_addr + {19'd0, r_pitch[16:12]} + {23'd0, pos[12]};
+			addr1 <= r_addr + {{18{r_pitch[17]}}, r_pitch[17:12]} + {23'd0, pos[12]};
 			state <= R_C3;
 		end
 
 		R_C3: begin
-			wrap1     <= (addr1 > r_le);
+			wrap1     <= r_pitch[17] ? (addr1 < r_le) : (addr1 > r_le);
 			addr_wrap <= addr1 - lspan;
 			state     <= R_C4;
 		end

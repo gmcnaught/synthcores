@@ -48,7 +48,7 @@ proteus_sys sys
 
 snd_ctrl sctl
 (
-	.clk(clk), .reset(reset), .loading(loading),
+	.clk(clk), .reset(reset), .loading(loading), .tone_en(1'b1),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
 	.cpu_wr(snd_wr), .cpu_pan(snd_pan), .cpu_voice(snd_voice), .cpu_word(snd_word), .cpu_data(snd_data), .cpu_mask(snd_mask),
 	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw),

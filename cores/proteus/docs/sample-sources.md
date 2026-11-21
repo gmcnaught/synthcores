@@ -17,6 +17,7 @@ Status date: 2026-11-20. All files live under `roms/` (gitignored). Inspect `.eb
 | Set | Chips | Layout | Status |
 |---|---|---|---|
 | ProtoLogic expansion (4 MB) | 8× 512 KB, `IP505–508` (low bytes), `IP705–708` (high bytes) | word n = `{IP70x[n>>2], IP50x[n>>2]}`, x = 5 + (n & 3); 16-bit signed | Verified byte-exact against the dump's WAV conversion |
+| Proteus/1 (4 MB) | 8× 512 KB AKN62314BP, `IP382–385` (low bytes), `IP402–405` (high bytes); proteus.nekoweb.org `poprockroms.zip` (2026-11-14) | word n = `{IP40x[n>>2], IP38x[n>>2]}`, x = 2 + (n & 3) | All 8 header checksums match; firmware Sound ROM test passes (MAME). Supersedes the rebuild below. |
 
 ## Emulator X / Proteus X sample packs (E-mu conversions, not ROM dumps)
 
@@ -32,11 +33,16 @@ Status date: 2026-11-20. All files live under `roms/` (gitignored). Inspect `.eb
 
 The ROM rebuild needs the firmware's sample table (ROM word address of each sample, loop points). Check: the firmware's Sound ROM test (diagnostics item 7) on the rebuilt image.
 
-## Rebuilt Proteus/1 sound ROM (functional reconstruction)
+## Rebuilt Proteus/1 sound ROM (functional reconstruction, superseded by the dump)
+
+Against the dump: the rebuild placed every sample one word late (fixed 2026-11-20; tier A/D/E
+samples are now bit-identical where E-mu's conversion kept the level), some samples were rescaled
+by the conversion, 44 records got the wrong sample and 29 stayed silent. 53 % of words now equal
+the dump. Kept as the `build_image.py --samples` fallback.
 
 Built by `tools/rebuild_proteus1_rom.py build/proteusxr_v200.bin "roms/_src/proteus1_exb/Proteus 1/SamplePool" build/proteus1_rebuild --sine roms/proteusxrpl`.
 Output staged at `roms/_rebuilt/proteus1_waves.bin` (big-endian 16-bit, 4 MB) with `rebuild_report.txt`; per-chip images in `build/proteus1_rebuild/`.
-MAME loads it at start-up with `-autoboot_script mame/scripts/load_waves.lua` (the driver keeps the base set `NO_DUMP`).
+MAME can load it over the dump with `PROTEUS_SCRIPTS=load_waves.lua` (for comparisons).
 
 **Not a dump.** Sources of each part:
 

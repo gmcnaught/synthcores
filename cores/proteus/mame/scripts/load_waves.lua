@@ -1,5 +1,5 @@
--- Load a rebuilt (non-dump) sound ROM image into the ":snd" region at start-up.
--- The driver lists the base set as NO_DUMP, so MAME itself never loads it.
+-- Load a sound ROM image into the ":snd" region at start-up, replacing what MAME loaded
+-- (the driver loads the dumped Proteus/1 ROMs; use this to compare with the rebuilt image).
 -- Env: PROTEUS_WAVES  path to a big-endian 16-bit image (default roms/_rebuilt/proteus1_waves.bin)
 --      PROTEUS_WAVES_OFFSET  byte offset in the region (default 0)
 local path = os.getenv("PROTEUS_WAVES") or "roms/_rebuilt/proteus1_waves.bin"
