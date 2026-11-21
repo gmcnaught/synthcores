@@ -146,7 +146,7 @@ Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SI
 level/pan/envelope path.
 1. H filter section (block +0x00–+0x2F at note-on; filter type/frequency/Q sweeps with
    `tools/p2k_diff.py`; coefficient block 0x010205DC).
-2. Sound memory flash writes (port B) and the user flash (TH28F160 model) so FlashInit passes.
+2. Sound memory flash writes (port B) for user flash SIMMs (the main user flash is done).
 3. Effects (G05 / FX RAM) and output routing (6 outputs).
 4. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
 
@@ -253,3 +253,31 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   the level bytes (smoothed ~5 ms). Filters (block +0x00–+0x2F, written at note-on), effects and
   output routing are not modelled.
 
+
+## Front panel, flash, MIDI Out (MAME, 2026-11-21) [O unless marked]
+- **Buttons**: 0x800000 bits 15–7, active low; the OS inverts and masks 0xFF80 (0x01035720) and
+  maps bits to key codes (0x01034C9C): 7 → 0x130, 8 → 0x111, 9 → 0x110, 10 → 0x103, 11 → 0x104,
+  12 → 0x121, 13 → 0x120, 14 → 0x101, 15 → 0x102 (14+15 → 0x140). Pressed from the main screen:
+  bit 9 → "SAVE PRESET" (Save/Copy), 10 → "CH VOLS" (Multi), 11 → "Bank MSB/LSB" screen,
+  14 → "PRESET NAME" (Edit), 15 → "MASTER TRANSPOSE" (Master). Bit 7 toggles an LED in the
+  0xA00000 latch [I: Arp]; bits 8, 12, 13 [I: Audition, cursor right/left].
+- **LEDs**: 16-bit word, low byte 0x900000, high byte 0xA00000 (0x0103570C). The latch 0xB00000
+  low nibble = 8 + row (0x010359AC), bit 6 = Baby select.
+- **Boot and bit 7** [U]: the 1.24 boot block (0x02000BAC) repeats an LED/cache test until bit 7
+  reads 0 when CSCR0 PS1 is clear (0x02001724), but the OS reads bit 7 = 0 as a held key. With
+  PS1 set the boot block takes another path ("Searching for OS..."). The driver forces bit 7 to 0
+  while the CPU runs from the boot flash [I: the panel is read through the Xilinx the boot block
+  configures].
+- **MAME fix**: MCF5206e CSCR0–7 are 16-bit registers; MAME mapped one byte (the high half), so a
+  word read lost bits 7–0 (PS1/PS0/AA...). Now mapped as 16-bit.
+- **Encoder**: G05 index 0x1B register 0x18 = signed count since the last read (0x0102F80C,
+  0x010359E0).
+- **Flash**: 28F160 x16; the OS flash driver (0x0102DD54 → 0x0102E080) accepts maker 0x89 or
+  0xB0 with device 0xD0 (also 0x14/0x16/0x17, 0x4471, 0x889D). MAME `SHARP_LH28F160S3` works: the
+  user data initialises ("FlashInit error" gone) and writes persist as NVRAM. With the user area
+  erased (P2K_CLEAN=1) the OS rebuilds factory defaults ("Resetting to default", "Making backup",
+  "Compacting free space") in about 45 s of emulated time.
+- The dump's user data has MIDI channel 1 disabled in its multi setup (notes on channel 2 play).
+- **MIDI Out** = UART1 TX: device inquiry F0 7E 7F 06 01 F7 answers
+  F0 7E 00 06 02 18 04 04 03 00 "2.26" F7 (device ID 0). E-mu parameter requests
+  (F0 18 0F 00 55 02 …) answer with command 0x70 (error) [U: the edit-buffer protocol].

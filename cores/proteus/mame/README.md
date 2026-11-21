@@ -66,3 +66,11 @@ Verified 2026-11-21 (synthetic SIMM, OS 2.26):
 - Not modelled: filters, effects (H chip, G05). The user flash is read-only, so the OS reports
   "FlashInit error" at start-up and continues.
 
+
+Front panel and storage (2026-11-21):
+- Keys: Q Master, E Edit, M Multi, S Save/Copy, Enter Home/Enter, Left/Right cursor, A Arp,
+  Space Audition, -/= data entry (also a MAME dial); knobs are MAME adjusters (master volume full).
+- The flash is a writable 28F160; user presets and settings persist in `nvram/proteus2k/flash`.
+  `P2K_CLEAN=1` (first run, no NVRAM) erases the dump owner's user data so the OS builds defaults;
+  let it run ~60 s emulated once.
+- MIDI Out: `-midiout` (UART1 TX).
