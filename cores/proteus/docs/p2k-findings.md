@@ -106,6 +106,24 @@ The two voice chips are **G20, U15 and U24** (boot block). Their register files 
   and reads them back (`0x10334EC`). Init (`0x10336C4`) writes offsets +68/+70 in 8 pages of
   0x1000 bytes; other code writes +0x1040, +0x3040, +0x5040 [I: register select by address bits].
 
+## Filter types and coefficient data
+Cross-checked against the Pistol Instruments Proteus 2000 Editor reference
+(`proteus2000editor.pistolinstruments.com/llms-full.txt`: SysEx IDs, ranges and the filter list;
+kept in `roms/_src/p2k/pistol/`, not committed).
+- Descriptor table at `0x01020444` [O]: 51 entries of 8 bytes `{name pointer, code, index, 0, 0}`.
+  The code is the SysEx value's low byte for the 2nd–6th-order types (Classic 0x00, Smooth 0x01,
+  Shallow 0x08, Band-pass1 0x10, Swept1 0x20, PhazeShift1 0x40, FlangerLite 0x48, Aah-Ay-Eeh
+  0x50, …) and `0x80 | n` for the 33 twelfth-order Z-plane types (SysEx 259–291 = 0x103–0x123,
+  n = 3–0x23); off = 0x7F. Name strings at `0x01028EDC` carry order and type ("MegaSweepz   12 LPF").
+- Coefficient block at **`0x010205DC`–`0x01021CDB`** (5,888 bytes) [O], read by `0x01020316`
+  when the code is ≥ 0x80. Records are **52 bytes**, at `0x010205DC + 52 · (index · 16 + k)`:
+  two groups of 3 × 8 bytes (two longs each), a word at +48 and a flag byte at +50 (bit 7 tested).
+  Each 8-byte entry is copied as `{long, long, 0, 0}` into 16-byte slots of the filter state.
+  [I] Two groups = the two H-chip channels a 12th-order filter uses; 3 entries per group = three
+  biquad sections per channel, which fits "12th-order filters use 2 channels" (Audity data sheet).
+  What `k` selects and the bit layout of the 8-byte entries (frame corners for the Z-plane
+  morph) are [U]; the 2nd–6th-order types take another path (`0x010202F0`).
+
 ## Diagnostics menu (same structure as the Proteus/1)
 Strings at `0x0107xxxx` [O]: 2 MFG Test, 3 Calibrate Knobs, 4 Panel Test, 5 LCD Test, 6 MIDI Test,
 7 Freq Response Test (50 Hz / 440 Hz / 19 kHz; also 1/2/5/10/15/19 kHz), 8 Audio Return Test,
