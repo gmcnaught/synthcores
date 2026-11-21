@@ -61,6 +61,41 @@ CS2/CS3 overlap at 0x00800000; how the CSCR read/write enables split them is [U]
   registers, or shares its bus].
 - [U] How 128 voices (2 G chips) map onto a 5-bit index; the second chip's address.
 
+## Voice register block [O, base address U]
+A second, memory-mapped register file at a base held in `0x01120800` (stored at run time through
+a pointer; the value is [U], [I] inside CS1), **64 bytes per voice** (`voice << 6`, `0x10323AC`):
+
+| Offset | Use | Evidence |
+|---|---|---|
+| +0x00 | long, init 0x1000 | `0x1032118` |
+| +0x04 | long, init 0x80000 | `0x103211E` |
+| +0x08 | long: top 6 bits kept, low 26 bits = NOT(address) | `0x10324A2`, `0x1032846` |
+| +0x0C | long: NOT(address) | `0x10324B8`, `0x103287E` |
+| +0x10 | long, init 0x80000 | `0x103211A`, `0x1032852` |
+| +0x14 | long: `0x04000000 | address` (bit 26 = flag) | `0x10324BE`, `0x1032872` |
+| +0x18 | long: low 26 bits compared with a window [lo, hi] | `0x1032610` |
+| +0x1C / +0x1E | word: sound-memory read data, ports A / B (auto-increment) | `0x102C862`, `0x103205A` |
+| +0x30 / +0x34 | long: sound-memory read address (word address), ports A / B | `0x1031F20`, `0x1031F40` |
+| +0x3E | word: mode (51 compare, 57 idle/read, 60) | `0x1032214–0x1032244` |
+
+- Sample addresses are **26-bit word addresses**: 64 M words = 128 MB, the 4 × 32 MB SIMMs [I].
+- Loop/end addresses are written inverted, as on the Proteus/1 (`+0x14` there = NOT(loop end)) [O],
+  so the G chip keeps the Proteus/1 address scheme with wider fields [I].
+- The +0x1C/+0x30 ports are how the CPU reads sound ROM (header, checksums, SIMM compare);
+  the Proteus/1 had a single read-back word at +0x18.
+
+## Sound ROM SIMMs [O]
+- Sound-memory byte address of slot n = `n << 25` (32 MB per slot, `0x102CBD0`); bit 30 of an
+  address selects sound memory in the copy routine `0x1032004`.
+- Header: 0x6AE bytes read from the start of each slot (`0x102C3DC`).
+  - +0x00 magic `0x05551212`, +0x0E "EOS Sound SIMM" (else the slot counts as empty, ID 255).
+  - +0x04 size in bytes: below 8 MB → 4 checksum blocks of 2 MB, else 8 blocks of size/8.
+  - +0x3E long, +0x58E long `0x00FF26F0`, +0x5AA "EROM V1.2" / "EROM 2 V1.0A" identify the
+    preset/flash format; one "EROM 2 V1.0A" case expects block-0 checksum 371.
+  - Block checksums: 16-bit words at +0x68E + 2·block; a block checksum is the 16-bit sum of its
+    words (`0x102C600`). The diagnostics print the 16-bit sum of all blocks as "Sound ROM checksum".
+- So a SIMM dump can be verified offline with no unit, as the Proteus/1 wave ROMs were.
+
 ## H chip (filters) [O, partial]
 - The H test passes base **0x500000** (`0x107B402`), writes `0x98765432` patterns over 128 slots
   and reads them back (`0x10334EC`). Init (`0x10336C4`) writes offsets +68/+70 in 8 pages of
@@ -80,7 +115,8 @@ Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMM
 and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave ROMs were.
 
 ## Next
-1. Sound ROM test (`0x107BB6E`, slot test `0x107C144`): SIMM address window, ROM ID and checksum format.
+1. Base address of the voice register block (trace the pointer store, or boot the OS in MAME
+   with a stub machine and log it).
 2. Voice start path (`0x102C8D4` → `0x10323CC` / `0x10327E0`): per-voice G registers in use.
 3. Output rate: pitch computation for the 440 Hz test tone vs. a known sample root.
 4. Boot flash dump: not in the .dli; needed for an emulator boot (Ray Bellis's Audity 2000
