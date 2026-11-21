@@ -109,6 +109,10 @@ Strings at `0x0107xxxx` [O]: 2 MFG Test, 3 Calibrate Knobs, 4 Panel Test, 5 LCD 
 Code: G/H test `0x107B364`, FX RAM test `0x107B4BC`/`0x107D94C`, Freq Response `0x107983C`
 (tone index 0/4/12 → `0x102C964`, which goes through the normal voice allocator, so the
 output rate must be derived from the voice pitch path, not a fixed table) [O].
+The test-tone setup (`0x102C8D4`) takes a 12-byte entry per tone from a RAM table at `0x01120080`
+{+4 offset added to the slot's sound-memory base, +8 word → voice field +8, +10 length} and a
+fixed voice field +28 = 0xF85F [O]. The table is filled at run time [I: from the SIMM header,
+like the Proteus/1's test sine in the wave ROM], so the test pitch needs a SIMM image or a unit.
 
 Sound ROM: "ROM Slot #%d block checksums", "Sound ROM checksum: 0x%04x", "Comparing
 Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMMs carry a ROM ID
