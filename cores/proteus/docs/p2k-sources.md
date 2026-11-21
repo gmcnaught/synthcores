@@ -281,3 +281,23 @@ image explorer), e-dumper (P2K/CS preset/pattern/song loader), e-sysex, e-sds, e
   parameter ID/range/default, the 50 filter types with SysEx values, 73 cord sources / 66
   destinations, effect A (44) / B (32) algorithm counts, preset dump layout [O]. Code is
   "© 2026 Patrik Pistol … do not republish"; contact for hardware findings on the About page.
+- MediaFire `Proteus_2000.zip` (268 MB, user-supplied 2026-11-21; local only in `roms/_src/p2k/mf/`):
+  CDXtract conversion (SF2 INFO: `ISFT CDXtract`, `ICOP Copyright Supersound Production`, 2008) of
+  five P2K-family sound sets as 7052 mono 16-bit WAVs with `smpl` chunks (root key, 3837 loops)
+  plus 9 SF2 banks for the Composer set [O].
+
+  | Set | WAVs | Samples (16-bit words) | vs 32 MB SIMM |
+  |---|---|---|---|
+  | Proteus 2000 (Composer) | 1845 | 16,331,042 | 97.3 % |
+  | Mo' Phatt | 1286 | 16,288,984 | 97.1 % |
+  | PX7 Protean Drums | 702 | 16,698,921 | 99.5 % |
+  | Xtreme Lead-1 | 1332 | 13,725,267 | 81.8 % |
+  | Orchestral Kits (Planet Earth + Virtuoso 2000) | 1887 | 50,702,114 | 3 SIMMs [I] |
+
+  The rates are per sample and non-standard (449 distinct values in the Composer set, e.g. 22325,
+  42193, 36001 Hz) [O]. That means native rates, not resampled to 44.1 kHz [I]. Most peaks are
+  between 16k and 32700, so the sets are not normalized to full scale [O]. They are not a SIMM dump:
+  there is no SIMM header, sample directory, instrument or preset data, and no ROM order [O].
+  Bit-exactness is unknown. The Proteus/1 `.ebl` conversions rescaled some samples and redid some
+  loops (see sample-sources.md). On the P2K the sample table and presets live in the SIMM, not the
+  OS, so a rebuild needs the OS's SIMM-directory parser reversed first.
