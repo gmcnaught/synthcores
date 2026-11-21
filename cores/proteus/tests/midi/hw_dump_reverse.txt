@@ -1,0 +1,14 @@
+# Hardware check for the ROM dump and Reverse Sound (tools/mister_system.sh), "<seconds> <hex bytes>"
+# 1) program 46, C4: sample record 136, which the rebuilt ROM left silent
+0.0 c0 2e
+0.5 90 3c 64
+2.0 80 3c 40
+# 2) program 0, C4 forward
+3.0 c0 00
+3.5 90 3c 64
+5.0 80 3c 40
+# 3) SysEx "pri reverse sound" (parameter 40) = On, same note reversed, then Off again
+5.5 f0 18 04 00 03 28 00 01 00 f7
+6.0 90 3c 64
+7.5 80 3c 40
+8.0 f0 18 04 00 03 28 00 00 00 f7

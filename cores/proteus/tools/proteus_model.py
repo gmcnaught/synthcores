@@ -13,7 +13,10 @@ import struct
 import sys
 import wave
 
-from tone_lut import TABLE as TONE_ALPHA, index as tone_index
+from interp_kernels_data import KERNELS
+
+# per tone: K[a] and K[a+1] - K[a] for a = 0..128 (tools/interp_kernels.py)
+KERN = [(k, [b - a for a, b in zip(k, k[1:] + [0])]) for k in KERNELS]
 
 ADDR_MASK = 0xFFFFFF
 SAMPLE_BYTES = 0x800000
@@ -30,13 +33,12 @@ def level_to_gain(level):
 
 
 class Voice:
-    __slots__ = ("addr", "frac", "pitch", "env", "loop_start", "loop_end", "level", "pan", "lp")
+    __slots__ = ("addr", "frac", "pitch", "env", "loop_start", "loop_end", "level", "pan")
 
     def __init__(self):
         self.addr = self.frac = self.pitch = self.env = 0
         self.loop_start = self.loop_end = self.level = 0
         self.pan = 0x08
-        self.lp = 0  # tone filter state, sample << 8
 
 
 class Chip:
@@ -56,7 +58,6 @@ class Chip:
         if w in (0, 1):
             vc.addr = self.reg_long(v, 0) & ADDR_MASK
             vc.frac = 0
-            vc.lp = 0
         elif w in (2, 3):
             vc.pitch = self.reg_long(v, 2)
         elif w in (4, 5):
@@ -97,17 +98,16 @@ class Chip:
                     vc.level = min(vc.level + delta, target)
                 else:
                     vc.level = max(vc.level - delta, target)
-            s0 = rom[(vc.addr + 4) & mask]
-            s1 = rom[(vc.addr + 5) & mask]
-            smp = s0 + (((s1 - s0) * vc.frac) >> 12)
-            # tone filter [I]: one-pole low-pass, coefficient by tone (pitch bits 23..21) and |increment|
-            t = (vc.pitch >> 21) & 7 if self.tone else 0
-            if t:
-                mag = min(abs(sext(vc.pitch & 0x3FFFF, 18)), 0x1FFFF)
-                vc.lp += (((smp << 8) - vc.lp) * TONE_ALPHA[tone_index(t, mag)]) >> 12
-                smp = vc.lp >> 8
-            else:
-                vc.lp = smp << 8
+            # 7-point interpolation (patent US 5,111,727) at addr + 4 + frac: words addr+1..addr+8,
+            # the tap 3.5+ words away has weight 0; kernel selected by the tone value (pitch bits 23..21)
+            k, dk = KERN[(vc.pitch >> 21) & 7 if self.tone else 0]
+            f = vc.frac
+            acc = 0
+            for j in range(8):
+                u = ((3 - j) << 12) + f if j <= 3 else ((j - 3) << 12) - f
+                a, w = u >> 7, u & 127
+                acc += rom[(vc.addr + 1 + j) & mask] * (k[a] + ((dk[a] * w) >> 7))
+            smp = max(-65536, min(65535, acc >> 16))
             out = (smp * level_to_gain(vc.level)) >> 16
             p = vc.pan & 0x0F
             left += out * p
@@ -161,7 +161,7 @@ def main():
     ap.add_argument("out")
     ap.add_argument("--ticks", type=int, default=0)
     ap.add_argument("--wav")
-    ap.add_argument("--no-tone", action="store_true", help="tone filter off (OSD option)")
+    ap.add_argument("--no-tone", action="store_true", help="tone value ignored, kernel 0 for all voices (OSD option)")
     a = ap.parse_args()
     rom, events = load(a.demo)
     total = a.ticks or sum(e for e in events if e and not e & 0x80000000)
