@@ -1,5 +1,5 @@
 diff --git a/src/devices/cpu/m68000/mcf5206e.cpp b/src/devices/cpu/m68000/mcf5206e.cpp
-index 667a3bab..abdc62e8 100644
+index 667a3bab..f20e3963 100644
 --- a/src/devices/cpu/m68000/mcf5206e.cpp
 +++ b/src/devices/cpu/m68000/mcf5206e.cpp
 @@ -37,7 +37,7 @@
@@ -11,12 +11,179 @@ index 667a3bab..abdc62e8 100644
  #include "logmacro.h"
  
  #define INT_LEVEL(N)    ((N&0x1c) >> 2)
+@@ -318,28 +318,28 @@ void mcf5206e_device::mbar_map(address_map &map)
+ 	/* chip select registers */
+ 	map(0x064, 0x065).rw(FUNC(mcf5206e_device::csar0_r), FUNC(mcf5206e_device::csar0_w));
+ 	map(0x068, 0x06b).rw(FUNC(mcf5206e_device::csmr0_r), FUNC(mcf5206e_device::csmr0_w));
+-	map(0x06e, 0x06e).rw(FUNC(mcf5206e_device::cscr0_r), FUNC(mcf5206e_device::cscr0_w));
++	map(0x06e, 0x06f).rw(FUNC(mcf5206e_device::cscr0_r), FUNC(mcf5206e_device::cscr0_w));
+ 	map(0x070, 0x071).rw(FUNC(mcf5206e_device::csar1_r), FUNC(mcf5206e_device::csar1_w));
+ 	map(0x074, 0x077).rw(FUNC(mcf5206e_device::csmr1_r), FUNC(mcf5206e_device::csmr1_w));
+-	map(0x07a, 0x07a).rw(FUNC(mcf5206e_device::cscr1_r), FUNC(mcf5206e_device::cscr1_w));
++	map(0x07a, 0x07b).rw(FUNC(mcf5206e_device::cscr1_r), FUNC(mcf5206e_device::cscr1_w));
+ 	map(0x07c, 0x07d).rw(FUNC(mcf5206e_device::csar2_r), FUNC(mcf5206e_device::csar2_w));
+ 	map(0x080, 0x083).rw(FUNC(mcf5206e_device::csmr2_r), FUNC(mcf5206e_device::csmr2_w));
+-	map(0x086, 0x086).rw(FUNC(mcf5206e_device::cscr2_r), FUNC(mcf5206e_device::cscr2_w));
++	map(0x086, 0x087).rw(FUNC(mcf5206e_device::cscr2_r), FUNC(mcf5206e_device::cscr2_w));
+ 	map(0x088, 0x089).rw(FUNC(mcf5206e_device::csar3_r), FUNC(mcf5206e_device::csar3_w));
+ 	map(0x08c, 0x08f).rw(FUNC(mcf5206e_device::csmr3_r), FUNC(mcf5206e_device::csmr3_w));
+-	map(0x092, 0x092).rw(FUNC(mcf5206e_device::cscr3_r), FUNC(mcf5206e_device::cscr3_w));
++	map(0x092, 0x093).rw(FUNC(mcf5206e_device::cscr3_r), FUNC(mcf5206e_device::cscr3_w));
+ 	map(0x094, 0x095).rw(FUNC(mcf5206e_device::csar4_r), FUNC(mcf5206e_device::csar4_w));
+ 	map(0x098, 0x09b).rw(FUNC(mcf5206e_device::csmr4_r), FUNC(mcf5206e_device::csmr4_w));
+-	map(0x09e, 0x09e).rw(FUNC(mcf5206e_device::cscr4_r), FUNC(mcf5206e_device::cscr4_w));
++	map(0x09e, 0x09f).rw(FUNC(mcf5206e_device::cscr4_r), FUNC(mcf5206e_device::cscr4_w));
+ 	map(0x0a0, 0x0a1).rw(FUNC(mcf5206e_device::csar5_r), FUNC(mcf5206e_device::csar5_w));
+ 	map(0x0a4, 0x0a7).rw(FUNC(mcf5206e_device::csmr5_r), FUNC(mcf5206e_device::csmr5_w));
+-	map(0x0aa, 0x0aa).rw(FUNC(mcf5206e_device::cscr5_r), FUNC(mcf5206e_device::cscr5_w));
++	map(0x0aa, 0x0ab).rw(FUNC(mcf5206e_device::cscr5_r), FUNC(mcf5206e_device::cscr5_w));
+ 	map(0x0ac, 0x0ad).rw(FUNC(mcf5206e_device::csar6_r), FUNC(mcf5206e_device::csar6_w));
+ 	map(0x0b0, 0x0b3).rw(FUNC(mcf5206e_device::csmr6_r), FUNC(mcf5206e_device::csmr6_w));
+-	map(0x0b6, 0x0b6).rw(FUNC(mcf5206e_device::cscr6_r), FUNC(mcf5206e_device::cscr6_w));
++	map(0x0b6, 0x0b7).rw(FUNC(mcf5206e_device::cscr6_r), FUNC(mcf5206e_device::cscr6_w));
+ 	map(0x0b8, 0x0b9).rw(FUNC(mcf5206e_device::csar7_r), FUNC(mcf5206e_device::csar7_w));
+ 	map(0x0bc, 0x0bf).rw(FUNC(mcf5206e_device::csmr7_r), FUNC(mcf5206e_device::csmr7_w));
+-	map(0x0c2, 0x0c2).rw(FUNC(mcf5206e_device::cscr7_r), FUNC(mcf5206e_device::cscr7_w));
++	map(0x0c2, 0x0c3).rw(FUNC(mcf5206e_device::cscr7_r), FUNC(mcf5206e_device::cscr7_w));
+ 	map(0x0c4, 0x0c7).rw(FUNC(mcf5206e_device::dmcr_r), FUNC(mcf5206e_device::dmcr_w));
+ 
+ 	// timer 1
+@@ -448,15 +448,15 @@ void mcf5206e_device::csmr_x_w(offs_t offset, u32 data)
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Mask Register) CSMR%d_w %08x\n", this->machine().describe_context(), offset, data);
+ }
+ 
+-u8 mcf5206e_device::cscr_x_r(offs_t offset)
++u16 mcf5206e_device::cscr_x_r(offs_t offset)
+ {
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Control Register) CSCR%d_r\n", this->machine().describe_context(), offset);
+ 	return m_cscr[offset];
+ }
+ 
+-void mcf5206e_device::cscr_x_w(offs_t offset, u8 data)
++void mcf5206e_device::cscr_x_w(offs_t offset, u16 data, u16 mem_mask)
+ {
+-	m_cscr[offset] = data;
++	COMBINE_DATA(&m_cscr[offset]);
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Control Register) CSCR%d_w %04x\n", this->machine().describe_context(), offset, data);
+ }
+ 
+@@ -1042,7 +1042,7 @@ void mcf5206e_device::init_regs(bool first_init)
+ 
+ 	m_csar[0] = 0x0000;
+ 	m_csmr[0] = 0x00000000;
+-	m_cscr[0] = 0x3c1f; /* 3C1F, 3C5F, 3C9F, 3CDF, 3D1F, 3D5F, 3D9F, 3DDF |  AA set by IRQ 7 at reset, PS1 set by IRQ 4 at reset, PS0 set by IRQ 1 at reset*/
++	m_cscr[0] = m_cscr0_reset; /* 3C1F, 3C5F, 3C9F, 3CDF, 3D1F, 3D5F, 3D9F, 3DDF |  AA set by IRQ 7 at reset, PS1 set by IRQ 4 at reset, PS0 set by IRQ 1 at reset*/
+ 
+ 	if (first_init)
+ 	{
+diff --git a/src/devices/cpu/m68000/mcf5206e.h b/src/devices/cpu/m68000/mcf5206e.h
+index c5d60980..f92d0a3d 100644
+--- a/src/devices/cpu/m68000/mcf5206e.h
++++ b/src/devices/cpu/m68000/mcf5206e.h
+@@ -343,6 +343,9 @@ public:
+ 
+ 	// DUART
+ 	auto tx1_w_cb() { return write_tx1.bind(); }
++
++	// CSCR0 reset value: AA, PS1 and PS0 come from the IRQ7/IRQ4/IRQ1 pins at reset (0x3c1f = none set)
++	void set_cscr0_reset(u16 value) { m_cscr0_reset = value; }
+ 	auto tx2_w_cb() { return write_tx2.bind(); }
+ 	void rx1_w(int state) { m_uart[0]->rx_a_w(state); }
+ 	void rx2_w(int state) { m_uart[1]->rx_a_w(state); }
+@@ -420,61 +423,61 @@ private:
+ 
+ 	/* chip select module */
+ 	u16 csar_x_r(offs_t offset);
+-	u8 cscr_x_r(offs_t offset);
++	u16 cscr_x_r(offs_t offset);
+ 	u32 csmr_x_r(offs_t offset);
+ 	inline u16 csar0_r(){ return csar_x_r(0); }
+ 	inline u32 csmr0_r(){ return csmr_x_r(0); }
+-	inline u8 cscr0_r(){ return cscr_x_r(0); }
++	inline u16 cscr0_r(){ return cscr_x_r(0); }
+ 	inline u16 csar1_r(){ return csar_x_r(1); }
+ 	inline u32 csmr1_r(){ return csmr_x_r(1); }
+-	inline u8 cscr1_r(){ return cscr_x_r(1); }
++	inline u16 cscr1_r(){ return cscr_x_r(1); }
+ 	inline u16 csar2_r(){ return csar_x_r(2); }
+ 	inline u32 csmr2_r(){ return csmr_x_r(2); }
+-	inline u8 cscr2_r(){ return cscr_x_r(2); }
++	inline u16 cscr2_r(){ return cscr_x_r(2); }
+ 	inline u16 csar3_r(){ return csar_x_r(3); }
+ 	inline u32 csmr3_r(){ return csmr_x_r(3); }
+-	inline u8 cscr3_r(){ return cscr_x_r(3); }
++	inline u16 cscr3_r(){ return cscr_x_r(3); }
+ 	inline u16 csar4_r(){ return csar_x_r(4); }
+ 	inline u32 csmr4_r(){ return csmr_x_r(4); }
+-	inline u8 cscr4_r(){ return cscr_x_r(4); }
++	inline u16 cscr4_r(){ return cscr_x_r(4); }
+ 	inline u16 csar5_r(){ return csar_x_r(5); }
+ 	inline u32 csmr5_r(){ return csmr_x_r(5); }
+-	inline u8 cscr5_r(){ return cscr_x_r(5); }
++	inline u16 cscr5_r(){ return cscr_x_r(5); }
+ 	inline u16 csar6_r(){ return csar_x_r(6); }
+ 	inline u32 csmr6_r(){ return csmr_x_r(6); }
+-	inline u8 cscr6_r(){ return cscr_x_r(6); }
++	inline u16 cscr6_r(){ return cscr_x_r(6); }
+ 	inline u16 csar7_r(){ return csar_x_r(7); }
+ 	inline u32 csmr7_r(){ return csmr_x_r(7); }
+-	inline u8 cscr7_r(){ return cscr_x_r(7); }
++	inline u16 cscr7_r(){ return cscr_x_r(7); }
+ 	inline u16 dmcr_r(){ return m_dmcr; }
+ 
+ 	void csar_x_w(offs_t offset, u16 data);
+ 	void csmr_x_w(offs_t offset, u32 data);
+-	void cscr_x_w(offs_t offset, u8 data);
++	void cscr_x_w(offs_t offset, u16 data, u16 mem_mask);
+ 	inline void csar0_w(u16 data){ csar_x_w(0, data); }
+ 	inline void csmr0_w(u32 data){ csmr_x_w(0, data); }
+-	inline void cscr0_w(u8 data){ cscr_x_w(0, data); }
++	inline void cscr0_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(0, data, mem_mask); }
+ 	inline void csar1_w(u16 data){ csar_x_w(1, data); }
+ 	inline void csmr1_w(u32 data){ csmr_x_w(1, data); }
+-	inline void cscr1_w(u8 data){ cscr_x_w(1, data); }
++	inline void cscr1_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(1, data, mem_mask); }
+ 	inline void csar2_w(u16 data){ csar_x_w(2, data); }
+ 	inline void csmr2_w(u32 data){ csmr_x_w(2, data); }
+-	inline void cscr2_w(u8 data){ cscr_x_w(2, data); }
++	inline void cscr2_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(2, data, mem_mask); }
+ 	inline void csar3_w(u16 data){ csar_x_w(3, data); }
+ 	inline void csmr3_w(u32 data){ csmr_x_w(3, data); }
+-	inline void cscr3_w(u8 data){ cscr_x_w(3, data); }
++	inline void cscr3_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(3, data, mem_mask); }
+ 	inline void csar4_w(u16 data){ csar_x_w(4, data); }
+ 	inline void csmr4_w(u32 data){ csmr_x_w(4, data); }
+-	inline void cscr4_w(u8 data){ cscr_x_w(4, data); }
++	inline void cscr4_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(4, data, mem_mask); }
+ 	inline void csar5_w(u16 data){ csar_x_w(5, data); }
+ 	inline void csmr5_w(u32 data){ csmr_x_w(5, data); }
+-	inline void cscr5_w(u8 data){ cscr_x_w(5, data); }
++	inline void cscr5_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(5, data, mem_mask); }
+ 	inline void csar6_w(u16 data){ csar_x_w(6, data); }
+ 	inline void csmr6_w(u32 data){ csmr_x_w(6, data); }
+-	inline void cscr6_w(u8 data){ cscr_x_w(6, data); }
++	inline void cscr6_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(6, data, mem_mask); }
+ 	inline void csar7_w(u16 data){ csar_x_w(7, data); }
+ 	inline void csmr7_w(u32 data){ csmr_x_w(7, data); }
+-	inline void cscr7_w(u8 data){ cscr_x_w(7, data); }
++	inline void cscr7_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(7, data, mem_mask); }
+ 	void dmcr_w(u16 data);
+ 
+ 	u16 m_csar[8];
+@@ -491,6 +494,7 @@ private:
+ 
+ 	required_device_array<mcf5206e_uart_device, 2> m_uart;
+ 	devcb_write_line write_tx1, write_tx2;
++	u16 m_cscr0_reset = 0x3c1f;
+ 
+ 	/* parallel port */
+ 	u8 ppddr_r();
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..ee013e7e
+index 00000000..f1a6f107
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,595 @@
+@@ -0,0 +1,647 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -51,6 +218,7 @@ index 00000000..ee013e7e
 +
 +#include "emu.h"
 +#include "cpu/m68000/mcf5206e.h"
++#include "machine/intelfsh.h"
 +#include "video/hd44780.h"
 +#include "bus/midi/midi.h"
 +#include "emupal.h"
@@ -66,7 +234,7 @@ index 00000000..ee013e7e
 +#define LOG_H     (1U << 4)
 +#define LOG_LCD   (1U << 5)
 +#define LOG_SND   (1U << 6)
-+#define VERBOSE   (LOG_IO | LOG_G05 | LOG_LCD | LOG_SND)
++#define VERBOSE   (LOG_IO | LOG_LCD)
 +#include "logmacro.h"
 +
 +// ---------------------------------------------------------------- G20 voice model (research)
@@ -194,10 +362,12 @@ index 00000000..ee013e7e
 +		: driver_device(mconfig, type, tag)
 +		, m_maincpu(*this, "maincpu")
 +		, m_lcdc(*this, "lcdc")
++		, m_flash(*this, "flash")
 +		, m_sound(*this, "simm")
 +		, m_panel(*this, "PANEL")
 +		, m_voice(*this, "g20")
 +		, m_adc(*this, "ADC%u", 0U)
++		, m_encoder(*this, "ENCODER")
 +	{ }
 +
 +	void proteus2k(machine_config &config) ATTR_COLD;
@@ -233,10 +403,13 @@ index 00000000..ee013e7e
 +
 +	required_device<mcf5206e_device> m_maincpu;
 +	required_device<hd44780_device> m_lcdc;
++	required_device<intelfsh16_device> m_flash;
 +	optional_region_ptr<u16> m_sound;
 +	required_ioport m_panel;
 +	required_device<p2k_g20_device> m_voice;
 +	required_ioport_array<8> m_adc;
++	required_ioport m_encoder;
++	u8 m_enc_last = 0;
 +
 +	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
 +	u16 m_g05_index = 0;
@@ -285,27 +458,36 @@ index 00000000..ee013e7e
 +	// the target of "jsr 0x02003B30" (4EB9), used elsewhere in the boot block; 4E38 differs
 +	// from 4EB9 in two bits of one byte. Without the fix the boot takes an illegal-instruction
 +	// exception at 0x02000DFE.
-+	u32 *rom = reinterpret_cast<u32 *>(memregion("flash")->base());
-+	u32 &w = rom[0xdfc / 4];   // 32-bit region words: 0x000DFC-0x000DFF
++	// The region is the initial content of the flash device (used when no NVRAM file exists).
++	u16 *rom = reinterpret_cast<u16 *>(memregion("flash")->base());
 +	load_simms();
-+	if ((w & 0xffff) == 0x4e38)
-+		w = (w & 0xffff0000) | 0x4eb9;
++	if (rom[0xdfe / 2] == 0x4e38)
++		rom[0xdfe / 2] = 0x4eb9;
 +	else
-+		logerror("flash 0x000DFC = %08x: expected xxxx4E38, repair not applied\n", w);
++		logerror("flash 0x000DFE = %04x: expected 4E38, repair not applied\n", rom[0xdfe / 2]);
++
++	// P2K_CLEAN=1: erase the user-data libraries (flash 0x0A0000-0x1FFFFF, two "lib_USER" copies in the
++	// dump) in the initial image so the OS builds factory-default user data instead of the dump
++	// owner's presets and multi setup. Only applies when no NVRAM file exists yet.
++	if (std::getenv("P2K_CLEAN"))
++		std::fill(rom + 0xa0000 / 2, rom + 0x200000 / 2, 0xffff);
 +
 +	// OS 2.26 overlay: .dli header 0x1A0 bytes, then the image (linked at 0x01000000).
 +	const u8 *dli = memregion("dli")->base();
 +	if (dli[0x1a0] | dli[0x1a1] | dli[0x1a2] | dli[0x1a3])
 +	{
 +		const u32 len = (dli[0x30 - 8] << 24) | (dli[0x30 - 7] << 16) | (dli[0x30 - 6] << 8) | dli[0x30 - 5];
-+		for (u32 i = 0; i < len; i += 4)
-+			rom[(0x10100 + i) / 4] = (dli[0x1a0 + i] << 24) | (dli[0x1a1 + i] << 16) | (dli[0x1a2 + i] << 8) | dli[0x1a3 + i];
++		for (u32 i = 0; i < len; i += 2)
++			rom[(0x10100 + i) / 2] = (dli[0x1a0 + i] << 8) | dli[0x1a1 + i];
 +		// The 1.24 boot block leaves start mode 0x1E in the DRAM mailbox 0x010003FC (0x020033CA).
 +		// OS 2.26 reads it at 0x010009B0 and treats bits 0x16 as "commit the OS to flash": it stops
 +		// at "Press Enter to commit OS to flash" (0x0107A414). Make 2.26 read 0 (normal start):
 +		// move.l (1020,a3),d7 -> moveq #0,d7; nop. Research patch, only with the overlay.
-+		if (rom[(0x10100 + 0x9b0) / 4] == 0x2e2b03fc)
-+			rom[(0x10100 + 0x9b0) / 4] = 0x7e004e71;
++		if (rom[(0x10100 + 0x9b0) / 2] == 0x2e2b && rom[(0x10100 + 0x9b2) / 2] == 0x03fc)
++		{
++			rom[(0x10100 + 0x9b0) / 2] = 0x7e00;
++			rom[(0x10100 + 0x9b2) / 2] = 0x4e71;
++		}
 +		logerror("OS image from p2k226.dli (%u bytes) placed at flash 0x010100\n", len);
 +	}
 +}
@@ -393,7 +575,7 @@ index 00000000..ee013e7e
 +		l1 += (m_ddram[i] >= 0x20 && m_ddram[i] < 0x7f) ? char(m_ddram[i]) : '.';
 +		l2 += (m_ddram[0x40 + i] >= 0x20 && m_ddram[0x40 + i] < 0x7f) ? char(m_ddram[0x40 + i]) : '.';
 +	}
-+	LOGMASKED(LOG_LCD, "LCD |%s|%s|\n", l1, l2);
++	LOGMASKED(LOG_LCD, "LCD %.2f |%s|%s|\n", machine().time().as_double(), l1, l2);
 +}
 +
 +HD44780_PIXEL_UPDATE(emup2k_state::lcd_pixel_update)
@@ -432,6 +614,12 @@ index 00000000..ee013e7e
 +		v = m_g05_index;
 +	else if (reg == 0x18 && idx == 0x1e)
 +		v = 0x30;           // chip ID the boot and diagnostics test for
++	else if (reg == 0x18 && idx == 0x1b && !machine().side_effects_disabled())
++	{
++		const u8 now = m_encoder->read();
++		v = u8(now - m_enc_last);   // signed 8-bit delta
++		m_enc_last = now;
++	}
 +	LOGMASKED(LOG_G05, "%s: G05 read  idx %02x reg %02x -> %04x\n", machine().describe_context(), idx, reg, v);
 +	return v;
 +}
@@ -512,7 +700,14 @@ index 00000000..ee013e7e
 +
 +u16 emup2k_state::panel_r()
 +{
-+	return m_panel->read();
++	// [I] Workaround: the 1.24 boot block (0x02000BAC, CSCR0 PS1 clear) repeats its LED/cache test
++	// until bit 7 reads 0, while the OS treats bit 7 = 0 as a held button (key 0x130). The panel is
++	// probably read through the Xilinx the boot block configures; until that is modelled, bit 7
++	// reads 0 while the CPU runs from the boot flash.
++	u16 v = m_panel->read();
++	if (m_maincpu->pc() >= 0x02000000)
++		v &= ~0x0080;
++	return v;
 +}
 +
 +void emup2k_state::led_w(offs_t offset, u8 data)
@@ -530,7 +725,7 @@ index 00000000..ee013e7e
 +
 +void emup2k_state::mem_map(address_map &map)
 +{
-+	map(0x00000000, 0x001fffff).rom().region("flash", 0);
++	map(0x00000000, 0x001fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
 +	map(0x00400000, 0x00ffffff).rw(FUNC(emup2k_state::unk_r), FUNC(emup2k_state::unk_w));
 +	map(0x00400000, 0x00400000).rw(FUNC(emup2k_state::lcd_ctrl_r), FUNC(emup2k_state::lcd_ctrl_w));
 +	map(0x00408000, 0x00408000).rw(FUNC(emup2k_state::lcd_data_r), FUNC(emup2k_state::lcd_data_w));
@@ -547,7 +742,7 @@ index 00000000..ee013e7e
 +	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_adc[m_scan_row & 7]->read() * 255 / 100; }), NAME([this] (u8 d) { m_scan_row = d; }));
 +	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
 +	map(0x01000000, 0x017fffff).ram();
-+	map(0x02000000, 0x021fffff).rom().region("flash", 0);
++	map(0x02000000, 0x021fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
 +	// No chip select here (DMCR default-acknowledge). The boot data-line test (0x02000DE4) writes a
 +	// bit pattern and reads it back [I: relies on the bus holding the last value]; the cache test
 +	// (0x02000CB0) writes 2 M longs here.
@@ -555,10 +750,27 @@ index 00000000..ee013e7e
 +}
 +
 +static INPUT_PORTS_START( proteus2k )
++	// Front-panel buttons on 0x800000 bits 15-7, active low [O: 0x01035720 inverts and masks 0xFF80];
++	// key codes from 0x01034C9C (bit 7 0x130, 8 0x111, 9 0x110, 10 0x103, 11 0x104, 12 0x121, 13 0x120,
++	// 14 0x101, 15 0x102; 14+15 together 0x140). Save/Copy, Multi, Edit and Master matched by the
++	// screen each opens from the main screen; the others [I].
 +	PORT_START("PANEL")
-+	PORT_BIT( 0xfe7f, IP_ACTIVE_LOW, IPT_UNKNOWN )
-+	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_UNKNOWN )   // boot waits at 0x02000BD2 while this reads 1 [I: status, not a key]
-+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Panel bit 8")
++	PORT_BIT( 0x007f, IP_ACTIVE_LOW, IPT_UNKNOWN )
++	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Arp [I]") PORT_CODE(KEYCODE_A)
++	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME("Audition [I]") PORT_CODE(KEYCODE_SPACE)
++	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME("Save/Copy") PORT_CODE(KEYCODE_S)
++	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_NAME("Multi") PORT_CODE(KEYCODE_M)
++	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_NAME("Home/Enter [I]") PORT_CODE(KEYCODE_ENTER)
++	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_NAME("Cursor right [I]") PORT_CODE(KEYCODE_RIGHT)
++	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON7 ) PORT_NAME("Cursor left [I]") PORT_CODE(KEYCODE_LEFT)
++	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_BUTTON8 ) PORT_NAME("Edit") PORT_CODE(KEYCODE_E)
++	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_BUTTON9 ) PORT_NAME("Master") PORT_CODE(KEYCODE_Q)
++
++	// Data-entry encoder: G05 index 0x1B register 0x18 returns the signed count since the last read
++	// [O: 0x0102F80C read by 0x010359E0]
++	PORT_START("ENCODER")
++	PORT_BIT( 0xff, 0x00, IPT_DIAL ) PORT_SENSITIVITY(50) PORT_KEYDELTA(1) PORT_NAME("Data entry") PORT_CODE_DEC(KEYCODE_MINUS) PORT_CODE_INC(KEYCODE_EQUALS)
++
 +	// Knobs [I: 8-bit ADC; the OS scales raw - (reference + 2) to 0..127]
 +	PORT_START("ADC0") PORT_ADJUSTER(0, "Knob ADC 0")
 +	PORT_START("ADC1") PORT_ADJUSTER(0, "Knob ADC 1")
@@ -572,6 +784,10 @@ index 00000000..ee013e7e
 +
 +void emup2k_state::proteus2k(machine_config &config)
 +{
++	// 2 MB boot/OS/user flash, 28F160 x16 [O: dump label TH28F160; the OS flash driver accepts
++	// maker 0x89 or 0xB0 with device 0xD0 (0x0102E080)]. Writes (user presets) persist as NVRAM.
++	SHARP_LH28F160S3(config, m_flash);
++
 +	MCF5206E(config, m_maincpu, 33'000'000); // [O] OS 2.26 computes UART baud rates from 33000000 (0x0100B07A)
 +	m_maincpu->set_addrmap(AS_PROGRAM, &emup2k_state::mem_map);
 +
@@ -590,6 +806,9 @@ index 00000000..ee013e7e
 +
 +	// MIDI In A on UART1 [O: OS 2.26 0x0100B070 sets up UART1 (MBAR+0x140) and UART2 (+0x180) with a 33 MHz clock]
 +	MIDI_PORT(config, "mdin", midiin_slot, "midiin").rxd_handler().set(FUNC(emup2k_state::midi_rx_w));
++	// MIDI Out on UART1 TX [I: UART1 is the MIDI port pair; not traced to the connector]
++	midi_port_device &mdout(MIDI_PORT(config, "mdout", midiout_slot, "midiout"));
++	m_maincpu->tx1_w_cb().set(mdout, FUNC(midi_port_device::write_txd));
 +
 +	SPEAKER(config, "speaker", 2).front();
 +	P2K_G20(config, m_voice, 44'100); // [I] output rate 44.1 kHz (P2K specification); clock source not traced
@@ -598,7 +817,7 @@ index 00000000..ee013e7e
 +}
 +
 +ROM_START( proteus2k )
-+	ROM_REGION32_BE( 0x200000, "flash", 0 )
++	ROM_REGION16_BE( 0x200000, "flash", 0 )
 +	ROM_LOAD16_WORD_SWAP( "proteus-2k-v124-28f160.bin", 0x000000, 0x200000, CRC(bd878bcb) SHA1(7cd9c92114f1ef583adacd7f533856f5c0031742) ) // one bad word, repaired in init_proteus2k
 +
 +	// Optional: OS 2.26 E-Loader file; when present its image replaces the flash OS at 0x010100.
