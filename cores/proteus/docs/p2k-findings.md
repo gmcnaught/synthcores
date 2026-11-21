@@ -305,3 +305,11 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
 - **Mix output** [O]: H block +0x7B = 0x72 (Main), 0x7B (Sub 1), 0x44 (Sub 2) at note-on.
 - **MAME FX model** [I]: behavioural reverb (comb/all-pass), delay, chorus/flange/delay by algorithm
   family, parameters from the active FX state, every voice on bus 1. Not the G05 microcode.
+- **G05 vs EMU8000 INIT slots** [O/I]: reading the G05 registers as EMU8000 INIT arrays (offset 0x28 =
+  INIT1, 0x2A = INIT2, 0x38 = INIT3, 0x3A = INIT4; the EMU8000 has INIT1/2 = register 2 on data ports
+  1/2 and INIT3/4 = register 3), the slots the P2K OS writes when changing FX (INIT1 0x0B, 0x11, 0x13,
+  0x17, 0x19, 0x1B, 0x1F; INIT2 0x01, 0x03, 0x07, 0x09, 0x0B, 0x0F, 0x11, 0x13, 0x17, 0x1F; INIT4 0x1F)
+  are almost all slots that 86Box's EMU8000 model (src/sound/snd_emu8k.c, GPL-2.0) decodes as
+  reverb/chorus parameters. 86Box's decoding is itself inferred (Freeverb-style reflections, all-pass
+  feedback, chorus delay/LFO), not the EMU8000 microcode. MAME has no EMU8000 device (only a TODO
+  in src/mame/misc/savquest.cpp).
