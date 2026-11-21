@@ -180,10 +180,10 @@ index c5d60980..f92d0a3d 100644
  	u8 ppddr_r();
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..f1a6f107
+index 00000000..a6a60803
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,647 @@
+@@ -0,0 +1,880 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -251,13 +251,23 @@ index 00000000..f1a6f107
 +// block of voice v (OS table 0x010331D0, matched exactly by this formula):
 +//   0x4000 * (v >> 6) + {0x2000, 0, 0x3000, 0x1000}[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15)
 +// Level law [I]: 0.375 dB a step (255 = 0 dB, 0 = off), smoothed over ~5 ms.
-+// Not modelled: H-chip filters, effects, output routing [U].
++// Filter: APPROXIMATION [I]. The OS writes three 2-pole sections per voice (H block +0x00/+0x10/+0x20,
++// four words each; Z-plane frame bytes whose arithmetic is not known) and a frequency byte at the
++// previous slot's block +0x3E. The model classes each section from its pattern (0xFFCF in words 0-3:
++// bypass; word 2 = 0x8004: high-pass; otherwise low-pass), takes the cutoff from the frequency byte
++// with the OS readout curve (20 kHz x (1002/1024)^(255-F), "Classic" table) and the resonance from
++// the low-pass word-0 high byte (0x84 at Q 0, 0x52 at Q 127), and runs 2-pole trapezoidal
++// state-variable filters.
++// 12th-order types (two blocks) are run as a 4-pole low-pass. P2K_NOFILTER=1 bypasses it.
++// Effects: behavioural reverb / chorus / flange / delay, see p2k_g20_device::fx (approximation [I];
++// P2K_NOFX=1 disables). Not modelled: the G05 microcode, output routing to Sub 1/2 [U].
 +class p2k_g20_device : public device_t, public device_sound_interface
 +{
 +public:
 +	p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
 +
 +	void set_memory(const u16 *regs, const u16 *mem, u32 words, const u16 *h) { m_regs = regs; m_mem = mem; m_words = words; m_h = h; }
++	void set_dram(const u32 *dram) { m_dram = dram; }
 +	static u32 h_block(int v) { static const u16 page[4] = { 0x2000, 0, 0x3000, 0x1000 }; return 0x4000 * (v >> 6) + page[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15); }
 +	void restart(int voice);
 +	void update() { m_stream->update(); }
@@ -270,6 +280,22 @@ index 00000000..f1a6f107
 +private:
 +	u32 reg32(int v, int r) const { return (u32(m_regs[v * 32 + r / 2]) << 16) | m_regs[v * 32 + r / 2 + 1]; }
 +	s16 mem(u32 a) const { return a < m_words ? s16(m_mem[a]) : 0; }
++	float filter(int v, float x, float k);
++	u8 dram8(u32 a) const { a -= 0x01000000; return a < 0x800000 ? u8(m_dram[a >> 2] >> (24 - 8 * (a & 3))) : 0; }
++	void fx_params();
++	void fx(float a_in, float b_in, float &l, float &r);
++
++	// Effects: BEHAVIOURAL MODEL [I] (the G05 is an EMU8000-style effects engine whose microcode is not
++	// emulated). Parameters from the OS's active FX state (pointer at 0x01120500; +0x12 A algorithm,
++	// decay, HF damping, B->A, sends 1-4; +0x1A B algorithm, feedback, LFO rate, delay, sends 1-4).
++	// Every voice is treated as routed to bus 1 [I: H block +0x7B routing byte not decoded].
++	const u32 *m_dram = nullptr;
++	u8 m_fxa[8]{}, m_fxb[8]{};
++	std::vector<float> m_comb[8][2], m_ap[4][2], m_dly[2], m_bdl[2];
++	float m_comb_lp[8][2]{};
++	u32 m_comb_pos[8][2]{}, m_ap_pos[4][2]{}, m_dly_pos = 0, m_bdl_pos = 0;
++	float m_lfo = 0;
++	int m_fx_count = 0;
 +
 +	sound_stream *m_stream = nullptr;
 +	const u16 *m_regs = nullptr;
@@ -278,6 +304,11 @@ index 00000000..f1a6f107
 +	u32 m_words = 0;
 +	float m_gain_tab[256]{};
 +	float m_gain[128][2]{};
++	float m_svf[128][2][2]{};             // [voice][section][low, band]
++	float m_fc[128]{};
++	bool m_filter_on = true;
++	bool m_fx_on = true;
++	float m_cut_tab[256]{};
 +	u32 m_addr[128]{};
 +	u32 m_frac[128]{};
 +	bool m_idle[128]{};
@@ -296,16 +327,191 @@ index 00000000..f1a6f107
 +	m_stream = stream_alloc(0, 2, clock());
 +	for (int b = 1; b < 256; b++)
 +		m_gain_tab[b] = powf(10.0f, -(255 - b) * 0.375f / 20.0f);
++	for (int f = 0; f < 256; f++)
++	{
++		const float hz = std::min(20000.0f * powf(1002.0f / 1024.0f, float(255 - f)), 0.45f * clock());
++		m_cut_tab[f] = tanf(float(M_PI) * hz / clock());          // trapezoidal SVF g
++	}
++	m_filter_on = std::getenv("P2K_NOFILTER") == nullptr;
++	static const int comb_len[8] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };   // Schroeder/Moorer tunings
++	static const int ap_len[4] = { 556, 441, 341, 225 };
++	for (int i = 0; i < 8; i++)
++		for (int c = 0; c < 2; c++)
++			m_comb[i][c].assign(comb_len[i] + c * 23, 0.0f);
++	for (int i = 0; i < 4; i++)
++		for (int c = 0; c < 2; c++)
++			m_ap[i][c].assign(ap_len[i] + c * 23, 0.0f);
++	for (int c = 0; c < 2; c++)
++	{
++		m_dly[c].assign(clock() * 2, 0.0f);      // FX A delays, up to 2 s
++		m_bdl[c].assign(clock(), 0.0f);          // FX B delays, up to 1 s
++	}
++	m_fx_on = std::getenv("P2K_NOFX") == nullptr;
++	save_item(NAME(m_svf));
++	save_item(NAME(m_fc));
 +	save_item(NAME(m_addr));
 +	save_item(NAME(m_frac));
 +	save_item(NAME(m_idle));
 +	save_item(NAME(m_gain));
 +}
 +
++float p2k_g20_device::filter(int v, float x, float k)
++{
++	const u32 hb = h_block(v) / 2;
++	// frequency byte: previous slot's block + 0x3E (0x01032F64: -0x80, 0x000 wraps to 0x780)
++	const u32 blk = h_block(v);
++	const u32 prev = (blk & 0x7ff) == 0 ? blk + 0x780 : blk - 0x80;
++	const u8 f = m_h[(prev + 0x3e) / 2] & 0xff;
++	m_fc[v] += (m_cut_tab[f] - m_fc[v]) * k;
++	const float fc = m_fc[v];
++	int stages = 0;
++	for (int sec = 0; sec < 2; sec++)
++	{
++		const u16 *w = &m_h[hb + sec * 8];
++		bool hp = false;
++		float q;
++		if (w[0] == 0xffcf && w[1] == 0xffcf && w[2] == 0xffcf && w[3] == 0xffcf)
++			continue;                                   // bypass section
++		if (w[2] == 0x8004 || w[3] == 0x8004)
++		{
++			hp = true;
++			q = 0.0f;
++		}
++		else
++			q = std::clamp((0x84 - int(w[0] >> 8)) / float(0x84 - 0x52), 0.0f, 1.0f);
++		const float kd = 1.414f * (1.0f - 0.9f * q);    // 1/Q: Q 0.707 .. ~7 [I]
++		float &ic1 = m_svf[v][sec][0], &ic2 = m_svf[v][sec][1];
++		const float g = fc;
++		const float a1 = 1.0f / (1.0f + g * (g + kd)), a2 = g * a1, a3 = g * a2;
++		const float v3 = x - ic2;
++		const float v1 = a1 * ic1 + a2 * v3;
++		const float v2 = ic2 + a2 * ic1 + a3 * v3;
++		ic1 = 2.0f * v1 - ic1;
++		ic2 = 2.0f * v2 - ic2;
++		const float lo = v2, hi = x - kd * v1 - v2;
++		x = hp ? hi : lo;
++		stages++;
++	}
++	return x;
++}
++
++void p2k_g20_device::fx_params()
++{
++	const u32 p = m_dram ? (u32(dram8(0x01120500)) << 24 | dram8(0x01120501) << 16 | dram8(0x01120502) << 8 | dram8(0x01120503)) : 0;
++	if (p < 0x01000000 || p >= 0x017fffc0)
++		return;
++	for (int i = 0; i < 8; i++)
++	{
++		m_fxa[i] = dram8(p + 0x12 + i);
++		m_fxb[i] = dram8(p + 0x1a + i);
++	}
++}
++
++void p2k_g20_device::fx(float a_in, float b_in, float &l, float &r)
++{
++	const float fs = float(clock());
++	l = r = 0;
++	// ---- FX B: chorus / flange / delay by algorithm number (names from the P2K manual list)
++	const int balg = m_fxb[0];
++	float bl = 0, br = 0;
++	if (balg)
++	{
++		const float fb = m_fxb[1] / 127.0f * 0.9f;
++		const float rate = 0.05f + m_fxb[2] / 127.0f * 6.0f;            // Hz [I]
++		m_lfo += rate / fs;
++		if (m_lfo >= 1.0f)
++			m_lfo -= 1.0f;
++		const float s1 = sinf(2.0f * float(M_PI) * m_lfo), s2 = sinf(2.0f * float(M_PI) * (m_lfo + 0.25f));
++		float d1, d2;
++		if (balg >= 8 && balg <= 14)            // Flange 1-7
++		{
++			d1 = (2.5f + 2.0f * s1) * 0.001f * fs;
++			d2 = (2.5f + 2.0f * s2) * 0.001f * fs;
++		}
++		else if (balg >= 18 && balg <= 24)      // delays, delay chorus
++		{
++			const float ms = std::max(1.0f, (int8_t(m_fxb[3]) + 12) * 5.0f);
++			d1 = d2 = ms * 0.001f * fs;
++		}
++		else if (balg == 6 || balg == 7)        // doubling / slapback
++		{
++			d1 = (balg == 6 ? 25.0f : 90.0f) * 0.001f * fs;
++			d2 = d1 * 1.1f;
++		}
++		else                                    // chorus family
++		{
++			d1 = (15.0f + 5.0f * s1) * 0.001f * fs;
++			d2 = (15.0f + 5.0f * s2) * 0.001f * fs;
++		}
++		const u32 n = m_bdl[0].size();
++		auto tap = [&](int c, float d) {
++			const float pos = float(m_bdl_pos) - d + n;
++			const u32 i0 = u32(pos) % n, i1 = (i0 + 1) % n;
++			const float f = pos - floorf(pos);
++			return m_bdl[c][i0] * (1 - f) + m_bdl[c][i1] * f;
++		};
++		bl = tap(0, d1);
++		br = tap(1, d2);
++		m_bdl[0][m_bdl_pos] = b_in + bl * fb;
++		m_bdl[1][m_bdl_pos] = b_in + br * fb;
++		m_bdl_pos = (m_bdl_pos + 1) % n;
++		a_in += (bl + br) * 0.5f * (m_fxa[3] / 127.0f);                  // B -> A
++	}
++	// ---- FX A: reverb, or delay for the delay/multitap algorithms
++	const int aalg = m_fxa[0];
++	float al = 0, ar = 0;
++	if (aalg)
++	{
++		if (aalg >= 7 && aalg <= 12)            // Delay, Panning Delay, Multitap, 3 Tap
++		{
++			const u32 n = m_dly[0].size();
++			const u32 d = u32((150 + m_fxa[1] * 4) * 0.001f * fs) % n;
++			const float fb = m_fxa[1] / 127.0f * 0.7f;
++			al = m_dly[0][(m_dly_pos + n - d) % n];
++			ar = m_dly[1][(m_dly_pos + n - d * 3 / 4) % n];
++			m_dly[0][m_dly_pos] = a_in + ar * fb;
++			m_dly[1][m_dly_pos] = a_in + al * fb;
++			m_dly_pos = (m_dly_pos + 1) % n;
++		}
++		else
++		{
++			const float room = 0.70f + m_fxa[1] / 127.0f * 0.28f;   // decay [I]
++			const float damp = m_fxa[2] / 127.0f * 0.6f;
++			for (int c = 0; c < 2; c++)
++			{
++				float acc = 0;
++				for (int i = 0; i < 8; i++)
++				{
++					auto &buf = m_comb[i][c];
++					u32 &pos = m_comb_pos[i][c];
++					const float out = buf[pos];
++					m_comb_lp[i][c] = out * (1 - damp) + m_comb_lp[i][c] * damp;
++					buf[pos] = a_in * 0.015f + m_comb_lp[i][c] * room;
++					pos = (pos + 1) % buf.size();
++					acc += out;
++				}
++				for (int i = 0; i < 4; i++)
++				{
++					auto &buf = m_ap[i][c];
++					u32 &pos = m_ap_pos[i][c];
++					const float bo = buf[pos];
++					buf[pos] = acc + bo * 0.5f;
++					acc = bo - acc;
++					pos = (pos + 1) % buf.size();
++				}
++				(c ? ar : al) = acc;
++			}
++		}
++	}
++	l = al + bl;
++	r = ar + br;
++}
++
 +void p2k_g20_device::restart(int v)
 +{
 +	m_addr[v] = reg32(v, 0x18) & 0x3ffffff;
 +	m_frac[v] = 0;
++	m_svf[v][0][0] = m_svf[v][0][1] = m_svf[v][1][0] = m_svf[v][1][1] = 0;
 +	m_idle[v] = false;
 +}
 +
@@ -316,7 +522,7 @@ index 00000000..f1a6f107
 +	const float k = 1.0f - expf(-1.0f / (0.005f * clock()));   // ~5 ms level smoothing [I]
 +	for (int i = 0; i < stream.samples(); i++)
 +	{
-+		float suml = 0, sumr = 0;
++		float suml = 0, sumr = 0, mono = 0;
 +		for (int v = 0; v < 128; v++)
 +		{
 +			const u32 inc = reg32(v, 0x04) >> 16;
@@ -328,9 +534,12 @@ index 00000000..f1a6f107
 +				continue;
 +			const u32 a = m_addr[v];
 +			const s32 s0 = mem(a), s1 = mem(a + 1);
-+			const float smp = float(s0 + (((s1 - s0) * s32(m_frac[v])) >> 12));
++			float smp = float(s0 + (((s1 - s0) * s32(m_frac[v])) >> 12));
++			if (m_filter_on)
++				smp = filter(v, smp, k);
 +			suml += smp * m_gain[v][0];
 +			sumr += smp * m_gain[v][1];
++			mono += smp * 0.5f * (m_gain[v][0] + m_gain[v][1]);
 +			u32 f = m_frac[v] + inc;
 +			u32 na = a + (f >> 12);
 +			m_frac[v] = f & 0xfff;
@@ -347,8 +556,21 @@ index 00000000..f1a6f107
 +			}
 +			m_addr[v] = na & 0x3ffffff;
 +		}
-+		stream.put_int_clamp(0, i, s32(suml), 32768);
-+		stream.put_int_clamp(1, i, s32(sumr), 32768);
++		if (m_fx_on && m_dram)
++		{
++			if (m_fx_count-- <= 0)
++			{
++				fx_params();
++				m_fx_count = 256;
++			}
++			float wl, wr;
++			fx(mono * m_fxa[4] / 100.0f, mono * m_fxb[4] / 100.0f, wl, wr);
++			suml += wl;
++			sumr += wr;
++		}
++		// [I] mix headroom: -6 dB (dense 2-channel playing clipped at 0 dB)
++		stream.put_int_clamp(0, i, s32(suml * 0.5f), 32768);
++		stream.put_int_clamp(1, i, s32(sumr * 0.5f), 32768);
 +	}
 +}
 +
@@ -368,6 +590,8 @@ index 00000000..f1a6f107
 +		, m_voice(*this, "g20")
 +		, m_adc(*this, "ADC%u", 0U)
 +		, m_encoder(*this, "ENCODER")
++		, m_dram(*this, "dram")
++		, m_led_out(*this, "led%u", 0U)
 +	{ }
 +
 +	void proteus2k(machine_config &config) ATTR_COLD;
@@ -409,6 +633,8 @@ index 00000000..f1a6f107
 +	required_device<p2k_g20_device> m_voice;
 +	required_ioport_array<8> m_adc;
 +	required_ioport m_encoder;
++	required_shared_ptr<u32> m_dram;
++	output_finder<16> m_led_out;
 +	u8 m_enc_last = 0;
 +
 +	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
@@ -444,6 +670,7 @@ index 00000000..f1a6f107
 +	save_item(NAME(m_leds));
 +	m_trace = std::getenv("P2K_TRACE") != nullptr;
 +	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length(), m_h.get());
++	m_voice->set_dram(m_dram.target());
 +	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
 +	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
 +}
@@ -634,6 +861,8 @@ index 00000000..f1a6f107
 +	}
 +	COMBINE_DATA(&m_g05[m_g05_index & 0x1f][offset]);
 +	LOGMASKED(LOG_G05, "%s: G05 write idx %02x reg %02x = %04x\n", machine().describe_context(), m_g05_index & 0x1f, reg, data);
++	if (m_trace)
++		logerror("T %.6f %08x X %02x %02x = %04x\n", machine().time().as_double(), m_maincpu->pc(), m_g05_index & 0x1f, reg, data);
 +}
 +
 +u16 emup2k_state::g20_r(offs_t offset, u16 mem_mask)
@@ -712,9 +941,13 @@ index 00000000..f1a6f107
 +
 +void emup2k_state::led_w(offs_t offset, u8 data)
 +{
-+	if (m_leds[offset] != data)
-+		LOGMASKED(LOG_IO, "%s: latch %08x = %02x\n", machine().describe_context(), 0x900000 + offset * 0x100000, data);
++	if (m_leds[offset] != data && m_trace)
++		logerror("%s: latch %08x = %02x\n", machine().describe_context(), 0x900000 + offset * 0x100000, data);
 +	m_leds[offset] = data;
++	// Panel LEDs: 16-bit word, low byte 0x900000, high byte 0xA00000 [O 0x0103570C] -> outputs led0..led15
++	if (offset < 2)
++		for (int b = 0; b < 8; b++)
++			m_led_out[offset * 8 + b] = BIT(data, b);
 +}
 +
 +u16 emup2k_state::boardid_r()
@@ -741,7 +974,7 @@ index 00000000..f1a6f107
 +	// master volume (event 5177 -> 0x0102C1B4); channel 7 is read as the zero reference.
 +	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_adc[m_scan_row & 7]->read() * 255 / 100; }), NAME([this] (u8 d) { m_scan_row = d; }));
 +	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
-+	map(0x01000000, 0x017fffff).ram();
++	map(0x01000000, 0x017fffff).ram().share("dram");
 +	map(0x02000000, 0x021fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
 +	// No chip select here (DMCR default-acknowledge). The boot data-line test (0x02000DE4) writes a
 +	// bit pattern and reads it back [I: relies on the bus holding the last value]; the cache test
