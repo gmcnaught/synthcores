@@ -52,6 +52,10 @@ Images from `tools/build_image.py` have blank RAM and flag byte 0x831000 = 1: wi
 `rtl/init_macro.sv` drives the panel lines through the firmware's diagnostics *Initialize*
 (MASTER+EDIT at power-on, knob to item 13, ENTER, knob, ENTER), restarts the CPU and saves 4 s later.
 
+Verified on a MiSTer (build 9, 2026-11-20): with no save file, first boot initialised the presets
+and created `saves/Proteus/proteus_system.sav` (65,536 bytes); stepping to preset 003 and opening
+the OSD rewrote the save; reloading the core came back on `003 BigCityBrass`.
+
 ## Design
 | Block | File | Notes |
 |---|---|---|
