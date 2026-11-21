@@ -180,10 +180,10 @@ index c5d60980..f92d0a3d 100644
  	u8 ppddr_r();
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..a6a60803
+index 00000000..73192c6e
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,880 @@
+@@ -0,0 +1,741 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -217,6 +217,7 @@ index 00000000..a6a60803
 +*/
 +
 +#include "emu.h"
++#include "emup2k_fx.h"
 +#include "cpu/m68000/mcf5206e.h"
 +#include "machine/intelfsh.h"
 +#include "video/hd44780.h"
@@ -259,15 +260,16 @@ index 00000000..a6a60803
 +// the low-pass word-0 high byte (0x84 at Q 0, 0x52 at Q 127), and runs 2-pole trapezoidal
 +// state-variable filters.
 +// 12th-order types (two blocks) are run as a 4-pole low-pass. P2K_NOFILTER=1 bypasses it.
-+// Effects: behavioural reverb / chorus / flange / delay, see p2k_g20_device::fx (approximation [I];
-+// P2K_NOFX=1 disables). Not modelled: the G05 microcode, output routing to Sub 1/2 [U].
++// Effects: emup2k_fx.h, a workalike of the EMU8000-style G05 reverb and chorus driven by the INIT
++// arrays the OS writes (P2K_NOFX=1 disables). Not modelled: the G05 microcode itself, the P2K's
++// other effect types beyond what the reverb/chorus structure gives, output routing to Sub 1/2 [U].
 +class p2k_g20_device : public device_t, public device_sound_interface
 +{
 +public:
 +	p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
 +
 +	void set_memory(const u16 *regs, const u16 *mem, u32 words, const u16 *h) { m_regs = regs; m_mem = mem; m_words = words; m_h = h; }
-+	void set_dram(const u32 *dram) { m_dram = dram; }
++	void set_g05(const u16 (*g05)[64]) { m_g05 = g05; }
 +	static u32 h_block(int v) { static const u16 page[4] = { 0x2000, 0, 0x3000, 0x1000 }; return 0x4000 * (v >> 6) + page[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15); }
 +	void restart(int voice);
 +	void update() { m_stream->update(); }
@@ -281,20 +283,8 @@ index 00000000..a6a60803
 +	u32 reg32(int v, int r) const { return (u32(m_regs[v * 32 + r / 2]) << 16) | m_regs[v * 32 + r / 2 + 1]; }
 +	s16 mem(u32 a) const { return a < m_words ? s16(m_mem[a]) : 0; }
 +	float filter(int v, float x, float k);
-+	u8 dram8(u32 a) const { a -= 0x01000000; return a < 0x800000 ? u8(m_dram[a >> 2] >> (24 - 8 * (a & 3))) : 0; }
-+	void fx_params();
-+	void fx(float a_in, float b_in, float &l, float &r);
-+
-+	// Effects: BEHAVIOURAL MODEL [I] (the G05 is an EMU8000-style effects engine whose microcode is not
-+	// emulated). Parameters from the OS's active FX state (pointer at 0x01120500; +0x12 A algorithm,
-+	// decay, HF damping, B->A, sends 1-4; +0x1A B algorithm, feedback, LFO rate, delay, sends 1-4).
-+	// Every voice is treated as routed to bus 1 [I: H block +0x7B routing byte not decoded].
-+	const u32 *m_dram = nullptr;
-+	u8 m_fxa[8]{}, m_fxb[8]{};
-+	std::vector<float> m_comb[8][2], m_ap[4][2], m_dly[2], m_bdl[2];
-+	float m_comb_lp[8][2]{};
-+	u32 m_comb_pos[8][2]{}, m_ap_pos[4][2]{}, m_dly_pos = 0, m_bdl_pos = 0;
-+	float m_lfo = 0;
++	const u16 (*m_g05)[64] = nullptr;
++	emup2k_fx m_fx;
 +	int m_fx_count = 0;
 +
 +	sound_stream *m_stream = nullptr;
@@ -333,19 +323,6 @@ index 00000000..a6a60803
 +		m_cut_tab[f] = tanf(float(M_PI) * hz / clock());          // trapezoidal SVF g
 +	}
 +	m_filter_on = std::getenv("P2K_NOFILTER") == nullptr;
-+	static const int comb_len[8] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };   // Schroeder/Moorer tunings
-+	static const int ap_len[4] = { 556, 441, 341, 225 };
-+	for (int i = 0; i < 8; i++)
-+		for (int c = 0; c < 2; c++)
-+			m_comb[i][c].assign(comb_len[i] + c * 23, 0.0f);
-+	for (int i = 0; i < 4; i++)
-+		for (int c = 0; c < 2; c++)
-+			m_ap[i][c].assign(ap_len[i] + c * 23, 0.0f);
-+	for (int c = 0; c < 2; c++)
-+	{
-+		m_dly[c].assign(clock() * 2, 0.0f);      // FX A delays, up to 2 s
-+		m_bdl[c].assign(clock(), 0.0f);          // FX B delays, up to 1 s
-+	}
 +	m_fx_on = std::getenv("P2K_NOFX") == nullptr;
 +	save_item(NAME(m_svf));
 +	save_item(NAME(m_fc));
@@ -393,118 +370,6 @@ index 00000000..a6a60803
 +		stages++;
 +	}
 +	return x;
-+}
-+
-+void p2k_g20_device::fx_params()
-+{
-+	const u32 p = m_dram ? (u32(dram8(0x01120500)) << 24 | dram8(0x01120501) << 16 | dram8(0x01120502) << 8 | dram8(0x01120503)) : 0;
-+	if (p < 0x01000000 || p >= 0x017fffc0)
-+		return;
-+	for (int i = 0; i < 8; i++)
-+	{
-+		m_fxa[i] = dram8(p + 0x12 + i);
-+		m_fxb[i] = dram8(p + 0x1a + i);
-+	}
-+}
-+
-+void p2k_g20_device::fx(float a_in, float b_in, float &l, float &r)
-+{
-+	const float fs = float(clock());
-+	l = r = 0;
-+	// ---- FX B: chorus / flange / delay by algorithm number (names from the P2K manual list)
-+	const int balg = m_fxb[0];
-+	float bl = 0, br = 0;
-+	if (balg)
-+	{
-+		const float fb = m_fxb[1] / 127.0f * 0.9f;
-+		const float rate = 0.05f + m_fxb[2] / 127.0f * 6.0f;            // Hz [I]
-+		m_lfo += rate / fs;
-+		if (m_lfo >= 1.0f)
-+			m_lfo -= 1.0f;
-+		const float s1 = sinf(2.0f * float(M_PI) * m_lfo), s2 = sinf(2.0f * float(M_PI) * (m_lfo + 0.25f));
-+		float d1, d2;
-+		if (balg >= 8 && balg <= 14)            // Flange 1-7
-+		{
-+			d1 = (2.5f + 2.0f * s1) * 0.001f * fs;
-+			d2 = (2.5f + 2.0f * s2) * 0.001f * fs;
-+		}
-+		else if (balg >= 18 && balg <= 24)      // delays, delay chorus
-+		{
-+			const float ms = std::max(1.0f, (int8_t(m_fxb[3]) + 12) * 5.0f);
-+			d1 = d2 = ms * 0.001f * fs;
-+		}
-+		else if (balg == 6 || balg == 7)        // doubling / slapback
-+		{
-+			d1 = (balg == 6 ? 25.0f : 90.0f) * 0.001f * fs;
-+			d2 = d1 * 1.1f;
-+		}
-+		else                                    // chorus family
-+		{
-+			d1 = (15.0f + 5.0f * s1) * 0.001f * fs;
-+			d2 = (15.0f + 5.0f * s2) * 0.001f * fs;
-+		}
-+		const u32 n = m_bdl[0].size();
-+		auto tap = [&](int c, float d) {
-+			const float pos = float(m_bdl_pos) - d + n;
-+			const u32 i0 = u32(pos) % n, i1 = (i0 + 1) % n;
-+			const float f = pos - floorf(pos);
-+			return m_bdl[c][i0] * (1 - f) + m_bdl[c][i1] * f;
-+		};
-+		bl = tap(0, d1);
-+		br = tap(1, d2);
-+		m_bdl[0][m_bdl_pos] = b_in + bl * fb;
-+		m_bdl[1][m_bdl_pos] = b_in + br * fb;
-+		m_bdl_pos = (m_bdl_pos + 1) % n;
-+		a_in += (bl + br) * 0.5f * (m_fxa[3] / 127.0f);                  // B -> A
-+	}
-+	// ---- FX A: reverb, or delay for the delay/multitap algorithms
-+	const int aalg = m_fxa[0];
-+	float al = 0, ar = 0;
-+	if (aalg)
-+	{
-+		if (aalg >= 7 && aalg <= 12)            // Delay, Panning Delay, Multitap, 3 Tap
-+		{
-+			const u32 n = m_dly[0].size();
-+			const u32 d = u32((150 + m_fxa[1] * 4) * 0.001f * fs) % n;
-+			const float fb = m_fxa[1] / 127.0f * 0.7f;
-+			al = m_dly[0][(m_dly_pos + n - d) % n];
-+			ar = m_dly[1][(m_dly_pos + n - d * 3 / 4) % n];
-+			m_dly[0][m_dly_pos] = a_in + ar * fb;
-+			m_dly[1][m_dly_pos] = a_in + al * fb;
-+			m_dly_pos = (m_dly_pos + 1) % n;
-+		}
-+		else
-+		{
-+			const float room = 0.70f + m_fxa[1] / 127.0f * 0.28f;   // decay [I]
-+			const float damp = m_fxa[2] / 127.0f * 0.6f;
-+			for (int c = 0; c < 2; c++)
-+			{
-+				float acc = 0;
-+				for (int i = 0; i < 8; i++)
-+				{
-+					auto &buf = m_comb[i][c];
-+					u32 &pos = m_comb_pos[i][c];
-+					const float out = buf[pos];
-+					m_comb_lp[i][c] = out * (1 - damp) + m_comb_lp[i][c] * damp;
-+					buf[pos] = a_in * 0.015f + m_comb_lp[i][c] * room;
-+					pos = (pos + 1) % buf.size();
-+					acc += out;
-+				}
-+				for (int i = 0; i < 4; i++)
-+				{
-+					auto &buf = m_ap[i][c];
-+					u32 &pos = m_ap_pos[i][c];
-+					const float bo = buf[pos];
-+					buf[pos] = acc + bo * 0.5f;
-+					acc = bo - acc;
-+					pos = (pos + 1) % buf.size();
-+				}
-+				(c ? ar : al) = acc;
-+			}
-+		}
-+	}
-+	l = al + bl;
-+	r = ar + br;
 +}
 +
 +void p2k_g20_device::restart(int v)
@@ -556,17 +421,15 @@ index 00000000..a6a60803
 +			}
 +			m_addr[v] = na & 0x3ffffff;
 +		}
-+		if (m_fx_on && m_dram)
++		if (m_fx_on && m_g05)
 +		{
 +			if (m_fx_count-- <= 0)
 +			{
-+				fx_params();
++				m_fx.configure(m_g05);
 +				m_fx_count = 256;
 +			}
-+			float wl, wr;
-+			fx(mono * m_fxa[4] / 100.0f, mono * m_fxb[4] / 100.0f, wl, wr);
-+			suml += wl;
-+			sumr += wr;
++			// [I] every voice treated as routed to effect bus 1 (G05 channel 0 sends)
++			m_fx.process(mono * m_fx.reverb_send(), mono * m_fx.chorus_send(), suml, sumr);
 +		}
 +		// [I] mix headroom: -6 dB (dense 2-channel playing clipped at 0 dB)
 +		stream.put_int_clamp(0, i, s32(suml * 0.5f), 32768);
@@ -590,7 +453,6 @@ index 00000000..a6a60803
 +		, m_voice(*this, "g20")
 +		, m_adc(*this, "ADC%u", 0U)
 +		, m_encoder(*this, "ENCODER")
-+		, m_dram(*this, "dram")
 +		, m_led_out(*this, "led%u", 0U)
 +	{ }
 +
@@ -633,7 +495,6 @@ index 00000000..a6a60803
 +	required_device<p2k_g20_device> m_voice;
 +	required_ioport_array<8> m_adc;
 +	required_ioport m_encoder;
-+	required_shared_ptr<u32> m_dram;
 +	output_finder<16> m_led_out;
 +	u8 m_enc_last = 0;
 +
@@ -670,7 +531,7 @@ index 00000000..a6a60803
 +	save_item(NAME(m_leds));
 +	m_trace = std::getenv("P2K_TRACE") != nullptr;
 +	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length(), m_h.get());
-+	m_voice->set_dram(m_dram.target());
++	m_voice->set_g05(m_g05);
 +	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
 +	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
 +}
@@ -974,7 +835,7 @@ index 00000000..a6a60803
 +	// master volume (event 5177 -> 0x0102C1B4); channel 7 is read as the zero reference.
 +	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_adc[m_scan_row & 7]->read() * 255 / 100; }), NAME([this] (u8 d) { m_scan_row = d; }));
 +	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
-+	map(0x01000000, 0x017fffff).ram().share("dram");
++	map(0x01000000, 0x017fffff).ram();
 +	map(0x02000000, 0x021fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
 +	// No chip select here (DMCR default-acknowledge). The boot data-line test (0x02000DE4) writes a
 +	// bit pattern and reads it back [I: relies on the bus holding the last value]; the cache test
@@ -1064,6 +925,203 @@ index 00000000..a6a60803
 +} // anonymous namespace
 +
 +SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
+diff --git a/src/mame/emusys/emup2k_fx.h b/src/mame/emusys/emup2k_fx.h
+new file mode 100644
+index 00000000..f86c1db1
+--- /dev/null
++++ b/src/mame/emusys/emup2k_fx.h
+@@ -0,0 +1,191 @@
++// license:BSD-3-Clause
++// copyright-holders:emu-proteus-xr-MiSTer contributors
++/*
++    E-mu Proteus 2000 G05 effects: reverb and chorus driven by the EMU8000-style INIT arrays.
++
++    The G05 register file follows the EMU8000 layout (docs/p2k-findings.md): offset 0x28 / 0x2A /
++    0x38 / 0x3A of channel n hold INIT1[n] / INIT2[n] / INIT3[n] / INIT4[n] (the OS writes the EMU8000
++    init tables there at boot), offset 0x18 / 0x1A are the low / high words of the "data port 1/2,
++    register 1" double words (EMU8000 HWCF4/HWCF5 on channels 9/10).
++
++    The EMU8000 effects microcode is undocumented. This is a workalike, not an emulation:
++    - Reverb: slot meanings as interpreted by 86Box (src/sound/snd_emu8k.c, which calls its own
++      reverb "a workalike implementation"); this code is an independent implementation of that
++      interpretation. INIT1: 3 output mix, 5 all-pass feedback, 7 stereo link (0x8474), 0x0F/0x17/0x1F
++      reflection 0-2 gain (bits 7-4), 9/0x11/0x19 reflection 0-2 feedback (bits 3-0). INIT2: 7/0x0F/0x17
++      reflection 3-5 gain, 1/9/0x11 reflection 3-5 feedback, 0x14/0x16 tail lengths (bits 11-8),
++      0x1D damping. INIT3: 1 reflection input level. INIT4: 0x1F tail return level.
++    - Chorus: slots measured on the P2K (they differ from 86Box's AWE32 interpretation): INIT3[0x1A]
++      delay in samples (50 / 200 / 500 ms -> 2205 / 8820 / 22050), INIT3[0x17] bits 7-0 feedback
++      (2 x the preset value), INIT4[0x0B] bits 7-0 LFO depth (as 86Box: depth x delay / 256), channel
++      0x0A offset 0x1A LFO rate (0 at preset rate 0, 0x0C80 at 100; taken as milli-Hz) [I].
++    - Sends [I]: G05 channel 0 EMU8000 PTRX (offset 0x14/0x16) bits 15-8 = reverb send, CSL (0x74/0x76)
++      bits 31-24 = chorus send; the OS writes them from the preset's FX A / FX B send amounts.
++*/
++#ifndef MAME_EMUSYS_EMUP2K_FX_H
++#define MAME_EMUSYS_EMUP2K_FX_H
++
++#pragma once
++
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++#include <vector>
++
++class emup2k_fx
++{
++public:
++	// regs[channel][word offset]: the G05 register file (32 channels x 64 words)
++	void configure(const uint16_t (*regs)[64])
++	{
++		auto init = [&](int n, int ch) -> uint16_t { static const int off[4] = { 0x28, 0x2a, 0x38, 0x3a }; return regs[ch][off[n - 1] / 2]; };
++		auto dword = [&](int ch, int lo, int hi) -> uint32_t { return (uint32_t(regs[ch][hi / 2]) << 16) | regs[ch][lo / 2]; };
++
++		m_active = init(1, 0) != 0x03ff;   // the boot init sets still in place (EMU8000 init sequence)
++		// reverb
++		m_out_mix = (init(1, 3) & 0xff) / 256.0f;
++		m_ap_fb = (init(1, 5) & 0xff) / 255.0f;
++		m_stereo = init(1, 7) == 0x8474;
++		static const int gain_slot[6][2] = { { 1, 0x0f }, { 1, 0x17 }, { 1, 0x1f }, { 2, 0x07 }, { 2, 0x0f }, { 2, 0x17 } };
++		static const int fb_slot[6][2] = { { 1, 0x09 }, { 1, 0x11 }, { 1, 0x19 }, { 2, 0x01 }, { 2, 0x09 }, { 2, 0x11 } };
++		for (int i = 0; i < 6; i++)
++		{
++			m_refl[i].gain = ((init(gain_slot[i][0], gain_slot[i][1]) >> 4) & 0xf) / 15.0f;
++			m_refl[i].fb = (init(fb_slot[i][0], fb_slot[i][1]) & 0xf) / 15.0f;
++		}
++		const float damp = (init(2, 0x1d) & 0xff) / 255.0f;
++		for (auto &r : m_refl)
++			r.damp = damp;
++		m_damp = damp;
++		m_refl_in = (init(3, 1) & 0xff) / 256.0f;
++		m_tail_ret = (init(4, 0x1f) & 0xff) / 256.0f;
++		const int tl = ((init(2, 0x14) >> 8) & 0xf) + 18;
++		resize(m_refl[5].buf, tl * STEP);
++		resize(m_tail[0].buf, (tl + 1) * STEP);
++		const int tr = m_stereo ? ((init(2, 0x16) >> 8) & 0xf) + 18 : tl;
++		resize(m_tail[1].buf, (tr + 1) * STEP);
++		// chorus
++		m_ch_delay = std::clamp<float>(init(3, 0x1a), 1.0f, float(CHORUS_LEN - 4096));
++		m_ch_fb = (init(3, 0x17) & 0xff) / 256.0f;
++		m_ch_depth = (init(4, 0x0b) & 0xff) * m_ch_delay / 256.0f;
++		m_ch_rate = regs[0x0a][0x1a / 2] / 1000.0f;      // [I] high word as milli-Hz: LFO rate 100 writes 0x0C80
++		const uint32_t ptrx = dword(0, 0x16, 0x14), csl = dword(0, 0x76, 0x74);
++		m_rev_send = ((ptrx >> 8) & 0xff) / 255.0f;
++		m_cho_send = ((csl >> 24) & 0xff) / 255.0f;
++	}
++
++	emup2k_fx()
++	{
++		static const int refl_len[6] = { 2, 4, 8, 13, 19, 26 };
++		for (int i = 0; i < 6; i++)
++			resize(m_refl[i].buf, refl_len[i] * STEP);
++		for (int c = 0; c < 2; c++)
++		{
++			resize(m_ap[c][0].buf, 2 * 4 * STEP + 55);
++			resize(m_ap[c][1].buf, 1 * 4 * STEP + 55);
++			resize(m_tail[c].buf, 27 * STEP);
++			m_cbuf[c].assign(CHORUS_LEN, 0.0f);
++		}
++	}
++
++	bool active() const { return m_active; }
++	float reverb_send() const { return m_rev_send; }
++	float chorus_send() const { return m_cho_send; }
++
++	// one sample at 44.1 kHz: rev_in / cho_in are the summed effect-send inputs; adds the wet outputs
++	void process(float rev_in, float cho_in, float &l, float &r)
++	{
++		if (!m_active)
++			return;
++		// reverb
++		m_damp_state = rev_in * (1.0f - m_damp) + m_damp_state * m_damp;
++		const float in = m_damp_state;
++		const float in2 = in * m_refl_in;
++		float o[6];
++		for (int i = 0; i < 6; i++)
++			o[i] = comb(m_refl[i], in2);
++		float dl, dr;
++		if (m_stereo)
++		{
++			dl = o[2] + o[4];
++			dr = o[0] + o[1] + o[3] + o[5];
++		}
++		else
++			dl = dr = o[0] + o[1] + o[2] + o[3] + o[4] + o[5];
++		dl += tail(0, in + dl) * m_tail_ret;
++		dr += tail(1, in + dr) * m_tail_ret;
++		l += dl * m_out_mix;
++		r += dr * m_out_mix;
++
++		// chorus
++		const float lfo = sinf(m_phase * 6.2831853f) * m_ch_depth;
++		const float lfo_r = sinf((m_phase + 0.25f) * 6.2831853f) * m_ch_depth;   // [I] quadrature right tap
++		m_phase += m_ch_rate / 44100.0f;
++		m_phase -= floorf(m_phase);
++		const float cl = tap(0, m_ch_delay + lfo), cr = tap(1, m_ch_delay + lfo_r);
++		m_cbuf[0][m_cpos] = cho_in + cl * m_ch_fb;
++		m_cbuf[1][m_cpos] = cho_in + cr * m_ch_fb;
++		m_cpos = (m_cpos + 1) % CHORUS_LEN;
++		l += cl;
++		r += cr;
++	}
++
++private:
++	static constexpr int STEP = 242;
++	static constexpr int CHORUS_LEN = 0x8000;
++	struct line { std::vector<float> buf; size_t pos = 0; float lp = 0, gain = 0, fb = 0, damp = 0; };
++
++	static void resize(std::vector<float> &b, size_t n) { if (b.size() != n) b.assign(n, 0.0f); }
++
++	static float comb(line &c, float in)
++	{
++		if (c.pos >= c.buf.size())
++			c.pos = 0;
++		const float out = c.buf[c.pos];
++		c.lp = out * (1.0f - c.damp) + c.lp * c.damp;
++		c.buf[c.pos] = in - c.lp * c.fb;
++		c.pos = (c.pos + 1) % c.buf.size();
++		return out * c.gain;
++	}
++
++	float diffuse(line &a, float in) const
++	{
++		if (a.pos >= a.buf.size())
++			a.pos = 0;
++		const float held = a.buf[a.pos];
++		const float w = held * m_ap_fb - in;
++		a.buf[a.pos] = w;
++		a.pos = (a.pos + 1) % a.buf.size();
++		return held - w * m_ap_fb;
++	}
++
++	float tail(int c, float in)
++	{
++		line &t = m_tail[c];
++		if (t.pos >= t.buf.size())
++			t.pos = 0;
++		float out = t.buf[t.pos];
++		t.buf[t.pos] = in;
++		t.pos = (t.pos + 1) % t.buf.size();
++		out = diffuse(m_ap[c][0], out);
++		return diffuse(m_ap[c][1], out);
++	}
++
++	float tap(int c, float delay) const
++	{
++		const float p = float(m_cpos) - delay + CHORUS_LEN;
++		const int i0 = int(p) % CHORUS_LEN, i1 = (i0 + 1) % CHORUS_LEN;
++		const float f = p - floorf(p);
++		return m_cbuf[c][i0] * (1.0f - f) + m_cbuf[c][i1] * f;
++	}
++
++	bool m_active = false, m_stereo = false;
++	float m_out_mix = 0, m_ap_fb = 0, m_damp = 0, m_damp_state = 0, m_refl_in = 0, m_tail_ret = 0;
++	line m_refl[6], m_tail[2], m_ap[2][2];
++	float m_ch_delay = 1, m_ch_fb = 0, m_ch_depth = 0, m_ch_rate = 0, m_phase = 0;
++	std::vector<float> m_cbuf[2];
++	size_t m_cpos = 0;
++	float m_rev_send = 0, m_cho_send = 0;
++};
++
++#endif // MAME_EMUSYS_EMUP2K_FX_H
 diff --git a/src/mame/mame.lst b/src/mame/mame.lst
 --- a/src/mame/mame.lst
 +++ b/src/mame/mame.lst

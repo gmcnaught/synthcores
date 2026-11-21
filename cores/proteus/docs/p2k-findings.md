@@ -313,3 +313,23 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   reverb/chorus parameters. 86Box's decoding is itself inferred (Freeverb-style reflections, all-pass
   feedback, chorus delay/LFO), not the EMU8000 microcode. MAME has no EMU8000 device (only a TODO
   in src/mame/misc/savquest.cpp).
+
+## G05 effects as EMU8000 INIT arrays (2026-11-21) [O unless marked]
+- The OS writes the EMU8000 init tables to G05 offsets 0x28 (INIT1 0x03FF…), 0x2A (INIT2 0x43FF…),
+  0x38 (INIT3 0x83FF…), 0x3A (INIT4 0xC3FF…) of channels 0-31: the G05 register file has the
+  EMU8000 layout (offset = 0x10·register + 8/0xA for data ports 1/2; 0x18/0x1A = register 1).
+- Room 1's values have the shape of the AWE32 reverb tables (0xB4xx, 0xA4xx, 0x44xx/0x45xx,
+  0x842A/0x852A, 0x72F4/0x72A4/0x7254…). Delay (algorithm 7) zeroes all six reflection gains and
+  feedbacks. Decay changes INIT1[0x0D] and INIT4[0x1F] (tail return).
+- FX B slots (differ from 86Box's AWE32 chorus interpretation): INIT3[0x1A] = delay in samples at
+  44.1 kHz (50/200/500 ms → 2205/8820/22050, which also confirms the 44.1 kHz rate), INIT3[0x17]
+  bits 7-0 = 2 × feedback, INIT4[0x0B] bits 7-0 = LFO depth (0 for delays), channel 0x0A offset
+  0x1A = LFO rate (0 at rate 0, 0x0C80 at 100). INIT3[0x13]/[0x15], INIT4[5]/[7] constant [U].
+- Sends: channel 0 offsets 0x14/0x16 (EMU8000 PTRX) bits 15-8 = reverb send (0xE0 at 100 %, 0xC8 at
+  50 %); 0x74/0x76 (CSL) bits 31-24 = chorus send (0xA0 at B send 100) [I: EMU8000 meaning].
+- **MAME `emup2k_fx.h`**: reverb = an independent implementation of 86Box's interpretation of the
+  INIT slots (six damped comb "reflections", tail delay + two diffusers); chorus = the P2K slots
+  above. Checked against 86Box's reverb code fed the same P2K register state (local harness, not
+  distributed): correlation 0.9994-0.9998 over 0.5 s for Room 1, Room 1 decay 90 and Delay; the
+  residual 2-3.5 % is 86Box's integer rounding. Both are workalikes: the EMU8000 microcode is
+  undocumented.
