@@ -13,10 +13,10 @@ index 667a3bab..abdc62e8 100644
  #define INT_LEVEL(N)    ((N&0x1c) >> 2)
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..f3851c42
+index 00000000..ee013e7e
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,553 @@
+@@ -0,0 +1,595 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -78,13 +78,19 @@ index 00000000..f3851c42
 +//   +0x14 long  bit 26 set: loop start of the sample; clear: address to jump to after the loop end
 +//               (release / one-shot end into the idle silence loop at SIMM header word 0x27+8) [O/I]
 +//   +0x08 long  low 26 bits NOT(end of the idle loop) used after such a jump [I]
-+// Not modelled: amplitude envelopes, pan, H-chip filters and effects (constant gain) [U].
++// Level: the OS computes envelope, volume, velocity, pan and master volume itself and writes a
++// per-voice right/left level byte every ~70 ms to H block + 0x71 / + 0x73 [O, 0x01019978]. The H
++// block of voice v (OS table 0x010331D0, matched exactly by this formula):
++//   0x4000 * (v >> 6) + {0x2000, 0, 0x3000, 0x1000}[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15)
++// Level law [I]: 0.375 dB a step (255 = 0 dB, 0 = off), smoothed over ~5 ms.
++// Not modelled: H-chip filters, effects, output routing [U].
 +class p2k_g20_device : public device_t, public device_sound_interface
 +{
 +public:
 +	p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
 +
-+	void set_memory(const u16 *regs, const u16 *mem, u32 words) { m_regs = regs; m_mem = mem; m_words = words; }
++	void set_memory(const u16 *regs, const u16 *mem, u32 words, const u16 *h) { m_regs = regs; m_mem = mem; m_words = words; m_h = h; }
++	static u32 h_block(int v) { static const u16 page[4] = { 0x2000, 0, 0x3000, 0x1000 }; return 0x4000 * (v >> 6) + page[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15); }
 +	void restart(int voice);
 +	void update() { m_stream->update(); }
 +	u32 address(int v) { m_stream->update(); return m_addr[v]; }
@@ -100,7 +106,10 @@ index 00000000..f3851c42
 +	sound_stream *m_stream = nullptr;
 +	const u16 *m_regs = nullptr;
 +	const u16 *m_mem = nullptr;
++	const u16 *m_h = nullptr;
 +	u32 m_words = 0;
++	float m_gain_tab[256]{};
++	float m_gain[128][2]{};
 +	u32 m_addr[128]{};
 +	u32 m_frac[128]{};
 +	bool m_idle[128]{};
@@ -117,9 +126,12 @@ index 00000000..f3851c42
 +void p2k_g20_device::device_start()
 +{
 +	m_stream = stream_alloc(0, 2, clock());
++	for (int b = 1; b < 256; b++)
++		m_gain_tab[b] = powf(10.0f, -(255 - b) * 0.375f / 20.0f);
 +	save_item(NAME(m_addr));
 +	save_item(NAME(m_frac));
 +	save_item(NAME(m_idle));
++	save_item(NAME(m_gain));
 +}
 +
 +void p2k_g20_device::restart(int v)
@@ -133,17 +145,24 @@ index 00000000..f3851c42
 +{
 +	if (!m_regs)
 +		return;
++	const float k = 1.0f - expf(-1.0f / (0.005f * clock()));   // ~5 ms level smoothing [I]
 +	for (int i = 0; i < stream.samples(); i++)
 +	{
-+		s32 sum = 0;
++		float suml = 0, sumr = 0;
 +		for (int v = 0; v < 128; v++)
 +		{
 +			const u32 inc = reg32(v, 0x04) >> 16;
++			const u32 hb = h_block(v) / 2;
++			const float tr = m_gain_tab[m_h[hb + 0x70 / 2] & 0xff], tl = m_gain_tab[m_h[hb + 0x72 / 2] & 0xff];
++			m_gain[v][0] += (tl - m_gain[v][0]) * k;
++			m_gain[v][1] += (tr - m_gain[v][1]) * k;
 +			if (!inc)
 +				continue;
 +			const u32 a = m_addr[v];
 +			const s32 s0 = mem(a), s1 = mem(a + 1);
-+			sum += s0 + (((s1 - s0) * s32(m_frac[v])) >> 12);
++			const float smp = float(s0 + (((s1 - s0) * s32(m_frac[v])) >> 12));
++			suml += smp * m_gain[v][0];
++			sumr += smp * m_gain[v][1];
 +			u32 f = m_frac[v] + inc;
 +			u32 na = a + (f >> 12);
 +			m_frac[v] = f & 0xfff;
@@ -160,8 +179,8 @@ index 00000000..f3851c42
 +			}
 +			m_addr[v] = na & 0x3ffffff;
 +		}
-+		stream.put_int_clamp(0, i, sum >> 3, 32768);
-+		stream.put_int_clamp(1, i, sum >> 3, 32768);
++		stream.put_int_clamp(0, i, s32(suml), 32768);
++		stream.put_int_clamp(1, i, s32(sumr), 32768);
 +	}
 +}
 +
@@ -178,6 +197,7 @@ index 00000000..f3851c42
 +		, m_sound(*this, "simm")
 +		, m_panel(*this, "PANEL")
 +		, m_voice(*this, "g20")
++		, m_adc(*this, "ADC%u", 0U)
 +	{ }
 +
 +	void proteus2k(machine_config &config) ATTR_COLD;
@@ -216,6 +236,7 @@ index 00000000..f3851c42
 +	optional_region_ptr<u16> m_sound;
 +	required_ioport m_panel;
 +	required_device<p2k_g20_device> m_voice;
++	required_ioport_array<8> m_adc;
 +
 +	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
 +	u16 m_g05_index = 0;
@@ -224,11 +245,13 @@ index 00000000..f3851c42
 +	u32 m_snd_addr[2]{};
 +	u16 m_snd_latch[2]{};
 +	std::vector<u16> m_baby;              // Baby flash/ROM of each SIMM (1 M words a slot)
-+	bool m_baby_sel = false;
-+	int m_midi_rx = 1;              // latch 0xB00000 bit 6 [O: 0x01035944 on / 0x01035968 off]
++	bool m_baby_sel = false;              // latch 0xB00000 bit 6 [O: 0x01035944 on / 0x01035968 off]
++	int m_midi_rx = 1;
++	attotime m_midi_last;
++	bool m_trace = false;                 // P2K_TRACE=1: log G20/H writes with time and PC
 +	u8 m_leds[3]{};
 +	u32 m_open_bus = 0;
-+	u8 m_scan_row = 0, m_scan_in = 0x00;
++	u8 m_scan_row = 0;
 +	// LCD text shadow (DDRAM 0x00-0x27 line 1, 0x40-0x67 line 2)
 +	u8 m_ddram[0x80]{};
 +	u8 m_ddaddr = 0;
@@ -246,7 +269,8 @@ index 00000000..f3851c42
 +	save_item(NAME(m_g20));
 +	save_item(NAME(m_snd_addr));
 +	save_item(NAME(m_leds));
-+	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length());
++	m_trace = std::getenv("P2K_TRACE") != nullptr;
++	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length(), m_h.get());
 +	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
 +	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
 +}
@@ -388,13 +412,16 @@ index 00000000..f3851c42
 +
 +u16 emup2k_state::h_r(offs_t offset, u16 mem_mask)
 +{
++	if (m_trace && !machine().side_effects_disabled())
++		logerror("T %.6f %08x HR %06x -> %04x & %04x\n", machine().time().as_double(), m_maincpu->pc(), 0x500000 + offset * 2, m_h[offset], mem_mask);
 +	return m_h[offset];
 +}
 +
 +void emup2k_state::h_w(offs_t offset, u16 data, u16 mem_mask)
 +{
 +	COMBINE_DATA(&m_h[offset]);
-+	LOGMASKED(LOG_H, "%s: H %06x = %04x\n", machine().describe_context(), 0x500000 + offset * 2, data);
++	if (m_trace)
++		logerror("T %.6f %08x H %06x = %04x & %04x\n", machine().time().as_double(), m_maincpu->pc(), 0x500000 + offset * 2, data, mem_mask);
 +}
 +
 +u16 emup2k_state::g05_r(offs_t offset, u16 mem_mask)
@@ -467,15 +494,18 @@ index 00000000..f3851c42
 +	}
 +	else if (reg == 0x34 || reg == 0x36)
 +		m_snd_addr[1] = ((m_g20[voice][0x34 / 2] << 16) | m_g20[voice][0x36 / 2]) & 0x3ffffff;
-+	LOGMASKED(LOG_G20, "%s: G20 v%03d reg %02x = %04x\n", machine().describe_context(), voice, reg, data);
++	if (m_trace)
++		logerror("T %.6f %08x G v%03d %02x = %04x\n", machine().time().as_double(), m_maincpu->pc(), voice, reg, data);
 +}
 +
 +// ---------------------------------------------------------------- panel / misc
 +
 +void emup2k_state::midi_rx_w(int state)
 +{
-+	if (m_midi_rx != state)
-+		LOGMASKED(LOG_IO, "MIDI rx %d\n", state);
++	if (m_trace && m_midi_rx != state && !state && machine().time() > m_midi_last + attotime::from_usec(500))
++		logerror("T %.6f MIDI\n", machine().time().as_double());
++	if (!state)
++		m_midi_last = machine().time();
 +	m_midi_rx = state;
 +	m_maincpu->rx1_w(state);
 +}
@@ -511,7 +541,10 @@ index 00000000..f3851c42
 +	map(0x00900000, 0x00900000).lw8(NAME([this] (u8 d) { led_w(0, d); }));
 +	map(0x00a00000, 0x00a00000).lw8(NAME([this] (u8 d) { led_w(1, d); }));
 +	map(0x00b00000, 0x00b00000).lw8(NAME([this] (u8 d) { led_w(2, d); m_baby_sel = BIT(d, 6); }));
-+	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_scan_in; }), NAME([this] (u8 d) { m_scan_row = d; })); // [I] panel key matrix: row 0x08-0x0F out, columns in
++	// Knob ADC [O 0x01035760]: a write of 0x08 + channel selects the mux input, a read returns the
++	// conversion of the selected input. Pot -> channel map at 0x0112077C: 2 1 0 4 3 6 7; pot 0 is the
++	// master volume (event 5177 -> 0x0102C1B4); channel 7 is read as the zero reference.
++	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_adc[m_scan_row & 7]->read() * 255 / 100; }), NAME([this] (u8 d) { m_scan_row = d; }));
 +	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
 +	map(0x01000000, 0x017fffff).ram();
 +	map(0x02000000, 0x021fffff).rom().region("flash", 0);
@@ -526,6 +559,15 @@ index 00000000..f3851c42
 +	PORT_BIT( 0xfe7f, IP_ACTIVE_LOW, IPT_UNKNOWN )
 +	PORT_BIT( 0x0080, IP_ACTIVE_HIGH, IPT_UNKNOWN )   // boot waits at 0x02000BD2 while this reads 1 [I: status, not a key]
 +	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Panel bit 8")
++	// Knobs [I: 8-bit ADC; the OS scales raw - (reference + 2) to 0..127]
++	PORT_START("ADC0") PORT_ADJUSTER(0, "Knob ADC 0")
++	PORT_START("ADC1") PORT_ADJUSTER(0, "Knob ADC 1")
++	PORT_START("ADC2") PORT_ADJUSTER(100, "Master volume")
++	PORT_START("ADC3") PORT_ADJUSTER(0, "Knob ADC 3")
++	PORT_START("ADC4") PORT_ADJUSTER(0, "Knob ADC 4")
++	PORT_START("ADC5") PORT_ADJUSTER(0, "Knob ADC 5")
++	PORT_START("ADC6") PORT_ADJUSTER(0, "Knob ADC 6")
++	PORT_START("ADC7") PORT_BIT(0xff, 0x00, IPT_UNUSED) // zero reference
 +INPUT_PORTS_END
 +
 +void emup2k_state::proteus2k(machine_config &config)

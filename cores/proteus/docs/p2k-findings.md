@@ -142,12 +142,13 @@ Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMM
 and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave ROMs were.
 
 ## Next
-1. A MAME stub machine (MCF5206e, the v1.24 flash, DRAM, stub devices) to boot the boot block and
-   OS 2.26 and log every device access.
-2. Voice start path (`0x102C8D4` → `0x10323CC` / `0x10327E0`): per-voice G registers in use.
-3. Output rate: pitch computation for the 440 Hz test tone vs. a known sample root.
-4. Boot block: done, see below (from a public v1.24 flash dump).
-5. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
+Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SIMM/Baby format,
+level/pan/envelope path.
+1. H filter section (block +0x00–+0x2F at note-on; filter type/frequency/Q sweeps with
+   `tools/p2k_diff.py`; coefficient block 0x010205DC).
+2. Sound memory flash writes (port B) and the user flash (TH28F160 model) so FlashInit passes.
+3. Effects (G05 / FX RAM) and output routing (6 outputs).
+4. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
 
 ## Boot block (v1.24 flash dump) [O]
 Source: `e-mu-proteus-2k-flash-analysis.zip` (dbwbp.com via the Wayback Machine): a 2 MB
@@ -176,7 +177,7 @@ TH28F160 dump of a v1.24 unit, `proteus-2k-v124-28f160.bin`, SHA-1
 - **Port A** is bit-banged right after reset (`0x020008B0`, ~100 k writes); the flash holds a block
   of FPGA-configuration-like data from 0x001780 [I: configures the Xilinx XCS05XL the sources
   survey found on the board].
-- **CS6 0xC00000**: the OS writes 0x08–0x0F and reads back in a loop [I: front-panel key matrix].
+- **CS6 0xC00000**: knob ADC (see "Level, pan and envelopes"); earlier read as a key matrix [corrected].
 - **Timers**: the OS programs ColdFire timer 1 (TRR 0x80E8, TMR 0x001B) as its tick.
 - **OS 1.24 from the dump** stops with "Fatal: Bus Address error", PC 0x00044EB9; its directory CRC
   (`0x02004E60`, CRC-32 table at 0x020060D0, initial value 0) does not match the stored
@@ -220,7 +221,35 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   0x629 and 0x6D9 = rate / 44100 × 2^((note − root)/12) × 4096, so the output rate is 44.1 kHz [I].
 - Note-off: +0x14 = idle-loop start (0x2F, bit 26 clear), +0x08 low 26 bits = NOT(idle-loop
   end 0x43), +0x04 low 10 bits = 0x300, +0x10 = 0xA2 [O]; meaning of the last two [U].
-- No CPU-driven envelope steps follow the note-on [O]: envelopes run in hardware [I]. The H chip
-  gets per-voice writes at note-on (voice blocks at 0x500700/0x502700…: 0x...780–0x...7AE filter
-  sections, 0x...73C/0x...73E, 0x...7B0–0x...7B6, 0x...7F0/0x...7F2) [O], layout [U].
-- MAME `p2k_g20_device`: plays address/loop/pitch with linear interpolation and constant gain.
+- Correction: "no CPU-driven envelope steps" was wrong; it came from the ADC stub returning 0 (master
+  volume muted, every level clamped to 0). Envelopes are computed by the CPU; see below.
+
+## Level, pan and envelopes [O unless marked]
+- **H block of voice v** (OS table 0x010331D0, read by 0x01032F14; earlier misread as a curve
+  table): 0x500000 + 0x4000·(v>>6) + {0x2000, 0, 0x3000, 0x1000}[v&3] + 0x80·((((v>>2)&15)+15)&15).
+  The formula matches all 128 entries. 0x01032F64 returns the previous slot (−0x80, wrapping
+  0x000 → 0x780 in each 0x800 page).
+- **Level bytes**: block +0x71 = right, +0x73 = left (pan −64 "64L" silences +0x71) are written by
+  0x01019978 every ~70 ms while a voice sounds: level + pan table (0x0101D364, 128 words,
+  20·log10(sin) × 102.4, centre −311) / 16, clamped 0..255. The level (0x0101C8F0) sums the
+  envelope, layer volume, velocity, channel volume and the master volume (0x01120574).
+- **Master volume** = the volume knob: event 5177 → 0x0102C1B4; below 3 the OS writes −16384
+  (mute). At power-on it is 0 until the knob is read.
+- **Knob ADC** at 0xC00000 (0x01035760): write 0x08 + channel to select the mux input, read the
+  conversion; pot → channel map (0x0112077C) 2 1 0 4 3 6 7; pot 0 = master volume; channel 7 is
+  read as the zero reference (minimum = reference + 2); value = raw − minimum, clamped to 127.
+- Measured byte changes (note 60, piano, velocity 100): layer volume 0 / −20 / −40 dB → 210 / 162
+  / 122; velocity 40 → 148; centre pan 210 vs hard pan 230 / 0; factory envelope 210 → 183 over 2 s;
+  a time-based attack of 60 ramps from 0.
+- **Level law [I]**: 0.375 dB a step (255 = 0 dB): it gives −18 dB for the −20 dB volume edit and a
+  54 dB volume-knob range, and is the EMU8000 attenuation step. It conflicts with the pan table,
+  which is built for 102.4 units/dB (0.156 dB a step: centre −3 dB); under 0.375 dB the centre is
+  −7.5 dB. Hardware needed.
+- **Preset parameters**: OS table 0x010491B4–0x01049EE0, 12-byte entries {u16 SysEx ID, u32 0,
+  u16 offset in the 980-byte preset, s8 min, s8 max, u16 flags}; layer n adds n·0xCC
+  (`tools/p2k_params.py` reads it from the local OS image). SysEx parameter edits sent with
+  device IDs 0x7F and 0x00 had no effect in MAME [U why].
+- MAME `p2k_g20_device`: address/loop/pitch with linear interpolation, per-voice L/R gain from
+  the level bytes (smoothed ~5 ms). Filters (block +0x00–+0x2F, written at note-on), effects and
+  output routing are not modelled.
+
