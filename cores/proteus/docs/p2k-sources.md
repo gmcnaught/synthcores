@@ -301,3 +301,11 @@ image explorer), e-dumper (P2K/CS preset/pattern/song loader), e-sysex, e-sds, e
   Bit-exactness is unknown. The Proteus/1 `.ebl` conversions rescaled some samples and redid some
   loops (see sample-sources.md). On the P2K the sample table and presets live in the SIMM, not the
   OS, so a rebuild needs the OS's SIMM-directory parser reversed first.
+- EMU8000 Programmer's Guide rev 1.00 (Rossum, E-mu/Creative 1994-96) and AWE32 Developer
+  Information Pack 3.01, from github.com/qb40/sound-blaster-awe32 `DOC/EMU8KPGM.PDF`,
+  `DOC/ADIP301.PDF`, `DOS/EMUINC/EMU8000.H` (local only in `roms/_src/p2k/docs/`). The guide
+  documents the voice registers, including the per-voice sends (PTRX bits 15-8 reverb send, CSL
+  bits 31-24 chorus send, PSST pan send), and gives the INIT1-4 arrays for the default "Hall 2" /
+  "Chorus 3" programs. It treats the arrays as opaque ("can be ignored" after initialisation): the
+  effects program they configure is not documented [O]. The init1 table it prints is the one in
+  P2K OS 2.26 at 0x0102F8C4.
