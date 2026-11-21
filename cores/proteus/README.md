@@ -65,16 +65,19 @@ overwrites your presets on the next save).
 The screen shows the LCD, the MIDI / MASTER / EDIT LEDs and a level bar per voice.
 
 ## Known limits
-- The sound chip is modelled from the firmware's use of it; interpolation, envelope slew rate and
-  the pan law are inferred and have not been compared with recordings of a real unit.
+- The sound chip is modelled from the firmware's use of it and from E-mu's patents of the period
+  (`docs/patents.md`): 7-point interpolation with the patent's printed kernel. The envelope slew
+  rate and the pan law are inferred; nothing has been compared with recordings of a real unit.
 - Tone: the firmware gives each voice a tone value (the "Dark" instruments use it, and notes
-  played above a sample's root get more of it). What the chip does with it is unknown; the core
-  applies an inferred low-pass filter (`tools/tone_lut.py`). The OSD **Tone Filter** option turns
-  it off.
+  played above a sample's root get more of it). Per the patent it selects one of a family of
+  interpolation filters with lower cutoffs; their exact cutoffs are not published, so tones 1–5
+  are designed to match the published one (`tools/interp_kernels.py`). The OSD **Tone Filter**
+  option (Off) uses the published filter for every voice.
 - Only the configuration above (XR v2.30 + ProtoLogic) is supported.
 
 ## How it was made / verification
-- `docs/`: research plan, hardware notes (memory map, sound-chip registers, front panel), sources.
+- `docs/`: research plan, hardware notes (memory map, sound-chip registers, front panel), sources,
+  E-mu patents that describe the sound chip (`patents.md`).
 - `mame/`: MAME driver and sound-chip model used as the reference (patch against upstream MAME).
 - `sim/`: Verilator testbenches. The sound chip is bit-exact with the reference model; the full
   system's CPU writes match MAME's from power-on; the core testbench covers first boot, preset

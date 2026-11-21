@@ -70,4 +70,6 @@ Rebuilt ROM (`tools/rebuild_proteus1_rom.py`) vs dump, per firmware v2.30 sample
 - §2: signed 18-bit increment and direction-aware loop in MAME, `tools/proteus_model.py` and
   `proteus_snd.sv` (bit-exact). MAME run with SysEx "pri reverse sound" = On confirms the
   firmware's register values (`tests/midi/reverse.txt`).
-- §3: inferred one-pole tone filter (`tools/tone_lut.py`), OSD "Tone Filter" On/Off.
+- §3: superseded by E-mu's patent US 5,111,727 (`docs/patents.md`): the tone value selects one of
+  the interpolator's filter kernels; 7-point interpolation with the patent's Table 1 kernel for
+  tone 0 and fitted kernels for tones 1–5 (`tools/interp_kernels.py`), OSD "Tone Filter" On/Off.

@@ -75,7 +75,7 @@ wire signed [15:0] snd_l, snd_r;
 wire        mem_req;
 wire [21:0] mem_addr;
 reg         mem_ack;
-reg  [15:0] mem_s0, mem_s1;
+reg [127:0] mem_win;
 
 proteus_snd snd
 (
@@ -85,7 +85,7 @@ proteus_snd snd
 	.rd_voice(rb_start ? cpu_voice : cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),
 	.rd_start(rb_start), .rd_done(rb_done), .rd_data(cpu_rb_data),
 	.start(snd_start), .busy(snd_busy), .done(snd_done), .out_l(snd_l), .out_r(snd_r),
-	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_s0(mem_s0), .mem_s1(mem_s1),
+	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_win(mem_win),
 	.disp_voice(disp_voice), .disp_level(disp_level)
 );
 
@@ -116,10 +116,24 @@ reg  [15:0] st_busy;         // clocks since the current tick
 reg         st_pend;
 
 // ---------------------------------------------------------------- DDR arbiter
+// Sample fetch: 3 beats (12 words) from the aligned address; the engine gets the 8 words
+// starting at word sel. Words are big-endian in the image: word i = {byte 2i, byte 2i+1}.
+function [127:0] win_sel(input [191:0] b, input [1:0] sel);
+	integer k;
+	reg [3:0] w;
+	begin
+		for (k = 0; k < 8; k = k + 1) begin
+			w = {2'd0, sel} + k[3:0];
+			win_sel[16 * k +: 16] = {b[16 * w +: 8], b[16 * w + 8 +: 8]};
+		end
+	end
+endfunction
+
 localparam M_IDLE = 2'd0, M_ISSUE = 2'd1, M_READ = 2'd2;
 reg  [1:0] m_state;
 reg  [1:0] m_client;         // 0 loader, 1 capture, 3 sample
-reg        m_beat;
+reg  [1:0] m_beat;
+reg [127:0] m_b01;          // first two beats of a sample fetch
 reg  [1:0] smp_sel;
 
 always @(posedge clk) begin
@@ -146,7 +160,7 @@ always @(posedge clk) begin
 		end
 		else if (mem_req && !mem_ack) begin
 			m_client <= 2'd3; DDRAM_ADDR <= DDR_BASE + {9'd0, mem_addr[21:2]}; smp_sel <= mem_addr[1:0];
-			DDRAM_BURSTCNT <= 8'd2; DDRAM_RD <= 1; m_state <= M_ISSUE;
+			DDRAM_BURSTCNT <= 8'd3; DDRAM_RD <= 1; m_state <= M_ISSUE;
 		end
 	end
 
@@ -160,18 +174,13 @@ always @(posedge clk) begin
 
 	M_READ:
 		if (DDRAM_DOUT_READY) begin
-			m_beat <= 1;
-			if (!m_beat) begin
-				// words are big-endian in the image: word i = {byte 2i, byte 2i+1}
-				case (smp_sel)
-					2'd0: begin mem_s0 <= {DDRAM_DOUT[ 7: 0], DDRAM_DOUT[15: 8]}; mem_s1 <= {DDRAM_DOUT[23:16], DDRAM_DOUT[31:24]}; end
-					2'd1: begin mem_s0 <= {DDRAM_DOUT[23:16], DDRAM_DOUT[31:24]}; mem_s1 <= {DDRAM_DOUT[39:32], DDRAM_DOUT[47:40]}; end
-					2'd2: begin mem_s0 <= {DDRAM_DOUT[39:32], DDRAM_DOUT[47:40]}; mem_s1 <= {DDRAM_DOUT[55:48], DDRAM_DOUT[63:56]}; end
-					2'd3: mem_s0 <= {DDRAM_DOUT[55:48], DDRAM_DOUT[63:56]};
-				endcase
+			m_beat <= m_beat + 2'd1;
+			if (m_beat == 2'd0) begin
+				m_b01[63:0] <= DDRAM_DOUT;
 			end
+			else if (m_beat == 2'd1) m_b01[127:64] <= DDRAM_DOUT;
 			else begin
-				if (smp_sel == 2'd3) mem_s1 <= {DDRAM_DOUT[7:0], DDRAM_DOUT[15:8]};
+				mem_win <= win_sel({DDRAM_DOUT, m_b01}, smp_sel);
 				mem_ack <= 1;
 				m_state <= M_IDLE;
 			end
