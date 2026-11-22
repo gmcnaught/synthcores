@@ -8,7 +8,7 @@
 // queue; an output takes 66 clocks, both channels at once. The coefficients
 // are in a block RAM (resample_coef.hex), read one clock ahead.
 `ifndef RESAMPLE_HEX
-    `define RESAMPLE_HEX "../hdl/board/resample_coef.hex"     // Quartus: relative to mister/
+    `define RESAMPLE_HEX "../../../modules/roland/hdl/board/resample_coef.hex"     // Quartus: relative to cores/<core>/mister/
 `endif
 module resample (
     input  logic        clk,

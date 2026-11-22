@@ -18,7 +18,7 @@ ROLAND = ROOT.parent.parent / "modules" / "roland" / "hdl"   # shared Roland HDL
 CPU_SV = ROLAND / "cpu" / "h8_cpu.sv"
 MCU_SV = ROLAND / "mcu" / "sc55_mcu.sv"
 PCM_SV = ROLAND / "pcm" / "sc55_pcm.sv"
-SUBMCU_SV = ROOT / "hdl" / "submcu" / "sc55_submcu.sv"
+SUBMCU_SV = ROLAND / "submcu" / "sc55_submcu.sv"
 SDP_SV = ROLAND / "common" / "sdp_ram.sv"
 SIM_BUILD = ROOT / "out" / "sim"
 

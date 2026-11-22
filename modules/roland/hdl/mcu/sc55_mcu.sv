@@ -10,15 +10,25 @@
 // The PCM chip is outside: CPU accesses to e000-e03f go out on the pcm_*
 // port, `pcm_tick` asks it to run up to `cycles`, and its IRQ0 request comes
 // back as `pcm_irq0`.
+//
+// Models: mk1 (default), mk2 (`mk2`), SC-155 (`sc155`) and JV-880 (`jv880`; cores/jv880/docs/plan.md).
+// The JV-880 is a non-mk1 map with the gate array at F000 (PCM F000-F3FF, gate array F400-F7FF),
+// its interrupt on IRQ0 with the PCM's request on gate-array line 5 and the encoder on lines 3/4,
+// the panel on P7DR, NVRAM (pages 12/13) and card RAM (pages 14/15; JV880_RAMS), generic timers.
 
 module sc55_mcu #(
     parameter int RXBUF_BITS = 11,         // MIDI receive buffer: 2^RXBUF_BITS bytes
-    parameter int ROM2_AW = 18             // ROM2 block RAM: 18 = 256 KB (mk1), 19 = 512 KB (mk2)
+    parameter int ROM2_AW = 18,            // ROM2 block RAM: 18 = 256 KB (mk1), 19 = 512 KB (mk2)
+    parameter bit JV880_RAMS = 1'b0        // the JV-880's NVRAM and card RAM (2 x 32 KB block RAM)
 ) (
     input  logic        clk,
     input  logic        rst,
     input  logic        mk2,             // SC-55mk2 / SC-155mk2: memory map, timer tables, sub-MCU (0: mk1)
     input  logic        sc155,           // SC-155 / SC-155mk2: A/D sliders, P9DR model bit
+    input  logic        jv880,           // JV-880 (needs JV880_RAMS)
+    // JV-880 encoder: one detent (MCU_EncoderTrigger: gate-array line 3 for dir 0, 4 for dir 1)
+    input  logic        enc_we,
+    input  logic        enc_dir,
 
     // one model step per run_step pulse; step_done when the devices have advanced
     input  logic        run_step,
@@ -29,7 +39,7 @@ module sc55_mcu #(
 
     // memory load port (ROMs, savestates): sel 0 rom1, 1 rom2, 2 sram, 3 ram
     input  logic        ld_we,
-    input  logic [2:0]  ld_sel,          // 0 ROM1, 1 ROM2, 2 SRAM, 3 RAM, 4 sub-MCU ROM
+    input  logic [2:0]  ld_sel,          // 0 ROM1, 1 ROM2, 2 SRAM, 3 RAM, 4 sub-MCU ROM, 5 NVRAM, 6 card RAM
     input  logic [18:0] ld_addr,
     input  logic [7:0]  ld_data,
 
@@ -97,7 +107,10 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // Block RAMs (modules/roland/hdl/common/sdp_ram.sv): reads are registered, so a CPU read
     // takes two clocks (rd_b below); writes come through one port each.
-    logic [7:0]  rom1_rd, rom2_rd, sram_rd, ram_rd;
+    logic [7:0]  rom1_rd, rom2_rd, sram_rd, ram_rd, nvram_rd, card_rd;
+    logic        nvram_we, card_we;
+    logic [14:0] nvram_wa, card_wa;
+    logic [7:0]  nvram_wd, card_wd;
     logic        sram_we, ram_we;
     logic [14:0] sram_wa;
     logic [9:0]  ram_wa;
@@ -134,7 +147,8 @@ module sc55_mcu #(
     // likewise for IRQ1 while the sub-MCU (mk2) is still running the last
     // step's SM_Update (it can raise IRQ1 through GA line 5, never clear it).
     logic int_hold;
-    assign int_hold = (!pcm_irq_known && !pcm_irq0 && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8])) ||
+    // (JV-880: IRQ0 is the gate array's, which the PCM can raise through line 5.)
+    assign int_hold = (!pcm_irq_known && !(jv880 ? jv_irq0 : pcm_irq0) && dev[7'h7c][5] && (dev[7'h70][6:4] > dbg_sr[10:8])) ||
                       (mk2 && !sm_caught_up && !int_req[2] && dev[7'h7c][6] && (dev[7'h70][2:0] > dbg_sr[10:8]));
 
     // ------------------------------------------------------------------
@@ -170,11 +184,16 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // Peripheral state
     // ------------------------------------------------------------------
-    // interrupt request bits (MCU_Interrupt_Source); bit 1 (IRQ0) comes from the PCM
+    // interrupt request bits (MCU_Interrupt_Source); bit 1 (IRQ0) comes from the PCM, bit 2 (IRQ1)
+    // from the gate array (int_req[2] = trigger != 0); on the JV-880 the gate array's goes to IRQ0
     logic [20:0] int_req;
+    // JV-880: a rising PCM request on line 5 counts in the clock it arrives (the gate array latches
+    // it at the next edge), as the PCM runs alongside the CPU
+    wire jv_irq0 = int_req[2] || (pcm_irq0 && !ga_line[5] && ga_en[5]);
     always_comb begin
         int_pend = int_req;
-        int_pend[1] = pcm_irq0;
+        int_pend[1] = jv880 ? jv_irq0 : pcm_irq0;
+        if (jv880) int_pend[2] = 1'b0;
     end
     assign dbg_int = int_pend;
 
@@ -200,9 +219,12 @@ module sc55_mcu #(
     logic [2:0]  ga_trigger;
     logic        ga_int1;
     logic [7:0]  io_sd;
-    // gate array (mk2): interrupt enable (E402 write << 1), line 5 from the sub-MCU
+    // gate array (mk2, JV-880): interrupt enable (x402 write << 1); lines (MCU_GA_SetGAInt):
+    // mk2 line 5 from the sub-MCU; JV-880 line 5 from the PCM, 3/4 from the encoder
     logic [7:0]  ga_en;
-    logic        ga_int5;
+    logic [7:0]  ga_line;
+    wire         nm1 = mk2 || jv880;            // not the mk1 (reference !is_mk1)
+    wire  [15:0] ga_base = jv880 ? 16'hf000 : 16'he000;
 
     // MIDI receive buffer (MCU_PostUART ring buffer)
     logic [RXBUF_BITS-1:0] rx_wp, rx_rp, rx_wp_d1, rx_wp_d2;
@@ -231,8 +253,10 @@ module sc55_mcu #(
     // A/D pin values (MCU_AnalogReadPin; the RCU path and the SC-155 sliders read 0)
     //   mk1: channel 7 = battery unless an SC-155 selects its sliders (P9DR bits 0/1)
     //   mk2: channel 7 by io_sd[3:2]: battery, NC, the switch (sw_pos 3: 0x3ff), RCU
+    //   JV-880: pin 1 = battery, the others 0x3ff
     function automatic logic [9:0] analog_pin(input logic [2:0] ch, input logic m2, input logic s155,
-                                              input logic [7:0] iosd, input logic [7:0] p9);
+                                              input logic [7:0] iosd, input logic [7:0] p9, input logic jv);
+        if (jv) return (ch == 3'd1) ? 10'h2a0 : 10'h3ff;
         if (!m2) begin
             if (s155 && p9[0]) return 10'h000;
             if (ch != 3'd7) return 10'h000;
@@ -250,7 +274,7 @@ module sc55_mcu #(
     genvar gc;
     generate
         for (gc = 0; gc < 8; gc = gc + 1) begin : g_an
-            assign an_v[gc] = analog_pin(3'(gc), mk2, sc155, io_sd, dev[7'h7f]);
+            assign an_v[gc] = analog_pin(3'(gc), mk2, sc155, io_sd, dev[7'h7f], jv880);
         end
     endgenerate
     function automatic logic [7:0] adc_hi(input logic [9:0] v);
@@ -297,20 +321,21 @@ module sc55_mcu #(
     // streaming: while byte A of a sequential read burst is being acknowledged and the block RAMs
     // hold A + 1 (spec), A + 1 is answered the next clock without a request
     wire  [23:0] c_next2 = {c_next[23:16], c_next[15:0] + 16'd1};
-    wire  [2:0]  bram_rs_n = bram_of(c_next, mk2, dev[7'h79][7]);
+    wire  [2:0]  bram_rs_n = bram_of(c_next, mk2, jv880, dev[7'h79][7]);
     wire         stream = c_ack && c_req && !c_we && c_more && spec_v && spec_a == c_next && bram_rs_n != 3'd0
                           && !pcm_req && !sm_req && !rom2x_req && !rd_b;
     wire  [23:0] bram_a = stream ? c_next2 : (rd_b || hit) ? c_next : accept ? c_addr : spec_a;   // the block RAMs' read address
     wire  [18:0] bram_a_rom2 = {mk2 & bram_a[19], bram_a[17:0]};
     // the PCM and sub-MCU windows (page 0)
-    wire in_pcm = page == 4'd0 && a16 >= 16'he000 && (mk2 ? a16 < 16'he400 : a16 < 16'he040);
+    wire in_pcm = page == 4'd0 && a16 >= ga_base && (nm1 ? a16 < (ga_base | 16'h0400) : a16 < 16'he040);
     wire in_sm  = page == 4'd0 && mk2 && a16 >= 16'hec00 && a16 < 16'hf000;
-    // the block RAM an address decodes to (0: none; 1 ROM1, 2 ROM2, 3 SRAM, 4 on-chip RAM)
-    function automatic logic [2:0] bram_of(input logic [23:0] ad, input logic m2, input logic ramcr);
+    // the block RAM an address decodes to (0: none; 1 ROM1, 2 ROM2, 3 SRAM, 4 on-chip RAM,
+    // 5 NVRAM, 6 card RAM)
+    function automatic logic [2:0] bram_of(input logic [23:0] ad, input logic m2, input logic jv, input logic ramcr);
         logic [15:0] a;
         logic        pcm, smw, ext;
         a = ad[15:0];
-        pcm = a >= 16'he000 && (m2 ? a < 16'he400 : a < 16'he040);
+        pcm = jv ? a >= 16'hf000 && a < 16'hf400 : a >= 16'he000 && (m2 ? a < 16'he400 : a < 16'he040);
         smw = m2 && a >= 16'hec00 && a < 16'hf000;
         ext = (ROM2_AW < 19) && m2 && ad[19];
         case (ad[19:16])
@@ -322,13 +347,16 @@ module sc55_mcu #(
                 end
                 return 3'd0;
             end
-            4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: return ext ? 3'd0 : 3'd2;
-            4'd5: return m2 ? 3'd0 : 3'd3;
-            4'd10, 4'd11: return m2 ? 3'd3 : 3'd0;
+            4'd1, 4'd2, 4'd3, 4'd4: return ext ? 3'd0 : 3'd2;
+            4'd8, 4'd9: return (ext || jv) ? 3'd0 : 3'd2;
+            4'd14, 4'd15: return jv ? 3'd6 : ext ? 3'd0 : 3'd2;
+            4'd12, 4'd13: return jv ? 3'd5 : 3'd0;
+            4'd5: return (m2 || jv) ? 3'd0 : 3'd3;
+            4'd10, 4'd11: return (m2 || jv) ? 3'd3 : 3'd0;
             default: return 3'd0;
         endcase
     endfunction
-    assign bram_rs = bram_of(c_addr, mk2, dev[7'h79][7]);
+    assign bram_rs = bram_of(c_addr, mk2, jv880, dev[7'h79][7]);
     // accesses that see or change what the running sub-MCU uses: wait until it has caught up
     wire sm_sync = mk2 && page == 4'd0 && (in_sm || a16 == 16'he402 || a16 == 16'hffdd || (c_we && a16 == 16'hffdc));
     wire sm_wait = sm_sync && !sm_caught_up;
@@ -339,20 +367,37 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     wire cpu_wr_now = !pcm_req && !sm_req && !rom2x_req && !rd_b && c_req && !c_ack && c_we && !sm_wait;
     wire dec_sram   = (c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'h8000 && c_addr[15:0] < 16'he000) ||
-                      c_addr[19:16] == (mk2 ? 4'd10 : 4'd5);
+                      c_addr[19:16] == (nm1 ? 4'd10 : 4'd5);
+    wire dec_nvram  = jv880 && c_addr[19:16] == 4'd12;      // writes: page 12 only (reads 12 and 13)
+    wire dec_card   = jv880 && c_addr[19:16] == 4'd14;      // writes: page 14 only
     wire dec_ram    = c_addr[19:16] == 4'd0 && c_addr[15:0] >= 16'hfb80 && c_addr[15:0] < 16'hff80 && dev[7'h79][7];
     always_comb begin
         sram_we = 1'b0; sram_wa = c_addr[14:0]; sram_wd = c_wdata;
         ram_we = 1'b0;  ram_wa = 10'(c_addr[15:0] - 16'hfb80); ram_wd = c_wdata;
+        nvram_we = 1'b0; nvram_wa = c_addr[14:0]; nvram_wd = c_wdata;
+        card_we = 1'b0;  card_wa = c_addr[14:0];  card_wd = c_wdata;
         if (q == Q_CLEAR) begin
             sram_we = 1'b1; sram_wa = clr_a[14:0]; sram_wd = 8'h00;
             ram_we = (clr_a[15:10] == 6'd0); ram_wa = clr_a[9:0]; ram_wd = 8'h00;
+            // NVRAM and card RAM are battery-backed: not cleared (a pack or save file loads them)
         end else if (ld_we) begin
             sram_we = (ld_sel == 3'd2); sram_wa = ld_addr[14:0]; sram_wd = ld_data;
             ram_we = (ld_sel == 3'd3); ram_wa = ld_addr[9:0]; ram_wd = ld_data;
         end else if (cpu_wr_now) begin
             sram_we = dec_sram;
             ram_we = dec_ram;
+        end
+        // NVRAM is battery-backed, never cleared: its load port works while the core is held in
+        // reset (the board loads the pack's NVRAM then). Card RAM (no card fitted: the model's reads
+        // 0) is cleared with the SRAM.
+        if (ld_we) begin
+            nvram_we = (ld_sel == 3'd5); nvram_wa = ld_addr[14:0]; nvram_wd = ld_data;
+            card_we = (ld_sel == 3'd6);  card_wa = ld_addr[14:0];  card_wd = ld_data;
+        end else if (q == Q_CLEAR) begin
+            card_we = 1'b1; card_wa = clr_a[14:0]; card_wd = 8'h00;
+        end else if (cpu_wr_now) begin
+            nvram_we = dec_nvram;
+            card_we = dec_card;
         end
     end
 
@@ -364,6 +409,17 @@ module sc55_mcu #(
                                       .ra(bram_a[14:0]), .rd(sram_rd));
     sdp_ram #(.AW(10), .DW(8)) u_ram  (.clk, .we(ram_we), .wa(ram_wa), .wd(ram_wd),
                                       .ra(10'(bram_a[15:0] - 16'hfb80)), .rd(ram_rd));
+    generate
+        if (JV880_RAMS) begin : g_jv880_rams
+            sdp_ram #(.AW(15), .DW(8)) u_nvram (.clk, .we(nvram_we), .wa(nvram_wa), .wd(nvram_wd),
+                                               .ra(bram_a[14:0]), .rd(nvram_rd));
+            sdp_ram #(.AW(15), .DW(8)) u_card  (.clk, .we(card_we), .wa(card_wa), .wd(card_wd),
+                                               .ra(bram_a[14:0]), .rd(card_rd));
+        end else begin : g_no_jv880_rams
+            assign nvram_rd = 8'hff;
+            assign card_rd = 8'hff;
+        end
+    endgenerate
     sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),
                                       .ra(rx_rp), .rd(rx_rd));
 
@@ -392,13 +448,27 @@ module sc55_mcu #(
         else if (rd_b || hit) begin spec_a <= c_next; spec_v <= 1'b1; end
         else if (accept) spec_v <= 1'b0;
         if (ld_we || q == Q_CLEAR || (accept && c_we)) spec_v <= 1'b0;
-        // GA line 5 (MCU_GA_SetGAInt(5, v)): trigger 5 on a rising edge when enabled; IRQ1 = trigger != 0
-        if (sm_ga5_we) begin : b_sc55_mcu_ga5
+        // GA lines (MCU_GA_SetGAInt(line, v)): `line` triggers on a rising edge when enabled; the
+        // request (IRQ1, or IRQ0 on the JV-880) = trigger != 0. Line 5: the sub-MCU (mk2) or the
+        // PCM's IRQ (JV-880); lines 3/4: an encoder detent (set 0, then 1: always an edge).
+        begin : b_sc55_mcu_ga
             logic [2:0] tg;
-            tg = (sm_ga5_val && !ga_int5 && ga_en[5]) ? 3'd5 : ga_trigger;
-            ga_trigger <= tg;
-            int_req[2] <= tg != 3'd0;
-            ga_int5 <= sm_ga5_val;
+            logic [7:0] ln;
+            tg = ga_trigger;
+            ln = ga_line;
+            if (sm_ga5_we || (jv880 && pcm_irq0 != ga_line[5])) begin
+                if ((mk2 ? sm_ga5_val : pcm_irq0) && !ln[5] && ga_en[5]) tg = 3'd5;
+                ln[5] = mk2 ? sm_ga5_val : pcm_irq0;
+            end
+            if (jv880 && enc_we) begin
+                if (ga_en[enc_dir ? 4 : 3]) tg = enc_dir ? 3'd4 : 3'd3;
+                ln[enc_dir ? 4 : 3] = 1'b1;
+            end
+            if (tg != ga_trigger || ln != ga_line) begin
+                ga_trigger <= tg;
+                int_req[2] <= tg != 3'd0;
+                ga_line <= ln;
+            end
         end
         rx_wp_d1 <= rx_wp;
         rx_wp_d2 <= rx_wp_d1;
@@ -412,7 +482,7 @@ module sc55_mcu #(
             pcm_req <= 1'b0;
             sm_req <= 1'b0;
             rom2x_req <= 1'b0;
-            ga_en <= 8'h00; ga_int5 <= 1'b0;
+            ga_en <= 8'h00; ga_line <= 8'h00;
             sm_tgt5 <= 48'd0; sm_wp <= '0;
             rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
@@ -448,6 +518,8 @@ module sc55_mcu #(
                     3'd2: c_rdata <= rom2_rd;
                     3'd3: c_rdata <= sram_rd;
                     3'd4: c_rdata <= ram_rd;
+                    3'd5: c_rdata <= nvram_rd;
+                    3'd6: c_rdata <= card_rd;
                     default: c_rdata <= rd_dev;
                 endcase
                 c_ack <= 1'b1;
@@ -458,6 +530,8 @@ module sc55_mcu #(
                     3'd1: c_rdata <= rom1_rd;
                     3'd2: c_rdata <= rom2_rd;
                     3'd3: c_rdata <= sram_rd;
+                    3'd5: c_rdata <= nvram_rd;
+                    3'd6: c_rdata <= card_rd;
                     default: c_rdata <= ram_rd;
                 endcase
                 c_ack <= 1'b1;
@@ -467,6 +541,8 @@ module sc55_mcu #(
                     3'd1: c_rdata <= rom1_rd;
                     3'd2: c_rdata <= rom2_rd;
                     3'd3: c_rdata <= sram_rd;
+                    3'd5: c_rdata <= nvram_rd;
+                    3'd6: c_rdata <= card_rd;
                     default: c_rdata <= ram_rd;
                 endcase
                 c_ack <= 1'b1;
@@ -512,15 +588,23 @@ module sc55_mcu #(
                                         7'h5c: begin ssr_rd <= dev[7'h5c]; d = dev[7'h5c]; end      // SSR
                                         7'h5d: d = mk2 ? sm_rx_byte : uart_rx_byte;                 // RDR
                                         7'h00: d = 8'hff;
-                                        7'h0e: d = 8'hff;                                           // P7DR (not JV-880)
+                                        7'h0e: begin                                                // P7DR: the JV-880's panel
+                                            d = 8'hff;
+                                            if (jv880) begin
+                                                if (io_sd == 8'b11111011) d = d & ~{3'b000, buttons[4:0]};
+                                                if (io_sd == 8'b11110111) d = d & ~{3'b000, buttons[9:5]};
+                                                if (io_sd == 8'b11101111) d = d & ~{4'b0000, buttons[13:10]};
+                                                d = d | 8'h80;
+                                            end
+                                        end
                                         7'h7f: d = ((mk2 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end
                             end else if (a16 >= 16'hfb80 && dev[7'h79][7]) rs = 3'd4;
                             else if (a16 < 16'he000) rs = 3'd3;
-                            else if (mk2) begin
-                                if (a16 == 16'he402) begin
+                            else if (nm1) begin
+                                if (a16 == (ga_base | 16'h0402)) begin
                                     d = {5'h0, ga_trigger};
                                     ga_trigger <= 3'd0;
                                     int_req[2] <= 1'b0;
@@ -539,10 +623,12 @@ module sc55_mcu #(
                                 int_req[2] <= 1'b0;
                             end
                         end
-                        4'd1, 4'd2, 4'd3, 4'd4, 4'd8, 4'd9, 4'd14, 4'd15: rs = 3'd2;
-                        4'd5: if (!mk2) rs = 3'd3;
-                        4'd10, 4'd11: if (mk2) rs = 3'd3;
-                        4'd12, 4'd13: d = 8'hff;
+                        4'd1, 4'd2, 4'd3, 4'd4: rs = 3'd2;
+                        4'd8, 4'd9: if (!jv880) rs = 3'd2;
+                        4'd14, 4'd15: rs = jv880 ? 3'd6 : 3'd2;
+                        4'd5: if (!nm1) rs = 3'd3;
+                        4'd10, 4'd11: if (nm1) rs = 3'd3;
+                        4'd12, 4'd13: if (jv880) rs = 3'd5; else d = 8'hff;
                         default: d = 8'h00;
                     endcase
                     if (rs == 3'd2 && rom2_ext) begin
@@ -561,10 +647,10 @@ module sc55_mcu #(
                             pcm_req <= 1'b1; pcm_we <= 1'b1; pcm_addr <= a16[5:0]; pcm_wdata <= d;
                         end else if (in_sm) begin
                             sm_req <= 1'b1; sm_we <= 1'b1; sm_addr <= a16[7:0]; sm_wdata <= d;
-                        end else if (mk2 && a16 >= 16'he400 && a16 < 16'he800) begin
-                            if (a16 == 16'he404 || a16 == 16'he405) begin lcd_we <= 1'b1; lcd_rs <= a16[0]; lcd_data <= d; end
-                            else if (a16 == 16'he401) begin io_sd <= d; lcd_enable <= !d[0]; end
-                            else if (a16 == 16'he402) ga_en <= {d[6:0], 1'b0};
+                        end else if (nm1 && a16 >= (ga_base | 16'h0400) && a16 < (ga_base | 16'h0800)) begin
+                            if (a16 == (ga_base | 16'h0404) || a16 == (ga_base | 16'h0405)) begin lcd_we <= 1'b1; lcd_rs <= a16[0]; lcd_data <= d; end
+                            else if (a16 == (ga_base | 16'h0401)) begin io_sd <= d; lcd_enable <= !d[0]; end
+                            else if (a16 == (ga_base | 16'h0402)) ga_en <= {d[6:0], 1'b0};
                         end else if (a16 >= 16'hff80) begin
                             // MCU_DeviceWrite
                             if (a16[6:0] >= 7'h10 && a16[6:0] < 7'h40) begin
@@ -572,8 +658,8 @@ module sc55_mcu #(
                                 case (a16[3:0])
                                     4'h0: begin
                                         frt_tcr[t] <= d;
-                                        frt_stride[t] <= frt_stride_for(d[1:0], mk2);
-                                        frt_deadline[t] <= align_fwd(tcyc, {8'h0, frt_stride_for(d[1:0], mk2)});
+                                        frt_stride[t] <= frt_stride_for(d[1:0], nm1);
+                                        frt_deadline[t] <= align_fwd(tcyc, {8'h0, frt_stride_for(d[1:0], nm1)});
                                     end
                                     4'h1: begin : b_sc55_mcu_2
                                         logic [7:0] ts, sr;
@@ -596,9 +682,9 @@ module sc55_mcu #(
                                 case (a16[2:0])
                                     3'd0: begin
                                         tmr_tcr <= d;
-                                        tmr_stride <= tmr_stride_for(d[2:0], mk2);
-                                        if (tmr_stride_for(d[2:0], mk2) == 16'd0) tmr_deadline <= 48'hffffffffffff;
-                                        else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0], mk2));
+                                        tmr_stride <= tmr_stride_for(d[2:0], nm1);
+                                        if (tmr_stride_for(d[2:0], nm1) == 16'd0) tmr_deadline <= 48'hffffffffffff;
+                                        else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0], nm1));
                                     end
                                     3'd1: begin : b_sc55_mcu_3
                                         logic [7:0] ts, sr;
@@ -634,7 +720,7 @@ module sc55_mcu #(
                             end
                         end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
                         else if (a16 < 16'he000) ;                          // SRAM: write port below
-                        else if (mk2) ;
+                        else if (nm1) ;
                         else if (a16 >= 16'hf000 && a16 < 16'hf100) begin io_sd <= a16[7:0]; lcd_enable <= a16[3]; end
                         else if (a16 == 16'hf105) begin lcd_we <= 1'b1; lcd_rs <= 1'b0; lcd_data <= d; ga_lcd_counter <= 9'd500; end
                         else if (a16 == 16'hf104) begin lcd_we <= 1'b1; lcd_rs <= 1'b1; lcd_data <= d; ga_lcd_counter <= 9'd500; end
@@ -783,7 +869,7 @@ module sc55_mcu #(
                         end else analog_end <= 48'd0;
 
                         // mk1 gate array: LCD busy counter -> GA line 1 -> IRQ1
-                        if (!mk2 && ga_lcd_counter != 9'd0) begin
+                        if (!nm1 && ga_lcd_counter != 9'd0) begin
                             ga_lcd_counter <= ga_lcd_counter - 9'd1;
                             if (ga_lcd_counter == 9'd1) begin
                                 ga_trigger <= 3'd1;

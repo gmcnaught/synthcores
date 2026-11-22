@@ -1,7 +1,7 @@
 //============================================================================
 //  Roland SC-55 (mk1) for MiSTer.
 //
-//  The instrument is hdl/sc55_core.sv (CPU, peripherals, PCM chip) inside
+//  The instrument is modules/roland/hdl/core/sc55_core.sv (CPU, peripherals, PCM chip) inside
 //  hdl/board/sc55_board.sv (ROM pack, wave ROMs in DDR3, pacing, MIDI,
 //  audio); this file connects it to the MiSTer framework (sys/,
 //  Template_MiSTer, GPL-2.0): OSD and ROM download through hps_io, DDR3,
