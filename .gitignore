@@ -8,3 +8,6 @@
 /release/
 .DS_Store
 __pycache__/
+
+# ModRetro M64 documents: licence not stated, see hw/m64/README.md
+hw/m64/*.pdf
