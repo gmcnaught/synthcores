@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generated HDL tables are what the tools make from the reference sources:
-hdl/pcm/sc55_pcm_interp.svh (pcm.cpp), hdl/board/lcd_font.svh and lcd_back.hex (lcd_font.h, lcd_back.h)."""
+modules/roland/hdl/pcm/sc55_pcm_interp.svh (pcm.cpp), hdl/board/lcd_font.svh and lcd_back.hex (lcd_font.h, lcd_back.h)."""
 import subprocess
 import sys
 import tempfile
@@ -15,11 +15,11 @@ def test_interp_table_current():
         subprocess.run([sys.executable, "-I", str(ROOT / "tools" / "gen_pcm_tables.py"),
                         str(ROOT / "third_party" / "nuked-sc55" / "src" / "backend" / "pcm.cpp"), str(out)],
                        check=True, capture_output=True)
-        assert out.read_text() == (ROOT / "hdl" / "pcm" / "sc55_pcm_interp.svh").read_text()
+        assert out.read_text() == (ROOT.parent.parent / "modules" / "roland" / "hdl" / "pcm" / "sc55_pcm_interp.svh").read_text()
 
 
 def test_interp_table_has_2026_fix():
-    text = (ROOT / "hdl" / "pcm" / "sc55_pcm_interp.svh").read_text()
+    text = (ROOT.parent.parent / "modules" / "roland" / "hdl" / "pcm" / "sc55_pcm_interp.svh").read_text()
     assert "{2'd0, 7'd10}: return 12'd3535;" in text
     assert "{2'd1, 7'd65}: return 12'd2071;" in text
 

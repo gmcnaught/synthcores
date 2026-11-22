@@ -1,4 +1,4 @@
-// PCM lockstep (M3): hdl/pcm/sc55_pcm.sv against the reference model's PCM.
+// PCM lockstep (M3): modules/roland/hdl/pcm/sc55_pcm.sv against the reference model's PCM.
 //
 // The full model runs (firmware, MIDI). Each step's PCM register accesses are
 // replayed into the HDL PCM in order (reads must return the model's data),

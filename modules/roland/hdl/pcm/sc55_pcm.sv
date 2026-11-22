@@ -67,7 +67,7 @@ module sc55_pcm (
     logic [15:0] r2_wd [16];
     logic [1:0]  fe_i;                  // frame end: rows 28..31 written back one per clock
     logic [15:0] pitch [32];            // copy of ram2[n][0] for the indirect read
-    // eram (16K x 16) is a block RAM (hdl/common/sdp_ram.sv): reads and writes are
+    // eram (16K x 16) is a block RAM (modules/roland/hdl/common/sdp_ram.sv): reads and writes are
     // registered requests; after a read the reverb program waits two clocks
     // (er_wait) and takes the data into er_q.
     logic        er_we;

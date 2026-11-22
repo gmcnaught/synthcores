@@ -95,7 +95,7 @@ module sc55_mcu #(
     // ------------------------------------------------------------------
     // Memories
     // ------------------------------------------------------------------
-    // Block RAMs (hdl/common/sdp_ram.sv): reads are registered, so a CPU read
+    // Block RAMs (modules/roland/hdl/common/sdp_ram.sv): reads are registered, so a CPU read
     // takes two clocks (rd_b below); writes come through one port each.
     logic [7:0]  rom1_rd, rom2_rd, sram_rd, ram_rd;
     logic        sram_we, ram_we;
