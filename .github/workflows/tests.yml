@@ -1,7 +1,7 @@
 name: tests
 
 # Runs each core's test suite (Verilator benches, lockstep against the reference models,
-# repo hygiene) for the cores a change touches. A change under modules/ or to this file runs
+# repo hygiene) for the cores a change touches. A change to synthframe's HDL or to this file runs
 # every core. ROM-dependent tests skip without ROMs. Proteus has no automated suite yet.
 
 on:
@@ -22,10 +22,11 @@ jobs:
         with:
           filters: |
             shared:
-              - 'modules/**'
+              - 'modules/synthframe/hdl/**'
               - '.github/workflows/tests.yml'
             sc55:
               - 'cores/sc55/**'
+              - 'modules/nuked-sc55'
             synclavier:
               - 'cores/synclavier/**'
       - id: pick

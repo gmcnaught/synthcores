@@ -2,7 +2,7 @@ name: Build RBF
 
 # Compiles each MiSTer core (cores/<core>/mister/*.qpf) with Quartus Lite 17.0 in the
 # raetro/quartus:17.0 Docker image on ubuntu-latest, for the cores a change touches (all of
-# them for a change under modules/, to this file, or on demand). The whole repo (without .git)
+# them for a change to synthframe's HDL or targets, to this file, or on demand). The whole repo (without .git)
 # goes into the container so cores can use shared files under modules/. Each core's
 # mister/build.sh fails the job on a failed compile or negative slack, after the reports are
 # saved. The RBF and the Quartus reports are uploaded as artifacts <core>-rbf and
@@ -35,7 +35,8 @@ jobs:
         with:
           filters: |
             shared:
-              - 'modules/**'
+              - 'modules/synthframe/hdl/**'
+              - 'modules/synthframe/target/**'
               - '.github/workflows/build-rbf.yml'
             sc55:
               - 'cores/sc55/hdl/**'
