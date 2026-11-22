@@ -1,0 +1,99 @@
+name: tests
+
+# Runs each core's test suite (Verilator benches, lockstep against the reference models,
+# repo hygiene) for the cores a change touches. A change under modules/ or to this file runs
+# every core. ROM-dependent tests skip without ROMs. Proteus has no automated suite yet.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      cores: ${{ steps.pick.outputs.cores }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'modules/**'
+              - '.github/workflows/tests.yml'
+            sc55:
+              - 'cores/sc55/**'
+            synclavier:
+              - 'cores/synclavier/**'
+      - id: pick
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = workflow_dispatch ] || [ "${{ steps.filter.outputs.shared }}" = true ]; then
+            echo 'cores=["sc55","synclavier"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "cores=$(echo '${{ steps.filter.outputs.changes }}' | jq -c 'map(select(. != "shared"))')" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: changes
+    if: ${{ needs.changes.outputs.cores != '[]' && needs.changes.outputs.cores != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        core: ${{ fromJSON(needs.changes.outputs.cores) }}
+    name: tests (${{ matrix.core }})
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: cores/${{ matrix.core }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        working-directory: .
+        run: sudo apt-get update && sudo apt-get install -y ninja-build g++-14 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
+
+      # Ubuntu's Verilator (5.020) cannot compile non-blocking array writes in loops, which the
+      # SC-55 HDL uses; build the version used locally (5.048), cached.
+      - name: Cache Verilator
+        id: verilator-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/verilator
+          key: verilator-v5.048-ubuntu-24.04
+      - name: Build Verilator
+        if: steps.verilator-cache.outputs.cache-hit != 'true'
+        working-directory: .
+        run: |
+          git clone --depth 1 --branch v5.048 https://github.com/verilator/verilator /tmp/verilator-src
+          cd /tmp/verilator-src && autoconf && ./configure --prefix=$HOME/verilator && make -j$(nproc) && make install
+      - name: Verilator on PATH
+        working-directory: .
+        run: |
+          echo "$HOME/verilator/bin" >> $GITHUB_PATH
+          echo "VERILATOR_ROOT=$HOME/verilator/share/verilator" >> $GITHUB_ENV
+          $HOME/verilator/bin/verilator --version
+
+      - name: Build reference model and Verilator benches (SC-55)
+        if: matrix.core == 'sc55'
+        run: |
+          cmake -S sim -B out/sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
+          ninja -C out/sim
+
+      - name: Run tests
+        env:
+          SC55_REF_BUILD: out/sim/ref
+        run: |
+          set -e
+          for t in tests/test_*.py tests/*/test_*.py; do
+            [ -f "$t" ] || continue
+            echo "== $t"
+            python "$t"
+          done
