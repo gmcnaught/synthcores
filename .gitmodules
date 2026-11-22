@@ -1,0 +1,3 @@
+[submodule "modules/nuked-sc55"]
+	path = modules/nuked-sc55
+	url = https://github.com/jcmoyer/Nuked-SC55
