@@ -309,3 +309,14 @@ image explorer), e-dumper (P2K/CS preset/pattern/song loader), e-sysex, e-sds, e
   "Chorus 3" programs. It treats the arrays as opaque ("can be ignored" after initialisation): the
   effects program they configure is not documented [O]. The init1 table it prints is the one in
   P2K OS 2.26 at 0x0102F8C4.
+- ColdFire V1 soft core (2008): IPextreme offered a free "V1 ColdFire FPGA CIII" core for Altera
+  Cyclone III customers via its Core Store (EDN 2008-06-09, Design-Reuse 2008-10-21, Electronic
+  Design 2008-08-28); paid V1 packages were configurable Verilog or encrypted Verilog (2011
+  release). NXP fact sheet: V1 is "a simplified version of the V2 ColdFire core, featuring the same
+  address modes and instruction definitions", optional MAC, AHB bus, "32-bit data bus with 24-bit
+  address bus supporting 16 MB linear addressing" on the reference platform [O]. Not found: the
+  free version's delivery form (source / encrypted / netlist), license text, redistribution terms,
+  current availability (IPextreme later became part of Silvaco [I, from the chipestimate URL path]).
+  P2K fit [I]: the OS addresses above 16 MB (flash 0x02000000, MBAR 0x20000000), uses movec for
+  MBAR/RAMBAR/CACR (V2 control registers) and needs the MCF5206e SIM, timers and UARTs, which
+  would be written in HDL whichever core is used.
