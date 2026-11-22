@@ -29,6 +29,13 @@ for line in "${CORES[@]}"; do
   if [ -n "$(git -C "$SRC/$repo" status --porcelain --untracked-files=no)" ]; then
     echo "warning: $repo has uncommitted changes; only committed history on $branch is imported" >&2
   fi
+  # A local branch behind its remote would silently drop the remote's commits (it did once:
+  # sc55 and synclavier main were 1 and 3 commits behind origin on 2026-11-22).
+  if git -C "$SRC/$repo" fetch -q origin 2>/dev/null &&
+     git -C "$SRC/$repo" rev-parse -q --verify "origin/$branch" >/dev/null; then
+    behind=$(git -C "$SRC/$repo" rev-list --count "$branch..origin/$branch")
+    [ "$behind" = 0 ] || { echo "$repo: $branch is $behind commits behind origin/$branch; update it first" >&2; exit 1; }
+  fi
   git clone -q --no-local --branch "$branch" "$SRC/$repo" "$TMP/$name"
   (cd "$TMP/$name" && "$FR" --quiet --force \
       --to-subdirectory-filter "cores/$name" --tag-rename ":$name-" --refs "$branch")
