@@ -1,15 +1,15 @@
-// MIDI bytes from MiSTer's UART (MidiLink) for the SC-55's serial input.
+// SPDX-License-Identifier: MIT
+// synthframe: MIDI bytes from MiSTer's UART (MidiLink). Used by the SC-55 and the Synclavier.
 //
 // Two receivers, 31250 and ALT_BAUD (9600): on some MiSTer kernels ttyS1
 // falls back to 9600 after MidiLink sets 31250, so the line can run at
 // either. The 31250 receiver is used until it sees framing errors while the
 // other decodes cleanly; it switches back the same way, or after 7 clean
 // bytes in a row at 31250. Every received byte (including real-time bytes)
-// is passed on; the firmware parses MIDI itself.
+// is passed on; the core parses MIDI itself.
 //
-// From synclavierii hdl/core/midi_in.sv (receiver and speed choice; MIT,
-// same author).
-module midi_rx #(
+// From synclavierii hdl/core/midi_in.sv (receiver and speed choice).
+module synthframe_midi_rx #(
     parameter longint CLK_HZ = 50_000_000,
     parameter longint BAUD = 31_250,
     parameter longint ALT_BAUD = 9_600
@@ -24,9 +24,9 @@ module midi_rx #(
 );
     logic       v_std, e_std, v_alt, e_alt;
     logic [7:0] d_std, d_alt;
-    midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(BAUD)) rx_std (
+    synthframe_midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(BAUD)) rx_std (
         .clk, .rst, .rxd, .valid(v_std), .data(d_std), .ferr(e_std));
-    midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(ALT_BAUD)) rx_alt (
+    synthframe_midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(ALT_BAUD)) rx_alt (
         .clk, .rst, .rxd, .valid(v_alt), .data(d_alt), .ferr(e_alt));
 
     logic [2:0] bad_cur, good_other;
@@ -53,7 +53,7 @@ module midi_rx #(
     assign frame_err  = e_cur;
 endmodule
 
-module midi_uart_rx #(
+module synthframe_midi_uart_rx #(
     parameter longint CLK_HZ = 50_000_000,
     parameter longint BAUD = 31_250
 ) (

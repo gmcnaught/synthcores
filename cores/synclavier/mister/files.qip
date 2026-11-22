@@ -31,11 +31,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/term_display.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/crt_adjust.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/tek_plane.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/ps2_ascii.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_in.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_vpk.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_card_feed.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/panel_mouse.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/audio_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/dig_stm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/synclavier_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/ddram_word.sv

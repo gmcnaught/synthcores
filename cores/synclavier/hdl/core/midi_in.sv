@@ -54,37 +54,9 @@ module midi_in #(
     output logic [6:0]  msg_m2
 );
     // ---------------------------------------------------------- UART receivers
-    logic       v_std, e_std, v_alt, e_alt;
-    logic [7:0] d_std, d_alt;
-    midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(BAUD)) rx_std (
-        .clk, .rst, .rxd, .valid(v_std), .data(d_std), .ferr(e_std));
-    midi_uart_rx #(.CLK_HZ(CLK_HZ), .BAUD(ALT_BAUD)) rx_alt (
-        .clk, .rst, .rxd, .valid(v_alt), .data(d_alt), .ferr(e_alt));
-
-    // speed choice: errors on the receiver in use (since its last good byte)
-    // and clean bytes in a row on the other
-    logic [2:0] bad_cur, good_other;
-    wire        v_cur = alt ? v_alt : v_std, e_cur = alt ? e_alt : e_std;
-    wire        v_oth = alt ? v_std : v_alt, e_oth = alt ? e_std : e_alt;
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            alt <= 1'b0;
-            bad_cur <= '0;
-            good_other <= '0;
-        end else if ((bad_cur >= 3'd3 && good_other >= 3'd4) || (alt && good_other == 3'd7)) begin
-            alt <= !alt;                          // the other speed decodes cleanly
-            bad_cur <= '0;
-            good_other <= '0;
-        end else begin
-            if (e_cur && bad_cur != 3'd7) bad_cur <= bad_cur + 3'd1;
-            else if (v_cur) bad_cur <= '0;
-            if (e_oth) good_other <= '0;
-            else if (v_oth && good_other != 3'd7) good_other <= good_other + 3'd1;
-        end
-    end
-    assign byte_valid = v_cur;
-    assign byte_data  = alt ? d_alt : d_std;
-    assign frame_err  = e_cur;
+    // the 31250 and ALT_BAUD receivers and the speed choice (synthframe)
+    synthframe_midi_rx #(.CLK_HZ(CLK_HZ), .BAUD(BAUD), .ALT_BAUD(ALT_BAUD)) rx (
+        .clk, .rst, .rxd, .byte_valid, .byte_data, .frame_err, .alt);
 
     // ------------------------------------------------------------- parser
     logic [7:0] status;                 // running status (0: none)
@@ -245,59 +217,6 @@ module midi_in #(
                 host_we <= 1'b1;
                 dirty_p <= dirty_p & (dirty_p - 8'd1);
             end
-        end
-    end
-endmodule
-
-// One UART receiver (8N1) at CLK_HZ / BAUD clocks a bit: `valid` with the
-// byte when the stop bit is high, `ferr` when it is low (byte dropped).
-module midi_uart_rx #(
-    parameter longint CLK_HZ = 50_000_000,
-    parameter longint BAUD = 31_250
-) (
-    input  logic       clk,
-    input  logic       rst,
-    input  logic       rxd,
-    output logic       valid,
-    output logic [7:0] data,
-    output logic       ferr
-);
-    localparam int DIV = int'(CLK_HZ / BAUD);
-    localparam int CW = $clog2(DIV + 1);
-    logic [2:0]  sync;
-    logic        busy;
-    logic [CW-1:0] cnt;
-    logic [3:0]  bitn;
-    logic [7:0]  sh;
-    always_ff @(posedge clk) begin
-        sync <= {sync[1:0], rxd};
-        valid <= 1'b0;
-        ferr <= 1'b0;
-        if (rst) begin
-            busy <= 1'b0;
-            sync <= 3'b111;
-        end else if (!busy) begin
-            if (sync[2:1] == 2'b10) begin           // start bit edge
-                busy <= 1'b1;
-                cnt <= CW'(DIV / 2);
-                bitn <= 4'd0;
-            end
-        end else if (cnt != '0) begin
-            cnt <= cnt - 1'b1;
-        end else begin
-            cnt <= CW'(DIV - 1);
-            if (bitn == 4'd0) begin
-                if (sync[2]) busy <= 1'b0;          // not a start bit after all
-            end else if (bitn <= 4'd8) begin
-                sh <= {sync[2], sh[7:1]};
-            end else begin
-                busy <= 1'b0;
-                if (sync[2]) begin                  // stop bit: the byte is good
-                    valid <= 1'b1;
-                    data <= sh;
-                end else ferr <= 1'b1;
-            end
-            bitn <= bitn + 4'd1;
         end
     end
 endmodule

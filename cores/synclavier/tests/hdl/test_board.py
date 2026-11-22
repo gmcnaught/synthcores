@@ -78,7 +78,7 @@ def test_audio_fifo():
     if not HAVE_VERILATOR:
         print("  skip test_audio_fifo (needs verilator)")
         return
-    _testbench("audio_fifo", "hdl/core/audio_fifo.sv")
+    _testbench("audio_fifo", "../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv")
 
 
 # every sequence term_display handles (tools/vt100.py), in one stream
@@ -1178,7 +1178,7 @@ def test_midi_in():
     if not HAVE_VERILATOR:
         print("  skip test_midi_in (needs verilator)")
         return
-    _testbench("midi_in", "hdl/core/midi_in.sv")
+    _testbench("midi_in", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv"))
 
 
 def test_midi_card():
@@ -1188,7 +1188,7 @@ def test_midi_card():
     if not HAVE_VERILATOR:
         print("  skip test_midi_card (needs verilator)")
         return
-    _testbench("midi_card", ("hdl/core/midi_in.sv", "hdl/core/midi_card_feed.sv",
+    _testbench("midi_card", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_card_feed.sv",
                              "hdl/dev/dev_midi.sv"))
 
 

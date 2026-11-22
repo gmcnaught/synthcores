@@ -121,7 +121,7 @@ module sc55_board #(
     // ---------------------------------------------------------- MIDI
     logic       rx_valid;
     logic [7:0] rx_data;
-    midi_rx #(.CLK_HZ(CLK_HZ)) midi (
+    synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi (
         .clk, .rst, .rxd(uart_rxd), .byte_valid(rx_valid), .byte_data(rx_data), .frame_err(), .alt(midi_alt)
     );
     wire       m_valid = rx_valid || midi_inject;
@@ -225,7 +225,7 @@ module sc55_board #(
         .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
     );
 
-    audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(48_000), .DEPTH_BITS(8)) fifo (
+    synthframe_audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(48_000), .DEPTH_BITS(8)) fifo (
         .clk, .rst(core_rst),
         .in_valid(rs_valid), .in_l(rs_l), .in_r(rs_r),
         .out_l(audio_l), .out_r(audio_r), .out_strobe(),
