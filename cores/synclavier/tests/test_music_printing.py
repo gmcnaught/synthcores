@@ -34,7 +34,7 @@ def test_patches_on_ned_source():
         return
     with tempfile.TemporaryDirectory() as d:
         for name in {n for n, _o, _n in music_printing.PATCHES}:
-            open(os.path.join(d, name), "wb").write(open(os.path.join(sw, "Able", "MPLT", name), "rb").read())
+            with open(os.path.join(d, name), "wb") as _f: _f.write(open(os.path.join(sw, "Able", "MPLT", name), "rb").read())
         before = open(os.path.join(d, "MAINSORC"), "rb").read()
         music_printing.patch_source(d)
         after = open(os.path.join(d, "MAINSORC"), "rb").read()
@@ -69,12 +69,12 @@ def test_install_on_w0():
     disk = bytearray(prepared_disk(raw, 30, None))
     with tempfile.TemporaryDirectory() as d:
         img = os.path.join(d, "W0.IMG")
-        open(img, "wb").write(disk)
+        with open(img, "wb") as _f: _f.write(disk)
         W0 = load(img)
         before = {p: list(read_file(W0, p)) for p, t, s, ln, w in walk(W0) if t not in (6, 7)}
         assert "/.SYSTEM/.HELP" in before and "/.SYSTEM/.SPLT-7" in before
         done = music_printing.install(disk, files)
-        open(img, "wb").write(disk)
+        with open(img, "wb") as _f: _f.write(disk)
         W = load(img)
         names = {"/.SYSTEM/" + n for n, _d, _t in files}
         for p, words in before.items():

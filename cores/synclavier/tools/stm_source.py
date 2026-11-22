@@ -84,7 +84,7 @@ def main(argv=None):
     samples, ch, hz = read_wav(a.input, a.start, a.seconds)
     total = len(samples) // ch
     src = make_source(samples, ch, hz)
-    open(a.output, "wb").write(src.to_bytes())
+    with open(a.output, "wb") as _f: _f.write(src.to_bytes())
     print("%s: %s, %d frames (%.2f s), %d Hz -> rate %.1f kHz" % (
         a.output, "stereo" if ch == 2 else "mono", src.frames, src.frames / hz, hz, src.rate / 10))
     if src.frames < total:

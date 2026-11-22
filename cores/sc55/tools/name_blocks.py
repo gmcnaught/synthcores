@@ -23,7 +23,7 @@ def fix(path):
         if j < len(lines) and DECL.match(lines[j]):
             n += 1
             lines[i] = line[:m.start()] + f"begin : b_{stem}_{n}" + m.group(1)
-    open(path, "w").write("\n".join(lines))
+    with open(path, "w") as _f: _f.write("\n".join(lines))
     return n
 
 

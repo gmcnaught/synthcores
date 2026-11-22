@@ -171,7 +171,7 @@ def test_extract():
         cap, out = os.path.join(d, "P.PRN"), os.path.join(d, "p.bin")
         body = b"%!PS-Adobe-2.0\nshowpage\n"
         blk = print_render.header(len(body)) + body
-        open(cap, "wb").write(blk.ljust(4096, b"\0"))
+        with open(cap, "wb") as _f: _f.write(blk.ljust(4096, b"\0"))
         assert print_render.main([cap, "--extract", out]) == 0
         assert open(out, "rb").read() == body
 

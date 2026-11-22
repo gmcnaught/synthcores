@@ -241,7 +241,7 @@ def test_subcatalog_and_replace():
             pass
         else:
             raise AssertionError("duplicate accepted")
-        open(path, "wb").write(big)
+        with open(path, "wb") as _f: _f.write(big)
         p, start2, w2 = si.import_sound(disk, path, "SND", subcat="SUB", replace=True)
     finally:
         os.unlink(path)
@@ -275,7 +275,7 @@ def test_cli_create_and_export():
     d = tempfile.mkdtemp()
     img, wav, out = (os.path.join(d, n) for n in ("W1.IMG", "in.wav", "out.wav"))
     s = _sine(3000, 440, 48000)
-    open(wav, "wb").write(_wav([s], 48000))
+    with open(wav, "wb") as _f: _f.write(_wav([s], 48000))
     assert si.main([img, wav, "--create", "2", "--name", "A440"]) == 0
     assert os.path.getsize(img) == 2 << 20
     assert si.main([img, "--export", "A440", out]) == 0

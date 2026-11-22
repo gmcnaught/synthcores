@@ -41,7 +41,7 @@ def main():
     ap.add_argument("--hex", help="also write one 16-bit word per line (hex) for VHDL textio")
     a = ap.parse_args()
     img = build(a.dump, a.dli, a.clean)
-    open(a.out, "wb").write(img)
+    with open(a.out, "wb") as _f: _f.write(img)
     if a.hex:
         with open(a.hex, "w") as f:
             for i in range(0, len(img), 2):

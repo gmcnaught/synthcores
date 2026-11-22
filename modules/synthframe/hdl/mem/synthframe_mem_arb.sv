@@ -18,6 +18,7 @@ module synthframe_mem_arb #(
     input  logic [28:0]     c_req_addr  [N],
     input  logic [63:0]     c_req_wdata [N],
     input  logic [7:0]      c_req_be    [N],
+    input  logic [7:0]      c_req_len   [N],
     input  logic [CTW-1:0]  c_req_tag   [N],
     output logic            c_rsp_valid [N],
     output logic [63:0]     c_rsp_data,           // shared: valid for client k on c_rsp_valid[k]
@@ -30,6 +31,7 @@ module synthframe_mem_arb #(
     output logic [28:0]     req_addr,
     output logic [63:0]     req_wdata,
     output logic [7:0]      req_be,
+    output logic [7:0]      req_len,
     output logic [TW-1:0]   req_tag,
     input  logic            rsp_valid,
     input  logic [63:0]     rsp_data,
@@ -52,6 +54,7 @@ module synthframe_mem_arb #(
     assign req_addr = c_req_addr[g];
     assign req_wdata = c_req_wdata[g];
     assign req_be = c_req_be[g];
+    assign req_len = c_req_len[g];
     assign req_tag = {g, c_req_tag[g]};
     always_comb
         for (int k = 0; k < N; k++) begin
