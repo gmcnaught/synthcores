@@ -1,0 +1,1246 @@
+diff --git a/src/devices/cpu/m68000/mcf5206e.cpp b/src/devices/cpu/m68000/mcf5206e.cpp
+index 667a3bab..f20e3963 100644
+--- a/src/devices/cpu/m68000/mcf5206e.cpp
++++ b/src/devices/cpu/m68000/mcf5206e.cpp
+@@ -37,7 +37,7 @@
+ #define LOG_DRAM        (1U << 7)
+ #define LOG_SIM         (1U << 8)
+ #define LOG_DMA         (1U << 9)
+-#define VERBOSE         ( LOG_DEBUG | LOG_UART | LOG_SWDT | LOG_MBUS | LOG_DRAM | LOG_SIM | LOG_DMA | LOG_TIMER )
++#define VERBOSE         ( LOG_INVALID | LOG_TIMER | LOG_SIM )
+ #include "logmacro.h"
+ 
+ #define INT_LEVEL(N)    ((N&0x1c) >> 2)
+@@ -318,28 +318,28 @@ void mcf5206e_device::mbar_map(address_map &map)
+ 	/* chip select registers */
+ 	map(0x064, 0x065).rw(FUNC(mcf5206e_device::csar0_r), FUNC(mcf5206e_device::csar0_w));
+ 	map(0x068, 0x06b).rw(FUNC(mcf5206e_device::csmr0_r), FUNC(mcf5206e_device::csmr0_w));
+-	map(0x06e, 0x06e).rw(FUNC(mcf5206e_device::cscr0_r), FUNC(mcf5206e_device::cscr0_w));
++	map(0x06e, 0x06f).rw(FUNC(mcf5206e_device::cscr0_r), FUNC(mcf5206e_device::cscr0_w));
+ 	map(0x070, 0x071).rw(FUNC(mcf5206e_device::csar1_r), FUNC(mcf5206e_device::csar1_w));
+ 	map(0x074, 0x077).rw(FUNC(mcf5206e_device::csmr1_r), FUNC(mcf5206e_device::csmr1_w));
+-	map(0x07a, 0x07a).rw(FUNC(mcf5206e_device::cscr1_r), FUNC(mcf5206e_device::cscr1_w));
++	map(0x07a, 0x07b).rw(FUNC(mcf5206e_device::cscr1_r), FUNC(mcf5206e_device::cscr1_w));
+ 	map(0x07c, 0x07d).rw(FUNC(mcf5206e_device::csar2_r), FUNC(mcf5206e_device::csar2_w));
+ 	map(0x080, 0x083).rw(FUNC(mcf5206e_device::csmr2_r), FUNC(mcf5206e_device::csmr2_w));
+-	map(0x086, 0x086).rw(FUNC(mcf5206e_device::cscr2_r), FUNC(mcf5206e_device::cscr2_w));
++	map(0x086, 0x087).rw(FUNC(mcf5206e_device::cscr2_r), FUNC(mcf5206e_device::cscr2_w));
+ 	map(0x088, 0x089).rw(FUNC(mcf5206e_device::csar3_r), FUNC(mcf5206e_device::csar3_w));
+ 	map(0x08c, 0x08f).rw(FUNC(mcf5206e_device::csmr3_r), FUNC(mcf5206e_device::csmr3_w));
+-	map(0x092, 0x092).rw(FUNC(mcf5206e_device::cscr3_r), FUNC(mcf5206e_device::cscr3_w));
++	map(0x092, 0x093).rw(FUNC(mcf5206e_device::cscr3_r), FUNC(mcf5206e_device::cscr3_w));
+ 	map(0x094, 0x095).rw(FUNC(mcf5206e_device::csar4_r), FUNC(mcf5206e_device::csar4_w));
+ 	map(0x098, 0x09b).rw(FUNC(mcf5206e_device::csmr4_r), FUNC(mcf5206e_device::csmr4_w));
+-	map(0x09e, 0x09e).rw(FUNC(mcf5206e_device::cscr4_r), FUNC(mcf5206e_device::cscr4_w));
++	map(0x09e, 0x09f).rw(FUNC(mcf5206e_device::cscr4_r), FUNC(mcf5206e_device::cscr4_w));
+ 	map(0x0a0, 0x0a1).rw(FUNC(mcf5206e_device::csar5_r), FUNC(mcf5206e_device::csar5_w));
+ 	map(0x0a4, 0x0a7).rw(FUNC(mcf5206e_device::csmr5_r), FUNC(mcf5206e_device::csmr5_w));
+-	map(0x0aa, 0x0aa).rw(FUNC(mcf5206e_device::cscr5_r), FUNC(mcf5206e_device::cscr5_w));
++	map(0x0aa, 0x0ab).rw(FUNC(mcf5206e_device::cscr5_r), FUNC(mcf5206e_device::cscr5_w));
+ 	map(0x0ac, 0x0ad).rw(FUNC(mcf5206e_device::csar6_r), FUNC(mcf5206e_device::csar6_w));
+ 	map(0x0b0, 0x0b3).rw(FUNC(mcf5206e_device::csmr6_r), FUNC(mcf5206e_device::csmr6_w));
+-	map(0x0b6, 0x0b6).rw(FUNC(mcf5206e_device::cscr6_r), FUNC(mcf5206e_device::cscr6_w));
++	map(0x0b6, 0x0b7).rw(FUNC(mcf5206e_device::cscr6_r), FUNC(mcf5206e_device::cscr6_w));
+ 	map(0x0b8, 0x0b9).rw(FUNC(mcf5206e_device::csar7_r), FUNC(mcf5206e_device::csar7_w));
+ 	map(0x0bc, 0x0bf).rw(FUNC(mcf5206e_device::csmr7_r), FUNC(mcf5206e_device::csmr7_w));
+-	map(0x0c2, 0x0c2).rw(FUNC(mcf5206e_device::cscr7_r), FUNC(mcf5206e_device::cscr7_w));
++	map(0x0c2, 0x0c3).rw(FUNC(mcf5206e_device::cscr7_r), FUNC(mcf5206e_device::cscr7_w));
+ 	map(0x0c4, 0x0c7).rw(FUNC(mcf5206e_device::dmcr_r), FUNC(mcf5206e_device::dmcr_w));
+ 
+ 	// timer 1
+@@ -448,15 +448,15 @@ void mcf5206e_device::csmr_x_w(offs_t offset, u32 data)
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Mask Register) CSMR%d_w %08x\n", this->machine().describe_context(), offset, data);
+ }
+ 
+-u8 mcf5206e_device::cscr_x_r(offs_t offset)
++u16 mcf5206e_device::cscr_x_r(offs_t offset)
+ {
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Control Register) CSCR%d_r\n", this->machine().describe_context(), offset);
+ 	return m_cscr[offset];
+ }
+ 
+-void mcf5206e_device::cscr_x_w(offs_t offset, u8 data)
++void mcf5206e_device::cscr_x_w(offs_t offset, u16 data, u16 mem_mask)
+ {
+-	m_cscr[offset] = data;
++	COMBINE_DATA(&m_cscr[offset]);
+ 	LOGMASKED(LOG_DEBUG, "%s: (Chip Select Control Register) CSCR%d_w %04x\n", this->machine().describe_context(), offset, data);
+ }
+ 
+@@ -1042,7 +1042,7 @@ void mcf5206e_device::init_regs(bool first_init)
+ 
+ 	m_csar[0] = 0x0000;
+ 	m_csmr[0] = 0x00000000;
+-	m_cscr[0] = 0x3c1f; /* 3C1F, 3C5F, 3C9F, 3CDF, 3D1F, 3D5F, 3D9F, 3DDF |  AA set by IRQ 7 at reset, PS1 set by IRQ 4 at reset, PS0 set by IRQ 1 at reset*/
++	m_cscr[0] = m_cscr0_reset; /* 3C1F, 3C5F, 3C9F, 3CDF, 3D1F, 3D5F, 3D9F, 3DDF |  AA set by IRQ 7 at reset, PS1 set by IRQ 4 at reset, PS0 set by IRQ 1 at reset*/
+ 
+ 	if (first_init)
+ 	{
+diff --git a/src/devices/cpu/m68000/mcf5206e.h b/src/devices/cpu/m68000/mcf5206e.h
+index c5d60980..f92d0a3d 100644
+--- a/src/devices/cpu/m68000/mcf5206e.h
++++ b/src/devices/cpu/m68000/mcf5206e.h
+@@ -343,6 +343,9 @@ public:
+ 
+ 	// DUART
+ 	auto tx1_w_cb() { return write_tx1.bind(); }
++
++	// CSCR0 reset value: AA, PS1 and PS0 come from the IRQ7/IRQ4/IRQ1 pins at reset (0x3c1f = none set)
++	void set_cscr0_reset(u16 value) { m_cscr0_reset = value; }
+ 	auto tx2_w_cb() { return write_tx2.bind(); }
+ 	void rx1_w(int state) { m_uart[0]->rx_a_w(state); }
+ 	void rx2_w(int state) { m_uart[1]->rx_a_w(state); }
+@@ -420,61 +423,61 @@ private:
+ 
+ 	/* chip select module */
+ 	u16 csar_x_r(offs_t offset);
+-	u8 cscr_x_r(offs_t offset);
++	u16 cscr_x_r(offs_t offset);
+ 	u32 csmr_x_r(offs_t offset);
+ 	inline u16 csar0_r(){ return csar_x_r(0); }
+ 	inline u32 csmr0_r(){ return csmr_x_r(0); }
+-	inline u8 cscr0_r(){ return cscr_x_r(0); }
++	inline u16 cscr0_r(){ return cscr_x_r(0); }
+ 	inline u16 csar1_r(){ return csar_x_r(1); }
+ 	inline u32 csmr1_r(){ return csmr_x_r(1); }
+-	inline u8 cscr1_r(){ return cscr_x_r(1); }
++	inline u16 cscr1_r(){ return cscr_x_r(1); }
+ 	inline u16 csar2_r(){ return csar_x_r(2); }
+ 	inline u32 csmr2_r(){ return csmr_x_r(2); }
+-	inline u8 cscr2_r(){ return cscr_x_r(2); }
++	inline u16 cscr2_r(){ return cscr_x_r(2); }
+ 	inline u16 csar3_r(){ return csar_x_r(3); }
+ 	inline u32 csmr3_r(){ return csmr_x_r(3); }
+-	inline u8 cscr3_r(){ return cscr_x_r(3); }
++	inline u16 cscr3_r(){ return cscr_x_r(3); }
+ 	inline u16 csar4_r(){ return csar_x_r(4); }
+ 	inline u32 csmr4_r(){ return csmr_x_r(4); }
+-	inline u8 cscr4_r(){ return cscr_x_r(4); }
++	inline u16 cscr4_r(){ return cscr_x_r(4); }
+ 	inline u16 csar5_r(){ return csar_x_r(5); }
+ 	inline u32 csmr5_r(){ return csmr_x_r(5); }
+-	inline u8 cscr5_r(){ return cscr_x_r(5); }
++	inline u16 cscr5_r(){ return cscr_x_r(5); }
+ 	inline u16 csar6_r(){ return csar_x_r(6); }
+ 	inline u32 csmr6_r(){ return csmr_x_r(6); }
+-	inline u8 cscr6_r(){ return cscr_x_r(6); }
++	inline u16 cscr6_r(){ return cscr_x_r(6); }
+ 	inline u16 csar7_r(){ return csar_x_r(7); }
+ 	inline u32 csmr7_r(){ return csmr_x_r(7); }
+-	inline u8 cscr7_r(){ return cscr_x_r(7); }
++	inline u16 cscr7_r(){ return cscr_x_r(7); }
+ 	inline u16 dmcr_r(){ return m_dmcr; }
+ 
+ 	void csar_x_w(offs_t offset, u16 data);
+ 	void csmr_x_w(offs_t offset, u32 data);
+-	void cscr_x_w(offs_t offset, u8 data);
++	void cscr_x_w(offs_t offset, u16 data, u16 mem_mask);
+ 	inline void csar0_w(u16 data){ csar_x_w(0, data); }
+ 	inline void csmr0_w(u32 data){ csmr_x_w(0, data); }
+-	inline void cscr0_w(u8 data){ cscr_x_w(0, data); }
++	inline void cscr0_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(0, data, mem_mask); }
+ 	inline void csar1_w(u16 data){ csar_x_w(1, data); }
+ 	inline void csmr1_w(u32 data){ csmr_x_w(1, data); }
+-	inline void cscr1_w(u8 data){ cscr_x_w(1, data); }
++	inline void cscr1_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(1, data, mem_mask); }
+ 	inline void csar2_w(u16 data){ csar_x_w(2, data); }
+ 	inline void csmr2_w(u32 data){ csmr_x_w(2, data); }
+-	inline void cscr2_w(u8 data){ cscr_x_w(2, data); }
++	inline void cscr2_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(2, data, mem_mask); }
+ 	inline void csar3_w(u16 data){ csar_x_w(3, data); }
+ 	inline void csmr3_w(u32 data){ csmr_x_w(3, data); }
+-	inline void cscr3_w(u8 data){ cscr_x_w(3, data); }
++	inline void cscr3_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(3, data, mem_mask); }
+ 	inline void csar4_w(u16 data){ csar_x_w(4, data); }
+ 	inline void csmr4_w(u32 data){ csmr_x_w(4, data); }
+-	inline void cscr4_w(u8 data){ cscr_x_w(4, data); }
++	inline void cscr4_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(4, data, mem_mask); }
+ 	inline void csar5_w(u16 data){ csar_x_w(5, data); }
+ 	inline void csmr5_w(u32 data){ csmr_x_w(5, data); }
+-	inline void cscr5_w(u8 data){ cscr_x_w(5, data); }
++	inline void cscr5_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(5, data, mem_mask); }
+ 	inline void csar6_w(u16 data){ csar_x_w(6, data); }
+ 	inline void csmr6_w(u32 data){ csmr_x_w(6, data); }
+-	inline void cscr6_w(u8 data){ cscr_x_w(6, data); }
++	inline void cscr6_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(6, data, mem_mask); }
+ 	inline void csar7_w(u16 data){ csar_x_w(7, data); }
+ 	inline void csmr7_w(u32 data){ csmr_x_w(7, data); }
+-	inline void cscr7_w(u8 data){ cscr_x_w(7, data); }
++	inline void cscr7_w(offs_t offset, u16 data, u16 mem_mask){ cscr_x_w(7, data, mem_mask); }
+ 	void dmcr_w(u16 data);
+ 
+ 	u16 m_csar[8];
+@@ -491,6 +494,7 @@ private:
+ 
+ 	required_device_array<mcf5206e_uart_device, 2> m_uart;
+ 	devcb_write_line write_tx1, write_tx2;
++	u16 m_cscr0_reset = 0x3c1f;
+ 
+ 	/* parallel port */
+ 	u8 ppddr_r();
+diff --git a/src/devices/machine/mc68681.cpp b/src/devices/machine/mc68681.cpp
+index 9b3b3b82..08e9d0a2 100644
+--- a/src/devices/machine/mc68681.cpp
++++ b/src/devices/machine/mc68681.cpp
+@@ -1473,8 +1473,12 @@ void duart_channel::tra_complete()
+ 		SR |= STATUS_TRANSMITTER_READY;
+ 		update_interrupts();
+ 	}
+-	else
++	else if (m_tx_enabled)
+ 	{
++		// A disabled transmitter finishes the character in progress without setting TxEMT again
++		// (the datasheet resets TxEMT when the transmitter is disabled). E-mu Proteus 2000 OS 2.26
++		// disables the transmitter after its last byte and loops in its UART interrupt until the
++		// status register reads 0 (0x0100B526).
+ 		SR |= STATUS_TRANSMITTER_EMPTY;
+ 		update_interrupts();
+ 	}
+diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
+new file mode 100644
+index 00000000..bcd786b2
+--- /dev/null
++++ b/src/mame/emusys/emup2k.cpp
+@@ -0,0 +1,829 @@
++// license:BSD-3-Clause
++// copyright-holders:emu-proteus-xr-MiSTer contributors
++/*
++    E-mu Proteus 2000 (1999) - research skeleton
++
++    Boots the boot block of a v1.24 flash dump and OS 2.26 (from p2k226.dli), with the
++    devices stubbed and logged. Sound ROM SIMMs are loaded from files named by the environment
++    variables P2K_SIMM1..4 (Big: samples + EOS header) and P2K_BABY1..4 (Baby: the Proteus
++    "lib_" library); tools/p2k_build_simm.py builds synthetic ones. MIDI In A is UART1.
++    p2k_g20_device plays the voices (address, loop, pitch; no envelopes, filters or effects).
++    The memory map comes from the firmware
++    (docs/p2k-findings.md in the emu-proteus-xr-MiSTer repository):
++
++    CPU: Motorola MCF5206e, MBAR 0x20000000 (clock not measured)
++    0x00000000  CS0 boot flash (global chip select at reset; mirrored)
++    0x01000000  DRAM, 2 x 4 MB
++    0x02000000  CS0: 2 MB flash (TH28F160, byte-swapped in the dump)
++    0x00400000  LCD (HD44780-type) instruction / busy
++    0x00408000  LCD data
++    0x00500000  H1.5 filter chips (stub: RAM)
++    0x00600000  G05 chip U28: index at +0x0E, 32 word registers; reg 0x18 index 0x1E reads 0x30
++    0x0077F000  G20 chips U15 (voices 0-63) / U24 (voices 64-127, 0x780000): 64 bytes a voice
++                +0x1C/+0x1E sound-memory read data A/B, +0x30/+0x34 read address (word) A/B
++    0x00800000  panel input (bit 8 = button, active low)
++    0x00900000, 0x00A00000  LED latches
++    0x00B00000  control latch; bit 6 selects the SIMM Baby device for sound-memory access
++    0x00C00000  CS6 (unknown, 8-bit)
++    0x00F00000  board ID (word)
++
++    Nothing here is verified against hardware.
++*/
++
++#include "emu.h"
++#include "emup2k_fx.h"
++#include "cpu/m68000/mcf5206e.h"
++#include "machine/intelfsh.h"
++#include "video/hd44780.h"
++#include "bus/midi/midi.h"
++#include "emupal.h"
++#include "screen.h"
++#include "speaker.h"
++
++#include <cstdlib>
++#include <fstream>
++
++#define LOG_IO    (1U << 1)
++#define LOG_G05   (1U << 2)
++#define LOG_G20   (1U << 3)
++#define LOG_H     (1U << 4)
++#define LOG_LCD   (1U << 5)
++#define LOG_SND   (1U << 6)
++#define VERBOSE   (LOG_IO | LOG_LCD)
++#include "logmacro.h"
++
++// ---------------------------------------------------------------- G20 voice model (research)
++// Behavioural model from the OS 2.26 voice programming (docs/p2k-findings.md, docs/p2k-lib-formats.md):
++//   +0x18 long  current word address (26 bits); a write restarts the voice there [O 0x0103282A]
++//   +0x04 long  bits 31-16: phase increment, 4.12 fixed point (0x1000 = 1 word per output sample)
++//               [O: notes 60/72 on samples at 18000/20000 Hz give 0x629/0x6D9 at 44.1 kHz]
++//   +0x0C long  NOT(loop end), low 26 bits [O]
++//   +0x14 long  bit 26 set: loop start of the sample; clear: address to jump to after the loop end
++//               (release / one-shot end into the idle silence loop at SIMM header word 0x27+8) [O/I]
++//   +0x08 long  low 26 bits NOT(end of the idle loop) used after such a jump [I]
++// Level: the OS computes envelope, volume, velocity, pan and master volume itself and writes a
++// per-voice right/left level byte every ~70 ms to H block + 0x71 / + 0x73 [O, 0x01019978]. The H
++// block of voice v (OS table 0x010331D0, matched exactly by this formula):
++//   0x4000 * (v >> 6) + {0x2000, 0, 0x3000, 0x1000}[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15)
++// Level law [I]: 0.375 dB a step (255 = 0 dB, 0 = off), smoothed over ~5 ms.
++// Filter: the H-chip voice as measured on the E-mu E4 (github.com/ds10fan/emu-hchip-patent,
++// VOICE_INTERFACE.md; patent US 5,170,369), implemented here from that description. The P2K OS writes
++// the same words the E4 does (Classic 2-pole Q 0 = 8408FFCF, neutral FFCFFFCF, high-pass 80048004):
++// H block + 4k = word k (k = 0..9), high half-word = frame for cutoff 0, low = frame for cutoff 255,
++// each half-word = X code (B2') and F code (f^2), interpolated by cutoff c/255 and decoded by
++//   dec(c) = c+1 >= 224 ? (c+1-192) << 12 : e ? (16 + m) << (e - 1) : m   (e, m = (c+1) >> 4, & 15)
++// f^2 = dec(F) / 2^16, B2' = dec(X) / 2^18, D(z) = 1 - (2 - f^2 - B2') z^-1 + (1 - B2') z^-2.
++// Voice: f0^2/D0 * N1 * N5 * P4 * P8 * g9 (words 4/8 normalised poles, or 1/D with flag 0x80;
++// g9 = dec(word 9 low byte) / dec(0xFE)). [O] cutoff byte and flags for the voice in H block X are
++// at the previous slot's block + 0x3E / + 0x7B (high-pass sets 0x80); [I] gain-word mode (E4 flag
++// 0x40) always on; 12th-order types chain the next slot's block when it was programmed after this
++// voice started (that slot's voice stays silent). Cutoff changes are smoothed (~2 ms) [I: the
++// patent's interpolator is not modelled]. P2K_NOFILTER=1 bypasses.
++// Effects: emup2k_fx.h, a workalike of the EMU8000-style G05 reverb and chorus driven by the INIT
++// arrays the OS writes (P2K_NOFX=1 disables). Not modelled: the G05 microcode itself, the P2K's
++// other effect types beyond what the reverb/chorus structure gives, output routing to Sub 1/2 [U].
++class p2k_g20_device : public device_t, public device_sound_interface
++{
++public:
++	p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock = 0);
++
++	void set_memory(const u16 *regs, const u16 *mem, u32 words, const u16 *h) { m_regs = regs; m_mem = mem; m_words = words; m_h = h; }
++	void set_g05(const u16 (*g05)[64]) { m_g05 = g05; }
++	static int h_voice(u32 blk)   // inverse of h_block
++	{
++		static const int lane[4] = { 1, 3, 0, 2 };           // page 0x0000/0x1000/0x2000/0x3000 -> v & 3
++		const int slot = (((blk >> 7) & 15) + 1) & 15;
++		return (blk >> 14) * 64 + slot * 4 + lane[(blk >> 12) & 3];
++	}
++	void h_coef_written(u32 offset) { const u32 blk = (offset * 2) & ~0x7f; if (((offset * 2) & 0x7f) < 0x28) m_coef_time[h_voice(blk)] = machine().time(); }
++	static u32 h_block(int v) { static const u16 page[4] = { 0x2000, 0, 0x3000, 0x1000 }; return 0x4000 * (v >> 6) + page[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15); }
++	void restart(int voice);
++	void update() { m_stream->update(); }
++	u32 address(int v) { m_stream->update(); return m_addr[v]; }
++
++protected:
++	virtual void device_start() override ATTR_COLD;
++	virtual void sound_stream_update(sound_stream &stream) override;
++
++private:
++	u32 reg32(int v, int r) const { return (u32(m_regs[v * 32 + r / 2]) << 16) | m_regs[v * 32 + r / 2 + 1]; }
++	s16 mem(u32 a) const { return a < m_words ? s16(m_mem[a]) : 0; }
++	float filter(int v, float x, float k);
++	const u16 (*m_g05)[64] = nullptr;
++	emup2k_fx m_fx;
++	int m_fx_count = 0;
++
++	sound_stream *m_stream = nullptr;
++	const u16 *m_regs = nullptr;
++	const u16 *m_mem = nullptr;
++	const u16 *m_h = nullptr;
++	u32 m_words = 0;
++	float m_gain_tab[256]{};
++	float m_gain[128][2]{};
++	double m_fst[128][2][5][2]{};         // [voice][stage][section][state]
++	float m_cut[128][2]{};                // smoothed cutoff per voice and stage
++	attotime m_start_time[128];
++	attotime m_coef_time[128];            // per H slot (indexed by voice): last coefficient write
++	static double hdec(float code);
++	double filter_stage(int v, int stage, u32 blk, double x);
++	static u32 next_block(u32 blk) { return (blk & 0x780) == 0x780 ? blk - 0x780 : blk + 0x80; }
++	// [I] a 12th-order voice continues through the next slot when that slot's coefficients were written
++	// at this voice's note-on (the OS writes them just before starting the G20 voice) and the slot's own
++	// voice has not been started since; the OS then writes the level bytes into that next block
++	bool chained(int v) const
++	{
++		const int nv = h_voice(next_block(h_block(v)));
++		return m_coef_time[nv] + attotime::from_msec(50) >= m_start_time[v] && m_start_time[nv] < m_coef_time[nv];
++	}
++	bool m_filter_on = true;
++	bool m_fx_on = true;
++
++	u32 m_addr[128]{};
++	u32 m_frac[128]{};
++	bool m_idle[128]{};
++};
++
++DEFINE_DEVICE_TYPE(P2K_G20, p2k_g20_device, "p2k_g20", "E-mu Proteus 2000 G20 voice model (research)")
++
++p2k_g20_device::p2k_g20_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
++	: device_t(mconfig, P2K_G20, tag, owner, clock)
++	, device_sound_interface(mconfig, *this)
++{
++}
++
++void p2k_g20_device::device_start()
++{
++	m_stream = stream_alloc(0, 2, clock());
++	for (int b = 1; b < 256; b++)
++		m_gain_tab[b] = powf(10.0f, -(255 - b) * 0.375f / 20.0f);
++	m_filter_on = std::getenv("P2K_NOFILTER") == nullptr;
++	m_fx_on = std::getenv("P2K_NOFX") == nullptr;
++	save_item(NAME(m_fst));
++	save_item(NAME(m_cut));
++	save_item(NAME(m_addr));
++	save_item(NAME(m_frac));
++	save_item(NAME(m_idle));
++	save_item(NAME(m_gain));
++}
++
++double p2k_g20_device::hdec(float code)
++{
++	const float c = code + 1.0f;
++	if (c >= 224.0f)
++		return (c - 192.0f) * 4096.0f;
++	const int e = int(c) >> 4;
++	const float m = c - 16.0f * e;
++	return e ? (16.0f + m) * float(1 << (e - 1)) : m;
++}
++
++double p2k_g20_device::filter_stage(int v, int stage, u32 blk, double x)
++{
++	const u32 prev = (blk & 0x7ff) == 0 ? blk + 0x780 : blk - 0x80;
++	const float cut = m_cut[v][stage] / 255.0f;
++	const u8 flags = m_h[(prev + 0x7a) / 2] & 0xff;
++	auto code = [&](u16 hi, u16 lo, int shift) { const float a = (hi >> shift) & 0xff, b = (lo >> shift) & 0xff; return a + (b - a) * cut; };
++	static const int order[5] = { 0, 1, 5, 4, 8 };       // pole, zero, zero, pole, pole
++	for (int i = 0; i < 5; i++)
++	{
++		const int w = order[i];
++		const u16 hi = m_h[blk / 2 + 2 * w], lo = m_h[blk / 2 + 2 * w + 1];
++		if (hi == 0xffcf && lo == 0xffcf)
++			continue;                                        // neutral word: 1 in every role
++		const double b2 = hdec(code(hi, lo, 8)) / 262144.0, f2 = hdec(code(hi, lo, 0)) / 65536.0;
++		const double a1 = 2.0 - f2 - b2, a2 = 1.0 - b2;
++		double *st = m_fst[v][stage][i];
++		if (w == 1 || w == 5)
++		{
++			const double y = x - a1 * st[0] + a2 * st[1];    // zero section N(z) = D(z)
++			st[1] = st[0];
++			st[0] = x;
++			x = y;
++		}
++		else
++		{
++			const double g = (w != 0 && BIT(flags, 7)) ? 1.0 : f2;
++			const double y = g * x + a1 * st[0] - a2 * st[1];
++			st[1] = st[0];
++			st[0] = y;
++			x = y;
++		}
++	}
++	const u16 ghi = m_h[blk / 2 + 18], glo = m_h[blk / 2 + 19];
++	if (!(ghi == 0xffcf && glo == 0xffcf))
++		x *= hdec(code(ghi, glo, 0)) / hdec(254.0f);
++	if (!std::isfinite(x) || fabs(x) > 1e15)   // unnormalised poles (1/f^2 ~ 1e4) are legitimate
++	{
++		memset(m_fst[v][stage], 0, sizeof(m_fst[v][stage]));
++		x = 0;
++	}
++	return x;
++}
++
++float p2k_g20_device::filter(int v, float x, float k)
++{
++	const u32 blk = h_block(v);
++	const u32 prev = (blk & 0x7ff) == 0 ? blk + 0x780 : blk - 0x80;
++	m_cut[v][0] += ((m_h[(prev + 0x3e) / 2] & 0xff) - m_cut[v][0]) * k * 2.5f;
++	double y = filter_stage(v, 0, blk, x);
++	// 12th-order types: the next slot's block is the second stage [I]
++	const u32 next = next_block(blk);
++	if (chained(v))
++	{
++		m_cut[v][1] += ((m_h[(blk + 0x3e) / 2] & 0xff) - m_cut[v][1]) * k * 2.5f;
++		y = filter_stage(v, 1, next, y);
++	}
++	return float(y);
++}
++
++void p2k_g20_device::restart(int v)
++{
++	m_addr[v] = reg32(v, 0x18) & 0x3ffffff;
++	m_frac[v] = 0;
++	memset(m_fst[v], 0, sizeof(m_fst[v]));
++	m_start_time[v] = machine().time();
++	m_idle[v] = false;
++}
++
++void p2k_g20_device::sound_stream_update(sound_stream &stream)
++{
++	if (!m_regs)
++		return;
++	const float k = 1.0f - expf(-1.0f / (0.005f * clock()));   // ~5 ms level smoothing [I]
++	for (int i = 0; i < stream.samples(); i++)
++	{
++		float suml = 0, sumr = 0, bus[4]{};
++		for (int v = 0; v < 128; v++)
++		{
++			const u32 inc = reg32(v, 0x04) >> 16;
++			const u32 hb = (m_filter_on && chained(v) ? next_block(h_block(v)) : h_block(v)) / 2;
++			const float tr = m_gain_tab[m_h[hb + 0x70 / 2] & 0xff], tl = m_gain_tab[m_h[hb + 0x72 / 2] & 0xff];
++			m_gain[v][0] += (tl - m_gain[v][0]) * k;
++			m_gain[v][1] += (tr - m_gain[v][1]) * k;
++			if (!inc)
++				continue;
++			const u32 a = m_addr[v];
++			const s32 s0 = mem(a), s1 = mem(a + 1);
++			float smp = float(s0 + (((s1 - s0) * s32(m_frac[v])) >> 12));
++			if (m_filter_on)
++				smp = filter(v, smp, k);
++			suml += smp * m_gain[v][0];
++			sumr += smp * m_gain[v][1];
++			// effect bus from the routing byte at the chain-end block + 0x7B [O: 0x72 Main, 0x7B Sub 1,
++			// 0x44 Sub 2 for layer Mix Output 0/1/2]; other values -> bus 1 [I]
++			const u8 route = m_h[hb + 0x7a / 2] & 0xff;
++			bus[route == 0x7b ? 1 : route == 0x44 ? 2 : 0] += smp * 0.5f * (m_gain[v][0] + m_gain[v][1]);
++			u32 f = m_frac[v] + inc;
++			u32 na = a + (f >> 12);
++			m_frac[v] = f & 0xfff;
++			const u32 next = reg32(v, 0x14);
++			const u32 le = m_idle[v] ? (~reg32(v, 0x08) & 0x3ffffff) : (~reg32(v, 0x0c) & 0x3ffffff);
++			if (na > le)
++			{
++				const u32 ls = next & 0x3ffffff;
++				if (!BIT(next, 26))
++					m_idle[v] = true;
++				const u32 over = (na - le - 1);
++				const u32 len = m_idle[v] ? 1 : std::max<u32>(1, le + 1 - ls);
++				na = ls + (m_idle[v] ? 0 : over % len);
++			}
++			m_addr[v] = na & 0x3ffffff;
++		}
++		if (m_fx_on && m_g05)
++		{
++			if (m_fx_count-- <= 0)
++			{
++				m_fx.configure(m_g05);
++				m_fx_count = 256;
++			}
++			float rin = 0, cin = 0;
++			for (int b = 0; b < 4; b++)
++			{
++				rin += bus[b] * m_fx.reverb_send(b);
++				cin += bus[b] * m_fx.chorus_send(b);
++			}
++			m_fx.process(rin, cin, suml, sumr);
++		}
++		// [I] mix headroom: -6 dB (dense 2-channel playing clipped at 0 dB)
++		stream.put_int_clamp(0, i, s32(suml * 0.5f), 32768);
++		stream.put_int_clamp(1, i, s32(sumr * 0.5f), 32768);
++	}
++}
++
++
++namespace {
++
++class emup2k_state : public driver_device
++{
++public:
++	emup2k_state(const machine_config &mconfig, device_type type, const char *tag)
++		: driver_device(mconfig, type, tag)
++		, m_maincpu(*this, "maincpu")
++		, m_lcdc(*this, "lcdc")
++		, m_flash(*this, "flash")
++		, m_sound(*this, "simm")
++		, m_panel(*this, "PANEL")
++		, m_voice(*this, "g20")
++		, m_adc(*this, "ADC%u", 0U)
++		, m_encoder(*this, "ENCODER")
++		, m_led_out(*this, "led%u", 0U)
++	{ }
++
++	void proteus2k(machine_config &config) ATTR_COLD;
++	void init_proteus2k() ATTR_COLD;
++	void load_simms() ATTR_COLD;
++
++protected:
++	virtual void machine_start() override ATTR_COLD;
++	virtual void machine_reset() override ATTR_COLD;
++
++private:
++	void mem_map(address_map &map) ATTR_COLD;
++	void palette_init(palette_device &palette) ATTR_COLD;
++	HD44780_PIXEL_UPDATE(lcd_pixel_update);
++
++	u16 unk_r(offs_t offset, u16 mem_mask);
++	void unk_w(offs_t offset, u16 data, u16 mem_mask);
++	u8 lcd_ctrl_r();
++	void lcd_ctrl_w(u8 data);
++	u8 lcd_data_r();
++	void lcd_data_w(u8 data);
++	u16 h_r(offs_t offset, u16 mem_mask);
++	void h_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 g05_r(offs_t offset, u16 mem_mask);
++	void g05_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 g20_r(offs_t offset, u16 mem_mask);
++	void g20_w(offs_t offset, u16 data, u16 mem_mask);
++	u16 panel_r();
++	void led_w(offs_t offset, u8 data);
++	u16 boardid_r();
++	void midi_rx_w(int state);
++	TIMER_CALLBACK_MEMBER(lcd_dump);
++
++	required_device<mcf5206e_device> m_maincpu;
++	required_device<hd44780_device> m_lcdc;
++	required_device<intelfsh16_device> m_flash;
++	optional_region_ptr<u16> m_sound;
++	required_ioport m_panel;
++	required_device<p2k_g20_device> m_voice;
++	required_ioport_array<8> m_adc;
++	required_ioport m_encoder;
++	output_finder<16> m_led_out;
++	u8 m_enc_last = 0;
++
++	std::unique_ptr<u16[]> m_h;           // H chip window, 1 MB
++	u16 m_g05_index = 0;
++	u16 m_g05[32][64]{};
++	u16 m_g20[128][32]{};                 // 64-byte voice blocks
++	u32 m_snd_addr[2]{};
++	u16 m_snd_latch[2]{};
++	std::vector<u16> m_baby;              // Baby flash/ROM of each SIMM (1 M words a slot)
++	bool m_baby_sel = false;              // latch 0xB00000 bit 6 [O: 0x01035944 on / 0x01035968 off]
++	int m_midi_rx = 1;
++	attotime m_midi_last;
++	bool m_trace = false;                 // P2K_TRACE=1: log G20/H writes with time and PC
++	std::unique_ptr<std::ofstream> m_bustrace;
++	u64 m_bustrace_left = 0;
++	memory_passthrough_handler m_bustrace_r, m_bustrace_w;
++	u8 m_leds[3]{};
++	u32 m_open_bus = 0;
++	u8 m_scan_row = 0;
++	// LCD text shadow (DDRAM 0x00-0x27 line 1, 0x40-0x67 line 2)
++	u8 m_ddram[0x80]{};
++	u8 m_ddaddr = 0;
++	bool m_lcd_dirty = false;
++	emu_timer *m_lcd_timer = nullptr;
++};
++
++void emup2k_state::machine_start()
++{
++	m_h = std::make_unique<u16[]>(0x80000);
++	std::fill_n(m_ddram, std::size(m_ddram), ' ');
++	save_pointer(NAME(m_h), 0x80000);
++	save_item(NAME(m_g05_index));
++	save_item(NAME(m_g05));
++	save_item(NAME(m_g20));
++	save_item(NAME(m_snd_addr));
++	save_item(NAME(m_leds));
++	m_trace = std::getenv("P2K_TRACE") != nullptr;
++
++	// P2K_BUSTRACE=file: binary log of CPU data accesses (program space) for the RTL testbench.
++	// Record = 16 bytes little-endian: u32 address, u32 data, u32 mem_mask, u32 PC | bit 0 = write
++	// (PCs are even). Opcode fetches are not seen by taps. P2K_BUSTRACE_MAX limits the record count.
++	if (const char *bt = std::getenv("P2K_BUSTRACE"))
++	{
++		m_bustrace = std::make_unique<std::ofstream>(bt, std::ios::binary);
++		const char *mx = std::getenv("P2K_BUSTRACE_MAX");
++		m_bustrace_left = mx ? strtoull(mx, nullptr, 0) : 50'000'000ULL;
++		address_space &prog = m_maincpu->space(AS_PROGRAM);
++		const bool nodram = std::getenv("P2K_BUSTRACE_NODRAM") != nullptr;   // skip 0x01000000-0x017FFFFF
++		auto rec = [this, nodram] (offs_t a, u32 d, u32 m, bool w) {
++			if (!m_bustrace_left || (nodram && a >= 0x01000000 && a < 0x01800000))
++				return;
++			// with NODRAM also drop opcode fetches from flash (reads within 16 bytes of the PC)
++			const u32 pc = m_maincpu->pc();
++			if (nodram && !w && (a < 0x200000 || (a >= 0x02000000 && a < 0x02200000)) && a + 16 >= pc && a <= pc + 16)
++				return;
++			m_bustrace_left--;
++			const u32 r[4] = { a, d, m, u32(m_maincpu->pc()) | (w ? 1 : 0) };
++			m_bustrace->write(reinterpret_cast<const char *>(r), sizeof(r));
++		};
++		m_bustrace_r = prog.install_read_tap(0x00000000, 0xffffffff, "bustrace_r", [rec] (offs_t a, u32 &d, u32 m) { rec(a, d, m, false); });
++		m_bustrace_w = prog.install_write_tap(0x00000000, 0xffffffff, "bustrace_w", [rec] (offs_t a, u32 &d, u32 m) { rec(a, d, m, true); });
++	}
++	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length(), m_h.get());
++	m_voice->set_g05(m_g05);
++	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);
++	m_lcd_timer->adjust(attotime::from_msec(250), 0, attotime::from_msec(250));
++}
++
++void emup2k_state::machine_reset()
++{
++}
++
++void emup2k_state::init_proteus2k()
++{
++	// Dump repair [I]: flash 0x000DFE reads 4E38 0200 3B30, not an opcode. The words after it are
++	// the target of "jsr 0x02003B30" (4EB9), used elsewhere in the boot block; 4E38 differs
++	// from 4EB9 in two bits of one byte. Without the fix the boot takes an illegal-instruction
++	// exception at 0x02000DFE.
++	// The region is the initial content of the flash device (used when no NVRAM file exists).
++	u16 *rom = reinterpret_cast<u16 *>(memregion("flash")->base());
++	load_simms();
++	if (rom[0xdfe / 2] == 0x4e38)
++		rom[0xdfe / 2] = 0x4eb9;
++	else
++		logerror("flash 0x000DFE = %04x: expected 4E38, repair not applied\n", rom[0xdfe / 2]);
++
++	// P2K_CLEAN=1: erase the user-data libraries (flash 0x0A0000-0x1FFFFF, two "lib_USER" copies in the
++	// dump) in the initial image so the OS builds factory-default user data instead of the dump
++	// owner's presets and multi setup. Only applies when no NVRAM file exists yet.
++	if (std::getenv("P2K_CLEAN"))
++		std::fill(rom + 0xa0000 / 2, rom + 0x200000 / 2, 0xffff);
++
++	// OS 2.26 overlay: .dli header 0x1A0 bytes, then the image (linked at 0x01000000).
++	const u8 *dli = memregion("dli")->base();
++	if (dli[0x1a0] | dli[0x1a1] | dli[0x1a2] | dli[0x1a3])
++	{
++		const u32 len = (dli[0x30 - 8] << 24) | (dli[0x30 - 7] << 16) | (dli[0x30 - 6] << 8) | dli[0x30 - 5];
++		for (u32 i = 0; i < len; i += 2)
++			rom[(0x10100 + i) / 2] = (dli[0x1a0 + i] << 8) | dli[0x1a1 + i];
++		// The 1.24 boot block leaves start mode 0x1E in the DRAM mailbox 0x010003FC (0x020033CA).
++		// OS 2.26 reads it at 0x010009B0 and treats bits 0x16 as "commit the OS to flash": it stops
++		// at "Press Enter to commit OS to flash" (0x0107A414). Make 2.26 read 0 (normal start):
++		// move.l (1020,a3),d7 -> moveq #0,d7; nop. Research patch, only with the overlay.
++		if (rom[(0x10100 + 0x9b0) / 2] == 0x2e2b && rom[(0x10100 + 0x9b2) / 2] == 0x03fc)
++		{
++			rom[(0x10100 + 0x9b0) / 2] = 0x7e00;
++			rom[(0x10100 + 0x9b2) / 2] = 0x4e71;
++		}
++		logerror("OS image from p2k226.dli (%u bytes) placed at flash 0x010100\n", len);
++	}
++}
++
++// Research only: sound ROM SIMM images (big-endian byte files, up to 32 MB each) from the
++// environment variables P2K_SIMM1..P2K_SIMM4 (slots 1-4; slot n at word address (n-1) << 24).
++void emup2k_state::load_simms()
++{
++	m_baby.assign(4 << 20, 0xffff);
++	for (int slot = 0; slot < 4; slot++)
++	{
++		const char *path = std::getenv(util::string_format("P2K_BABY%d", slot + 1).c_str());
++		if (!path || !*path)
++			continue;
++		std::ifstream f(path, std::ios::binary);
++		std::vector<u8> b((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
++		const size_t words = std::min<size_t>(b.size() / 2, 1 << 20);
++		for (size_t i = 0; i < words; i++)
++			m_baby[(slot << 20) + i] = (b[2 * i] << 8) | b[2 * i + 1];
++		logerror("Baby slot %d: %s, %u bytes\n", slot + 1, path, unsigned(b.size()));
++	}
++	for (int slot = 0; slot < 4; slot++)
++	{
++		const char *path = std::getenv(util::string_format("P2K_SIMM%d", slot + 1).c_str());
++		if (!path || !*path)
++			continue;
++		std::ifstream f(path, std::ios::binary);
++		std::vector<u8> b((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
++		const size_t words = std::min<size_t>(b.size() / 2, 0x1000000);
++		for (size_t i = 0; i < words; i++)
++			m_sound[(slot << 24) + i] = (b[2 * i] << 8) | b[2 * i + 1];
++		logerror("SIMM slot %d: %s, %u bytes\n", slot + 1, path, unsigned(b.size()));
++	}
++}
++
++// ---------------------------------------------------------------- unknown space
++
++u16 emup2k_state::unk_r(offs_t offset, u16 mem_mask)
++{
++	LOGMASKED(LOG_IO, "%s: unknown read %08x & %04x\n", machine().describe_context(), 0x00400000 + offset * 2, mem_mask);
++	return 0xffff;
++}
++
++void emup2k_state::unk_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	LOGMASKED(LOG_IO, "%s: unknown write %08x = %04x & %04x\n", machine().describe_context(), 0x00400000 + offset * 2, data, mem_mask);
++}
++
++// ---------------------------------------------------------------- LCD
++
++u8 emup2k_state::lcd_ctrl_r() { return m_lcdc->control_r(); }
++u8 emup2k_state::lcd_data_r() { return m_lcdc->data_r(); }
++
++void emup2k_state::lcd_ctrl_w(u8 data)
++{
++	if (data & 0x80)
++		m_ddaddr = data & 0x7f;
++	else if (data == 0x01)
++	{
++		std::fill_n(m_ddram, std::size(m_ddram), ' ');
++		m_ddaddr = 0;
++		m_lcd_dirty = true;
++	}
++	else if ((data & 0xfe) == 0x02)
++		m_ddaddr = 0;
++	m_lcdc->control_w(data);
++}
++
++void emup2k_state::lcd_data_w(u8 data)
++{
++	m_ddram[m_ddaddr & 0x7f] = data;
++	m_ddaddr = (m_ddaddr + 1) & 0x7f;
++	m_lcd_dirty = true;
++	m_lcdc->data_w(data);
++}
++
++TIMER_CALLBACK_MEMBER(emup2k_state::lcd_dump)
++{
++	if (!m_lcd_dirty)
++		return;
++	m_lcd_dirty = false;
++	std::string l1, l2;
++	for (int i = 0; i < 24; i++)
++	{
++		l1 += (m_ddram[i] >= 0x20 && m_ddram[i] < 0x7f) ? char(m_ddram[i]) : '.';
++		l2 += (m_ddram[0x40 + i] >= 0x20 && m_ddram[0x40 + i] < 0x7f) ? char(m_ddram[0x40 + i]) : '.';
++	}
++	LOGMASKED(LOG_LCD, "LCD %.2f |%s|%s|\n", machine().time().as_double(), l1, l2);
++}
++
++HD44780_PIXEL_UPDATE(emup2k_state::lcd_pixel_update)
++{
++	if (x < 5 && y < 8 && line < 2 && pos < 24)
++		bitmap.pix(line * 8 + y, pos * 6 + x) = state;
++}
++
++void emup2k_state::palette_init(palette_device &palette)
++{
++	palette.set_pen_color(0, rgb_t(131, 136, 139));
++	palette.set_pen_color(1, rgb_t( 92,  83,  88));
++}
++
++// ---------------------------------------------------------------- sound chips
++
++u16 emup2k_state::h_r(offs_t offset, u16 mem_mask)
++{
++	if (m_trace && !machine().side_effects_disabled())
++		logerror("T %.6f %08x HR %06x -> %04x & %04x\n", machine().time().as_double(), m_maincpu->pc(), 0x500000 + offset * 2, m_h[offset], mem_mask);
++	return m_h[offset];
++}
++
++void emup2k_state::h_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	m_voice->update();
++	COMBINE_DATA(&m_h[offset]);
++	m_voice->h_coef_written(offset);
++	if (m_trace)
++		logerror("T %.6f %08x H %06x = %04x & %04x\n", machine().time().as_double(), m_maincpu->pc(), 0x500000 + offset * 2, data, mem_mask);
++}
++
++u16 emup2k_state::g05_r(offs_t offset, u16 mem_mask)
++{
++	const unsigned reg = offset * 2, idx = m_g05_index & 0x1f;
++	u16 v = m_g05[idx][offset];
++	if (reg == 0x0e)
++		v = m_g05_index;
++	else if (reg == 0x18 && idx == 0x1e)
++		v = 0x30;           // chip ID the boot and diagnostics test for
++	else if (reg == 0x18 && idx == 0x1b && !machine().side_effects_disabled())
++	{
++		const u8 now = m_encoder->read();
++		v = u8(now - m_enc_last);   // signed 8-bit delta
++		m_enc_last = now;
++	}
++	LOGMASKED(LOG_G05, "%s: G05 read  idx %02x reg %02x -> %04x\n", machine().describe_context(), idx, reg, v);
++	return v;
++}
++
++void emup2k_state::g05_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	const unsigned reg = offset * 2;
++	if (reg == 0x0e)
++	{
++		COMBINE_DATA(&m_g05_index);
++		return;
++	}
++	COMBINE_DATA(&m_g05[m_g05_index & 0x1f][offset]);
++	LOGMASKED(LOG_G05, "%s: G05 write idx %02x reg %02x = %04x\n", machine().describe_context(), m_g05_index & 0x1f, reg, data);
++	if (m_trace)
++		logerror("T %.6f %08x X %02x %02x = %04x\n", machine().time().as_double(), m_maincpu->pc(), m_g05_index & 0x1f, reg, data);
++}
++
++u16 emup2k_state::g20_r(offs_t offset, u16 mem_mask)
++{
++	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
++	if (reg == 0x1c || reg == 0x1e)
++	{
++		// Pipelined [O: the OS discards one word (tst.w +0x1C) after every address write]: a read
++		// returns the latched word and fetches the next one.
++		const int port = reg == 0x1e;
++		const u32 a = m_snd_addr[port];
++		const u16 v = m_snd_latch[port];
++		m_snd_addr[port] = (a + 1) & 0x3ffffff;
++		if (m_baby_sel)
++		{
++			// [I] Baby device: same slot decode (bits 25-24 of the word address), 1 M words
++			const u32 off = a & 0xffffff;
++			m_snd_latch[port] = off < (1 << 20) ? m_baby[((a >> 24) & 3) << 20 | off] : 0xffff;
++		}
++		else
++			m_snd_latch[port] = (m_sound && a < m_sound.length()) ? m_sound[a] : 0;
++		return v;
++	}
++	if (reg == 0x18 || reg == 0x1a)
++	{
++		const u32 a = m_voice->address(voice);   // [I] current address read back live
++		return reg == 0x18 ? a >> 16 : a & 0xffff;
++	}
++	return m_g20[voice][offset & 31];
++}
++
++void emup2k_state::g20_w(offs_t offset, u16 data, u16 mem_mask)
++{
++	const unsigned voice = offset >> 5, reg = (offset & 31) * 2;
++	if (reg == 0x3e)
++		data &= 0x03ff;     // boot test writes 0x8211, expects 0x0211 [I: width unknown]
++	m_voice->update();
++	COMBINE_DATA(&m_g20[voice][offset & 31]);
++	if (reg == 0x1a)
++		m_voice->restart(voice);
++	if (reg == 0x30 || reg == 0x32)
++	{
++		m_snd_addr[0] = ((m_g20[voice][0x30 / 2] << 16) | m_g20[voice][0x32 / 2]) & 0x3ffffff;
++		if (reg == 0x32)
++			LOGMASKED(LOG_SND, "%s: sound read address A = %07x (byte %08x)\n", machine().describe_context(), m_snd_addr[0], m_snd_addr[0] * 2);
++	}
++	else if (reg == 0x34 || reg == 0x36)
++		m_snd_addr[1] = ((m_g20[voice][0x34 / 2] << 16) | m_g20[voice][0x36 / 2]) & 0x3ffffff;
++	if (m_trace)
++		logerror("T %.6f %08x G v%03d %02x = %04x\n", machine().time().as_double(), m_maincpu->pc(), voice, reg, data);
++}
++
++// ---------------------------------------------------------------- panel / misc
++
++void emup2k_state::midi_rx_w(int state)
++{
++	if (m_trace && m_midi_rx != state && !state && machine().time() > m_midi_last + attotime::from_usec(500))
++		logerror("T %.6f MIDI\n", machine().time().as_double());
++	if (!state)
++		m_midi_last = machine().time();
++	m_midi_rx = state;
++	m_maincpu->rx1_w(state);
++}
++
++u16 emup2k_state::panel_r()
++{
++	// [I] Workaround: the 1.24 boot block (0x02000BAC, CSCR0 PS1 clear) repeats its LED/cache test
++	// until bit 7 reads 0, while the OS treats bit 7 = 0 as a held button (key 0x130). The panel is
++	// probably read through the Xilinx the boot block configures; until that is modelled, bit 7
++	// reads 0 while the CPU runs from the boot flash.
++	u16 v = m_panel->read();
++	if (m_maincpu->pc() >= 0x02000000)
++		v &= ~0x0080;
++	return v;
++}
++
++void emup2k_state::led_w(offs_t offset, u8 data)
++{
++	if (m_leds[offset] != data && m_trace)
++		logerror("%s: latch %08x = %02x\n", machine().describe_context(), 0x900000 + offset * 0x100000, data);
++	m_leds[offset] = data;
++	// Panel LEDs: 16-bit word, low byte 0x900000, high byte 0xA00000 [O 0x0103570C] -> outputs led0..led15
++	if (offset < 2)
++		for (int b = 0; b < 8; b++)
++			m_led_out[offset * 8 + b] = BIT(data, b);
++}
++
++u16 emup2k_state::boardid_r()
++{
++	LOGMASKED(LOG_IO, "%s: board ID read\n", machine().describe_context());
++	return 0x0000;
++}
++
++void emup2k_state::mem_map(address_map &map)
++{
++	map(0x00000000, 0x001fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
++	map(0x00400000, 0x00ffffff).rw(FUNC(emup2k_state::unk_r), FUNC(emup2k_state::unk_w));
++	map(0x00400000, 0x00400000).rw(FUNC(emup2k_state::lcd_ctrl_r), FUNC(emup2k_state::lcd_ctrl_w));
++	map(0x00408000, 0x00408000).rw(FUNC(emup2k_state::lcd_data_r), FUNC(emup2k_state::lcd_data_w));
++	map(0x00500000, 0x005fffff).rw(FUNC(emup2k_state::h_r), FUNC(emup2k_state::h_w));
++	map(0x00600000, 0x0060007f).rw(FUNC(emup2k_state::g05_r), FUNC(emup2k_state::g05_w));
++	map(0x0077f000, 0x00780fff).rw(FUNC(emup2k_state::g20_r), FUNC(emup2k_state::g20_w));
++	map(0x00800000, 0x00800001).r(FUNC(emup2k_state::panel_r));
++	map(0x00900000, 0x00900000).lw8(NAME([this] (u8 d) { led_w(0, d); }));
++	map(0x00a00000, 0x00a00000).lw8(NAME([this] (u8 d) { led_w(1, d); }));
++	map(0x00b00000, 0x00b00000).lw8(NAME([this] (u8 d) { led_w(2, d); m_baby_sel = BIT(d, 6); }));
++	// Knob ADC [O 0x01035760]: a write of 0x08 + channel selects the mux input, a read returns the
++	// conversion of the selected input. Pot -> channel map at 0x0112077C: 2 1 0 4 3 6 7; pot 0 is the
++	// master volume (event 5177 -> 0x0102C1B4); channel 7 is read as the zero reference.
++	map(0x00c00000, 0x00c00000).lrw8(NAME([this] () -> u8 { return m_adc[m_scan_row & 7]->read() * 255 / 100; }), NAME([this] (u8 d) { m_scan_row = d; }));
++	map(0x00f00000, 0x00f00001).r(FUNC(emup2k_state::boardid_r));
++	map(0x01000000, 0x017fffff).ram();
++	map(0x02000000, 0x021fffff).rw(m_flash, FUNC(intelfsh16_device::read), FUNC(intelfsh16_device::write));
++	// No chip select here (DMCR default-acknowledge). The boot data-line test (0x02000DE4) writes a
++	// bit pattern and reads it back [I: relies on the bus holding the last value]; the cache test
++	// (0x02000CB0) writes 2 M longs here.
++	map(0x50000000, 0x53ffffff).lrw32(NAME([this] () { return m_open_bus; }), NAME([this] (u32 d) { m_open_bus = d; }));
++}
++
++static INPUT_PORTS_START( proteus2k )
++	// Front-panel buttons on 0x800000 bits 15-7, active low [O: 0x01035720 inverts and masks 0xFF80];
++	// key codes from 0x01034C9C (bit 7 0x130, 8 0x111, 9 0x110, 10 0x103, 11 0x104, 12 0x121, 13 0x120,
++	// 14 0x101, 15 0x102; 14+15 together 0x140). Save/Copy, Multi, Edit and Master matched by the
++	// screen each opens from the main screen; the others [I].
++	PORT_START("PANEL")
++	PORT_BIT( 0x007f, IP_ACTIVE_LOW, IPT_UNKNOWN )
++	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Arp [I]") PORT_CODE(KEYCODE_A)
++	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME("Audition [I]") PORT_CODE(KEYCODE_SPACE)
++	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME("Save/Copy") PORT_CODE(KEYCODE_S)
++	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_NAME("Multi") PORT_CODE(KEYCODE_M)
++	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_BUTTON5 ) PORT_NAME("Home/Enter [I]") PORT_CODE(KEYCODE_ENTER)
++	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_BUTTON6 ) PORT_NAME("Cursor right [I]") PORT_CODE(KEYCODE_RIGHT)
++	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_BUTTON7 ) PORT_NAME("Cursor left [I]") PORT_CODE(KEYCODE_LEFT)
++	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_BUTTON8 ) PORT_NAME("Edit") PORT_CODE(KEYCODE_E)
++	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_BUTTON9 ) PORT_NAME("Master") PORT_CODE(KEYCODE_Q)
++
++	// Data-entry encoder: G05 index 0x1B register 0x18 returns the signed count since the last read
++	// [O: 0x0102F80C read by 0x010359E0]
++	PORT_START("ENCODER")
++	PORT_BIT( 0xff, 0x00, IPT_DIAL ) PORT_SENSITIVITY(50) PORT_KEYDELTA(1) PORT_NAME("Data entry") PORT_CODE_DEC(KEYCODE_MINUS) PORT_CODE_INC(KEYCODE_EQUALS)
++
++	// Knobs [I: 8-bit ADC; the OS scales raw - (reference + 2) to 0..127]
++	PORT_START("ADC0") PORT_ADJUSTER(0, "Knob ADC 0")
++	PORT_START("ADC1") PORT_ADJUSTER(0, "Knob ADC 1")
++	PORT_START("ADC2") PORT_ADJUSTER(100, "Master volume")
++	PORT_START("ADC3") PORT_ADJUSTER(0, "Knob ADC 3")
++	PORT_START("ADC4") PORT_ADJUSTER(0, "Knob ADC 4")
++	PORT_START("ADC5") PORT_ADJUSTER(0, "Knob ADC 5")
++	PORT_START("ADC6") PORT_ADJUSTER(0, "Knob ADC 6")
++	PORT_START("ADC7") PORT_BIT(0xff, 0x00, IPT_UNUSED) // zero reference
++INPUT_PORTS_END
++
++void emup2k_state::proteus2k(machine_config &config)
++{
++	// 2 MB boot/OS/user flash, 28F160 x16 [O: dump label TH28F160; the OS flash driver accepts
++	// maker 0x89 or 0xB0 with device 0xD0 (0x0102E080)]. Writes (user presets) persist as NVRAM.
++	SHARP_LH28F160S3(config, m_flash);
++
++	MCF5206E(config, m_maincpu, 33'000'000); // [O] OS 2.26 computes UART baud rates from 33000000 (0x0100B07A)
++	m_maincpu->set_addrmap(AS_PROGRAM, &emup2k_state::mem_map);
++
++	screen_device &screen(SCREEN(config, "screen").set_lcd());
++	screen.set_refresh_hz(60);
++	screen.set_vblank_time(ATTOSECONDS_IN_USEC(2500));
++	screen.set_screen_update("lcdc", FUNC(hd44780_device::screen_update));
++	screen.set_size(6 * 24, 8 * 2);
++	screen.set_visarea_full();
++	screen.set_palette("palette");
++	PALETTE(config, "palette", FUNC(emup2k_state::palette_init), 2);
++
++	HD44780(config, m_lcdc, 270'000); // TODO: controller type and clock not verified
++	m_lcdc->set_lcd_size(2, 24);
++	m_lcdc->set_pixel_update_cb(FUNC(emup2k_state::lcd_pixel_update));
++
++	// MIDI In A on UART1 [O: OS 2.26 0x0100B070 sets up UART1 (MBAR+0x140) and UART2 (+0x180) with a 33 MHz clock]
++	MIDI_PORT(config, "mdin", midiin_slot, "midiin").rxd_handler().set(FUNC(emup2k_state::midi_rx_w));
++	// MIDI Out on UART1 TX [I: UART1 is the MIDI port pair; not traced to the connector]
++	midi_port_device &mdout(MIDI_PORT(config, "mdout", midiout_slot, "midiout"));
++	m_maincpu->tx1_w_cb().set(mdout, FUNC(midi_port_device::write_txd));
++
++	SPEAKER(config, "speaker", 2).front();
++	P2K_G20(config, m_voice, 44'100); // [I] output rate 44.1 kHz (P2K specification); clock source not traced
++	m_voice->add_route(0, "speaker", 1.0, 0);
++	m_voice->add_route(1, "speaker", 1.0, 1);
++}
++
++ROM_START( proteus2k )
++	ROM_REGION16_BE( 0x200000, "flash", 0 )
++	ROM_LOAD16_WORD_SWAP( "proteus-2k-v124-28f160.bin", 0x000000, 0x200000, CRC(bd878bcb) SHA1(7cd9c92114f1ef583adacd7f533856f5c0031742) ) // one bad word, repaired in init_proteus2k
++
++	// Optional: OS 2.26 E-Loader file; when present its image replaces the flash OS at 0x010100.
++	ROM_REGION( 0x82a28, "dli", ROMREGION_ERASE00 )
++	ROM_LOAD_OPTIONAL( "p2k226.dli", 0x000000, 0x82a28, CRC(9ed58354) SHA1(932acd05bdcfdf8442f35428f6261a262c04d3ca) )
++
++	// Sound memory: 4 SIMM slots of 32 MB (16 M words each). No dumps exist; filled by load_simms().
++	ROM_REGION16_BE( 0x8000000, "simm", ROMREGION_ERASE00 )
++ROM_END
++
++} // anonymous namespace
++
++SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
+diff --git a/src/mame/emusys/emup2k_fx.h b/src/mame/emusys/emup2k_fx.h
+new file mode 100644
+index 00000000..4fc22d8b
+--- /dev/null
++++ b/src/mame/emusys/emup2k_fx.h
+@@ -0,0 +1,196 @@
++// license:BSD-3-Clause
++// copyright-holders:emu-proteus-xr-MiSTer contributors
++/*
++    E-mu Proteus 2000 G05 effects: reverb and chorus driven by the EMU8000-style INIT arrays.
++
++    The G05 register file follows the EMU8000 layout (docs/p2k-findings.md): offset 0x28 / 0x2A /
++    0x38 / 0x3A of channel n hold INIT1[n] / INIT2[n] / INIT3[n] / INIT4[n] (the OS writes the EMU8000
++    init tables there at boot), offset 0x18 / 0x1A are the low / high words of the "data port 1/2,
++    register 1" double words (EMU8000 HWCF4/HWCF5 on channels 9/10).
++
++    The EMU8000 effects microcode is undocumented. This is a workalike, not an emulation:
++    - Reverb: slot meanings as interpreted by 86Box (src/sound/snd_emu8k.c, which calls its own
++      reverb "a workalike implementation"); this code is an independent implementation of that
++      interpretation. INIT1: 3 output mix, 5 all-pass feedback, 7 stereo link (0x8474), 0x0F/0x17/0x1F
++      reflection 0-2 gain (bits 7-4), 9/0x11/0x19 reflection 0-2 feedback (bits 3-0). INIT2: 7/0x0F/0x17
++      reflection 3-5 gain, 1/9/0x11 reflection 3-5 feedback, 0x14/0x16 tail lengths (bits 11-8),
++      0x1D damping. INIT3: 1 reflection input level. INIT4: 0x1F tail return level.
++    - Chorus: slots measured on the P2K (they differ from 86Box's AWE32 interpretation): INIT3[0x1A]
++      delay in samples (50 / 200 / 500 ms -> 2205 / 8820 / 22050), INIT3[0x17] bits 7-0 feedback
++      (2 x the preset value), INIT4[0x0B] bits 7-0 LFO depth (as 86Box: depth x delay / 256), channel
++      0x0A offset 0x1A LFO rate (0 at preset rate 0, 0x0C80 at 100; taken as milli-Hz) [I].
++    - Sends: send bus n (1-4) = G05 channels 4(n-1), +2, +0x10, +0x12 [O: one bus's channels change per
++      send amount]; EMU8000 PTRX (offset 0x14/0x16) bits 15-8 = reverb send, CSL (0x74/0x76) bits
++      31-24 = chorus send [I: EMU8000 meaning; values track the A/B send amounts].
++*/
++#ifndef MAME_EMUSYS_EMUP2K_FX_H
++#define MAME_EMUSYS_EMUP2K_FX_H
++
++#pragma once
++
++#include <algorithm>
++#include <cmath>
++#include <cstdint>
++#include <vector>
++
++class emup2k_fx
++{
++public:
++	// regs[channel][word offset]: the G05 register file (32 channels x 64 words)
++	void configure(const uint16_t (*regs)[64])
++	{
++		auto init = [&](int n, int ch) -> uint16_t { static const int off[4] = { 0x28, 0x2a, 0x38, 0x3a }; return regs[ch][off[n - 1] / 2]; };
++		auto dword = [&](int ch, int lo, int hi) -> uint32_t { return (uint32_t(regs[ch][hi / 2]) << 16) | regs[ch][lo / 2]; };
++
++		m_active = init(1, 0) != 0x03ff;   // the boot init sets still in place (EMU8000 init sequence)
++		// reverb
++		m_out_mix = (init(1, 3) & 0xff) / 256.0f;
++		m_ap_fb = (init(1, 5) & 0xff) / 255.0f;
++		m_stereo = init(1, 7) == 0x8474;
++		static const int gain_slot[6][2] = { { 1, 0x0f }, { 1, 0x17 }, { 1, 0x1f }, { 2, 0x07 }, { 2, 0x0f }, { 2, 0x17 } };
++		static const int fb_slot[6][2] = { { 1, 0x09 }, { 1, 0x11 }, { 1, 0x19 }, { 2, 0x01 }, { 2, 0x09 }, { 2, 0x11 } };
++		for (int i = 0; i < 6; i++)
++		{
++			m_refl[i].gain = ((init(gain_slot[i][0], gain_slot[i][1]) >> 4) & 0xf) / 15.0f;
++			m_refl[i].fb = (init(fb_slot[i][0], fb_slot[i][1]) & 0xf) / 15.0f;
++		}
++		const float damp = (init(2, 0x1d) & 0xff) / 255.0f;
++		for (auto &r : m_refl)
++			r.damp = damp;
++		m_damp = damp;
++		m_refl_in = (init(3, 1) & 0xff) / 256.0f;
++		m_tail_ret = (init(4, 0x1f) & 0xff) / 256.0f;
++		const int tl = ((init(2, 0x14) >> 8) & 0xf) + 18;
++		resize(m_refl[5].buf, tl * STEP);
++		resize(m_tail[0].buf, (tl + 1) * STEP);
++		const int tr = m_stereo ? ((init(2, 0x16) >> 8) & 0xf) + 18 : tl;
++		resize(m_tail[1].buf, (tr + 1) * STEP);
++		// chorus
++		m_ch_delay = std::clamp<float>(init(3, 0x1a), 1.0f, float(CHORUS_LEN - 4096));
++		m_ch_fb = (init(3, 0x17) & 0xff) / 256.0f;
++		m_ch_depth = (init(4, 0x0b) & 0xff) * m_ch_delay / 256.0f;
++		m_ch_rate = regs[0x0a][0x1a / 2] / 1000.0f;      // [I] high word as milli-Hz: LFO rate 100 writes 0x0C80
++		// send buses 1-4 = G05 channels 0/4/8/0x0C (with +2, +0x10, +0x12) [O]
++		for (int b = 0; b < 4; b++)
++		{
++			const uint32_t ptrx = dword(4 * b, 0x16, 0x14), csl = dword(4 * b, 0x76, 0x74);
++			m_rev_send[b] = ((ptrx >> 8) & 0xff) / 255.0f;
++			m_cho_send[b] = ((csl >> 24) & 0xff) / 255.0f;
++		}
++	}
++
++	emup2k_fx()
++	{
++		static const int refl_len[6] = { 2, 4, 8, 13, 19, 26 };
++		for (int i = 0; i < 6; i++)
++			resize(m_refl[i].buf, refl_len[i] * STEP);
++		for (int c = 0; c < 2; c++)
++		{
++			resize(m_ap[c][0].buf, 2 * 4 * STEP + 55);
++			resize(m_ap[c][1].buf, 1 * 4 * STEP + 55);
++			resize(m_tail[c].buf, 27 * STEP);
++			m_cbuf[c].assign(CHORUS_LEN, 0.0f);
++		}
++	}
++
++	bool active() const { return m_active; }
++	float reverb_send(int bus) const { return m_rev_send[bus & 3]; }
++	float chorus_send(int bus) const { return m_cho_send[bus & 3]; }
++
++	// one sample at 44.1 kHz: rev_in / cho_in are the summed effect-send inputs; adds the wet outputs
++	void process(float rev_in, float cho_in, float &l, float &r)
++	{
++		if (!m_active)
++			return;
++		// reverb
++		m_damp_state = rev_in * (1.0f - m_damp) + m_damp_state * m_damp;
++		const float in = m_damp_state;
++		const float in2 = in * m_refl_in;
++		float o[6];
++		for (int i = 0; i < 6; i++)
++			o[i] = comb(m_refl[i], in2);
++		float dl, dr;
++		if (m_stereo)
++		{
++			dl = o[2] + o[4];
++			dr = o[0] + o[1] + o[3] + o[5];
++		}
++		else
++			dl = dr = o[0] + o[1] + o[2] + o[3] + o[4] + o[5];
++		dl += tail(0, in + dl) * m_tail_ret;
++		dr += tail(1, in + dr) * m_tail_ret;
++		l += dl * m_out_mix;
++		r += dr * m_out_mix;
++
++		// chorus
++		const float lfo = sinf(m_phase * 6.2831853f) * m_ch_depth;
++		const float lfo_r = sinf((m_phase + 0.25f) * 6.2831853f) * m_ch_depth;   // [I] quadrature right tap
++		m_phase += m_ch_rate / 44100.0f;
++		m_phase -= floorf(m_phase);
++		const float cl = tap(0, m_ch_delay + lfo), cr = tap(1, m_ch_delay + lfo_r);
++		m_cbuf[0][m_cpos] = cho_in + cl * m_ch_fb;
++		m_cbuf[1][m_cpos] = cho_in + cr * m_ch_fb;
++		m_cpos = (m_cpos + 1) % CHORUS_LEN;
++		l += cl;
++		r += cr;
++	}
++
++private:
++	static constexpr int STEP = 242;
++	static constexpr int CHORUS_LEN = 0x8000;
++	struct line { std::vector<float> buf; size_t pos = 0; float lp = 0, gain = 0, fb = 0, damp = 0; };
++
++	static void resize(std::vector<float> &b, size_t n) { if (b.size() != n) b.assign(n, 0.0f); }
++
++	static float comb(line &c, float in)
++	{
++		if (c.pos >= c.buf.size())
++			c.pos = 0;
++		const float out = c.buf[c.pos];
++		c.lp = out * (1.0f - c.damp) + c.lp * c.damp;
++		c.buf[c.pos] = in - c.lp * c.fb;
++		c.pos = (c.pos + 1) % c.buf.size();
++		return out * c.gain;
++	}
++
++	float diffuse(line &a, float in) const
++	{
++		if (a.pos >= a.buf.size())
++			a.pos = 0;
++		const float held = a.buf[a.pos];
++		const float w = held * m_ap_fb - in;
++		a.buf[a.pos] = w;
++		a.pos = (a.pos + 1) % a.buf.size();
++		return held - w * m_ap_fb;
++	}
++
++	float tail(int c, float in)
++	{
++		line &t = m_tail[c];
++		if (t.pos >= t.buf.size())
++			t.pos = 0;
++		float out = t.buf[t.pos];
++		t.buf[t.pos] = in;
++		t.pos = (t.pos + 1) % t.buf.size();
++		out = diffuse(m_ap[c][0], out);
++		return diffuse(m_ap[c][1], out);
++	}
++
++	float tap(int c, float delay) const
++	{
++		const float p = float(m_cpos) - delay + CHORUS_LEN;
++		const int i0 = int(p) % CHORUS_LEN, i1 = (i0 + 1) % CHORUS_LEN;
++		const float f = p - floorf(p);
++		return m_cbuf[c][i0] * (1.0f - f) + m_cbuf[c][i1] * f;
++	}
++
++	bool m_active = false, m_stereo = false;
++	float m_out_mix = 0, m_ap_fb = 0, m_damp = 0, m_damp_state = 0, m_refl_in = 0, m_tail_ret = 0;
++	line m_refl[6], m_tail[2], m_ap[2][2];
++	float m_ch_delay = 1, m_ch_fb = 0, m_ch_depth = 0, m_ch_rate = 0, m_phase = 0;
++	std::vector<float> m_cbuf[2];
++	size_t m_cpos = 0;
++	float m_rev_send[4]{}, m_cho_send[4]{};
++};
++
++#endif // MAME_EMUSYS_EMUP2K_FX_H
+diff --git a/src/mame/mame.lst b/src/mame/mame.lst
+--- a/src/mame/mame.lst
++++ b/src/mame/mame.lst
+@@ -18811,4 +18811,7 @@ emu2
+ emu3
+ 
++@source:emusys/emup2k.cpp
++proteus2k
++
+ @source:emusys/emu68k.cpp
+ carnaval

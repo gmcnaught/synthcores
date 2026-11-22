@@ -1,0 +1,43 @@
+{
+ "id": 4,
+ "name": "P2Ksy",
+ "instruments": [
+  {
+   "name": "Piano 1",
+   "files": [
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 A0.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 C#2.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 C#3.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 C#4.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 C5.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 C6.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 D1.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 E0.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 F#1.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 F#4.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 F#5.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 F#6.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 G#2.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 G#3.wav",
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Piano/Piano 1 G#5.wav"
+   ],
+   "stereo": false
+  },
+  {
+   "name": "Sine",
+   "files": [
+    "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples/Sine/Sine E0.wav"
+   ]
+  }
+ ],
+ "presets": [
+  {
+   "name": "kb1:Piano 1",
+   "instrument": 1
+  },
+  {
+   "name": "wav:Sine",
+   "instrument": 2
+  }
+ ]
+}

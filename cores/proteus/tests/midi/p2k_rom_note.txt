@@ -1,0 +1,9 @@
+# Proteus 2000 research: select ROM bank (MSB 4 = ROM ID 4) preset 0, play notes.
+# MAME's midiin starts 10 s after power-on: 14.0 = 24 s emulated.
+14.0 cc  1 0 4
+14.0 cc  1 32 0
+14.1 pc  1 0
+15.0 on  1 60 100
+16.0 off 1 60
+17.0 on  1 72 100
+18.0 off 1 72
