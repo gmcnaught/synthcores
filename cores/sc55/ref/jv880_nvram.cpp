@@ -17,6 +17,14 @@
 #include <filesystem>
 #include <string>
 
+// LCD_Write keeps no LCD state unless a backend is attached, so attach one that draws nothing
+struct NullLcd : LCD_Backend
+{
+    bool Start(const lcd_t&) override { return true; }
+    void Stop() override {}
+    void Render() override {}
+};
+
 static const uint64_t STEPS_PER_MS = 1'000'000 / 600;
 
 static void run_ms(Emulator& emu, uint64_t ms)
@@ -68,10 +76,12 @@ int main(int argc, char** argv)
         return 1;
 
     Emulator emu;
-    emu.Init({.lcd_backend = nullptr});             // no NVRAM file: start empty, write it below
+    NullLcd lcd;
+    emu.Init({.lcd_backend = &lcd});                // no NVRAM file: start empty, write it below
     if (!emu.LoadRoms(load.romset, load.romset_info, nullptr))
         return 1;
     emu.Reset();
+    emu.StartLCD();
 
     // boot: wait until the LCD shows something and stays the same for 2 s (at most 60 s)
     std::string last;
