@@ -184,7 +184,7 @@ def write_sv(path, K):
                 lines.append(f"\t11'd{(t << 8) | a}: q <= {{18'sd{dk & 0x3FFFF}, 18'sd{k & 0x3FFFF}}};"
                              .replace("18'sd", "18'd"))
     lines += ["\tdefault: q <= 36'd0;", "\tendcase", "end", "endmodule", ""]
-    open(path, "w").write("\n".join(lines))
+    with open(path, "w") as _f: _f.write("\n".join(lines))
 
 
 def main():

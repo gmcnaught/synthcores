@@ -168,7 +168,7 @@ def main():
     out = run(rom, events, total, not a.no_tone)
     if sys.byteorder == "big":
         out.byteswap()
-    open(a.out, "wb").write(out.tobytes())
+    with open(a.out, "wb") as _f: _f.write(out.tobytes())
     if a.wav:
         w = wave.open(a.wav, "wb")
         w.setnchannels(2)

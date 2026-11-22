@@ -55,7 +55,7 @@ def main():
     ap.add_argument("--size", type=int, default=32 << 20)
     a = ap.parse_args()
     img = finish(header(a.size, a.id))
-    open(a.out, "wb").write(img)
+    with open(a.out, "wb") as _f: _f.write(img)
     n, bs = blocks(a.size)
     print(a.out, "blocks", [hex(struct.unpack_from(">H", img, CKSUM + 2 * k)[0]) for k in range(n)])
 

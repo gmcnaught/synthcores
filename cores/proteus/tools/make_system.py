@@ -45,7 +45,7 @@ def main():
     img += rom                      # 0x800000
     img += ram                      # 0x820000
     img += fnt                      # 0x830000
-    open(out, "wb").write(img)
+    with open(out, "wb") as _f: _f.write(img)
     ssp = int.from_bytes(rom[0:4], "big")
     pc = int.from_bytes(rom[4:8], "big")
     print(f"image {len(img)} bytes; reset SSP={ssp:08x} PC={pc:08x}; "

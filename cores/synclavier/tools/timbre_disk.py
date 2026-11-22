@@ -164,7 +164,7 @@ def main(argv=None):
             name, path = short_name(arg), arg
         libs.append((name.upper(), open(path, "rb").read()))
     disk = make(libs, a.mb, seqs, samples)
-    open(a.out, "wb").write(disk)
+    with open(a.out, "wb") as _f: _f.write(disk)
     for name, data in libs:
         print("W1:%-8s .NEWDATA %d sectors" % (name, len(data) // (2 * SECTOR_WORDS)))
     for name, data, sounds in samples:
