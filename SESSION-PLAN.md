@@ -49,13 +49,14 @@ Assumptions:
 | 4 | Memory port + DDR3 backend, SC-55 | 2, 3 | yes | `0A.mid` hash unchanged at latencies 3, 7 and random; 100 s real-time playback with no underrun |
 | 5 | Synclavier poly on the memory port | 4 | yes | `tests/hdl` pass; DDR3 late-read count no worse |
 | 6 | Proteus/1 `snd_ctrl` on the memory port | 4 | yes | sound-chip tests bit-exact; 60 s soak, 0 missed deadlines |
-| 7 | PSRAM model + controller (simulation) | 4 | — | SC-55 `0A.mid` hash unchanged through PSRAM; sustained random reads/s reported |
+| 7 | ~~PSRAM model + controller (simulation)~~ deferred: M64 work waits (user, 2026-11-22) | — | — | — |
 | 8 | Panel as data (HD44780 model, renderer) | 3 | yes | SC-55 LCD pixel test; Proteus display tests; screenshots match |
 | 9 | `cfg/` files and the `synthcore` generator | 3 | — | generated `files.qip` and qsf macros byte-identical to today's |
-| 10 | `xcau15p` size estimate (Yosys) | 0 | — | report of LUT/BRAM/DSP for the SC-55, marked as a Yosys estimate |
+| 10 | ~~`xcau15p` size estimate~~ deferred: M64 work waits | — | — | — |
 | 11 | P2K CPU against MAME | 0 | — | bus trace matches MAME up to the main screen |
+| 12 | JV-880 core on the MiSTer | 4, 8 | yes | H8/532 firmware lockstep and `jv880.mid` render hash `73feda3c…bbbc` against Nuked-SC55 (`jv880-v1.0.1`); plays MIDI on the MiSTer with no underrun |
 
-Order: 0 → 1 → 2 and 3 → 4 → 5, 6 and 7. 8 and 9 follow 3. 10 and 11 fill CI wait time.
+Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880). 9 and 11 fill build wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
 ### 0. Publish and root CI
 
