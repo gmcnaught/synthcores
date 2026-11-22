@@ -76,8 +76,10 @@ Front panel and storage (2026-11-21):
 - MIDI Out: `-midiout` (UART1 TX).
 
 Filters, effects, LEDs (2026-11-21), all approximations marked [I] in the driver:
-- Filter: per-voice SVF classed from the OS's section patterns, cutoff from the frequency byte
-  (`P2K_NOFILTER=1` bypasses). Effects: `emup2k_fx.h`, reverb and chorus driven by the
+- Filter: the H-chip voice as measured on the E4 (ten coefficient words, cutoff-interpolated codes,
+  pole/zero/gain sections; `P2K_NOFILTER=1` bypasses). Voices reach effect buses by Mix Output.
+- SysEx editing works (word count in parameter edits, see docs/p2k-findings.md); MIDI Out replies
+  no longer hang the OS (68681 TxEMT fix in the patch). Effects: `emup2k_fx.h`, reverb and chorus driven by the
   EMU8000-style INIT arrays the OS writes to the G05 (reverb checked against 86Box's model with
   `tests/fx/p2k_fx_ir.cpp`; `P2K_NOFX=1` disables). Output −6 dB headroom.
 - LEDs: MAME outputs `led0`–`led15`.

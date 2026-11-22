@@ -178,12 +178,30 @@ index c5d60980..f92d0a3d 100644
  
  	/* parallel port */
  	u8 ppddr_r();
+diff --git a/src/devices/machine/mc68681.cpp b/src/devices/machine/mc68681.cpp
+index 9b3b3b82..08e9d0a2 100644
+--- a/src/devices/machine/mc68681.cpp
++++ b/src/devices/machine/mc68681.cpp
+@@ -1473,8 +1473,12 @@ void duart_channel::tra_complete()
+ 		SR |= STATUS_TRANSMITTER_READY;
+ 		update_interrupts();
+ 	}
+-	else
++	else if (m_tx_enabled)
+ 	{
++		// A disabled transmitter finishes the character in progress without setting TxEMT again
++		// (the datasheet resets TxEMT when the transmitter is disabled). E-mu Proteus 2000 OS 2.26
++		// disables the transmitter after its last byte and loops in its UART interrupt until the
++		// status register reads 0 (0x0100B526).
+ 		SR |= STATUS_TRANSMITTER_EMPTY;
+ 		update_interrupts();
+ 	}
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..73192c6e
+index 00000000..fd4b138a
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,741 @@
+@@ -0,0 +1,801 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -252,14 +270,19 @@ index 00000000..73192c6e
 +// block of voice v (OS table 0x010331D0, matched exactly by this formula):
 +//   0x4000 * (v >> 6) + {0x2000, 0, 0x3000, 0x1000}[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15)
 +// Level law [I]: 0.375 dB a step (255 = 0 dB, 0 = off), smoothed over ~5 ms.
-+// Filter: APPROXIMATION [I]. The OS writes three 2-pole sections per voice (H block +0x00/+0x10/+0x20,
-+// four words each; Z-plane frame bytes whose arithmetic is not known) and a frequency byte at the
-+// previous slot's block +0x3E. The model classes each section from its pattern (0xFFCF in words 0-3:
-+// bypass; word 2 = 0x8004: high-pass; otherwise low-pass), takes the cutoff from the frequency byte
-+// with the OS readout curve (20 kHz x (1002/1024)^(255-F), "Classic" table) and the resonance from
-+// the low-pass word-0 high byte (0x84 at Q 0, 0x52 at Q 127), and runs 2-pole trapezoidal
-+// state-variable filters.
-+// 12th-order types (two blocks) are run as a 4-pole low-pass. P2K_NOFILTER=1 bypasses it.
++// Filter: the H-chip voice as measured on the E-mu E4 (github.com/ds10fan/emu-hchip-patent,
++// VOICE_INTERFACE.md; patent US 5,170,369), implemented here from that description. The P2K OS writes
++// the same words the E4 does (Classic 2-pole Q 0 = 8408FFCF, neutral FFCFFFCF, high-pass 80048004):
++// H block + 4k = word k (k = 0..9), high half-word = frame for cutoff 0, low = frame for cutoff 255,
++// each half-word = X code (B2') and F code (f^2), interpolated by cutoff c/255 and decoded by
++//   dec(c) = c+1 >= 224 ? (c+1-192) << 12 : e ? (16 + m) << (e - 1) : m   (e, m = (c+1) >> 4, & 15)
++// f^2 = dec(F) / 2^16, B2' = dec(X) / 2^18, D(z) = 1 - (2 - f^2 - B2') z^-1 + (1 - B2') z^-2.
++// Voice: f0^2/D0 * N1 * N5 * P4 * P8 * g9 (words 4/8 normalised poles, or 1/D with flag 0x80;
++// g9 = dec(word 9 low byte) / dec(0xFE)). [O] cutoff byte and flags for the voice in H block X are
++// at the previous slot's block + 0x3E / + 0x7B (high-pass sets 0x80); [I] gain-word mode (E4 flag
++// 0x40) always on; 12th-order types chain the next slot's block when it was programmed after this
++// voice started (that slot's voice stays silent). Cutoff changes are smoothed (~2 ms) [I: the
++// patent's interpolator is not modelled]. P2K_NOFILTER=1 bypasses.
 +// Effects: emup2k_fx.h, a workalike of the EMU8000-style G05 reverb and chorus driven by the INIT
 +// arrays the OS writes (P2K_NOFX=1 disables). Not modelled: the G05 microcode itself, the P2K's
 +// other effect types beyond what the reverb/chorus structure gives, output routing to Sub 1/2 [U].
@@ -270,6 +293,13 @@ index 00000000..73192c6e
 +
 +	void set_memory(const u16 *regs, const u16 *mem, u32 words, const u16 *h) { m_regs = regs; m_mem = mem; m_words = words; m_h = h; }
 +	void set_g05(const u16 (*g05)[64]) { m_g05 = g05; }
++	static int h_voice(u32 blk)   // inverse of h_block
++	{
++		static const int lane[4] = { 1, 3, 0, 2 };           // page 0x0000/0x1000/0x2000/0x3000 -> v & 3
++		const int slot = (((blk >> 7) & 15) + 1) & 15;
++		return (blk >> 14) * 64 + slot * 4 + lane[(blk >> 12) & 3];
++	}
++	void h_coef_written(u32 offset) { const u32 blk = (offset * 2) & ~0x7f; if (((offset * 2) & 0x7f) < 0x28) m_coef_time[h_voice(blk)] = machine().time(); }
 +	static u32 h_block(int v) { static const u16 page[4] = { 0x2000, 0, 0x3000, 0x1000 }; return 0x4000 * (v >> 6) + page[v & 3] + 0x80 * ((((v >> 2) & 15) + 15) & 15); }
 +	void restart(int voice);
 +	void update() { m_stream->update(); }
@@ -294,11 +324,24 @@ index 00000000..73192c6e
 +	u32 m_words = 0;
 +	float m_gain_tab[256]{};
 +	float m_gain[128][2]{};
-+	float m_svf[128][2][2]{};             // [voice][section][low, band]
-+	float m_fc[128]{};
++	double m_fst[128][2][5][2]{};         // [voice][stage][section][state]
++	float m_cut[128][2]{};                // smoothed cutoff per voice and stage
++	attotime m_start_time[128];
++	attotime m_coef_time[128];            // per H slot (indexed by voice): last coefficient write
++	static double hdec(float code);
++	double filter_stage(int v, int stage, u32 blk, double x);
++	static u32 next_block(u32 blk) { return (blk & 0x780) == 0x780 ? blk - 0x780 : blk + 0x80; }
++	// [I] a 12th-order voice continues through the next slot when that slot's coefficients were written
++	// at this voice's note-on (the OS writes them just before starting the G20 voice) and the slot's own
++	// voice has not been started since; the OS then writes the level bytes into that next block
++	bool chained(int v) const
++	{
++		const int nv = h_voice(next_block(h_block(v)));
++		return m_coef_time[nv] + attotime::from_msec(50) >= m_start_time[v] && m_start_time[nv] < m_coef_time[nv];
++	}
 +	bool m_filter_on = true;
 +	bool m_fx_on = true;
-+	float m_cut_tab[256]{};
++
 +	u32 m_addr[128]{};
 +	u32 m_frac[128]{};
 +	bool m_idle[128]{};
@@ -317,66 +360,91 @@ index 00000000..73192c6e
 +	m_stream = stream_alloc(0, 2, clock());
 +	for (int b = 1; b < 256; b++)
 +		m_gain_tab[b] = powf(10.0f, -(255 - b) * 0.375f / 20.0f);
-+	for (int f = 0; f < 256; f++)
-+	{
-+		const float hz = std::min(20000.0f * powf(1002.0f / 1024.0f, float(255 - f)), 0.45f * clock());
-+		m_cut_tab[f] = tanf(float(M_PI) * hz / clock());          // trapezoidal SVF g
-+	}
 +	m_filter_on = std::getenv("P2K_NOFILTER") == nullptr;
 +	m_fx_on = std::getenv("P2K_NOFX") == nullptr;
-+	save_item(NAME(m_svf));
-+	save_item(NAME(m_fc));
++	save_item(NAME(m_fst));
++	save_item(NAME(m_cut));
 +	save_item(NAME(m_addr));
 +	save_item(NAME(m_frac));
 +	save_item(NAME(m_idle));
 +	save_item(NAME(m_gain));
 +}
 +
-+float p2k_g20_device::filter(int v, float x, float k)
++double p2k_g20_device::hdec(float code)
 +{
-+	const u32 hb = h_block(v) / 2;
-+	// frequency byte: previous slot's block + 0x3E (0x01032F64: -0x80, 0x000 wraps to 0x780)
-+	const u32 blk = h_block(v);
++	const float c = code + 1.0f;
++	if (c >= 224.0f)
++		return (c - 192.0f) * 4096.0f;
++	const int e = int(c) >> 4;
++	const float m = c - 16.0f * e;
++	return e ? (16.0f + m) * float(1 << (e - 1)) : m;
++}
++
++double p2k_g20_device::filter_stage(int v, int stage, u32 blk, double x)
++{
 +	const u32 prev = (blk & 0x7ff) == 0 ? blk + 0x780 : blk - 0x80;
-+	const u8 f = m_h[(prev + 0x3e) / 2] & 0xff;
-+	m_fc[v] += (m_cut_tab[f] - m_fc[v]) * k;
-+	const float fc = m_fc[v];
-+	int stages = 0;
-+	for (int sec = 0; sec < 2; sec++)
++	const float cut = m_cut[v][stage] / 255.0f;
++	const u8 flags = m_h[(prev + 0x7a) / 2] & 0xff;
++	auto code = [&](u16 hi, u16 lo, int shift) { const float a = (hi >> shift) & 0xff, b = (lo >> shift) & 0xff; return a + (b - a) * cut; };
++	static const int order[5] = { 0, 1, 5, 4, 8 };       // pole, zero, zero, pole, pole
++	for (int i = 0; i < 5; i++)
 +	{
-+		const u16 *w = &m_h[hb + sec * 8];
-+		bool hp = false;
-+		float q;
-+		if (w[0] == 0xffcf && w[1] == 0xffcf && w[2] == 0xffcf && w[3] == 0xffcf)
-+			continue;                                   // bypass section
-+		if (w[2] == 0x8004 || w[3] == 0x8004)
++		const int w = order[i];
++		const u16 hi = m_h[blk / 2 + 2 * w], lo = m_h[blk / 2 + 2 * w + 1];
++		if (hi == 0xffcf && lo == 0xffcf)
++			continue;                                        // neutral word: 1 in every role
++		const double b2 = hdec(code(hi, lo, 8)) / 262144.0, f2 = hdec(code(hi, lo, 0)) / 65536.0;
++		const double a1 = 2.0 - f2 - b2, a2 = 1.0 - b2;
++		double *st = m_fst[v][stage][i];
++		if (w == 1 || w == 5)
 +		{
-+			hp = true;
-+			q = 0.0f;
++			const double y = x - a1 * st[0] + a2 * st[1];    // zero section N(z) = D(z)
++			st[1] = st[0];
++			st[0] = x;
++			x = y;
 +		}
 +		else
-+			q = std::clamp((0x84 - int(w[0] >> 8)) / float(0x84 - 0x52), 0.0f, 1.0f);
-+		const float kd = 1.414f * (1.0f - 0.9f * q);    // 1/Q: Q 0.707 .. ~7 [I]
-+		float &ic1 = m_svf[v][sec][0], &ic2 = m_svf[v][sec][1];
-+		const float g = fc;
-+		const float a1 = 1.0f / (1.0f + g * (g + kd)), a2 = g * a1, a3 = g * a2;
-+		const float v3 = x - ic2;
-+		const float v1 = a1 * ic1 + a2 * v3;
-+		const float v2 = ic2 + a2 * ic1 + a3 * v3;
-+		ic1 = 2.0f * v1 - ic1;
-+		ic2 = 2.0f * v2 - ic2;
-+		const float lo = v2, hi = x - kd * v1 - v2;
-+		x = hp ? hi : lo;
-+		stages++;
++		{
++			const double g = (w != 0 && BIT(flags, 7)) ? 1.0 : f2;
++			const double y = g * x + a1 * st[0] - a2 * st[1];
++			st[1] = st[0];
++			st[0] = y;
++			x = y;
++		}
++	}
++	const u16 ghi = m_h[blk / 2 + 18], glo = m_h[blk / 2 + 19];
++	if (!(ghi == 0xffcf && glo == 0xffcf))
++		x *= hdec(code(ghi, glo, 0)) / hdec(254.0f);
++	if (!std::isfinite(x) || fabs(x) > 1e15)   // unnormalised poles (1/f^2 ~ 1e4) are legitimate
++	{
++		memset(m_fst[v][stage], 0, sizeof(m_fst[v][stage]));
++		x = 0;
 +	}
 +	return x;
++}
++
++float p2k_g20_device::filter(int v, float x, float k)
++{
++	const u32 blk = h_block(v);
++	const u32 prev = (blk & 0x7ff) == 0 ? blk + 0x780 : blk - 0x80;
++	m_cut[v][0] += ((m_h[(prev + 0x3e) / 2] & 0xff) - m_cut[v][0]) * k * 2.5f;
++	double y = filter_stage(v, 0, blk, x);
++	// 12th-order types: the next slot's block is the second stage [I]
++	const u32 next = next_block(blk);
++	if (chained(v))
++	{
++		m_cut[v][1] += ((m_h[(blk + 0x3e) / 2] & 0xff) - m_cut[v][1]) * k * 2.5f;
++		y = filter_stage(v, 1, next, y);
++	}
++	return float(y);
 +}
 +
 +void p2k_g20_device::restart(int v)
 +{
 +	m_addr[v] = reg32(v, 0x18) & 0x3ffffff;
 +	m_frac[v] = 0;
-+	m_svf[v][0][0] = m_svf[v][0][1] = m_svf[v][1][0] = m_svf[v][1][1] = 0;
++	memset(m_fst[v], 0, sizeof(m_fst[v]));
++	m_start_time[v] = machine().time();
 +	m_idle[v] = false;
 +}
 +
@@ -387,11 +455,11 @@ index 00000000..73192c6e
 +	const float k = 1.0f - expf(-1.0f / (0.005f * clock()));   // ~5 ms level smoothing [I]
 +	for (int i = 0; i < stream.samples(); i++)
 +	{
-+		float suml = 0, sumr = 0, mono = 0;
++		float suml = 0, sumr = 0, bus[4]{};
 +		for (int v = 0; v < 128; v++)
 +		{
 +			const u32 inc = reg32(v, 0x04) >> 16;
-+			const u32 hb = h_block(v) / 2;
++			const u32 hb = (m_filter_on && chained(v) ? next_block(h_block(v)) : h_block(v)) / 2;
 +			const float tr = m_gain_tab[m_h[hb + 0x70 / 2] & 0xff], tl = m_gain_tab[m_h[hb + 0x72 / 2] & 0xff];
 +			m_gain[v][0] += (tl - m_gain[v][0]) * k;
 +			m_gain[v][1] += (tr - m_gain[v][1]) * k;
@@ -404,7 +472,10 @@ index 00000000..73192c6e
 +				smp = filter(v, smp, k);
 +			suml += smp * m_gain[v][0];
 +			sumr += smp * m_gain[v][1];
-+			mono += smp * 0.5f * (m_gain[v][0] + m_gain[v][1]);
++			// effect bus from the routing byte at the chain-end block + 0x7B [O: 0x72 Main, 0x7B Sub 1,
++			// 0x44 Sub 2 for layer Mix Output 0/1/2]; other values -> bus 1 [I]
++			const u8 route = m_h[hb + 0x7a / 2] & 0xff;
++			bus[route == 0x7b ? 1 : route == 0x44 ? 2 : 0] += smp * 0.5f * (m_gain[v][0] + m_gain[v][1]);
 +			u32 f = m_frac[v] + inc;
 +			u32 na = a + (f >> 12);
 +			m_frac[v] = f & 0xfff;
@@ -428,8 +499,13 @@ index 00000000..73192c6e
 +				m_fx.configure(m_g05);
 +				m_fx_count = 256;
 +			}
-+			// [I] every voice treated as routed to effect bus 1 (G05 channel 0 sends)
-+			m_fx.process(mono * m_fx.reverb_send(), mono * m_fx.chorus_send(), suml, sumr);
++			float rin = 0, cin = 0;
++			for (int b = 0; b < 4; b++)
++			{
++				rin += bus[b] * m_fx.reverb_send(b);
++				cin += bus[b] * m_fx.chorus_send(b);
++			}
++			m_fx.process(rin, cin, suml, sumr);
 +		}
 +		// [I] mix headroom: -6 dB (dense 2-channel playing clipped at 0 dB)
 +		stream.put_int_clamp(0, i, s32(suml * 0.5f), 32768);
@@ -689,7 +765,9 @@ index 00000000..73192c6e
 +
 +void emup2k_state::h_w(offs_t offset, u16 data, u16 mem_mask)
 +{
++	m_voice->update();
 +	COMBINE_DATA(&m_h[offset]);
++	m_voice->h_coef_written(offset);
 +	if (m_trace)
 +		logerror("T %.6f %08x H %06x = %04x & %04x\n", machine().time().as_double(), m_maincpu->pc(), 0x500000 + offset * 2, data, mem_mask);
 +}
@@ -927,10 +1005,10 @@ index 00000000..73192c6e
 +SYST( 1999, proteus2k, 0, 0, proteus2k, proteus2k, emup2k_state, init_proteus2k, "E-mu Systems", "Proteus 2000 (flash v1.24)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND )
 diff --git a/src/mame/emusys/emup2k_fx.h b/src/mame/emusys/emup2k_fx.h
 new file mode 100644
-index 00000000..f86c1db1
+index 00000000..4fc22d8b
 --- /dev/null
 +++ b/src/mame/emusys/emup2k_fx.h
-@@ -0,0 +1,191 @@
+@@ -0,0 +1,196 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -952,8 +1030,9 @@ index 00000000..f86c1db1
 +      delay in samples (50 / 200 / 500 ms -> 2205 / 8820 / 22050), INIT3[0x17] bits 7-0 feedback
 +      (2 x the preset value), INIT4[0x0B] bits 7-0 LFO depth (as 86Box: depth x delay / 256), channel
 +      0x0A offset 0x1A LFO rate (0 at preset rate 0, 0x0C80 at 100; taken as milli-Hz) [I].
-+    - Sends [I]: G05 channel 0 EMU8000 PTRX (offset 0x14/0x16) bits 15-8 = reverb send, CSL (0x74/0x76)
-+      bits 31-24 = chorus send; the OS writes them from the preset's FX A / FX B send amounts.
++    - Sends: send bus n (1-4) = G05 channels 4(n-1), +2, +0x10, +0x12 [O: one bus's channels change per
++      send amount]; EMU8000 PTRX (offset 0x14/0x16) bits 15-8 = reverb send, CSL (0x74/0x76) bits
++      31-24 = chorus send [I: EMU8000 meaning; values track the A/B send amounts].
 +*/
 +#ifndef MAME_EMUSYS_EMUP2K_FX_H
 +#define MAME_EMUSYS_EMUP2K_FX_H
@@ -1002,9 +1081,13 @@ index 00000000..f86c1db1
 +		m_ch_fb = (init(3, 0x17) & 0xff) / 256.0f;
 +		m_ch_depth = (init(4, 0x0b) & 0xff) * m_ch_delay / 256.0f;
 +		m_ch_rate = regs[0x0a][0x1a / 2] / 1000.0f;      // [I] high word as milli-Hz: LFO rate 100 writes 0x0C80
-+		const uint32_t ptrx = dword(0, 0x16, 0x14), csl = dword(0, 0x76, 0x74);
-+		m_rev_send = ((ptrx >> 8) & 0xff) / 255.0f;
-+		m_cho_send = ((csl >> 24) & 0xff) / 255.0f;
++		// send buses 1-4 = G05 channels 0/4/8/0x0C (with +2, +0x10, +0x12) [O]
++		for (int b = 0; b < 4; b++)
++		{
++			const uint32_t ptrx = dword(4 * b, 0x16, 0x14), csl = dword(4 * b, 0x76, 0x74);
++			m_rev_send[b] = ((ptrx >> 8) & 0xff) / 255.0f;
++			m_cho_send[b] = ((csl >> 24) & 0xff) / 255.0f;
++		}
 +	}
 +
 +	emup2k_fx()
@@ -1022,8 +1105,8 @@ index 00000000..f86c1db1
 +	}
 +
 +	bool active() const { return m_active; }
-+	float reverb_send() const { return m_rev_send; }
-+	float chorus_send() const { return m_cho_send; }
++	float reverb_send(int bus) const { return m_rev_send[bus & 3]; }
++	float chorus_send(int bus) const { return m_cho_send[bus & 3]; }
 +
 +	// one sample at 44.1 kHz: rev_in / cho_in are the summed effect-send inputs; adds the wet outputs
 +	void process(float rev_in, float cho_in, float &l, float &r)
@@ -1118,7 +1201,7 @@ index 00000000..f86c1db1
 +	float m_ch_delay = 1, m_ch_fb = 0, m_ch_depth = 0, m_ch_rate = 0, m_phase = 0;
 +	std::vector<float> m_cbuf[2];
 +	size_t m_cpos = 0;
-+	float m_rev_send = 0, m_cho_send = 0;
++	float m_rev_send[4]{}, m_cho_send[4]{};
 +};
 +
 +#endif // MAME_EMUSYS_EMUP2K_FX_H

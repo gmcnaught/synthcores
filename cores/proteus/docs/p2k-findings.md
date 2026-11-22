@@ -144,8 +144,7 @@ and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave 
 ## Next
 Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SIMM/Baby format,
 level/pan/envelope path.
-1. Exact H filter arithmetic (Z-plane frame bytes) and G05 effects microcode: need hardware
-   captures or the EMU8000 effects semantics; MAME uses approximations.
+1. H filter: done (E4-measured voice model). G05 effects microcode: still a workalike.
 2. Sound memory flash writes (port B) for user flash SIMMs (the main user flash is done).
 3. Effects (G05 / FX RAM) and output routing (6 outputs).
 4. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
@@ -333,3 +332,40 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   distributed): correlation 0.9994-0.9998 over 0.5 s for Room 1, Room 1 decay 90 and Delay; the
   residual 2-3.5 % is 86Box's integer rounding. Both are workalikes: the EMU8000 microcode is
   undocumented.
+
+## H filter = the E4 H-chip voice; routing; SysEx; CPU (2026-11-21)
+- **Filter words** [O]: the P2K writes the same H-chip words as the E-mu E4 (measured by
+  github.com/ds10fan/emu-hchip-patent, VOICE_INTERFACE.md; patent US 5,170,369): word k at H block
+  + 4k (k = 0..9), high half = frame for cutoff 0, low = frame for cutoff 255, each half = X/F codes
+  (B2', f^2). Classic 2-pole Q 0 = 8408FFCF (E4 "2 Pole Lowpass" Q 0 identical), Q 64 = 6A07E8E4,
+  Q 127 = 5205DCED; neutral FFCFFFCF; Deeper HPF zeros 80048004; gain word 9 = 00F200F2 (Classic).
+  Classic 4-pole = words 0 and 4; Q also programs zero word 1 (FFCFE1E8 at Q 127), whose DC gain
+  f^2 makes resonant settings louder at high cutoff (+6.3 dB predicted, +6.4 dB in MAME).
+- **Per-slot pipeline** [O/I]: the cutoff (+0x3E) and flags (+0x7B bit 7: unnormalised poles,
+  set for high-pass and 12th-order) of the voice in H block X are in the previous slot's block. A
+  12th-order type also programs the next slot's block as a second stage, and the OS then writes
+  the level bytes into that next block (end of chain). The +0x7B byte's low bits route the voice:
+  0x72 Main, 0x7B Sub 1, 0x44 Sub 2 (layer Mix Output 0/1/2) [O].
+- **Effect send buses** [O]: send bus n = G05 channels 4(n−1), +2, +0x10, +0x12; Main uses bus 1,
+  Sub 1 bus 2, Sub 2 bus 3 (MAME: reverb tail only when the voice's bus has a send).
+- **MAME model**: E4 voice structure in double precision (f0²/D0 · N1 · N5 · P4 · P8 · g9), cutoff
+  smoothed ~2 ms (the patent's interpolator not modelled), 12th-order chaining by coefficient-write
+  timing [I].
+- **SysEx** [O]: parameter request `F0 18 0F 00 55 02 <n ids> <id lsb msb>… F7` → reply
+  `… 01 <2n words> <id> <value>… F7`. Parameter edit `F0 18 0F 00 55 01 <count of 14-bit words>
+  <id value>… F7`: the count is words (2 per parameter), checked against the F7 position (0x0104DC1C).
+  Edit 897 = −1 (edit buffer), 898 = layer, 1410 = −20 → read back −20 and the note-on level byte
+  drops by 48 units, as with the preset edited in the SIMM.
+- **MAME UART fix**: the 68681-family transmitter set TxEMT again after being disabled; OS 2.26
+  disables the transmitter after its last byte and loops in its UART interrupt until the status is 0
+  (0x0100B526), so any MIDI Out reply hung the OS. TxEMT is now only set while the transmitter is
+  enabled.
+- **CPU** [O/I]: MAME runs the MCF5206e on its Musashi 68000-family core in a ColdFire mode
+  (`m68000_musashi_device`, `init_cpu_coldfire`; 56 ColdFire-enabled handler names, no MAC unit).
+  OS 2.26 uses 68020-style integer instructions (mulsl, divsw/divuw, extbl, linkw) plus movec,
+  cpushl, halt, pulse; the macl/msacl "instructions" in the listing are data (filter tables,
+  0xAAAA fill) and no invalid-instruction exception occurs. A MiSTer core could start from a
+  68020-capable soft core (e.g. TG68K) with the ColdFire system instructions, exception frame and
+  the SIM/timer/UART peripherals added [I].
+- Open [U]: FX slots INIT1[0x0D], INIT3[0x13]/[0x15], INIT4[5]/[7]; routing byte values other than
+  the three observed; the H interpolator's approach-time byte (+0x3C).
