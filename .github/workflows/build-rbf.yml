@@ -1,8 +1,8 @@
 name: Build RBF
 
 # Compiles each MiSTer core (cores/<core>/mister/*.qpf) with Quartus Lite 17.0 in the
-# raetro/quartus:17.0 Docker image on ubuntu-latest, for the cores a change touches (all of
-# them for a change to synthframe's HDL or targets, to this file, or on demand). The whole repo (without .git)
+# raetro/quartus:17.0 Docker image on ubuntu-latest: on a release tag (v*) every core, on
+# demand the cores asked for (all by default). The whole repo (without .git)
 # goes into the container so cores can use shared files under modules/. Each core's
 # mister/build.sh fails the job on a failed compile or negative slack, after the reports are
 # saved. The RBF and the Quartus reports are uploaded as artifacts <core>-rbf and
@@ -19,9 +19,10 @@ on:
         description: Fitter seed override (integer; blank = the QSF's; SC-55 and Synclavier)
         required: false
         default: ''
-  pull_request:
+  # Releases only (a v* tag) and on demand: day-to-day builds run on the Windows build host
+  # (scripts/build-hosts/winbuild.sh), which gates pull requests.
   push:
-    branches: [main]
+    tags: ['v*']
 
 jobs:
   changes:
@@ -53,7 +54,7 @@ jobs:
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             req='${{ github.event.inputs.cores }}'
             echo "cores=${req:-$all}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ steps.filter.outputs.shared }}" = true ]; then
+          elif [ "${{ github.event_name }}" = push ] || [ "${{ steps.filter.outputs.shared }}" = true ]; then
             echo "cores=$all" >> "$GITHUB_OUTPUT"
           else
             echo "cores=$(echo '${{ steps.filter.outputs.changes }}' | jq -c 'map(select(. != "shared"))')" >> "$GITHUB_OUTPUT"
