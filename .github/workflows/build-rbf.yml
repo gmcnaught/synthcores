@@ -48,10 +48,14 @@ jobs:
               - 'cores/synclavier/mister/**'
             proteus:
               - 'cores/proteus/mister/**'
+            jv880:
+              - 'cores/jv880/hdl/**'
+              - 'cores/jv880/mister/**'
+              - 'modules/roland/**'
       - id: pick
         shell: bash
         run: |
-          all='["sc55","synclavier","proteus"]'
+          all='["sc55","synclavier","proteus","jv880"]'
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             req='${{ github.event.inputs.cores }}'
             echo "cores=${req:-$all}" >> "$GITHUB_OUTPUT"
