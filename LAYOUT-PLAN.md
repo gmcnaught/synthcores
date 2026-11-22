@@ -31,10 +31,10 @@ This directory becomes one git repository, laid out like jotego's `jtcores`:
 ## Layout
 
 ```
-synth-projects/                     one repo (working name vscores)
-  setprj.sh                         sets VSROOT, CORES, VSFRAME, MODULES, VSBIN
+synth-projects/                     one repo: synthcores
+  setprj.sh                         sets SYNTHROOT, CORES, SYNTHFRAME, MODULES, SYNTHBIN
   modules/
-    vsframe/                        the framework
+    synthframe/                        the framework
       hdl/
         mem/                        memory-port contract + DDR3 backend (from ddram_word, wave_ddr)
                                     + line cache (rom2x_cache) + PSRAM backend (new)
@@ -49,7 +49,7 @@ synth-projects/                     one repo (working name vscores)
         xcau15p/                    top wrapper, Vivado tcl, UART debug; named after the FPGA, not a board
           boards/m64.xdc            M64 pinout from its schematic; the own board's XDC goes alongside
       ver/                          framework benches (random-latency memory, MIDI, panel)
-      bin/                          vscore (build a core for a target), vssim, deploy to MiSTer
+      bin/                          synthcore (build a core for a target), synthsim, deploy to MiSTer
     fx68k/                          submodule (jtcores uses jtfpga/fx68k)
     tg68k/                          TG68K.C with the P2K changes (LGPL-3), now in proteus/p2k/rtl/cpu/tg68k
     nuked-sc55/                     submodule, reference model (now cores/sc55/third_party/nuked-sc55)
@@ -59,22 +59,22 @@ synth-projects/                     one repo (working name vscores)
     proteus/                        Proteus/1 XR
     p2k/                            Proteus 2000, split out of proteus/p2k once the CPU boots
     jv880/ …                        new cores start in this layout
-  release/                          gitignored; vsbin is the published copy
+  release/                          gitignored; synthbin is the published copy
 ```
 
 ## Per-core `cfg/` files
 
 | File | Contents | Used by |
 |---|---|---|
-| `core.yaml` | name, top module, clock-enable rates, memory ports (name, size, width), panel type (HD44780 rows×cols, or framebuffer w×h), MIDI ports, audio outputs, targets | `vscore` writes the target wrapper's parameters and macros |
-| `files.yaml` | HDL file list, with `vsframe:` and `modules:` references | `vscore` writes `files.qip` (Quartus), a Vivado tcl list, Verilator `.f` |
+| `core.yaml` | name, top module, clock-enable rates, memory ports (name, size, width), panel type (HD44780 rows×cols, or framebuffer w×h), MIDI ports, audio outputs, targets | `synthcore` writes the target wrapper's parameters and macros |
+| `files.yaml` | HDL file list, with `synthframe:` and `modules:` references | `synthcore` writes `files.qip` (Quartus), a Vivado tcl list, Verilator `.f` |
 | `macros.def` | Per-target macros in JTFRAME syntax (`[mister]`, `[xcau15p]`) | today's qsf macros, e.g. `MISTER_DISABLE_ALSA`, `MISTER_DEBUG_NOHDMI` |
 | `reg.yaml` | the core's reference tests (lockstep, `0A.mid` hash) | CI |
 
-Write `vscore` in Python, like the existing tools in all three repos. Go, which JTFRAME uses, is
+Write `synthcore` in Python, like the existing tools in all three repos. Go, which JTFRAME uses, is
 not needed.
 
-## Binaries repo (vsbin, like jtbin)
+## Binaries repo (synthbin, like jtbin)
 
 - Laid out as a MiSTer SD card: `_Devices/`, `_Computer/`, `games/<core>/` READMEs, MGLs.
 - Adds `xcau15p/` for the `.bit` files.
@@ -105,14 +105,14 @@ not needed.
 Each core keeps its own `LICENSE`, as now. The repo root has no single licence; every file
 carries an SPDX header.
 
-**Decision: `vsframe` is MIT.**
+**Decision: `synthframe` is MIT.**
 
 - **It combines with every core and with any licence a future core picks**, including
   GPL-2.0-only. The modules extracted first (`audio_fifo`, `midi_rx`) are already MIT, from the
   Synclavier.
 - **Apache-2.0 was not chosen.** It adds a patent grant, but it is incompatible with GPL-2.0-only.
   19 of the 32 Template_MiSTer `sys/` files carry no "or later" wording.
-- **GPL-3 code stays out of `vsframe`.** Borrowed JTFRAME modules (GPL-3.0-or-later) go under
+- **GPL-3 code stays out of `synthframe`.** Borrowed JTFRAME modules (GPL-3.0-or-later) go under
   `modules/` as separate GPL-3 folders, used only by GPL-compatible cores (SC-55, Proteus). A
   Synclavier build that uses one becomes a GPL-3 bitstream.
 
@@ -137,19 +137,18 @@ Status on 2026-11-22:
    repos stay where they are, untouched.
     - Gate: every core's existing tests pass from `cores/<core>/`, and the CI builds all three RBFs.
 3. **Shared `sys/` and target wrapper.** Move the one `sys/` copy to
-   `modules/vsframe/target/mister/`.
+   `modules/synthframe/target/mister/`.
     - Gate: the Quartus fit summaries match the pre-move builds.
 4. **Extract the shared modules one at a time:** `audio_fifo`, then `midi_rx`, then `hd44780`,
    then the memory port (HARDWARE-PLAN Phase 1, steps 2–3).
     - Gate: the lockstep tests and output hashes stay bit-identical after each move.
-5. **`vscore` and `cfg/`.** Generate `files.qip`, the qsf macros and the Vivado file lists from
+5. **`synthcore` and `cfg/`.** Generate `files.qip`, the qsf macros and the Vivado file lists from
    `cfg/`. The `xcau15p` target, with the M64 board file, is added here.
 6. **GitHub.**
-    - Create the monorepo and vsbin.
+    - Create the monorepo and synthbin.
     - Archive the three old repos, each with a README pointing to the new location.
     - Move the SC-55 downloader database.
 
 ## Not decided
 
-- Final names (vscores, vsframe and vsbin are working names).
 - Whether to retire the three GitHub repos (step 6) or keep them as read-only mirrors.

@@ -45,7 +45,7 @@ is not a reliable build host. Quartus builds keep running in the existing GitHub
 
 ### Phase 1: MiSTer only, can start now
 
-1. **Shared library.** Create `modules/vsframe` in the monorepo described in `LAYOUT-PLAN.md`
+1. **Shared library.** Create `modules/synthframe` in the monorepo described in `LAYOUT-PLAN.md`
    (the jtcores and JTFRAME layout). It holds four contracts:
     - the memory port (tagged requests, in-order data, any delay);
     - the panel as data (HD44780 character RAM or a framebuffer of at most 256×64, plus LED and
