@@ -53,25 +53,25 @@ module wave_ddr #(
     logic        c_req_valid [3], c_req_ready [3], c_req_we [3], c_rsp_valid [3];
     logic [28:0] c_req_addr [3];
     logic [63:0] c_req_wdata [3], c_rsp_data;
-    logic [7:0]  c_req_be [3];
+    logic [7:0]  c_req_be [3], c_req_len [3];
     logic [0:0]  c_req_tag [3], c_rsp_tag;
     logic        m_req_valid, m_req_ready, m_req_we, m_rsp_valid;
     logic [28:0] m_req_addr;
     logic [63:0] m_req_wdata, m_rsp_data;
-    logic [7:0]  m_req_be;
+    logic [7:0]  m_req_be, m_req_len;
     logic [2:0]  m_req_tag, m_rsp_tag;
 
     synthframe_mem_arb #(.N(3), .CTW(1)) arb (
-        .c_req_valid, .c_req_ready, .c_req_we, .c_req_addr, .c_req_wdata, .c_req_be, .c_req_tag,
+        .c_req_valid, .c_req_ready, .c_req_we, .c_req_addr, .c_req_wdata, .c_req_be, .c_req_len, .c_req_tag,
         .c_rsp_valid, .c_rsp_data, .c_rsp_tag,
         .req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
-        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_tag(m_req_tag),
+        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
         .rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag));
 
     synthframe_mem_ddr3 #(.TW(3), .QBITS(QBITS)) mem (
         .clk, .rst,
         .req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
-        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_tag(m_req_tag),
+        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
         .rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag),
         .DDRAM_BUSY, .DDRAM_BURSTCNT, .DDRAM_ADDR, .DDRAM_DOUT, .DDRAM_DOUT_READY,
         .DDRAM_RD, .DDRAM_DIN, .DDRAM_BE, .DDRAM_WE);
@@ -85,6 +85,7 @@ module wave_ddr #(
     assign c_req_addr[CW] = w_addr;
     assign c_req_wdata[CW] = w_din;
     assign c_req_be[CW] = w_be;
+    assign c_req_len[CW] = 8'd1;
     assign c_req_tag[CW] = 1'b0;
 
     // ------------------------------------------------------------- line client
@@ -94,6 +95,7 @@ module wave_ddr #(
     assign c_req_addr[CL] = BASE_W + 29'h80000 + {14'h0, laddr};
     assign c_req_wdata[CL] = '0;
     assign c_req_be[CL] = '0;
+    assign c_req_len[CL] = 8'd1;
     assign c_req_tag[CL] = 1'b0;
 
     // ----------------------------------------------------------- stream client
@@ -124,6 +126,7 @@ module wave_ddr #(
     assign c_req_addr[CS] = BASE_W + {10'h0, cq[cq_rp[QBITS-1:0]]};
     assign c_req_wdata[CS] = '0;
     assign c_req_be[CS] = '0;
+    assign c_req_len[CS] = 8'd1;
     assign c_req_tag[CS] = 1'b0;
 
     always_ff @(posedge clk) begin

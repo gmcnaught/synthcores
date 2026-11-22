@@ -1,21 +1,18 @@
-// 16-bit word port (synclavier_core xr_*) on MiSTer's DDR3 port (DDRAM_*,
-// Avalon-MM, 64-bit, burst 1). Word w lives at byte BASE + 2w; DDR3 from
-// 0x30000000 is free for cores. `wide` with wr writes wdata to the 512
-// words from w (a multiple of 512): one burst of 128 64-bit beats (poly
-// memory clear).
+// 16-bit word port (synclavier_core xr_*) on MiSTer's DDR3, through the synthframe memory
+// port (synthframe_mem_arb onto synthframe_mem_ddr3: 64-bit words, reads returned in order
+// after any delay). Word w lives at byte BASE + 2w; DDR3 from 0x30000000 is free for cores.
+// `wide` with wr writes wdata to the 512 words from w (a multiple of 512): one fill of 128
+// 64-bit words (poly memory clear).
 //
-// Handshake as the simulation RAM models: hold rd/wr until ack, a
-// one-clock pulse with rdata valid; the clock after an ack is ignored. A
-// write is acknowledged when the controller accepts it (Avalon keeps the
-// order, so a later read sees it).
+// Handshake as the simulation RAM models: hold rd/wr until ack, a one-clock pulse with rdata
+// valid; the clock after an ack is ignored. A write is acknowledged when the memory port
+// takes it (the port keeps the order, so a later read sees it).
 //
-// Read stream (s_*, the poly voices' fetches, M15/M26): s_rd held with
-// s_addr until s_ack (the command was accepted; the clock after s_ack is
-// ignored); each read is the 64-bit beat holding word s_addr (words
-// s_addr & ~3 .. | 3, word i in bits 16i+15..16i); reads do not wait for
-// each other's data, which comes back in order as s_rvalid pulses. A port request waits until the stream's reads are back (its
-// read takes the next DOUT_READY), and the stream waits while a port
-// request is pending: the port goes first.
+// Read stream (s_*, the poly voices' fetches, M15/M26): s_rd held with s_addr until s_ack
+// (the memory port took the read; the clock after s_ack is ignored); each read is the 64-bit
+// word holding word s_addr (words s_addr & ~3 .. | 3, word i in bits 16i+15..16i); reads do
+// not wait for each other's data, which comes back in order as s_rvalid pulses. Memory-port
+// clients, in priority order: the word port, the stream.
 module ddram_word #(
     parameter logic [31:0] BASE = 32'h3000_0000
 ) (
@@ -47,84 +44,80 @@ module ddram_word #(
     output logic        DDRAM_WE
 );
     localparam logic [28:0] BASE_Q = 29'(BASE >> 3);
+    localparam int CP = 0, CS = 1;                  // clients: word port, stream
 
-    localparam logic [2:0] S_IDLE = 3'd0, S_CMD = 3'd1, S_DATA = 3'd2, S_BURST = 3'd3, S_SCMD = 3'd4;
-    logic [2:0] state;
+    // ------------------------------------------------------------ memory port
+    logic        c_req_valid [2], c_req_ready [2], c_req_we [2], c_rsp_valid [2];
+    logic [28:0] c_req_addr [2];
+    logic [63:0] c_req_wdata [2], c_rsp_data;
+    logic [7:0]  c_req_be [2], c_req_len [2];
+    logic [0:0]  c_req_tag [2], c_rsp_tag;
+    logic        m_req_valid, m_req_ready, m_req_we, m_rsp_valid;
+    logic [28:0] m_req_addr;
+    logic [63:0] m_req_wdata, m_rsp_data;
+    logic [7:0]  m_req_be, m_req_len;
+    logic [1:0]  m_req_tag, m_rsp_tag;
+
+    synthframe_mem_arb #(.N(2), .CTW(1)) arb (
+        .c_req_valid, .c_req_ready, .c_req_we, .c_req_addr, .c_req_wdata, .c_req_be, .c_req_len, .c_req_tag,
+        .c_rsp_valid, .c_rsp_data, .c_rsp_tag,
+        .req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
+        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
+        .rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag));
+
+    // up to 31 reads in flight (the stream kept 30 before)
+    synthframe_mem_ddr3 #(.TW(2), .QBITS(5)) mem (
+        .clk, .rst,
+        .req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
+        .req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
+        .rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag),
+        .DDRAM_BUSY, .DDRAM_BURSTCNT, .DDRAM_ADDR, .DDRAM_DOUT, .DDRAM_DOUT_READY,
+        .DDRAM_RD, .DDRAM_DIN, .DDRAM_BE, .DDRAM_WE);
+
+    // --------------------------------------------------------- word port client
+    logic       p_wait;                 // a read is issued, waiting for its word
     logic [1:0] lane;
-    logic [6:0] beat;
-    logic       burst;
+    assign c_req_valid[CP] = (rd || wr) && !ack && !p_wait;
+    assign c_req_we[CP] = wr;
+    assign c_req_addr[CP] = BASE_Q + 29'(addr[26:2]);
+    assign c_req_wdata[CP] = {4{wdata}};
+    assign c_req_be[CP] = wr && wide ? 8'hFF : 8'b0000_0011 << {addr[1:0], 1'b0};
+    assign c_req_len[CP] = wr && wide ? 8'd128 : 8'd1;
+    assign c_req_tag[CP] = 1'b0;
 
-    logic [5:0] s_out;                           // stream reads in flight
-    wire        s_ret = DDRAM_DOUT_READY && s_out != 6'd0;
-    wire        s_take = state == S_SCMD && !DDRAM_BUSY;
-    wire        port_req = (rd || wr) && !ack;
-
-    assign DDRAM_BURSTCNT = burst ? 8'd128 : 8'd1;
+    // ------------------------------------------------------------ stream client
+    assign c_req_valid[CS] = s_rd && !s_ack;
+    assign c_req_we[CS] = 1'b0;
+    assign c_req_addr[CS] = BASE_Q + 29'(s_addr[26:2]);
+    assign c_req_wdata[CS] = '0;
+    assign c_req_be[CS] = '0;
+    assign c_req_len[CS] = 8'd1;
+    assign c_req_tag[CS] = 1'b0;
 
     always_ff @(posedge clk) begin
         ack <= 1'b0;
         s_ack <= 1'b0;
         s_rvalid <= 1'b0;
-        if (s_ret) begin
-            s_rdata <= DDRAM_DOUT;
-            s_rvalid <= 1'b1;
-        end
-        s_out <= s_out + (s_take ? 6'd1 : 6'd0) - (s_ret ? 6'd1 : 6'd0);
         if (rst) begin
-            state <= S_IDLE;
-            DDRAM_RD <= 1'b0;
-            DDRAM_WE <= 1'b0;
-            burst <= 1'b0;
-            s_out <= '0;
-        end else case (state)
-            S_IDLE:
-                if (port_req && s_out == 6'd0) begin
-                    DDRAM_ADDR <= BASE_Q + 29'(addr[26:2]);
-                    DDRAM_DIN  <= {4{wdata}};
-                    DDRAM_BE   <= wide ? 8'hFF : 8'b0000_0011 << {addr[1:0], 1'b0};
-                    DDRAM_RD   <= rd;
-                    DDRAM_WE   <= wr;
+            p_wait <= 1'b0;
+        end else begin
+            if (c_req_valid[CP] && c_req_ready[CP]) begin
+                if (wr) ack <= 1'b1;
+                else begin
+                    p_wait <= 1'b1;
                     lane <= addr[1:0];
-                    burst <= wr && wide;
-                    beat <= '0;
-                    state <= wr && wide ? S_BURST : S_CMD;
-                end else if (!port_req && s_rd && !s_ack && s_out < 6'd30) begin
-                    DDRAM_ADDR <= BASE_Q + 29'(s_addr[26:2]);
-                    DDRAM_RD   <= 1'b1;
-                    state <= S_SCMD;
                 end
-            S_SCMD:                              // a stream read, held until accepted
-                if (!DDRAM_BUSY) begin
-                    DDRAM_RD <= 1'b0;
-                    s_ack <= 1'b1;
-                    state <= S_IDLE;
-                end
-            S_BURST:                             // one beat per accepted clock
-                if (!DDRAM_BUSY) begin
-                    beat <= beat + 7'd1;
-                    if (beat == 7'd127) begin
-                        DDRAM_WE <= 1'b0;
-                        burst <= 1'b0;
-                        ack <= 1'b1;
-                        state <= S_IDLE;
-                    end
-                end
-            S_CMD:                               // held until accepted
-                if (!DDRAM_BUSY) begin
-                    DDRAM_RD <= 1'b0;
-                    DDRAM_WE <= 1'b0;
-                    if (DDRAM_WE) begin
-                        ack <= 1'b1;
-                        state <= S_IDLE;
-                    end else state <= S_DATA;
-                end
-            S_DATA:
-                if (DDRAM_DOUT_READY) begin
-                    rdata <= DDRAM_DOUT[{lane, 4'd0} +: 16];
-                    ack <= 1'b1;
-                    state <= S_IDLE;
-                end
-            default: state <= S_IDLE;
-        endcase
+            end
+            if (c_rsp_valid[CP]) begin
+                rdata <= c_rsp_data[{lane, 4'd0} +: 16];
+                ack <= 1'b1;
+                p_wait <= 1'b0;
+            end
+            if (c_req_valid[CS] && c_req_ready[CS]) s_ack <= 1'b1;
+            if (c_rsp_valid[CS]) begin
+                s_rdata <= c_rsp_data;
+                s_rvalid <= 1'b1;
+            end
+        end
     end
 endmodule
