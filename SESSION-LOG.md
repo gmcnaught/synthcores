@@ -13,5 +13,14 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
 - **Quartus file references:** all resolve in all three cores.
 - **Root workflows:** `tests.yml` and `build-rbf.yml`, filtered by core path. The release
   workflows are parked in `.github/disabled/`.
-- **Pending:** push to `gmcnaught/synthcores`; CI green; fit resources compared with the last
-  release builds of the old repos.
+- **Pushed** to https://github.com/gmcnaught/synthcores (public).
+- **Correction:** the import used local `main` branches that were behind GitHub. SC-55 was 1
+  commit behind (release RBF) and Synclavier 3 (release methodology, release RBF, PR #89). No
+  HDL changed.
+    - Merged on branch `iter0-upstream-sync`. Re-filtering is deterministic, so the shared
+      history matched and only the 4 commits came in.
+    - `import-cores.sh` now refuses a branch that is behind its remote.
+- **Baselines for the fit comparison:** old-repo Build RBF runs 44834929645 (SC-55 500a4cc),
+  44778489707 (Synclavier e80c4fe) and 44867771202 (Proteus 6a9df91). These match the
+  imported HDL.
+- **Pending:** CI green; fit resources compared.
