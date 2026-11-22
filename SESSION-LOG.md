@@ -15,11 +15,13 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
     - panel buttons on P7.
 - **Render test:** `jv880.mid` has hash 73feda3c…bbbc, which needs a factory-preset NVRAM
   (d5da7845…d207).
-- **`cores/sc55/ref/jv880_nvram.cpp`:** a harness meant to make that NVRAM without the GUI.
-- **Open:** with an empty NVRAM, the reference firmware sleeps at pc 05fa, servicing interrupts
-  (handlers 040a–045b), and never writes the LCD. That happens in the harness and in
-  `sc55-render`; the render is silent. The GUI procedure must involve something the headless
-  paths do not.
+- **`cores/sc55/ref/jv880_nvram.cpp`:** makes the factory-preset NVRAM headless and gets the
+  documented hash d5da7845…d207. The reference renderer then gives the jv880.mid hash
+  73feda3c…bbbc (`cores/sc55/tests/test_jv880_ref.py`, with `JV880_ROM_DIR`).
+- **Why it first looked stuck:** the reference's `LCD_Write` keeps no LCD state without a
+  display backend, so headless runs never show the screen. The firmware boots normally:
+  "SYNTHESIZER MODULE / Roland JV-880", then "Internal RAM read error" for an empty NVRAM. It
+  renders silence until a factory preset is loaded. The harness attaches a null LCD backend.
 
 ## Iterations 5 and 6: Synclavier and Proteus on the memory port (2026-11-22, PR #7)
 
