@@ -1,4 +1,4 @@
-// MCU system lockstep (M2): hdl/mcu/sc55_mcu.sv (CPU + memories + peripherals)
+// MCU system lockstep (M2): modules/roland/hdl/mcu/sc55_mcu.sv (CPU + memories + peripherals)
 // against the reference model, in one process.
 //
 // The HDL serves its own memories and devices. The bench supplies only what

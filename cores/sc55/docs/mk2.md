@@ -27,7 +27,7 @@ UARTs, interrupts).
 
 ## Already identical
 
-The H8/532 CPU (`hdl/cpu/h8_cpu.sv`) runs the mk2 firmware unchanged
+The H8/532 CPU (`modules/roland/hdl/cpu/h8_cpu.sv`) runs the mk2 firmware unchanged
 (`cpu_lockstep --romset mk2-v1.01`, devices from the model):
 
 | Run | Result |

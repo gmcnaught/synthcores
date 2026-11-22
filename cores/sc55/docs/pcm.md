@@ -1,4 +1,4 @@
-# PCM chip (`hdl/pcm/sc55_pcm.sv`, M3)
+# PCM chip (`modules/roland/hdl/pcm/sc55_pcm.sv`, M3)
 
 Behavioural model of the SC-55's custom PCM chip, matched to the reference
 `pcm.cpp` (`PCM_Write`, `PCM_Read`, `PCM_Update`, `calc_tv`,
@@ -59,7 +59,7 @@ word after every step, and all of eram every 1000 steps.
 * Each clock does at most one multiply or a short chain of adds: the voice
   datapath is split (DPCM 2 clocks, filter 4, volume 4, mix 2) and so are
   the reverb steps with two multiplies in a row (two halves).
-* eram is a block RAM (`hdl/common/sdp_ram.sv`) with registered requests;
+* eram is a block RAM (`modules/roland/hdl/common/sdp_ram.sv`) with registered requests;
   after a read the reverb program waits two clocks.
 
 Speed (bench): at most 658 clocks per 24-voice frame with a 7-clock ROM

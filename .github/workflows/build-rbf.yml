@@ -41,6 +41,7 @@ jobs:
               - '.github/workflows/build-rbf.yml'
             sc55:
               - 'cores/sc55/hdl/**'
+              - 'modules/roland/**'
               - 'cores/sc55/mister/**'
             synclavier:
               - 'cores/synclavier/hdl/**'
