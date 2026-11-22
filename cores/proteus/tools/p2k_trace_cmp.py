@@ -55,6 +55,15 @@ def rtl_words(path):
             yield (p[0], wa, int(p[2], 16), int(p[3]), int(p[4], 16))
 
 
+def near_fetch(t):
+    """Flash read within 32 bytes of the PC: an opcode fetch or a PC-relative table read, which the
+    two traces' fetch filters can classify differently."""
+    return t[0] == "R" and (t[1] < 0x200000 or 0x02000000 <= t[1] < 0x02200000) and abs(t[1] - t[4]) <= 32
+
+
+POLLED = {0x00400000}     # LCD busy flag: polled a timing-dependent number of times
+
+
 def same(x, y):
     if x[0] != y[0] or x[1] != y[1]:
         return False
@@ -97,6 +106,14 @@ def main():
             hist.append(pend_m[0]); pend_m.pop(0); pend_r.pop(0); i += 1
         elif len(pend_m) > 1 and len(pend_r) > 1 and same(pend_m[0], pend_r[1]) and same(pend_m[1], pend_r[0]):
             hist += pend_m[:2]; pend_m = pend_m[2:]; pend_r = pend_r[2:]; i += 2
+        elif pend_r[0][0] == "R" and pend_r[0][1] in POLLED:
+            pend_r.pop(0)
+        elif pend_m[0][0] == "R" and pend_m[0][1] in POLLED:
+            pend_m.pop(0)
+        elif near_fetch(pend_r[0]):
+            pend_r.pop(0)                                     # PC-relative read the other side filtered
+        elif near_fetch(pend_m[0]):
+            pend_m.pop(0)
         else:
             print(f"DIVERGENCE after {i} matched word accesses")
             for t in hist[-a.context:]:
