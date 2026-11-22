@@ -108,11 +108,13 @@ proven.
 
 - **MiSTer add-ons.** Is there a user-port MIDI adapter, an I/O board or an SDRAM board? Is the
   MiSTer reachable over SSH? No SSH host is configured in `~/.ssh/config`.
-- **M64 schematic.** The ModRetro support page does not render for automated fetches, so the
-  schematic facts in the brief (PSRAM parts, header pinout) could not be checked again. Save the
-  PDF to `hw/m64/`.
-- **M64 HDMI path.** Is it driven straight from the FPGA or through a transmitter chip? This
-  decides step 5 of Phase 2.
+- **M64 schematic (resolved 2026-11-22).** It was downloaded to `hw/m64/`, which is not
+  committed; `hw/m64/README.md` gives the sources. The expansion header is J25: a 16-pin
+  0.5 mm FFC connector with 8 GPIOs at 1.8 V and a 1.8 V supply only. The PSRAM part numbers
+  are not checked against the brief yet.
+- **M64 HDMI path (resolved 2026-11-22).** The FPGA drives TMDS directly into an SN75DP159
+  retimer. There is no transmitter chip, so for step 5 of Phase 2 the HDL has to produce the
+  TMDS encoding and the HDMI audio data islands.
 - **openFPGALoader.** Support for the XCAU15P is not confirmed. The Vivado Hardware Manager is the
   known-good loader.
 - **JTAG cable.** Which cable you have, if any.

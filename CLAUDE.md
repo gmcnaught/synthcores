@@ -21,24 +21,45 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
 - **Plans:** `HARDWARE-PLAN.md` (MiSTer and M64) and `LAYOUT-PLAN.md` (monorepo layout,
   licences, migration order).
 
-## Platforms
+## Platforms and build hosts
 
-- **MiSTer (DE10-Nano, Cyclone V):** Quartus 17.0 builds, through the per-core GitHub "Build
-  RBF" workflows. These still sit under `cores/*/.github/` and don't run until they move to the
-  root `.github/`. MIDI comes in through MidiLink.
+- **MiSTer (DE10-Nano, Cyclone V):** `root@192.168.20.62`, SSH key login. Hardware smoke tests:
+  `modules/synthframe/bin/synth-mister` and each core's smoke script
+  (`cores/sc55/scripts/mister/smoke.sh`, `cores/proteus/tools/mister_smoke.sh`,
+  `cores/synclavier/scripts/mister/smoke.sh`). The installed releases are backed up in
+  `/media/fat/_synth_backup/<date>/`. MIDI comes in through MidiLink.
+- **Windows build host (`winbuild` in `~/.ssh/config`):** Quartus Lite 17.0 and Vivado 2026.1,
+  PowerShell over SSH.
+    - Build a core's RBF from the working tree with `scripts/build-hosts/winbuild.sh CORE`
+      (`SYNTHROOT=` another checkout).
+    - Pull requests are gated on these builds plus the MiSTer smoke tests.
+    - `scripts/build-hosts/enable-windows-sshd.ps1` sets up the SSH side.
+- **GitHub Actions:**
+    - `tests.yml` runs on every pull request.
+    - `build-rbf.yml` (Quartus in the raetro/quartus:17.0 container) runs only on `v*` tags and
+      on demand.
+    - Quartus on Windows does not place bit-identically to the Linux container: the SC-55 at
+      main was 32,973 against 32,963 ALMs. Compare fit numbers only between builds from the
+      same platform.
 - **`xcau15p` target (AMD Artix UltraScale+), first board the ModRetro M64:** a test board loaded
   over JTAG.
     - No MIDI port.
-    - Audio over HDMI only.
-    - Vivado needs an x86-64 Linux host. This Mac is arm64.
+    - Audio over HDMI only (`hw/m64/README.md`).
+    - Vivado runs on the Windows build host. It has the xcau15p-ffvb676 parts.
 
 ## Conventions shared by the cores
 
 - **Licences:** each core keeps its own (SC-55 GPL-2.0-or-later, Proteus GPL-3.0, Synclavier
-  MIT). The shared framework `synthframe` (to come) is MIT. GPL-3 code borrowed from JTFRAME stays
+  MIT). The shared framework `modules/synthframe` is MIT. GPL-3 code borrowed from JTFRAME stays
   outside it.
 - **Tests:** every core is checked against a reference model, as bit-exact lockstep or output
   hashes. A refactor must keep those tests bit-identical.
 - **Vendor code:** keep vendor-specific code out of core HDL. Today it is limited to `pll.v` and
   `mister/sys`, plus one RAM hint in `cores/synclavier/hdl/dev/pcm_reverb.sv`.
-- **ROMs:** no ROMs, firmware or disk images are committed.
+- **ROMs:** no ROMs, firmware or disk images are committed. The tests find them through
+  `SC55_ROM_DIR`, `SYNCLAVIER_RELEASE_L` and so on, in the old repo folders.
+- **Python simulators:** run them and their tests with `pypy3`, not `python3`. That covers the
+  Synclavier `sim/`, `tests/sim` and `tests/hdl`, and the Proteus `tools/proteus_model.py`.
+  Scripts that only need Pillow can use `python3`.
+- **Parallel sessions:** more than one session may work in this checkout. Do iteration work in
+  its own `git worktree`, and `git add` only your own paths.
