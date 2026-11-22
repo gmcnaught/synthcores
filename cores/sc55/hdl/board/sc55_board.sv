@@ -72,10 +72,10 @@ module sc55_board #(
     output logic        DDRAM_WE
 );
     // ---------------------------------------------------------- ROM load
-    logic        ld_we, wave_wr, wave_busy, loading, ok;
+    logic        ld_we, wave_wr, wave_busy, loading, pack_ok, ok;
     logic [2:0]  ld_sel;
     logic [18:0] ld_addr;
-    logic [1:0]  model;                   // from the pack: 0 mk1, 1 SC-155, 2 mk2, 3 SC-155mk2
+    logic [2:0]  model;                   // from the pack: 0 mk1, 1 SC-155, 2 mk2, 3 SC-155mk2 (4 JV-880: not this core)
     wire         mk2 = model[1];
     wire         sc155 = model[0];
     logic [7:0]  ld_data, wave_data;
@@ -86,8 +86,9 @@ module sc55_board #(
         .ioctl_download, .ioctl_wr, .ioctl_addr, .ioctl_dout, .ioctl_wait,
         .ld_we, .ld_sel, .ld_addr, .ld_data,
         .wave_wr, .wave_addr, .wave_data, .wave_busy, .model,
-        .loading, .ok
+        .loading, .ok(pack_ok)
     );
+    assign ok = pack_ok && !model[2];
     assign rom_ok = ok;
 
     // ---------------------------------------------------------- sequencing
@@ -136,7 +137,7 @@ module sc55_board #(
     sc55_core core (
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
-        .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155,
+        .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155, .jv880(1'b0), .enc_we(1'b0), .enc_dir(1'b0),
         .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data,
         .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,

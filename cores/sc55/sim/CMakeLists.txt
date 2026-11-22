@@ -19,12 +19,12 @@ verilate(cpu_lockstep SOURCES "${ROLAND}/cpu/h8_cpu.sv" TOP_MODULE h8_cpu PREFIX
 
 add_executable(mcu_lockstep mcu/mcu_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(mcu_lockstep PRIVATE sc55_common_traced)
-verilate(mcu_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv"
-         TOP_MODULE sc55_mcu PREFIX Vsc55_mcu VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19)
+verilate(mcu_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv"
+         TOP_MODULE sc55_mcu PREFIX Vsc55_mcu VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19 -GJV880_RAMS=1)
 
 add_executable(submcu_lockstep submcu/submcu_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(submcu_lockstep PRIVATE sc55_common_traced)
-verilate(submcu_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${HDL}/submcu/sc55_submcu.sv" TOP_MODULE sc55_submcu PREFIX Vsc55_submcu
+verilate(submcu_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/submcu/sc55_submcu.sv" TOP_MODULE sc55_submcu PREFIX Vsc55_submcu
          VERILATOR_ARGS ${VFLAGS} --public-flat-rw)
 
 add_executable(pcm_lockstep pcm/pcm_lockstep.cpp common/midi_demo.cpp)
@@ -35,27 +35,27 @@ verilate(pcm_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/pcm/sc55_
 add_executable(system_lockstep system/system_lockstep.cpp common/midi_demo.cpp "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-sc55/src/renderer/smf.cpp")
 target_include_directories(system_lockstep PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/nuked-sc55/src/renderer")
 target_link_libraries(system_lockstep PRIVATE sc55_common_traced)
-verilate(system_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
-         TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${ROLAND}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19)
+verilate(system_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${ROLAND}/core/sc55_core.sv"
+         TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${ROLAND}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19 -GJV880_RAMS=1)
 
-file(GLOB BOARD_SV "${HDL}/board/*.sv")
+file(GLOB BOARD_SV "${HDL}/board/*.sv" "${ROLAND}/board/*.sv")
 list(APPEND BOARD_SV "${SYNTHFRAME}/midi/synthframe_midi_rx.sv" "${SYNTHFRAME}/audio/synthframe_audio_fifo.sv"
      "${SYNTHFRAME}/mem/synthframe_mem_ddr3.sv" "${SYNTHFRAME}/mem/synthframe_mem_arb.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
-verilate(board_lockstep SOURCES ${BOARD_SV} "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"
-         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${ROLAND}/pcm" "${HDL}/board"
+verilate(board_lockstep SOURCES ${BOARD_SV} "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${ROLAND}/core/sc55_core.sv"
+         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${ROLAND}/pcm" "${HDL}/board" "${ROLAND}/board"
          VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
-         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DRESAMPLE_HEX=\"${HDL}/board/resample_coef.hex\"")
+         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
 
 add_executable(resample_tb resample/resample_tb.cpp)
-verilate(resample_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${HDL}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
-         INCLUDE_DIRS "${HDL}/board" VERILATOR_ARGS ${VFLAGS} "-DRESAMPLE_HEX=\"${HDL}/board/resample_coef.hex\"")
+verilate(resample_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
+         INCLUDE_DIRS "${ROLAND}/board" VERILATOR_ARGS ${VFLAGS} "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
 
 # model-only analysis: ROM2 access statistics (mk2 ROM2-in-SDRAM design)
 add_executable(rom2_stats tools/rom2_stats.cpp common/midi_demo.cpp)
 target_link_libraries(rom2_stats PRIVATE sc55_common_traced)
 
 add_executable(rom2x_cache_tb board/rom2x_cache_tb.cpp)
-verilate(rom2x_cache_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${HDL}/board/rom2x_cache.sv" TOP_MODULE rom2x_cache PREFIX Vrom2x_cache
+verilate(rom2x_cache_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/board/rom2x_cache.sv" TOP_MODULE rom2x_cache PREFIX Vrom2x_cache
          VERILATOR_ARGS ${VFLAGS})

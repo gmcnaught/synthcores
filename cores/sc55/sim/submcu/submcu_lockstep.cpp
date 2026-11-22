@@ -1,4 +1,4 @@
-// Sub-MCU lockstep: hdl/submcu/sc55_submcu.sv against the reference's
+// Sub-MCU lockstep: modules/roland/hdl/submcu/sc55_submcu.sv against the reference's
 // submcu.cpp, in one process (SC-55mk2 romset).
 //
 // Per MCU step of the model: MIDI bytes posted before the step go to both;

@@ -29,7 +29,8 @@ def test_lcd_tables_current():
         subprocess.run([sys.executable, "-I", str(ROOT / "tools" / "gen_lcd_tables.py"),
                         str(ROOT / "third_party" / "nuked-sc55" / "src" / "backend"), d], check=True, capture_output=True)
         for name in ("lcd_font.svh", "lcd_back.hex"):
-            assert (pathlib.Path(d) / name).read_text() == (ROOT / "hdl" / "board" / name).read_text(), name
+            home = ROOT.parent.parent / "modules" / "roland" / "hdl" / "board" if name == "lcd_font.svh" else ROOT / "hdl" / "board"
+            assert (pathlib.Path(d) / name).read_text() == (home / name).read_text(), name
 
 
 if __name__ == "__main__":
