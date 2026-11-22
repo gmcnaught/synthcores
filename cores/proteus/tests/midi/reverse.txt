@@ -1,0 +1,9 @@
+# Reverse Sound test: forward note, then SysEx "pri reverse sound" (parameter 40) = On on the
+# current preset, the same note reversed, then reverse Off again.
+# (MAME -midiin starts the file about 10 s after power-on.)
+2.0 on  1 60 100
+3.5 off 1 60
+4.0 syx 18 04 00 03 28 00 01 00
+4.5 on  1 60 100
+6.0 off 1 60
+6.5 syx 18 04 00 03 28 00 00 00

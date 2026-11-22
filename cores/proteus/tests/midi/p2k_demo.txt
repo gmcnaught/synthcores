@@ -1,0 +1,20 @@
+# Proteus 2000 research demo on the synthetic SIMM (ROM ID 4): preset 0 "kb1:Piano 1", then
+# preset 1 "wav:Sine". MAME's midiin starts 10 s after power-on (14.0 = 24 s emulated).
+14.0 cc  1 0 4
+14.0 cc  1 32 0
+14.1 pc  1 0
+15.0 on  1 48 100
+15.4 on  1 55 100
+15.8 on  1 60 100
+16.2 on  1 64 100
+16.6 on  1 67 100
+17.0 on  1 72 110
+18.5 off 1 48
+18.5 off 1 55
+18.5 off 1 60
+18.5 off 1 64
+18.5 off 1 67
+18.5 off 1 72
+19.0 pc  1 1
+19.5 on  1 69 100
+20.5 off 1 69
