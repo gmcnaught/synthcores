@@ -3,6 +3,7 @@
 // (busstate 00 fetch, 10 read, 11 write; the board must return ext_din combinationally).
 module p2k_cpu (
 	input  logic        clk,
+	input  logic        ce_sys,       // MCF5206e system-clock enable for the peripherals
 	input  logic        reset_n,
 	output logic [31:0] addr,
 	output logic [1:0]  busstate,     // 00 fetch, 10 read, 11 write, 01 idle
@@ -37,7 +38,7 @@ module p2k_cpu (
 	assign din = per_sel ? per_dout : ext_din;
 
 	mcf5206e_periph per (
-		.clk(clk), .reset(!reset_n), .sel(per_sel), .wr(busstate == 2'b11), .offs({addr[9:1], 1'b0}),
+		.clk(clk), .ce_sys(ce_sys), .reset(!reset_n), .sel(per_sel), .wr(busstate == 2'b11), .offs({addr[9:1], 1'b0}),
 		.uds(uds), .lds(lds), .din(dout), .dout(per_dout), .ipl(ipl),
 		.u1_rxd(u1_rxd), .u2_rxd(u2_rxd), .u1_txd(u1_txd), .u2_txd(u2_txd),
 		.pp_in(pp_in), .pp_out(pp_out), .pp_ddr(pp_ddr)

@@ -82,3 +82,9 @@ Accesses counted over boot + demo playback in MAME [O]:
   kernel's `skipFetch` (no bus cycle for the read half of CLR on 68010+, as the TG68K wrapper).
 - Verified: the first 5.2 M data word accesses of the boot (25.6 M MAME records, boot block and
   DRAM tests) match MAME exactly.
+- ColdFire-only opcodes: every `cpushl` (F4xx) and `pulse` (4ACC) in the OS 2.26 and boot-block
+  disassembly sits inside data tables; `halt` (4AC8) occurs once, at boot 0x020005E4 after a
+  fatal-error call that does not return. [I] None is executed on a normal boot, so TG68K keeps
+  its 68020 decode (TAS An → illegal-instruction trap) for these.
+- Peripheral timing: `ce_sys` (one pulse per 33 MHz system clock) drives the timers and UART baud
+  generators; the testbench runs the CPU at `P2K_TB_RATIO` (default 4) clocks per system clock.

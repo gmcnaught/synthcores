@@ -7,6 +7,8 @@ module mcf5206e_periph #(
 	parameter int SYSCLK = 33_000_000
 ) (
 	input  logic        clk,
+	input  logic        ce_sys,       // 1 pulse per MCF5206e system clock (timers, UART baud); the
+	                                  // CPU (TG68K) runs at a multiple of it
 	input  logic        reset,
 	input  logic        sel,          // access to MBAR + 0x000..0x3FF this cycle
 	input  logic        wr,
@@ -238,12 +240,14 @@ module mcf5206e_periph #(
 			ppdat <= 8'h00; pp_ddr <= 8'h00;
 			div16 <= 4'd0;
 		end else begin
-			// timers (CLK = 01 sysclk; CLK = 10 sysclk/16)
-			div16 <= div16 + 4'd1;
-			if (t1.tmr[2:1] == 2'b01 || (t1.tmr[2:1] == 2'b10 && div16 == 4'd0)) t1 <= tick(t1);
-			if (t2.tmr[2:1] == 2'b01 || (t2.tmr[2:1] == 2'b10 && div16 == 4'd0)) t2 <= tick(t2);
-			ua <= uart_step(ua, u1_rxd, u1_txd);
-			ub <= uart_step(ub, u2_rxd, u2_txd);
+			// timers (CLK = 01 sysclk; CLK = 10 sysclk/16) and UART baud, on the system clock enable
+			if (ce_sys) begin
+				div16 <= div16 + 4'd1;
+				if (t1.tmr[2:1] == 2'b01 || (t1.tmr[2:1] == 2'b10 && div16 == 4'd0)) t1 <= tick(t1);
+				if (t2.tmr[2:1] == 2'b01 || (t2.tmr[2:1] == 2'b10 && div16 == 4'd0)) t2 <= tick(t2);
+				ua <= uart_step(ua, u1_rxd, u1_txd);
+				ub <= uart_step(ub, u2_rxd, u2_txd);
+			end
 
 			if (sel && !wr) begin
 				// reading the receive buffer pops the FIFO
