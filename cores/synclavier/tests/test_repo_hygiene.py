@@ -41,8 +41,9 @@ def test_no_large_files():
 
 
 if __name__ == "__main__":
-    if not os.path.isdir(os.path.join(ROOT, ".git")) and \
-            not os.path.isfile(os.path.join(ROOT, ".git")):
+    # ROOT may be a subfolder of a larger repo (cores/synclavier in the monorepo)
+    if subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT,
+                      capture_output=True).returncode != 0:
         print("not a git checkout; skipped")
         sys.exit(0)
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
