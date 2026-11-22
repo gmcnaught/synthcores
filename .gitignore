@@ -1,0 +1,10 @@
+# The original repos, kept unchanged until the monorepo passes its tests (LAYOUT-PLAN.md step 2)
+/nuked-sc55/
+/emu-proteus-2k-MiSTer/
+/synclavier-ii-MiSTer/
+
+# Local state and outputs
+.remember/
+/release/
+.DS_Store
+__pycache__/
