@@ -198,10 +198,10 @@ index 9b3b3b82..08e9d0a2 100644
  	}
 diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
 new file mode 100644
-index 00000000..fd4b138a
+index 00000000..bcd786b2
 --- /dev/null
 +++ b/src/mame/emusys/emup2k.cpp
-@@ -0,0 +1,801 @@
+@@ -0,0 +1,829 @@
 +// license:BSD-3-Clause
 +// copyright-holders:emu-proteus-xr-MiSTer contributors
 +/*
@@ -585,6 +585,9 @@ index 00000000..fd4b138a
 +	int m_midi_rx = 1;
 +	attotime m_midi_last;
 +	bool m_trace = false;                 // P2K_TRACE=1: log G20/H writes with time and PC
++	std::unique_ptr<std::ofstream> m_bustrace;
++	u64 m_bustrace_left = 0;
++	memory_passthrough_handler m_bustrace_r, m_bustrace_w;
 +	u8 m_leds[3]{};
 +	u32 m_open_bus = 0;
 +	u8 m_scan_row = 0;
@@ -606,6 +609,31 @@ index 00000000..fd4b138a
 +	save_item(NAME(m_snd_addr));
 +	save_item(NAME(m_leds));
 +	m_trace = std::getenv("P2K_TRACE") != nullptr;
++
++	// P2K_BUSTRACE=file: binary log of CPU data accesses (program space) for the RTL testbench.
++	// Record = 16 bytes little-endian: u32 address, u32 data, u32 mem_mask, u32 PC | bit 0 = write
++	// (PCs are even). Opcode fetches are not seen by taps. P2K_BUSTRACE_MAX limits the record count.
++	if (const char *bt = std::getenv("P2K_BUSTRACE"))
++	{
++		m_bustrace = std::make_unique<std::ofstream>(bt, std::ios::binary);
++		const char *mx = std::getenv("P2K_BUSTRACE_MAX");
++		m_bustrace_left = mx ? strtoull(mx, nullptr, 0) : 50'000'000ULL;
++		address_space &prog = m_maincpu->space(AS_PROGRAM);
++		const bool nodram = std::getenv("P2K_BUSTRACE_NODRAM") != nullptr;   // skip 0x01000000-0x017FFFFF
++		auto rec = [this, nodram] (offs_t a, u32 d, u32 m, bool w) {
++			if (!m_bustrace_left || (nodram && a >= 0x01000000 && a < 0x01800000))
++				return;
++			// with NODRAM also drop opcode fetches from flash (reads within 16 bytes of the PC)
++			const u32 pc = m_maincpu->pc();
++			if (nodram && !w && (a < 0x200000 || (a >= 0x02000000 && a < 0x02200000)) && a + 16 >= pc && a <= pc + 16)
++				return;
++			m_bustrace_left--;
++			const u32 r[4] = { a, d, m, u32(m_maincpu->pc()) | (w ? 1 : 0) };
++			m_bustrace->write(reinterpret_cast<const char *>(r), sizeof(r));
++		};
++		m_bustrace_r = prog.install_read_tap(0x00000000, 0xffffffff, "bustrace_r", [rec] (offs_t a, u32 &d, u32 m) { rec(a, d, m, false); });
++		m_bustrace_w = prog.install_write_tap(0x00000000, 0xffffffff, "bustrace_w", [rec] (offs_t a, u32 &d, u32 m) { rec(a, d, m, true); });
++	}
 +	m_voice->set_memory(&m_g20[0][0], m_sound.target(), m_sound.length(), m_h.get());
 +	m_voice->set_g05(m_g05);
 +	m_lcd_timer = timer_alloc(FUNC(emup2k_state::lcd_dump), this);

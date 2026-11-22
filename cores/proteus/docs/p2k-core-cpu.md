@@ -63,3 +63,22 @@ Accesses counted over boot + demo playback in MAME [O]:
    interface; `tools/p2k_diff.py` gives per-parameter expected writes.
 3. Sound chips (G20 voices, H filter, G05 effects) follow the MAME models (`emup2k.cpp`,
    `emup2k_fx.h`); their approximations are listed in docs/p2k-findings.md.
+
+## 6. Status (2026-11-21)
+- Tooling: TG68K.C vendored in `p2k/rtl/cpu/tg68k/` (LGPL-3, changes marked `-- P2K:`), converted
+  to Verilog by GHDL synth (container `hdlc/ghdl:yosys`) and simulated with Verilator
+  (`p2k/sim/build_cpu.sh`, `p2k/sim/p2k_cpu_tb.cpp`, ~0.8 M cycles/s). NVC runs the VHDL directly
+  (`p2k/sim/tb_p2k_cpu.vhd`) but at ~1 k cycles/s.
+- Reference: MAME `P2K_BUSTRACE` (binary data-access trace; `P2K_BUSTRACE_NODRAM=1` leaves out
+  DRAM and flash opcode fetches), `tools/p2k_flash_image.py` (the flash image MAME boots, byte-
+  identical below the user area), `tools/p2k_trace_cmp.py` (first divergence).
+- CPU changes done: generic `ColdFire`; MOVEC ACR0/1, RAMBAR0/1, MBAR (MBAR/RAMBAR outputs);
+  ColdFire exception frame (PC, SR, then format/vector word 0x4000 | vector << 2) and RTE (skip
+  the format word, then SR, PC); no format-#2 frames. SP misalignment adjustment not done [I: the
+  OS keeps SP long-aligned].
+- Peripherals: `p2k/rtl/cpu/mcf5206e_periph.sv` (interrupt controller, timers 1/2, UART1/2 with
+  the TxEMT-on-disable behaviour, parallel port with input pins, latch-only registers) and
+  `p2k/rtl/cpu/p2k_cpu.sv` (kernel + MBAR decode, autovectored IPL). The testbench honours the
+  kernel's `skipFetch` (no bus cycle for the read half of CLR on 68010+, as the TG68K wrapper).
+- Verified: the first 5.2 M data word accesses of the boot (25.6 M MAME records, boot block and
+  DRAM tests) match MAME exactly.
