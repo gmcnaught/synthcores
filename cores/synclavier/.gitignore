@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.simg
+out/
+timbres/
+*.stmb
+*.ssnd
+*.sprg
+*.IMG
+*.SST
+*.rbf
+*.sseq
+reference/
