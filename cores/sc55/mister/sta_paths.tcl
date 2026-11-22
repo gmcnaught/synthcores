@@ -48,8 +48,8 @@ foreach mod [lsort [array names count]] {
 close $fh
 
 # the worst path from each main module
-set mods {h8_cpu:cpu sc55_mcu:mcu sc55_pcm:pcm lcd_ctrl:lcd resample:rs audio_fifo:fifo
-          wave_ddr:wave rom_loader:loader step_pacer:pacer midi_rx:midi kbd_buttons:kbd}
+set mods {h8_cpu:cpu sc55_mcu:mcu sc55_pcm:pcm lcd_ctrl:lcd resample:rs synthframe_audio_fifo:fifo
+          wave_ddr:wave rom_loader:loader step_pacer:pacer synthframe_midi_rx:midi kbd_buttons:kbd}
 set fh [open output_files/core_modules.txt w]
 foreach m $mods {
     set regs [get_registers -nowarn "*|$m|*"]
