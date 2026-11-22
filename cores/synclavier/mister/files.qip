@@ -39,6 +39,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/panel_mouse.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/dig_stm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/synclavier_core.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/ddram_word.sv
 set_global_assignment -name SDC_FILE Synclavier.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE Synclavier.sv

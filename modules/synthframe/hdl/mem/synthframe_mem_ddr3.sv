@@ -7,10 +7,13 @@
 //   response: one rsp_valid pulse with rsp_data and rsp_tag per read, in request order,
 //             after any number of clocks; no backpressure (the requester must take it).
 //   Writes have no response; a read after a write to the same word sees the write.
+//   req_len (writes only): a fill, the same req_wdata / req_be written to req_len consecutive
+//   words from req_addr (0 and 1 both mean one word); reads are always one word.
 //   At most 2**QBITS - 1 reads are outstanding; req_ready is low while that many are (for
 //   writes too, so req_ready never depends on the request).
 //
-// One command is held on DDRAM_RD / DDRAM_WE until the controller is not busy (Avalon);
+// One command is held on DDRAM_RD / DDRAM_WE until the controller is not busy (Avalon; a
+// fill is one burst of req_len beats, one beat per clock the controller is not busy);
 // a new request is taken only while none is held, so at most one command every two clocks
 // (as the cores' own DDR3 ports did). Read data comes back in order on DDRAM_DOUT_READY; the
 // tag of each issued read waits in a FIFO.
@@ -27,6 +30,7 @@ module synthframe_mem_ddr3 #(
     input  logic [28:0]   req_addr,
     input  logic [63:0]   req_wdata,
     input  logic [7:0]    req_be,
+    input  logic [7:0]    req_len,
     input  logic [TW-1:0] req_tag,
 
     output logic          rsp_valid,
@@ -47,10 +51,10 @@ module synthframe_mem_ddr3 #(
 
     logic [TW-1:0]  tq [Q];               // tags of reads taken, in order
     logic [QBITS:0] tq_wp, tq_rp;         // tq_wp - tq_rp = reads taken and not returned
+    logic [7:0]     beats;                // write beats still to be taken, after this one
     wire            held = DDRAM_RD || DDRAM_WE;
     wire            room = (tq_wp - tq_rp) < (QBITS+1)'(Q - 1);
 
-    assign DDRAM_BURSTCNT = 8'd1;
     assign req_ready = !rst && !held && room;
 
     always_ff @(posedge clk) begin
@@ -58,20 +62,31 @@ module synthframe_mem_ddr3 #(
         if (rst) begin
             DDRAM_RD <= 1'b0;
             DDRAM_WE <= 1'b0;
+            DDRAM_BURSTCNT <= 8'd1;
+            beats <= 8'd0;
             tq_wp <= '0;
             tq_rp <= '0;
         end else begin
             if (held) begin
                 if (!DDRAM_BUSY) begin
-                    DDRAM_RD <= 1'b0;
-                    DDRAM_WE <= 1'b0;
+                    if (beats != 8'd0) beats <= beats - 8'd1;
+                    else begin
+                        DDRAM_RD <= 1'b0;
+                        DDRAM_WE <= 1'b0;
+                    end
                 end
             end else if (req_valid && req_ready) begin
                 DDRAM_ADDR <= req_addr;
                 DDRAM_DIN <= req_wdata;
                 DDRAM_BE <= req_be;
+                DDRAM_BURSTCNT <= 8'd1;
+                beats <= 8'd0;
                 if (req_we) begin
                     DDRAM_WE <= 1'b1;
+                    if (req_len > 8'd1) begin
+                        DDRAM_BURSTCNT <= req_len;
+                        beats <= req_len - 8'd1;
+                    end
                 end else begin
                     DDRAM_RD <= 1'b1;
                     tq[tq_wp[QBITS-1:0]] <= req_tag;
