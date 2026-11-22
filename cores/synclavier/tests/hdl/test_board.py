@@ -106,7 +106,7 @@ def _vt100_check(data, tag):
     try:
         src = os.path.join(tmp, "in.bin")
         frame = os.path.join(tmp, "frame.pgm")
-        open(src, "wb").write(data)
+        with open(src, "wb") as _f: _f.write(data)
         out = _testbench("term_display", ("hdl/core/term_display.sv", "hdl/core/tek_plane.sv"),
                          ["+frame=" + frame, "+input=" + src])
         w, h, px = read_frame(frame)
@@ -196,7 +196,7 @@ def _vt640_check(data, tag):
     try:
         src = os.path.join(tmp, "in.bin")
         frame = os.path.join(tmp, "frame.pgm")
-        open(src, "wb").write(data)
+        with open(src, "wb") as _f: _f.write(data)
         _testbench("term_display", ("hdl/core/term_display.sv", "hdl/core/tek_plane.sv"),
                    ["+frame=" + frame, "+input=" + src, "+vt640"])
         w, h, px = read_frame(frame)
@@ -231,7 +231,7 @@ def test_term_display_readback():
     tmp = tempfile.mkdtemp()
     try:
         src, frame, rb = (os.path.join(tmp, n) for n in ("in.bin", "frame.pgm", "rb.bin"))
-        open(src, "wb").write(data)
+        with open(src, "wb") as _f: _f.write(data)
         _testbench("term_display", ("hdl/core/term_display.sv", "hdl/core/tek_plane.sv"),
                    ["+frame=" + frame, "+input=" + src, "+vt640", "+rbout=" + rb])
         got = open(rb, "rb").read()
@@ -762,7 +762,7 @@ def vpk_stimulus(path, seed=1, ops=4000):
                 out.append("C %d %d" % (a, kb.chars[a]))
         if rng.random() < 0.02:              # an SMPTE-style 20/260 write: no EXW
             w(1, 0o20); w(1, 0o260); w(1, 0)
-    open(path, "w").write("\n".join(out) + "\n")
+    with open(path, "w") as _f: _f.write("\n".join(out) + "\n")
 
 
 def test_dev_vpk():
@@ -829,7 +829,7 @@ def midi_stimulus(path, seed=1, ops=6000):
                 rd(1); w(1, 4); rd(2)
             rd(1)
     out += ["O %d" % b for _, b in card.out]
-    open(path, "w").write("\n".join(out) + "\n")
+    with open(path, "w") as _f: _f.write("\n".join(out) + "\n")
     assert card.dropped and len(card.out) > 100, (card.dropped, len(card.out))
 
 
@@ -931,7 +931,7 @@ def dig_stm_stimulus(path, seed=1, calls=1500):
             call(69)
             call(70)
         tick(rng.choice((333, 666, 999)), rng.randrange(0, 40))
-    open(path, "w").write("\n".join(out) + "\n")
+    with open(path, "w") as _f: _f.write("\n".join(out) + "\n")
     return ds
 
 
@@ -1034,7 +1034,7 @@ def smpte_stimulus(path, seed=1, runs=24):
             w(0, rng.choice((16, 17, 32, 8 + 65536 // 2)))
             rd(0); rd(1); rd(3)
             w(1, rng.randrange(1 << 16))
-    open(path, "w").write("\n".join(out) + "\n")
+    with open(path, "w") as _f: _f.write("\n".join(out) + "\n")
 
 
 def test_dev_smpte():
@@ -1126,7 +1126,7 @@ def printer_stimulus(path, seed=1):
     out.append("U")                             # no file: lost
     send(10)
     out.append("D"); out.append("N 2")
-    open(path, "w").write("\n".join(out) + "\n")
+    with open(path, "w") as _f: _f.write("\n".join(out) + "\n")
 
 
 def test_print_capture():
@@ -1285,7 +1285,7 @@ def test_board_state_image_ork_lm():
         state = os.path.join(tmp, "ork.sst")
         path = os.path.join(tmp, "ork.trace")
         frame = os.path.join(tmp, "frame.pgm")
-        open(state, "wb").write(state_bytes(cpu))
+        with open(state, "wb") as _f: _f.write(state_bytes(cpu))
         n = record(cpu, path, 5_000_000, actions=actions, audio=True)
         ok, text = check(path, top="board", state=state, frame=frame)
         assert ok, text

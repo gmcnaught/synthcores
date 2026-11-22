@@ -1111,7 +1111,7 @@ def main(argv=None):
         print("digital STM calls: %s" % ", ".join("%d x%d" % kv for kv in sorted(cpu.dig_stm.calls.items())),
               file=sys.stderr)
     if a.mode == "w0boot" and a.printer:
-        open(path + ".prn", "wb").write(cpu.printer.out)
+        with open(path + ".prn", "wb") as _f: _f.write(cpu.printer.out)
         print("printed %d bytes -> %s.prn" % (len(cpu.printer.out), path), file=sys.stderr)
     print("recorded %d instructions in %.1f s -> %s%s" % (
         n, time.time() - t, path, " (halted: %s)" % (cpu.halted,) if cpu.halted else ""),

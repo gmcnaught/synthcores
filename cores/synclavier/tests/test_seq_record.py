@@ -43,7 +43,7 @@ part: Lower | key=G | clef=F
 def test_text_round_trip():
     with tempfile.TemporaryDirectory() as d:
         a = os.path.join(d, "a.txt")
-        open(a, "w").write(TEXT)
+        with open(a, "w") as _f: _f.write(TEXT)
         p = sr.read_text(a)
         assert (p.title, p.beat_ms, p.time) == ("Test", 600, "3/4")
         assert [(x.name, x.key, x.clef, len(x.notes)) for x in p.parts] == \
@@ -85,7 +85,7 @@ def _smf():
 def test_read_midi():
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "t.mid")
-        open(path, "wb").write(_smf())
+        with open(path, "wb") as _f: _f.write(_smf())
         p = sr.read_midi(path)
     assert (p.beat_ms, p.time) == (600, "3/4")
     assert [(x.name, x.key, x.clef) for x in p.parts] == [("Duet", "G", "G"), ("Duet", "G", "F")]
@@ -177,7 +177,7 @@ def test_demos_subcatalog():
     disk = timbre_disk.make([], sequences=seqs)
     with tempfile.TemporaryDirectory() as d:
         img = os.path.join(d, "W1.IMG")
-        open(img, "wb").write(disk)
+        with open(img, "wb") as _f: _f.write(disk)
         W = load(img)
     ents = {p: (t, ln) for p, t, s, ln, w in walk(W)}
     assert ents["/DEMOS"] == (6, 1 + 24 + 2)
@@ -271,9 +271,9 @@ def test_install():
         w0 = os.path.join(d, "w0.img")
         disk = blank_disk(2)
         add_file(disk, ".SQ5DATA", bytes(512 * 6), typ=4)          # an existing slot is replaced
-        open(w0, "wb").write(disk)
+        with open(w0, "wb") as _f: _f.write(disk)
         seq = os.path.join(d, "s.sseq")
-        open(seq, "wb").write(struct.pack(">300H", *range(300)))
+        with open(seq, "wb") as _f: _f.write(struct.pack(">300H", *range(300)))
         out = os.path.join(d, "out.img")
         assert sr.main(["install", seq, "--w0", w0, "--slot", "5", "--out", out]) == 0
         W = load_bytes(open(out, "rb").read())

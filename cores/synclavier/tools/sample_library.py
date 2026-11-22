@@ -290,7 +290,7 @@ def main(argv=None):
     libs, cafs, missing = libraries(a.root, a.all_sounds, not a.no_pitch_fix)
     text = report(libs, cafs)
     if a.report:
-        open(a.report, "w").write(text + "\n")
+        with open(a.report, "w") as _f: _f.write(text + "\n")
     else:
         print(text)
     for s, where in sorted(missing.items()):
