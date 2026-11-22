@@ -136,7 +136,7 @@ No longer blockers at Stage 1 (vs. P2K): CPU (fx68k exists), firmware availabili
 
 P1K = 1 G-II + 2 H1.5, 2 SIMM slots, 64 voices [O].
 
-**P2K blockers:** G-II undocumented (nearest relative EMU8000: AWE32 docs, 86Box `snd_emu8k.c`); H1.5 widths guessed (US 5,170,369; `ds10fan/emu-hchip-patent`); EMU8000 FX programs undocumented; no schematics; no ColdFire soft core on MiSTer (MAME has `mcf5206e`); SIMM pinout/scrambling unknown; 128 MB ROM needs 128 MB SDRAM or DDR3; 6 outs and 2 MIDI ins vs. MiSTer stereo/1 UART.
+**P2K blockers:** G-II undocumented (nearest relative EMU8000: AWE32 docs, 86Box `snd_emu8k.c`); H1.5 widths guessed (US 5,170,369; `ds10fan/emu-hchip-patent`); EMU8000 FX programs undocumented; no schematics; no ColdFire soft core on MiSTer (MAME has `mcf5206e`; decision 2026-11-21: TG68K.C in 68020 mode with ColdFire exception frames, MOVEC registers and the MCF5206e peripherals, see docs/p2k-core-cpu.md); SIMM pinout/scrambling unknown; 128 MB ROM needs 128 MB SDRAM or DDR3; 6 outs and 2 MIDI ins vs. MiSTer stereo/1 UART.
 
 **P2K test sources:** own unit + Composer SIMM (01, IP1035–1038, presets IP10193); OS 2.26 (`snw.lonningdal.no/p2k/firmware226_p1kp2k_e-loader111.zip`, emu.tools/e-loader); haxorhax.com ROM clones and SysEx archive; dbwbp.com `e-mu-proteus-2k-flash-analysis.zip` (contents [U]); Proteus VX (Composer samples in `.exb`); Proteus Family SysEx 2.2 spec. Ray Bellis dumped Audity 2000 flash over MIDI with a custom boot ROM, so the family is dumpable in principle.
 
