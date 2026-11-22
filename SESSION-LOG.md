@@ -2,6 +2,44 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 12 preparation: JV-880 (2026-11-22)
+
+- **ROMs:** the user's dumps are in `nuked-sc55/firmware/Roland JV880/`. All five files match
+  the Nuked-SC55 hashes for jv880-v1.0.0 and v1.0.1.
+- **Reference:** the Nuked-SC55 backend's JV-880 support is about 50 lines over the SC-55 mk1:
+    - the memory map (ROM2 pages 12/14, 32 KB NVRAM and card RAM);
+    - IRQ0 instead of IRQ1;
+    - no sub-MCU;
+    - the PCM at 64 kHz with a 25/29 cycle ratio;
+    - the LCD;
+    - panel buttons on P7.
+- **Render test:** `jv880.mid` has hash 73feda3c…bbbc, which needs a factory-preset NVRAM
+  (d5da7845…d207).
+- **`cores/sc55/ref/jv880_nvram.cpp`:** a harness meant to make that NVRAM without the GUI.
+- **Open:** with an empty NVRAM, the reference firmware sleeps at pc 05fa, servicing interrupts
+  (handlers 040a–045b), and never writes the LCD. That happens in the harness and in
+  `sc55-render`; the render is silent. The GUI procedure must involve something the headless
+  paths do not.
+
+## Iterations 5 and 6: Synclavier and Proteus on the memory port (2026-11-22, PR #7)
+
+- **Contract:** `req_len` for read bursts and write fills.
+- **Synclavier `ddram_word`:** two clients.
+- **Proteus `snd_ctrl`:** four clients.
+- **Gate:** the evidence is in PR #7. Simulations are identical to main; the Windows builds
+  meet timing; all three MiSTer smoke tests pass. The Proteus worst case went from 889 to 1007
+  clocks of 2048.
+- **PyPy:** 51 unclosed file writes fixed.
+- **Process:**
+    - Since 2026-11-22, PRs are gated on Windows builds. GitHub Build RBF runs only on v* tags.
+    - The Windows builds found two errors CI would have reported 30 minutes later: Quartus 17's
+      localparam rule, and the Proteus `files.qip`.
+
+## Iteration 4: memory port, SC-55 (merged as #5)
+
+- **Board bench:** identical in 7 DDR3 timing variants, with the same 6,244,003 reads.
+- **MiSTer:** 100 s with no underrun; LCD hash unchanged.
+
 ## Iteration 2: shared `audio_fifo` and `midi_rx` (2026-11-22, branch `iter2-shared-audio-midi`)
 
 - **`modules/synthframe/hdl/audio/synthframe_audio_fifo.sv`:** the Synclavier's
