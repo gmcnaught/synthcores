@@ -7,8 +7,9 @@
 module synthframe_mem_arb #(
     parameter int N = 2,                  // clients
     parameter int CTW = 1,                // client tag width
-    localparam int IW = N > 1 ? $clog2(N) : 1,
-    localparam int TW = CTW + IW          // tag width towards the backend
+    // derived; not to be overridden (Quartus 17 takes no localparam in the parameter list)
+    parameter int IW = N > 1 ? $clog2(N) : 1,
+    parameter int TW = CTW + IW           // tag width towards the backend
 ) (
     // clients
     input  logic            c_req_valid [N],
