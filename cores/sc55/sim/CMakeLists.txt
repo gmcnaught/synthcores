@@ -9,6 +9,7 @@ add_subdirectory(../ref ref)
 find_package(verilator REQUIRED HINTS $ENV{VERILATOR_ROOT})
 
 set(HDL "${CMAKE_CURRENT_SOURCE_DIR}/../hdl")
+set(SYNTHFRAME "${CMAKE_CURRENT_SOURCE_DIR}/../../../modules/synthframe/hdl")
 set(VFLAGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -O3 --x-assign unique --x-initial unique)
 
 add_executable(cpu_lockstep cpu/cpu_lockstep.cpp common/midi_demo.cpp)
@@ -37,6 +38,7 @@ verilate(system_lockstep SOURCES "${HDL}/common/sdp_ram.sv" "${HDL}/cpu/h8_cpu.s
          TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${HDL}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19)
 
 file(GLOB BOARD_SV "${HDL}/board/*.sv")
+list(APPEND BOARD_SV "${SYNTHFRAME}/midi/synthframe_midi_rx.sv" "${SYNTHFRAME}/audio/synthframe_audio_fifo.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
 verilate(board_lockstep SOURCES ${BOARD_SV} "${HDL}/common/sdp_ram.sv" "${HDL}/cpu/h8_cpu.sv" "${HDL}/submcu/sc55_submcu.sv" "${HDL}/mcu/sc55_mcu.sv" "${HDL}/pcm/sc55_pcm.sv" "${HDL}/sc55_core.sv"

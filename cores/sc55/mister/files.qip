@@ -6,12 +6,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/submcu/sc55_submcu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/mcu/sc55_mcu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/pcm/sc55_pcm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/sc55_core.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/midi_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/rom2x_cache.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/wave_ddr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/step_pacer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/rom_loader.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/audio_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/resample.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/lcd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/board/lcd_video.sv

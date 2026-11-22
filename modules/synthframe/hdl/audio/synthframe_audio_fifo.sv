@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// synthframe (from synclavierii hdl/core/audio_fifo.sv; also used by the SC-55)
+//
 // Audio to real time: pcm_out's 48 kHz samples arrive as the CPU makes
 // simulated time (every 1/48000 s of it, give or take the throttle's slack:
 // up to CATCHUP_NS plus an instruction); this FIFO plays them at a steady
@@ -6,7 +9,7 @@
 // (the CPU fell behind real time) the last sample is held and playback
 // waits until it is half full again; when full, incoming samples are
 // dropped. `underruns` and `overruns` count those events.
-module audio_fifo #(
+module synthframe_audio_fifo #(
     parameter longint CLK_HZ = 16_000_000,
     parameter longint RATE = 48_000,
     parameter int DEPTH_BITS = 6

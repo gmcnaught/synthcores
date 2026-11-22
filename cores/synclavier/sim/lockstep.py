@@ -550,8 +550,8 @@ SYSTEM_RTL = ["hdl/able_cpu.sv", "hdl/code_cache.sv", "hdl/dev/dev_rtc.sv", "hdl
 CORE_RTL = ["hdl/core/sd_floppy.sv", "hdl/dev/dev_scsi.sv", "hdl/dev/dev_poly.sv", "hdl/dev/dev_midi.sv", "hdl/dev/dev_smpte.sv", "hdl/dev/dev_mouse.sv", "hdl/dev/dev_multi.sv",
             "hdl/dev/dev_printer.sv", "hdl/core/print_capture.sv",
             "hdl/core/boot_loader.sv", "hdl/core/term_display.sv", "hdl/core/tek_plane.sv",
-            "hdl/core/ps2_ascii.sv", "hdl/core/midi_in.sv", "hdl/core/midi_vpk.sv", "hdl/core/midi_card_feed.sv",
-            "hdl/core/panel_mouse.sv", "hdl/core/audio_fifo.sv", "hdl/core/dig_stm.sv",
+            "hdl/core/ps2_ascii.sv", "../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_vpk.sv", "hdl/core/midi_card_feed.sv",
+            "hdl/core/panel_mouse.sv", "../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv", "hdl/core/dig_stm.sv",
             "hdl/core/synclavier_core.sv",
             "hdl/board/ddram_word.sv"]
 TOPS = {

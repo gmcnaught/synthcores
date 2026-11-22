@@ -517,7 +517,7 @@ module synclavier_core #(
 
     // to real time: a FIFO played at a steady 48 kHz (audio_fifo.sv)
     logic [15:0] underruns, overruns;
-    audio_fifo #(.CLK_HZ(CLK_HZ)) to_real_time (
+    synthframe_audio_fifo #(.CLK_HZ(CLK_HZ)) to_real_time (
         .clk, .rst, .in_valid(pcm_valid), .in_l(pcm_l), .in_r(pcm_r),
         .out_l(audio_l), .out_r(audio_r), .out_strobe(), .underruns, .overruns
     );
