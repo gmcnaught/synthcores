@@ -35,7 +35,7 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
 ## Conventions shared by the cores
 
 - **Licences:** each core keeps its own (SC-55 GPL-2.0-or-later, Proteus GPL-3.0, Synclavier
-  MIT). The shared framework `vsframe` (to come) is MIT. GPL-3 code borrowed from JTFRAME stays
+  MIT). The shared framework `synthframe` (to come) is MIT. GPL-3 code borrowed from JTFRAME stays
   outside it.
 - **Tests:** every core is checked against a reference model, as bit-exact lockstep or output
   hashes. A refactor must keep those tests bit-identical.
