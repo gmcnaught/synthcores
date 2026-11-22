@@ -13,9 +13,11 @@ Assumptions:
 
 ## Rules
 
-- **One branch and one PR per iteration.** A PR merges only when CI is green and the
-  iteration's gate passes. The PR body records the evidence: test output, hashes, fit numbers,
-  screenshots.
+- **One branch and one PR per iteration.** A PR merges once its tests pass and its gate
+  passes. Since 2026-11-22 (decided by the user) that means Quartus builds on the Windows build
+  host (`scripts/build-hosts/winbuild.sh`) and the MiSTer smoke tests. GitHub's Build RBF runs
+  only for releases. The PR body or a comment records the evidence: test output, hashes, fit
+  numbers, smoke results.
 - **Tests stay bit-identical.** Lockstep tests, output hashes and the LCD pixel tests must not
   change. A refactor that changes any of them is wrong until proven otherwise.
 - **The MiSTer is shared hardware. Touch only:**
