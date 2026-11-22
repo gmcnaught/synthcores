@@ -24,7 +24,8 @@ $M midi-stop
 F=$($M sh "ls /media/fat/_Devices/SC55_2*.rbf | tail -1")
 $M load "$F"; sleep "${WAIT:-8}"
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
-printf '0000000000000000f07e7f0901f7' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
+# 2 s after the GM reset: with 1 s, one boot screenshot in 6 came before the level bars were drawn
+printf '0000000000000000f07e7f0901f7' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 2"
 $M shot sc55 "$OUT/boot.png" >/dev/null
 scp -q scripts/mister/play_tty.py "$OUT/0A.txt" "$MISTER:/tmp/"
 $M sh "python3 /tmp/play_tty.py /tmp/0A.txt $SECS"

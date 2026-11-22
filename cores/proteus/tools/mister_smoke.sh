@@ -8,7 +8,8 @@
 # 15), screenshots, runs tools/mister_soak.py for SECONDS (default 60, seed 1: dense random MIDI
 # at 31250 baud, more than 32 voices) and screenshots again. Writes OUTDIR/{boot,end}.png,
 # OUTDIR/soak.txt and OUTDIR/result.txt. Exit 1 if a sample deadline was missed during the soak
-# or fewer than 95% of the expected samples were produced.
+# or fewer than 95% of the expected samples were produced. boot_sha is for information only:
+# it changes with the LCD cursor's blink phase and with the program the last soak left selected.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 RBF=${1:?usage: mister_smoke.sh RBF OUTDIR [SECONDS]}; OUT=${2:?usage: mister_smoke.sh RBF OUTDIR [SECONDS]}
