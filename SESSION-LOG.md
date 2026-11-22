@@ -2,6 +2,22 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 2: shared `audio_fifo` and `midi_rx` (2026-11-22, branch `iter2-shared-audio-midi`)
+
+- **`modules/synthframe/hdl/audio/synthframe_audio_fifo.sv`:** the Synclavier's
+  `audio_fifo`. The SC-55 copy was identical apart from a comment.
+- **`modules/synthframe/hdl/midi/synthframe_midi_rx.sv`:** the SC-55's `midi_rx`, with
+  `synthframe_midi_uart_rx`. The Synclavier's `midi_in.sv` had the same receiver logic inline
+  and now instantiates it.
+- **Updated:** both cores' `files.qip`, `sta_paths.tcl`, the SC-55 `sim/CMakeLists.txt`, the
+  Synclavier `sim/lockstep.py`, `tests/hdl/test_board.py` and two testbenches.
+- **Local tests:**
+    - Synclavier: `tests/hdl/test_board.py` 30 OK, `test_lockstep.py` 11 OK, hygiene 3 OK.
+    - SC-55: `test_system_lockstep` 4 passed and 2 long tests skipped (as before);
+      `test_board_units` 1 passed; hygiene 3 passed.
+- **Pending:** CI (tests, fit resources against iteration 0) and the hardware smoke tests on
+  the CI RBFs.
+
 ## Iteration 1: one MiSTer test harness (2026-11-22, branch `iter1-mister-harness`)
 
 - **`modules/synthframe/bin/synth-mister`:** lock, backup, install, release, restore, load,

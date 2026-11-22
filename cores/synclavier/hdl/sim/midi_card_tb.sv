@@ -61,9 +61,9 @@ module midi_card_tb;
     logic [7:0] ld_std, ld_alt;
     midi_uart_tx #(.CLK_HZ(HZ)) tx (.clk, .rst, .alt(l_alt), .valid(t_valid), .data(t_data),
                                     .ready(t_ready), .txd);
-    midi_uart_rx #(.CLK_HZ(HZ), .BAUD(31_250)) l_std (.clk, .rst, .rxd(txd), .valid(lv_std),
+    synthframe_midi_uart_rx #(.CLK_HZ(HZ), .BAUD(31_250)) l_std (.clk, .rst, .rxd(txd), .valid(lv_std),
                                                       .data(ld_std), .ferr(le_std));
-    midi_uart_rx #(.CLK_HZ(HZ), .BAUD(9_600)) l_alt_rx (.clk, .rst, .rxd(txd), .valid(lv_alt),
+    synthframe_midi_uart_rx #(.CLK_HZ(HZ), .BAUD(9_600)) l_alt_rx (.clk, .rst, .rxd(txd), .valid(lv_alt),
                                                         .data(ld_alt), .ferr(le_alt));
     byte loop [$];
     int  ferrs = 0;

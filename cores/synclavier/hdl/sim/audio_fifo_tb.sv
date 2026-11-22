@@ -1,4 +1,4 @@
-// Self-checking test of hdl/core/audio_fifo.sv (verilator --binary), at
+// Self-checking test of modules/synthframe/hdl/audio/synthframe_audio_fifo.sv (verilator --binary), at
 // 10 clocks a sample (CLK_HZ 480000, RATE 48000):
 //   1. 400 samples arriving with jitter (gaps of 4-16 clocks, 10 on
 //      average): they leave in order, one per strobe, none repeated or
@@ -12,7 +12,7 @@ module audio_fifo_tb;
     logic [15:0] underruns, overruns;
     int          errors = 0;
 
-    audio_fifo #(.CLK_HZ(480_000), .RATE(48_000)) dut (.*);
+    synthframe_audio_fifo #(.CLK_HZ(480_000), .RATE(48_000)) dut (.*);
 
     always #5 clk = !clk;
 
