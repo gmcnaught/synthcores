@@ -82,12 +82,12 @@ def bank_file(path, title, kv):
     import stmb
     e = {"title": title[:16], "kv": []}
     tmp = path + ".txt"
-    open(tmp, "w").write(entry_text(title, kv))
+    with open(tmp, "w") as _f: _f.write(entry_text(title, kv))
     e = stmb.parse_text(tmp)
     t, notes = stmb.encode_entry(e)
     banks = [[t] + [None] * 7] + [[None] * 8 for _ in range(7)]
     out, stride, need = stmb.bank_bytes(banks)
-    open(path, "wb").write(out[:49 * 256 * 2])
+    with open(path, "wb") as _f: _f.write(out[:49 * 256 * 2])
     return notes
 
 
@@ -352,7 +352,7 @@ def cmd_report(a):
                 res.setdefault(side, {})[meta["name"]] = {"error": repr(e)}
     out = json.dumps(res, indent=1, default=float)
     if a.output:
-        open(a.output, "w").write(out)
+        with open(a.output, "w") as _f: _f.write(out)
     print(out)
 
 

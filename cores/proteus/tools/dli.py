@@ -34,7 +34,7 @@ def main() -> int:
     print(f"{d['copyright']}\n  names {d['names']}\n  image at {d['offset']:#x}, {d['length']:#x} bytes, "
           f"CRC-32 {d['crc']:08x} {'OK' if d['crc_ok'] else 'BAD'}\n  SSP {d['ssp']:#010x}  reset PC {d['pc']:#010x}")
     if len(sys.argv) > 2:
-        open(sys.argv[2], "wb").write(d["image"])
+        with open(sys.argv[2], "wb") as _f: _f.write(d["image"])
     return 0 if d["crc_ok"] else 1
 
 

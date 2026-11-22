@@ -24,7 +24,7 @@ def test_disk():
     disk = timbre_disk.make(libs)
     with tempfile.TemporaryDirectory() as d:
         img = os.path.join(d, "W1.IMG")
-        open(img, "wb").write(disk)
+        with open(img, "wb") as _f: _f.write(disk)
         W = load(img)
     ents = {p: (t, s, ln) for p, t, s, ln, w in walk(W)}
     assert ents["/LIBA"][0] == 6 and ents["/LIBA/.NEWDATA"] == (3, ents["/LIBA"][1] + 1, 192)

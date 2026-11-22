@@ -494,7 +494,7 @@ def export_wav(words, path):
     """Write the sound file `words` as a 16-bit WAV at `path`; returns the
     parsed fields (parse_sound_file)."""
     f = parse_sound_file(words)
-    open(path, "wb").write(wav_bytes(f["chans"], f["rate"], f["loop"], f["pitch"]))
+    with open(path, "wb") as _f: _f.write(wav_bytes(f["chans"], f["rate"], f["loop"], f["pitch"]))
     return f
 
 
@@ -557,7 +557,7 @@ def main(argv=None):
         disk = bytearray(open(a.disk, "rb").read())
     path, start, words = import_sound(disk, a.audio, a.name, a.subcat, a.replace, a.rate, a.pitch,
                                       a.caption)
-    open(a.disk, "wb").write(disk)
+    with open(a.disk, "wb") as _f: _f.write(disk)
     f = parse_sound_file(words)
     print("%s: %s, %d Hz, %d frames%s, %d sectors at %d" % (
         path, "stereo" if len(f["chans"]) == 2 else "mono", f["rate"], len(f["chans"][0]),

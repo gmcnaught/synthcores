@@ -553,6 +553,7 @@ CORE_RTL = ["hdl/core/sd_floppy.sv", "hdl/dev/dev_scsi.sv", "hdl/dev/dev_poly.sv
             "hdl/core/ps2_ascii.sv", "../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_vpk.sv", "hdl/core/midi_card_feed.sv",
             "hdl/core/panel_mouse.sv", "../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv", "hdl/core/dig_stm.sv",
             "hdl/core/synclavier_core.sv",
+            "../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv", "../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv",
             "hdl/board/ddram_word.sv"]
 TOPS = {
     "cpu": ("able_sim_top", ["hdl/able_cpu.sv", "hdl/sim/able_sim_top.sv"], []),
@@ -1110,7 +1111,7 @@ def main(argv=None):
         print("digital STM calls: %s" % ", ".join("%d x%d" % kv for kv in sorted(cpu.dig_stm.calls.items())),
               file=sys.stderr)
     if a.mode == "w0boot" and a.printer:
-        open(path + ".prn", "wb").write(cpu.printer.out)
+        with open(path + ".prn", "wb") as _f: _f.write(cpu.printer.out)
         print("printed %d bytes -> %s.prn" % (len(cpu.printer.out), path), file=sys.stderr)
     print("recorded %d instructions in %.1f s -> %s%s" % (
         n, time.time() - t, path, " (halted: %s)" % (cpu.halted,) if cpu.halted else ""),

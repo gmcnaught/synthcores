@@ -2,6 +2,46 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 12 preparation: JV-880 (2026-11-22)
+
+- **ROMs:** the user's dumps are in `nuked-sc55/firmware/Roland JV880/`. All five files match
+  the Nuked-SC55 hashes for jv880-v1.0.0 and v1.0.1.
+- **Reference:** the Nuked-SC55 backend's JV-880 support is about 50 lines over the SC-55 mk1:
+    - the memory map (ROM2 pages 12/14, 32 KB NVRAM and card RAM);
+    - IRQ0 instead of IRQ1;
+    - no sub-MCU;
+    - the PCM at 64 kHz with a 25/29 cycle ratio;
+    - the LCD;
+    - panel buttons on P7.
+- **Render test:** `jv880.mid` has hash 73feda3c…bbbc, which needs a factory-preset NVRAM
+  (d5da7845…d207).
+- **`cores/sc55/ref/jv880_nvram.cpp`:** makes the factory-preset NVRAM headless and gets the
+  documented hash d5da7845…d207. The reference renderer then gives the jv880.mid hash
+  73feda3c…bbbc (`cores/sc55/tests/test_jv880_ref.py`, with `JV880_ROM_DIR`).
+- **Why it first looked stuck:** the reference's `LCD_Write` keeps no LCD state without a
+  display backend, so headless runs never show the screen. The firmware boots normally:
+  "SYNTHESIZER MODULE / Roland JV-880", then "Internal RAM read error" for an empty NVRAM. It
+  renders silence until a factory preset is loaded. The harness attaches a null LCD backend.
+
+## Iterations 5 and 6: Synclavier and Proteus on the memory port (2026-11-22, PR #7)
+
+- **Contract:** `req_len` for read bursts and write fills.
+- **Synclavier `ddram_word`:** two clients.
+- **Proteus `snd_ctrl`:** four clients.
+- **Gate:** the evidence is in PR #7. Simulations are identical to main; the Windows builds
+  meet timing; all three MiSTer smoke tests pass. The Proteus worst case went from 889 to 1007
+  clocks of 2048.
+- **PyPy:** 51 unclosed file writes fixed.
+- **Process:**
+    - Since 2026-11-22, PRs are gated on Windows builds. GitHub Build RBF runs only on v* tags.
+    - The Windows builds found two errors CI would have reported 30 minutes later: Quartus 17's
+      localparam rule, and the Proteus `files.qip`.
+
+## Iteration 4: memory port, SC-55 (merged as #5)
+
+- **Board bench:** identical in 7 DDR3 timing variants, with the same 6,244,003 reads.
+- **MiSTer:** 100 s with no underrun; LCD hash unchanged.
+
 ## Iteration 2: shared `audio_fifo` and `midi_rx` (2026-11-22, branch `iter2-shared-audio-midi`)
 
 - **`modules/synthframe/hdl/audio/synthframe_audio_fifo.sv`:** the Synclavier's

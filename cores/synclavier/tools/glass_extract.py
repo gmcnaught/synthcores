@@ -53,7 +53,7 @@ def main():
     for code in range(0x7F):
         out.append("code %02X" % code)
         out += ["".join("#" if r >> c & 1 else "." for c in range(8)) for r in raster(font, code)]
-    open(OUT, "w").write("\n".join(out) + "\n")
+    with open(OUT, "w") as _f: _f.write("\n".join(out) + "\n")
     print("wrote", OUT)
 
 

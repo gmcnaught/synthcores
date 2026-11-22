@@ -51,14 +51,14 @@ module snd_ctrl #(parameter SAMPLE_DIV = 2048)
 
 	// DDR3
 	input             DDRAM_BUSY,
-	output reg  [7:0] DDRAM_BURSTCNT,
-	output reg [28:0] DDRAM_ADDR,
+	output      [7:0] DDRAM_BURSTCNT,
+	output     [28:0] DDRAM_ADDR,
 	input      [63:0] DDRAM_DOUT,
 	input             DDRAM_DOUT_READY,
-	output reg        DDRAM_RD,
-	output reg [63:0] DDRAM_DIN,
-	output reg  [7:0] DDRAM_BE,
-	output reg        DDRAM_WE
+	output            DDRAM_RD,
+	output     [63:0] DDRAM_DIN,
+	output      [7:0] DDRAM_BE,
+	output            DDRAM_WE
 );
 
 localparam [28:0] DDR_BASE  = 29'h6000000;          // 0x30000000 >> 3
@@ -129,68 +129,93 @@ function [127:0] win_sel(input [191:0] b, input [1:0] sel);
 	end
 endfunction
 
-localparam M_IDLE = 2'd0, M_ISSUE = 2'd1, M_READ = 2'd2;
-reg  [1:0] m_state;
-reg  [1:0] m_client;         // 0 loader, 1 capture, 3 sample
-reg  [1:0] m_beat;
-reg [127:0] m_b01;          // first two beats of a sample fetch
-reg  [1:0] smp_sel;
+// synthframe memory port: clients 0 loader, 1 capture, 2 status (writes), 3 sample fetch
+// (a 3-word read), in that priority order, onto synthframe_mem_ddr3. The port runs while
+// the core is held in reset for a download (rst = reset && !loading, as before).
+wire         c_req_valid [4], c_req_ready [4], c_req_we [4], c_rsp_valid [4];
+wire  [28:0] c_req_addr [4];
+wire  [63:0] c_req_wdata [4], c_rsp_data;
+wire   [7:0] c_req_be [4], c_req_len [4];
+wire   [0:0] c_req_tag [4], c_rsp_tag;
+wire         m_req_valid, m_req_ready, m_req_we, m_rsp_valid;
+wire  [28:0] m_req_addr;
+wire  [63:0] m_req_wdata, m_rsp_data;
+wire   [7:0] m_req_be, m_req_len;
+wire   [2:0] m_req_tag, m_rsp_tag;
+
+synthframe_mem_arb #(.N(4), .CTW(1)) mem_arb
+(
+	.c_req_valid(c_req_valid), .c_req_ready(c_req_ready), .c_req_we(c_req_we), .c_req_addr(c_req_addr),
+	.c_req_wdata(c_req_wdata), .c_req_be(c_req_be), .c_req_len(c_req_len), .c_req_tag(c_req_tag),
+	.c_rsp_valid(c_rsp_valid), .c_rsp_data(c_rsp_data), .c_rsp_tag(c_rsp_tag),
+	.req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
+	.req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
+	.rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag)
+);
+
+synthframe_mem_ddr3 #(.TW(3), .QBITS(2)) mem
+(
+	.clk(clk), .rst(reset && !loading),
+	.req_valid(m_req_valid), .req_ready(m_req_ready), .req_we(m_req_we), .req_addr(m_req_addr),
+	.req_wdata(m_req_wdata), .req_be(m_req_be), .req_len(m_req_len), .req_tag(m_req_tag),
+	.rsp_valid(m_rsp_valid), .rsp_data(m_rsp_data), .rsp_tag(m_rsp_tag),
+	.DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR),
+	.DDRAM_DOUT(DDRAM_DOUT), .DDRAM_DOUT_READY(DDRAM_DOUT_READY), .DDRAM_RD(DDRAM_RD),
+	.DDRAM_DIN(DDRAM_DIN), .DDRAM_BE(DDRAM_BE), .DDRAM_WE(DDRAM_WE)
+);
+
+reg          s_wait;         // the sample fetch is issued, words coming back
+reg   [1:0]  s_beat;
+reg [127:0]  m_b01;          // first two words of a sample fetch
+reg   [1:0]  smp_sel;
+
+assign c_req_valid[0] = ld_pend;
+assign c_req_addr[0]  = DDR_BASE + {5'd0, ld_addr[26:3]};
+assign c_req_wdata[0] = ld_word;
+assign c_req_valid[1] = cap_pend;
+assign c_req_addr[1]  = CAPT_BASE + {8'd0, cap_ptr};
+assign c_req_wdata[1] = cap_word;
+assign c_req_valid[2] = st_pend;
+assign c_req_addr[2]  = STAT_ADDR;
+assign c_req_wdata[2] = {st_worst, st_missed, st_samples};
+assign c_req_valid[3] = mem_req && !mem_ack && !s_wait;
+assign c_req_addr[3]  = DDR_BASE + {9'd0, mem_addr[21:2]};
+assign c_req_wdata[3] = 64'd0;
+genvar gi;
+generate for (gi = 0; gi < 4; gi = gi + 1) begin : g_client
+	assign c_req_we[gi]  = gi != 3;
+	assign c_req_be[gi]  = 8'hFF;
+	assign c_req_len[gi] = gi == 3 ? 8'd3 : 8'd1;
+	assign c_req_tag[gi] = 1'b0;
+end endgenerate
 
 always @(posedge clk) begin
 	mem_ack <= 0;
 	if (reset && !loading) begin
-		m_state  <= M_IDLE;
-		DDRAM_RD <= 0;
-		DDRAM_WE <= 0;
+		s_wait <= 0;
 	end
-	else case (m_state)
-	M_IDLE: begin
-		DDRAM_BE <= 8'hFF;
-		if (ld_pend) begin
-			m_client <= 2'd0; DDRAM_ADDR <= DDR_BASE + {5'd0, ld_addr[26:3]}; DDRAM_DIN <= ld_word;
-			DDRAM_BURSTCNT <= 8'd1; DDRAM_WE <= 1; m_state <= M_ISSUE;
+	else begin
+		if (c_req_valid[3] && c_req_ready[3]) begin
+			s_wait  <= 1;
+			s_beat  <= 0;
+			smp_sel <= mem_addr[1:0];
 		end
-		else if (cap_pend) begin
-			m_client <= 2'd1; DDRAM_ADDR <= CAPT_BASE + {8'd0, cap_ptr}; DDRAM_DIN <= cap_word;
-			DDRAM_BURSTCNT <= 8'd1; DDRAM_WE <= 1; m_state <= M_ISSUE;
-		end
-		else if (st_pend) begin
-			m_client <= 2'd2; DDRAM_ADDR <= STAT_ADDR; DDRAM_DIN <= {st_worst, st_missed, st_samples};
-			DDRAM_BURSTCNT <= 8'd1; DDRAM_WE <= 1; m_state <= M_ISSUE;
-		end
-		else if (mem_req && !mem_ack) begin
-			m_client <= 2'd3; DDRAM_ADDR <= DDR_BASE + {9'd0, mem_addr[21:2]}; smp_sel <= mem_addr[1:0];
-			DDRAM_BURSTCNT <= 8'd3; DDRAM_RD <= 1; m_state <= M_ISSUE;
-		end
-	end
-
-	M_ISSUE:
-		if (!DDRAM_BUSY) begin
-			DDRAM_RD <= 0;
-			DDRAM_WE <= 0;
-			m_beat   <= 0;
-			m_state  <= DDRAM_RD ? M_READ : M_IDLE;
-		end
-
-	M_READ:
-		if (DDRAM_DOUT_READY) begin
-			m_beat <= m_beat + 2'd1;
-			if (m_beat == 2'd0) begin
-				m_b01[63:0] <= DDRAM_DOUT;
-			end
-			else if (m_beat == 2'd1) m_b01[127:64] <= DDRAM_DOUT;
+		if (c_rsp_valid[3]) begin
+			s_beat <= s_beat + 2'd1;
+			if (s_beat == 2'd0) m_b01[63:0] <= c_rsp_data;
+			else if (s_beat == 2'd1) m_b01[127:64] <= c_rsp_data;
 			else begin
-				mem_win <= win_sel({DDRAM_DOUT, m_b01}, smp_sel);
+				mem_win <= win_sel({c_rsp_data, m_b01}, smp_sel);
 				mem_ack <= 1;
-				m_state <= M_IDLE;
+				s_wait  <= 0;
 			end
 		end
-
-	default: m_state <= M_IDLE;
-	endcase
+	end
 end
 
-wire wr_done = (m_state == M_ISSUE) && !DDRAM_BUSY && DDRAM_WE;
+wire ld_done  = c_req_valid[0] && c_req_ready[0];
+wire cap_done = c_req_valid[1] && c_req_ready[1];
+wire st_done  = c_req_valid[2] && c_req_ready[2];
 
 // ---------------------------------------------------------------- loader (DDR part: offsets < 8 MB)
 always @(posedge clk) begin
@@ -207,7 +232,7 @@ always @(posedge clk) begin
 				ioctl_wait <= 1;
 			end
 		end
-		if (wr_done && m_client == 2'd0) begin
+		if (ld_done) begin
 			ld_pend    <= 0;
 			ioctl_wait <= 0;
 		end
@@ -260,9 +285,9 @@ always @(posedge clk) begin
 		end
 		else div <= div + 1'd1;
 		if (st_busy != 16'hFFFF) st_busy <= st_busy + 1'd1;
-		if (wr_done && m_client == 2'd2) st_pend <= 0;
+		if (st_done) st_pend <= 0;
 
-		if (wr_done && m_client == 2'd1) begin
+		if (cap_done) begin
 			cap_pend <= 0;
 			cap_ptr  <= cap_ptr + 1'd1;
 		end

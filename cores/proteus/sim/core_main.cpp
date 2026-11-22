@@ -7,6 +7,7 @@
 // SD block reads/writes (16 KB requests, byte by byte through sd_buff_*).
 #include "Vproteus_core.h"
 #include "verilated.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -113,6 +114,13 @@ int main(int argc, char **argv) {
 		        unsigned(st & 0xFFFFFFFF), unsigned(st >> 32 & 0xFFFF), unsigned(st >> 48));
 	}
 	if (saved_chunks) { FILE *s = fopen(argv[5], "wb"); fwrite(save.data(), 1, save.size(), s); fclose(s); }
+	// CAPTURE_OUT=FILE: the audio capture ring (0x31000000, left/right s16 LE per sample) as the
+	// core wrote it into the DDR3 model, for comparing builds
+	if (const char *cap = getenv("CAPTURE_OUT")) {
+		uint64_t st = 0; for (int i = 0; i < 8; i++) st |= uint64_t(mem[0xFFFF00 + i]) << (8 * i);
+		size_t n = std::min<size_t>(size_t(st & 0xFFFFFFFF) * 4, mem.size() - 0x1000000);
+		FILE *o = fopen(cap, "wb"); if (o) { fwrite(mem.data() + 0x1000000, 1, n, o); fclose(o); }
+	}
 	delete t;
 	return 0;
 }

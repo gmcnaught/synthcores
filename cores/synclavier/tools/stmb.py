@@ -577,7 +577,7 @@ def cmd_convert(a):
             assert want == got, "read-back mismatch bank %d entry %d" % (b + 1, i + 1)
     text = "\n".join(report)
     if a.report:
-        open(a.report, "w").write(text + "\n")
+        with open(a.report, "w") as _f: _f.write(text + "\n")
     else:
         print(text)
     print("%s: %d sectors (bank stride %d, largest bank %d sectors)"

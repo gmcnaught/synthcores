@@ -86,3 +86,7 @@ add_executable(sc55-render ${RENDER_SRC})
 target_link_libraries(sc55-render PRIVATE sc55_common)
 add_executable(sc55-render-traced ${TRACED_RENDER_SRC})
 target_link_libraries(sc55-render-traced PRIVATE sc55_common_traced)
+
+# JV-880 factory-preset NVRAM for the jv880 render test (jv880_nvram.cpp)
+add_executable(jv880-nvram "${CMAKE_CURRENT_SOURCE_DIR}/jv880_nvram.cpp")
+target_link_libraries(jv880-nvram PRIVATE sc55_common)

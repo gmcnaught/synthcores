@@ -533,7 +533,7 @@ def cmd_convert(bank, output, report, min_sectors, regen_dir=None):
                     == stmb.timbre_words(rb[b][i])), "read-back mismatch %d%d" % (b + 1, i + 1)
     text = "\n".join(lines)
     if report:
-        open(report, "w").write(text + "\n")
+        with open(report, "w") as _f: _f.write(text + "\n")
     else:
         print(text)
     print("%s: %d sectors (bank stride %d, largest bank %d sectors)"
