@@ -14,7 +14,7 @@
 # must differ from the pack's init_ram; the core and pack load again and the LCD is compared
 # with the one before the reload (information only: the firmware boots to preset 1).
 # Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, cz101_smoke.sav and result.txt. Exit 1
-# if the ROM band is not green, an underrun was seen, the LCD is blank at boot, MIDI did not
+# if the core is not running (band not green), an underrun was seen, the LCD is blank at boot, MIDI did not
 # change the LCD, or the save file is wrong.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -53,14 +53,15 @@ $M load /tmp/cz101_smoke.mgl; sleep "${BOOT:-8}"
 $M shot cz101 "$OUT/nv_reloaded.png" >/dev/null
 python3 -I - "$OUT" "$PACK" <<'EOF' | tee "$OUT/result.txt"
 # cz101_lcd_video.sv, 800 x 600 frame: the LCD (MAME's 97 x 19 pixels at 8x) at (12, 160),
-# 776 x 152, background 8a9294, dot on 3f3b3e; the status strip at y 412: boxes at x 0-199
-# (ROM band: green ok, blue loading, red no ROM), 220-259 (MIDI), 280-319 (underrun seen) from
-# x 12. Screenshots come scaled; offsets are scaled by width / 800; the strip is found by the
-# band's colour.
+# 776 x 152, background 8a9294, dot on 3f3b3e; synthframe_status_strip at (12, 412): band at
+# x 0-199 (green running, amber loading, blue ROM pack not running, red no ROM), boxes at
+# 220-259 (MIDI), 280-319 (underrun: dark red seen, bright red now), 340-379 (lag). Screenshots
+# come scaled; offsets are scaled by width / 800; the strip is found by the band's colour.
 import os, sys
 from PIL import Image
 out, pack = sys.argv[1], sys.argv[2]
-BAND = {(0x20, 0xc0, 0x40): "rom ok", (0x20, 0x60, 0xc0): "loading", (0xc0, 0x20, 0x20): "no rom"}
+BAND = {(0x20, 0xc0, 0x40): "running", (0xe0, 0xa0, 0x20): "loading", (0x20, 0x60, 0xc0): "rom ok",
+        (0xc0, 0x20, 0x20): "no rom"}
 def strip(im):
     px = im.load(); w, h = im.size
     for y in range(h):
@@ -81,7 +82,7 @@ if not s:
     print("band: not found"); sys.exit(1)
 k = end.size[0] / 800
 und = end.getpixel((s[0] + int(300 * k), s[1] + int(10 * k)))[:3]
-und_s = {(0x30, 0x38, 0x48): "never", (0xe0, 0xa0, 0x20): "seen"}.get(und, "?%02x%02x%02x" % und)
+und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(und, "?%02x%02x%02x" % und)
 boot, endp = panel("boot", s), panel("end", s)
 changed, reloaded = panel("nv_changed", s), panel("nv_reloaded", s)
 sav = f"{out}/cz101_smoke.sav"
@@ -96,7 +97,7 @@ print(f"key_changed_lcd: {changed.tobytes() != endp.tobytes()}")
 print(f"save_file_bytes: {sz}")
 print(f"save_ram_differs_from_init_ram: {bool(ram) and ram != init}")
 print(f"lcd_after_reload_same_as_before: {reloaded.tobytes() == changed.tobytes()}")
-ok = (s[2] == "rom ok" and und_s == "never" and lit(boot) > 500 and endp.tobytes() != boot.tobytes()
+ok = (s[2] == "running" and und_s == "never" and lit(boot) > 500 and endp.tobytes() != boot.tobytes()
       and sz == 8192 and ram != init)
 sys.exit(0 if ok else 1)
 EOF

@@ -34,8 +34,9 @@ notes and the MAME flag bugs found on the way are in [`docs/upd7810.md`](docs/up
    40 kHz samples go through a 960-tap polyphase filter (flat to 18 kHz, images at or below
    -92 dB), so the HDMI and analog outputs carry no 40 kHz images.
 
-The status strip under the LCD shows the ROM pack (green ok, blue loading, red none), MIDI
-activity, and an audio underrun indicator.
+The status strip under the LCD (synthframe's, as on the SC-55 and JV-880) shows the core's
+state (green running, amber loading, red no ROM pack), MIDI activity, and an audio underrun
+indicator (dark red once an underrun was seen).
 
 Panel keys (PS/2 or USB keyboard, MAME's map, plus F1-F8 and Enter for keyboards without a
 keypad):
