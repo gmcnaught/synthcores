@@ -123,7 +123,7 @@ index 1bd09284..49cd2072 100644
  
  //**************************************************************************
 diff --git a/src/devices/sound/upd933.cpp b/src/devices/sound/upd933.cpp
-index 9b714a47..e2a416a9 100644
+index 9b714a47..c9b65711 100644
 --- a/src/devices/sound/upd933.cpp
 +++ b/src/devices/sound/upd933.cpp
 @@ -12,6 +12,8 @@
@@ -149,7 +149,39 @@ index 9b714a47..e2a416a9 100644
  	save_item(NAME(m_irq_pending));
  	save_item(NAME(m_irq_state));
  	save_item(NAME(m_cs));
-@@ -217,6 +226,7 @@ void upd933_device::update_irq()
+@@ -96,6 +105,7 @@ void upd933_device::device_start()
+ /**************************************************************************/
+ TIMER_CALLBACK_MEMBER(upd933_device::timer_tick)
+ {
++	if (m_czlog) fprintf(m_czlog, "%llu %u T\n", (unsigned long long)cz_tick(), m_sample_count);
+ 	m_irq_pending = 1;
+ 	update_irq();
+ }
+@@ -103,6 +113,7 @@ TIMER_CALLBACK_MEMBER(upd933_device::timer_tick)
+ /**************************************************************************/
+ void upd933_device::device_reset()
+ {
++	if (m_czlog) fprintf(m_czlog, "%llu %u X\n", (unsigned long long)cz_tick(), m_sample_count);
+ 	m_irq_pending = m_irq_state = 0;
+ 
+ 	m_sound_data[0] = m_sound_data[1] = 0;
+@@ -140,6 +151,7 @@ int upd933_device::rq_r()
+ void upd933_device::cs_w(int state)
+ {
+ 	m_stream->update();
++	if (m_czlog) fprintf(m_czlog, "%llu %u C %d\n", (unsigned long long)cz_tick(), m_sample_count, state);
+ 
+ 	if (!m_cs && state)
+ 		update_pending_irq();
+@@ -151,6 +163,7 @@ void upd933_device::cs_w(int state)
+ void upd933_device::id_w(int state)
+ {
+ 	m_stream->update();
++	if (m_czlog) fprintf(m_czlog, "%llu %u I %d\n", (unsigned long long)cz_tick(), m_sample_count, state);
+ 
+ 	m_id = state;
+ 	update_irq();
+@@ -217,6 +230,7 @@ void upd933_device::update_irq()
  	if (irq_state != m_irq_state)
  	{
  		m_irq_state = irq_state;
@@ -157,7 +189,7 @@ index 9b714a47..e2a416a9 100644
  		m_irq_cb(m_irq_state);
  	}
  }
-@@ -227,7 +237,9 @@ u8 upd933_device::read()
+@@ -227,7 +241,9 @@ u8 upd933_device::read()
  	if (!machine().side_effects_disabled())
  		m_stream->update();
  
@@ -168,7 +200,7 @@ index 9b714a47..e2a416a9 100644
  }
  
  /**************************************************************************/
-@@ -242,6 +254,7 @@ void upd933_device::write(u8 data)
+@@ -242,6 +258,7 @@ void upd933_device::write(u8 data)
  		bool ok = true;
  		const u8 reg = m_sound_data[0];
  		const u16 value = m_sound_regs[reg] = (m_sound_data[1] << 8) | data;
@@ -176,13 +208,27 @@ index 9b714a47..e2a416a9 100644
  
  		// the low 3 bits of the register number determine which voice is controlled by per-voice registers...
  		const int vnum = reg & 7;
-@@ -386,6 +399,7 @@ void upd933_device::sound_stream_update(sound_stream &stream)
+@@ -386,6 +403,7 @@ void upd933_device::sound_stream_update(sound_stream &stream)
  		for (int j : voice_map)
  			sample += update(j);
  
 +		if (m_czsamples) { const s32 v = sample; fwrite(&v, 4, 1, m_czsamples); }
  		stream.put_int_clamp(0, i, sample, 1 << 15);
  		m_sample_count++;
+ 	}
+@@ -544,7 +562,12 @@ s16 upd933_device::update(int vnum)
+ 
+ 		case 3:
+ 			// pitch modulated by noise (0 or 32 semitones above base pitch)
+-			voice.m_pm_level = machine().rand() & (32 << NOTE_SHIFT);
++		{
++			const u32 r = machine().rand();
++			// noise: logged with the index of the sample being generated (no time: inside the stream update)
++			if (m_czlog) fprintf(m_czlog, "- %u N %08X\n", m_sample_count, r);
++			voice.m_pm_level = r & (32 << NOTE_SHIFT);
++		}
+ 			break;
+ 		}
  	}
 diff --git a/src/devices/sound/upd933.h b/src/devices/sound/upd933.h
 index 1f8049d0..cd9eb172 100644
