@@ -16,5 +16,5 @@ if [ ! -f "$OUT/tg68k_kernel.v" ] || [ "$SRC/TG68KdotC_Kernel.vhd" -nt "$OUT/tg6
 fi
 verilator --cc "$OUT/tg68k_kernel.v" p2k/rtl/cpu/mcf5206e_periph.sv p2k/rtl/cpu/p2k_cpu.sv --top-module p2k_cpu \
   --exe "$ROOT/p2k/sim/p2k_cpu_tb.cpp" \
-  -Mdir "$OUT/obj" -O3 -Wno-fatal -Wno-lint -Wno-style --build -j 8 -o p2k_cpu_tb > "$OUT/verilator.log" 2>&1
+  -Mdir "$OUT/obj" -O3 -CFLAGS -g -Wno-fatal -Wno-lint -Wno-style --build -j 8 -o p2k_cpu_tb > "$OUT/verilator.log" 2>&1
 echo "built $OUT/obj/p2k_cpu_tb"
