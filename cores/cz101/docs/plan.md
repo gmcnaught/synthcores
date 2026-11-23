@@ -114,7 +114,7 @@ construction.
 | C2 | Done: peripherals on 160 random programs (310 k interrupts); firmware boot identical (below) |
 | C3 | Done: uPD933 identical to a standalone copy of MAME's model on synthetic stimuli; identical to MAME itself inside C4 |
 | C4 | `tests/c4_run.sh tests/midi/basic.txt 6500000`: 6.5 M instructions (17.9 s, boot and MIDI playback) identical to MAME, 716,728 samples identical |
-| C5 | In progress: MiSTer top written (below); first Quartus build and MiSTer test pending |
+| C5 | Build meets timing (14,555 ALMs, 127 M10K, 36 DSP; core clock +3.65 ns at 50 MHz). MiSTer smoke test (`scripts/mister/smoke.sh`) passes: boots to the first patch, MIDI over the UART changes the patch, a panel key works, no underrun, the 8 KB save file is written. Open: restore after reload not shown by the LCD (the firmware boots to preset 1); audio not yet checked by ear |
 
 Timing rules the board implements (all from MAME's source, confirmed by the lockstep):
 - CPU cycle P = 299,999,940,000 as (attoseconds per cycle for 3,333,334 cycles/s).

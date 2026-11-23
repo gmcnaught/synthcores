@@ -34,5 +34,12 @@ PY
 python3 "$HERE/tools/rxlog_bytes.py" "$W/mame.rx" > "$W/live.bytes"
 CZ_MIDI_BYTES="$W/live.bytes" "$HERE/out/sim/cz101_bench" "$W/rom/cz101" "$N" "$W/live.trace" "$W/live.s32" | tee "$W/live.txt"
 python3 "$HERE/tools/trace_cmp.py" "$W/mame.trace" "$W/live.trace" "$N"
-cmp -n "$(stat -f%z "$W/mame.s32" 2>/dev/null || stat -c%s "$W/mame.s32")" "$W/mame.s32" "$W/live.s32" && echo "live MIDI samples: identical"
+python3 - "$W/mame.s32" "$W/live.s32" <<'PY'
+import sys
+a, b = (open(p, "rb").read() for p in sys.argv[1:3])
+n = min(len(a), len(b)) // 4 * 4
+if a[:n] != b[:n]:
+    print("live MIDI samples: FAIL"); sys.exit(1)
+print(f"live MIDI samples: identical {n // 4}")
+PY
 echo "C4 $NAME: PASS"

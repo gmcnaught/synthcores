@@ -15,7 +15,7 @@
 // Interrupt priority and IRR live outside too (irq_vec / irq_ack, skit_*).
 
 module upd7810_core #(
-    parameter string DECODE_HEX = "upd7810_decode.hex"
+    parameter DECODE_HEX = "upd7810_decode.hex"
 ) (
     input  logic        clk,
     input  logic        reset,
