@@ -2,6 +2,22 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## P2K reference corpus (2026-11-22, branch `p2k-ref-corpus`)
+
+- **`cores/proteus/tools/p2k_corpus.py` and `tests/p2k_corpus/`:** 13 MIDI cases rendered by
+  MAME with the stand-in Composer SIMM. Each records audio and the sound-chip register log
+  (`P2K_TRACE`); the hashes and stats are in `manifest.json`.
+- **Cases:** boot, 150-note polyphony, controllers, 16-channel multi, key range, and all 1,024
+  stand-in presets (8 sweeps). About 980 s emulated, about 2 minutes with 6 jobs.
+- **Checks:**
+    - every case rendered twice with identical WAV and log hashes;
+    - check mode exits 0 against the manifest;
+    - the composer SIMM rebuilt from the WAVs is byte-identical.
+- **Findings** (`docs/p2k-findings.md`):
+    - voice allocation order (0-55, 64-119, then 56-63 and 120-127);
+    - the 22 extra notes in the 150-note case took voices 0-21;
+    - the stand-in presets' Key High is 91 (from the template preset).
+
 ## Iteration 11: P2K CPU against MAME (2026-11-22, branch `iter11-p2k-mame`)
 
 - **Gate passed:** from reset to the OS 2.26 main screen, the RTL matches all 5,175,832

@@ -6,6 +6,7 @@ Script lines (times in seconds, '#' comments):
   <time> off <chan> <note>
   <time> pc  <chan> <program 0-127>
   <time> cc  <chan> <controller> <value>
+  <time> pb  <chan> <bend -8192..8191>
   <time> syx <hex bytes without F0/F7>
 
 Usage: mkmidi.py SCRIPT OUT.mid
@@ -47,6 +48,9 @@ def main():
             events.append((t, bytes([0xC0 | ch, int(line[3])])))
         elif kind == "cc":
             events.append((t, bytes([0xB0 | ch, int(line[3]), int(line[4])])))
+        elif kind == "pb":
+            v = int(line[3]) + 8192
+            events.append((t, bytes([0xE0 | ch, v & 0x7F, v >> 7])))
         else:
             raise SystemExit(f"unknown event {kind}")
     events.sort(key=lambda e: e[0])
