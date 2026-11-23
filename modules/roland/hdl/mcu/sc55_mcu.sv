@@ -46,6 +46,7 @@ module sc55_mcu #(
     // after the address; `idle` = no step in progress (with run_step low, the CPU writes nothing)
     input  logic [14:0] nv_dump_a,
     output logic [7:0]  nv_dump_d,
+    output logic        nv_wrote,         // the NVRAM was written this clock
     output logic        idle,
 
     // MIDI bytes into the UART receive buffer (MCU_PostUART)
@@ -421,12 +422,14 @@ module sc55_mcu #(
                                                .ra(bram_a[14:0]), .rd(nvram_rd));
             sdp_ram #(.AW(15), .DW(8)) u_nvram_dump (.clk, .we(nvram_we), .wa(nvram_wa), .wd(nvram_wd),
                                                     .ra(nv_dump_a), .rd(nv_dump_d));
+            assign nv_wrote = nvram_we;
             sdp_ram #(.AW(15), .DW(8)) u_card  (.clk, .we(card_we), .wa(card_wa), .wd(card_wd),
                                                .ra(bram_a[14:0]), .rd(card_rd));
         end else begin : g_no_jv880_rams
             assign nvram_rd = 8'hff;
             assign card_rd = 8'hff;
             assign nv_dump_d = 8'hff;
+            assign nv_wrote = 1'b0;
         end
     endgenerate
     sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),

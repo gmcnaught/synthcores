@@ -185,8 +185,20 @@ module sc55_pcm (
     function automatic logic signed [31:0] sx20(input logic [31:0] v);
         return {{12{v[19]}}, v[19:0]};
     endfunction
+    // JV-880: 20-bit saturation, Nuked-SC55's original addclip20 (nukeykt), which the jcmoyer fork
+    // dropped (7204125, "if ... these functions do overflow, their outputs simply need to saturate
+    // at 20 ... bits"); JV-880 chords do overflow. The reference does the same for the JV-880
+    // (ref/patch_ref.py FIXES). The SC-55 keeps the fork's plain add: none of its tests overflow,
+    // and with jv880 tied low its netlist is unchanged.
+    function automatic logic signed [31:0] sat20(input logic signed [31:0] s);
+        if (s > 32'sh7ffff) return 32'sh7ffff;
+        if (s < -32'sh80000) return -32'sh80000;
+        return s;
+    endfunction
     function automatic logic signed [31:0] addclip20(input logic [31:0] a, input logic [31:0] b, input logic [31:0] cin);
-        return sx20(a) + sx20(b) + $signed(cin);
+        logic signed [31:0] s;
+        s = sx20(a) + sx20(b) + $signed(cin);
+        return jv880 ? sat20(s) : s;
     endfunction
     function automatic logic signed [31:0] multi(input logic [31:0] a, input logic [7:0] b);
         logic signed [31:0] p;

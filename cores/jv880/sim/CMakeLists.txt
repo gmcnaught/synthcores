@@ -33,3 +33,8 @@ verilate(jv880_board_bench SOURCES ${JV880_SV}
          TOP_MODULE jv880_board PREFIX Vjv880_board INCLUDE_DIRS "${ROLAND}/pcm" "${ROLAND}/board"
          VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw
          "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
+
+# synthframe_nvsave unit bench: a save with the core running, and the paused second pass after a write
+add_executable(nvsave_tb nvsave_tb.cpp)
+verilate(nvsave_tb SOURCES "${SYNTHFRAME}/save/synthframe_nvsave.sv"
+         TOP_MODULE synthframe_nvsave PREFIX Vsynthframe_nvsave VERILATOR_ARGS ${VFLAGS})

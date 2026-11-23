@@ -2,6 +2,41 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## JV-880 clipping and OSD dropout (2026-11-23, branch `jv880-clip`)
+
+User report: clipping on the saw lead patch; underrun when the OSD opens; two notes drop one.
+- **Output level:** the board's s16 conversion was the renderer's `>> 15`, which clamps the top
+  6 dB of the PCM's 20-bit output. 48 of the 64 factory patches reach it with one note or a
+  4-note chord at velocity 127 (I-22 SAW Lead: +5.3 dB with one note). Now `>> (16 - gain)`:
+  0 dB = 20-bit full scale; +6 dB = the old level.
+- **20-bit mix (JV-880):** jcmoyer/Nuked-SC55 7204125 replaced the original saturating
+  `addclip20` with a plain add; loud JV-880 chords wrapped full negative -> full positive (624
+  times over the 64 patches; SAW Lead 8). The PCM saturates again when `jv880`, and the reference
+  does the same for the JV-880 (`cores/sc55/ref/patch_ref.py` FIXES, applied to both builds).
+  `test_jv880_ref.py test_mix_saturates`: 68 samples at the rail, no wraps (8 wraps before).
+- **SC-55 left as it was:** saturating its `addclip20` too kept all 112 SC-55 integration
+  hashes on disk (mk1-v1.21, mk2-v1.01, sc155-rev1) and the mk1/mk2 lockstep, but the SC-55 then
+  failed timing on seeds 1-7 (-0.025 to -1.005 ns; paths in the MCU timer compare and the PCM
+  address counter, ~33,300 ALMs). With `jv880` tied low its netlist is unchanged.
+- **NVRAM save:** `synthframe_nvsave` held the core for the whole 32 KB SD write (the audio
+  FIFO is 5.3 ms). It now writes with the core running, from the MCU's NVRAM copy, and again with
+  the core paused only if the NVRAM was written meanwhile (`sc55_core` `nv_wrote`). The
+  reference firmware wrote no NVRAM byte in 10 s of notes and program changes.
+  `cores/jv880/sim/nvsave_tb.cpp`: no write / write behind / write ahead, file = RAM.
+- **Two notes on SAW Lead:** a SOLO patch on the reference (the first note's fundamental falls
+  43 dB after the second note); I-01 JV Strings keeps both. Not a core issue.
+- **Checks:** board bench vs reference on `jv880.mid` (1,640,121 samples, hash 73feda3c) and a
+  SAW Lead chord file (1,261,941 samples); `--save-at` with and without a save file; SC-55 mk1
+  lockstep.
+- **Windows build:** JV-880 seed 5, 28,944 ALMs, core setup slack +0.527 ns (seed 2 missed by
+  0.385 ns after the change). SC-55 seed 2 unchanged: 33,160 ALMs, +0.786 ns.
+- **MiSTer smoke:** SC-55 100 s of 0A.mid, underrun and lag never. JV-880 (seed 5): boot, 60 s of `jv880.mid`, autosave on OSD open: underrun
+  never, lag never; save file 32 KB; Unit number 17 -> 20 kept after reload (the script's pixel
+  compare said "other": the cursor blink). `synth-mister shot` now waits up to 60 s for the
+  screenshot (Main_MiSTer took 30 s to fill it).
+- **Build host:** seven parallel Quartus builds dropped winbuild off the network for ~30 min
+  (the builds finished); run at most three at a time.
+
 ## P2K MAME prerequisites, steps 1-5 (2026-11-23, branch `p2k-sound-model`)
 
 Plan: `cores/proteus/docs/p2k-mame-plan.md` (user decisions: no unit, the integer MAME model is the

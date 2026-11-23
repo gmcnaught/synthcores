@@ -1,9 +1,10 @@
 # Reference model: jcmoyer/Nuked-SC55 backend + renderer, built without the
-# SDL/rtmidi frontend. Used by tools and by the Verilator benches.
+# SDL/rtmidi frontend. Used by tools and by the Verilator benches. Both builds carry
+# ref/patch_ref.py's FIXES (JV-880: addclip20 saturates at 20 bits, as the original Nuked-SC55).
 #
-#   sc55_backend / sc55-render          : unmodified backend (decoder2 on, as released)
+#   sc55_backend / sc55-render          : the released backend with FIXES (decoder2 on)
 #   sc55_backend_traced / sc55-render-traced
-#                                        : patched copy with lockstep hooks
+#                                        : FIXES plus lockstep hooks
 #                                          (ref/patch_ref.py), decoder2 off so every
 #                                          code byte goes through MCU_Read
 cmake_minimum_required(VERSION 3.23)
@@ -18,17 +19,37 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-# --- unmodified backend -------------------------------------------------------
+# --- released backend with FIXES -----------------------------------------------
 set(NUKED_ENABLE_DECODER2 1)
 configure_file("${NUKED_DIR}/src/backend/config.h.in"
                "${CMAKE_CURRENT_BINARY_DIR}/cfg_plain/backend/config.h" @ONLY)
 
 file(GLOB BACKEND_SRC "${NUKED_DIR}/src/backend/*.cpp")
 file(GLOB DECODER2_SRC "${NUKED_DIR}/src/backend/decoder2/*.cpp")
-add_library(sc55_backend STATIC ${BACKEND_SRC} ${DECODER2_SRC}
-    "${NUKED_DIR}/src/backend/sha/sha224-256.c")
+file(GLOB_RECURSE NUKED_ALL_SRC "${NUKED_DIR}/src/*")
+set(FIXED_SRC_ROOT "${CMAKE_CURRENT_BINARY_DIR}/fixed/src")
+set(FIXED_SRC "")
+foreach(f ${BACKEND_SRC} ${DECODER2_SRC})
+    file(RELATIVE_PATH rel "${NUKED_DIR}/src" "${f}")
+    list(APPEND FIXED_SRC "${FIXED_SRC_ROOT}/${rel}")
+endforeach()
+set(COMMON_SRC "")
+foreach(n gain rom_loader path_util term_io)
+    list(APPEND COMMON_SRC "${FIXED_SRC_ROOT}/common/${n}.cpp")
+endforeach()
+set(RENDER_SRC "")
+foreach(n main smf wav)
+    list(APPEND RENDER_SRC "${FIXED_SRC_ROOT}/renderer/${n}.cpp")
+endforeach()
+add_custom_command(
+    OUTPUT ${FIXED_SRC} ${COMMON_SRC} ${RENDER_SRC} "${FIXED_SRC_ROOT}/backend/sha/sha224-256.c"
+    COMMAND "${Python3_EXECUTABLE}" -I "${CMAKE_CURRENT_SOURCE_DIR}/patch_ref.py" --fixes-only
+            "${NUKED_DIR}/src" "${FIXED_SRC_ROOT}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/patch_ref.py" ${NUKED_ALL_SRC}
+    COMMENT "Applying reference FIXES")
+add_library(sc55_backend STATIC ${FIXED_SRC} "${FIXED_SRC_ROOT}/backend/sha/sha224-256.c")
 target_include_directories(sc55_backend PUBLIC
-    "${NUKED_DIR}/src" "${NUKED_DIR}/src/backend"
+    "${FIXED_SRC_ROOT}" "${FIXED_SRC_ROOT}/backend"
     "${CMAKE_CURRENT_BINARY_DIR}/cfg_plain/backend" "${CMAKE_CURRENT_BINARY_DIR}/cfg_plain")
 
 # --- patched backend with hooks ------------------------------------------------
@@ -38,7 +59,6 @@ configure_file("${NUKED_DIR}/src/backend/config.h.in"
 
 set(TRACED_SRC_ROOT "${CMAKE_CURRENT_BINARY_DIR}/traced/src")
 set(TRACED_DIR "${TRACED_SRC_ROOT}/backend")
-file(GLOB_RECURSE NUKED_ALL_SRC "${NUKED_DIR}/src/*")
 set(TRACED_SRC "")
 foreach(f ${BACKEND_SRC})
     get_filename_component(n "${f}" NAME)
@@ -65,18 +85,8 @@ target_include_directories(sc55_backend_traced PUBLIC
     "${CMAKE_CURRENT_BINARY_DIR}/cfg_traced/backend" "${CMAKE_CURRENT_BINARY_DIR}/cfg_traced")
 
 # --- common + renderers ----------------------------------------------------------
-set(COMMON_SRC
-    "${NUKED_DIR}/src/common/gain.cpp"
-    "${NUKED_DIR}/src/common/rom_loader.cpp"
-    "${NUKED_DIR}/src/common/path_util.cpp"
-    "${NUKED_DIR}/src/common/term_io.cpp")
-set(RENDER_SRC
-    "${NUKED_DIR}/src/renderer/main.cpp"
-    "${NUKED_DIR}/src/renderer/smf.cpp"
-    "${NUKED_DIR}/src/renderer/wav.cpp")
-
 add_library(sc55_common STATIC ${COMMON_SRC})
-target_include_directories(sc55_common PUBLIC "${NUKED_DIR}/src/common" "${NUKED_DIR}/src")
+target_include_directories(sc55_common PUBLIC "${FIXED_SRC_ROOT}/common" "${FIXED_SRC_ROOT}")
 target_link_libraries(sc55_common PUBLIC sc55_backend)
 add_library(sc55_common_traced STATIC ${TRACED_COMMON_SRC})
 target_include_directories(sc55_common_traced PUBLIC "${TRACED_SRC_ROOT}/common" "${TRACED_SRC_ROOT}")

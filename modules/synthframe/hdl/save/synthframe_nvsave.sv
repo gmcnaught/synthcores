@@ -7,9 +7,12 @@
 //   - restore: after the download, when the image is good and the mounted file holds at least
 //     2**AW bytes, reads it into the RAM through mem_we/mem_addr/mem_wdata; boot_hold keeps
 //     the core in reset until then (a missing or short file leaves the RAM as it is);
-//   - save: on a rising save_req, or when the OSD opens with autosave set, raises pause, waits
-//     until the core reports idle (no step in progress), and writes the RAM to the file,
-//     reading mem_rdata at mem_addr (the byte one clock after the address);
+//   - save: on a rising save_req, or when the OSD opens with autosave set, writes the RAM to the
+//     file, reading mem_rdata at mem_addr (the byte one clock after the address), from a copy
+//     of the RAM with its own read port, while the core keeps running (no audio dropout). If
+//     the core writes the RAM (mem_written) during that pass, the file may hold a mix of old
+//     and new bytes, so it is written again with pause up, once the core reports idle (no step
+//     in progress): the second pass is always consistent;
 //   - writes nothing to a read-only file.
 // The file is the RAM's bytes in address order, 2**AW bytes, moved in requests of up to 16 KB
 // (hps_io's limit; sd_blk_cnt + 1 blocks of 512 bytes).
@@ -39,6 +42,7 @@ module synthframe_nvsave #(
     input  logic          save_req,       // level; the rising edge saves
     input  logic          osd_open,       // OSD_STATUS
     input  logic          autosave,       // save when the OSD opens
+    input  logic          mem_written,    // the core wrote the RAM this clock
 
     // the RAM
     output logic          mem_we,
@@ -67,7 +71,7 @@ module synthframe_nvsave #(
     st_t st;
     assign mem_we = (st == S_RD || st == S_RD_ACK) && sd_ack && sd_buff_wr;
 
-    logic mounted, ro, have, save_d, osd_d, loading_d;
+    logic mounted, ro, have, save_d, osd_d, loading_d, dirty;
     logic [3:0] quiet;
 
     always_ff @(posedge clk) begin
@@ -90,6 +94,7 @@ module synthframe_nvsave #(
             pause <= 1'b0;
             saving <= 1'b0;
         end else begin
+            if (saving && mem_written) dirty <= 1'b1;
             case (st)
                 S_IDLE:
                     if (boot_hold) begin
@@ -103,10 +108,13 @@ module synthframe_nvsave #(
                         end
                     end else if (image_ok && !loading && mounted && !ro &&
                                  ((save_req && !save_d) || (autosave && osd_open && !osd_d))) begin
-                        pause <= 1'b1;
+                        // first pass with the core running; dirty = written since the pass began
                         saving <= 1'b1;
-                        quiet <= '0;
-                        st <= S_WAIT;
+                        dirty <= mem_written;
+                        chunk <= '0;
+                        sd_lba <= '0;
+                        sd_wr <= 1'b1;
+                        st <= S_WR;
                     end
                 // restore
                 S_RD: if (sd_ack) begin sd_rd <= 1'b0; st <= S_RD_ACK; end
@@ -123,7 +131,7 @@ module synthframe_nvsave #(
                             st <= S_RD;
                         end
                     end
-                // save: the core idle for 8 clocks with pause up (no step can have started)
+                // second pass: the core idle for 8 clocks with pause up (no step can have started)
                 S_WAIT:
                     if (!core_idle) quiet <= '0;
                     else if (quiet != 4'd8) quiet <= quiet + 4'd1;
@@ -136,7 +144,11 @@ module synthframe_nvsave #(
                 S_WR: if (sd_ack) begin sd_wr <= 1'b0; st <= S_WR_ACK; end
                 S_WR_ACK:
                     if (!sd_ack) begin
-                        if (chunk == 20'(NCH - 1)) begin
+                        if (chunk == 20'(NCH - 1) && !pause && (dirty || mem_written)) begin
+                            pause <= 1'b1;             // written during the pass: again, paused
+                            quiet <= '0;
+                            st <= S_WAIT;
+                        end else if (chunk == 20'(NCH - 1)) begin
                             pause <= 1'b0;
                             saving <= 1'b0;
                             have <= 1'b1;
