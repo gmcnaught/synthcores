@@ -8,7 +8,8 @@ the PC; MAME's DRAM fetches are not traced) and RTL accesses to the MCF5206e reg
 comparison accepts a swapped adjacent pair.
 
   p2k_trace_cmp.py MAME.bt RTL.trace [--context N] [--max-mame N] [--nodram]
-  --nodram: ignore DRAM accesses on the RTL side (MAME trace made with P2K_BUSTRACE_NODRAM=1)
+  --nodram: ignore DRAM accesses on the RTL side (MAME trace made with P2K_BUSTRACE_NODRAM=1),
+            except vector-table reads (RTL lines marked V; MAME keeps them since patch 0003)
 """
 import argparse
 import struct
@@ -47,8 +48,8 @@ def rtl_words(path):
                 continue                                      # MBAR registers
             if wa < 8 and p[0] == "R":
                 continue                                      # reset vectors (MAME: treated as fetches)
-            if NODRAM and 0x01000000 <= wa < 0x01800000:
-                continue
+            if NODRAM and 0x01000000 <= wa < 0x01800000 and p[5:6] != ["V"]:
+                continue                                      # DRAM, except vector-table reads
             lf = int(p[4], 16)
             if p[0] == "R" and (wa < 0x200000 or 0x02000000 <= wa < 0x02200000) and abs(wa - lf) <= 16:
                 continue                                      # same filter as MAME's fetch heuristic

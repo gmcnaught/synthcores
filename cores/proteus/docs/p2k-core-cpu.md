@@ -82,6 +82,22 @@ Accesses counted over boot + demo playback in MAME [O]:
   kernel's `skipFetch` (no bus cycle for the read half of CLR on 68010+, as the TG68K wrapper).
 - Verified: the first 5.2 M data word accesses of the boot (25.6 M MAME records, boot block and
   DRAM tests) match MAME exactly.
+- Verified (2026-11-22, iteration 11): reset to the OS 2.26 main screen. Replay mode
+  (`p2k/sim/replay.sh`, `P2K_TB_REPLAY`) matches all 5,175,832 non-DRAM word accesses of a
+  12 s MAME `P2K_BUSTRACE_NODRAM` trace (demo SIMM; MAME main screen at 10.5 s), including
+  6,504 timer interrupts and 35,006 TRAP #0 entries; `tools/p2k_trace_cmp.py` agrees on the
+  saved RTL trace. The RTL LCD then shows `C02A Vol127 Pan00  P2Ksy`. Replay mechanics:
+    - MAME patch 0003 keeps vector-table reads in the NODRAM trace (exception entries).
+    - Interrupts: the SIM's level reaches the kernel only when MAME's next access is an interrupt
+      vector and the kernel would stack MAME's interrupted PC (TG68_PC in a fetch state, else
+      last_opc_pc; P2K debug outputs `PC_out`, `opcPC_out`, `dbg_out`); a timer at that level
+      then counts as at its reference (`warp_level`). MAME's interrupt points depend on its
+      cycle counts, which do not model the MCF5206e, so the RTL takes them where MAME did.
+    - LCD status and flash status/ID reads return MAME's values (its HD44780 and intelfsh
+      models are busy for emulated time; the poll counts decide where ticks land).
+    - Testbench flash: the LH28F160S3 command subset of MAME's intelfsh16 (IDs 0xB0/0xD0).
+- RTL change found by the replay: the interrupt-acknowledge cycle (FC 7, 0xFFFFFFF0 | level << 1)
+  no longer reaches the board bus; the SIM answers it (autovector).
 - ColdFire-only opcodes: every `cpushl` (F4xx) and `pulse` (4ACC) in the OS 2.26 and boot-block
   disassembly sits inside data tables; `halt` (4AC8) occurs once, at boot 0x020005E4 after a
   fatal-error call that does not return. [I] None is executed on a normal boot, so TG68K keeps

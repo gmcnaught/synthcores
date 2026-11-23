@@ -17,6 +17,9 @@ module mcf5206e_periph #(
 	input  logic [15:0] din,
 	output logic [15:0] dout,
 	output logic [2:0]  ipl,          // interrupt level to the CPU (0 = none)
+	// Testbench only (tie to 0): a running timer with ORI set whose ICR level equals warp_level
+	// reaches its reference now (TER.REF set, TCN restarts), as if its period had just ended.
+	input  logic [2:0]  warp_level,
 	// UARTs (idle high)
 	input  logic        u1_rxd, u2_rxd,
 	output logic        u1_txd, u2_txd,
@@ -57,8 +60,12 @@ module mcf5206e_periph #(
 		logic [7:0]  pre;
 	} timer_t;
 	timer_t t1, t2;
-	assign t1_irq = t1.ter[1] && t1.tmr[4];
-	assign t2_irq = t2.ter[1] && t2.tmr[4];
+	// warp (testbench): a running timer with ORI at warp_level counts as at its reference now
+	logic t1_warp, t2_warp;
+	assign t1_warp = warp_level != 3'd0 && icr[9][4:2] == warp_level && t1.tmr[0] && t1.tmr[4] && ^t1.tmr[2:1];
+	assign t2_warp = warp_level != 3'd0 && icr[10][4:2] == warp_level && t2.tmr[0] && t2.tmr[4] && ^t2.tmr[2:1];
+	assign t1_irq = (t1.ter[1] || t1_warp) && t1.tmr[4];
+	assign t2_irq = (t2.ter[1] || t2_warp) && t2.tmr[4];
 
 	function automatic timer_t tick(timer_t t);
 		timer_t r = t;
@@ -247,6 +254,12 @@ module mcf5206e_periph #(
 				if (t2.tmr[2:1] == 2'b01 || (t2.tmr[2:1] == 2'b10 && div16 == 4'd0)) t2 <= tick(t2);
 				ua <= uart_step(ua, u1_rxd, u1_txd);
 				ub <= uart_step(ub, u2_rxd, u2_txd);
+			end
+			if (t1_warp && !t1.ter[1]) begin
+				t1.ter[1] <= 1'b1; t1.tcn <= 16'd0; t1.pre <= t1.tmr[15:8];
+			end
+			if (t2_warp && !t2.ter[1]) begin
+				t2.ter[1] <= 1'b1; t2.tcn <= 16'd0; t2.pre <= t2.tmr[15:8];
 			end
 
 			if (sel && !wr) begin
