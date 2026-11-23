@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 8; i++) c->an[i] = 0;
     c->an[1] = 0x7F; c->an[2] = 0xFF;
     c->rxd = 1; c->sck_edge = 0; c->sck_level = 0;
-    c->nmi_line = 0; c->int1_line = 0; c->int2_line = 0;
+    c->nmi_line = 0; c->int1_line = 0; c->int1_rise = 0; c->int2_line = 0;
     for (int a = 0; a < 4096; a++) { c->rom_wr = 1; c->rom_addr = a; c->rom_data = mem[a]; tick(); }
     c->rom_wr = 0;
     for (int i = 0; i < 4; i++) tick();

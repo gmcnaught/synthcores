@@ -47,6 +47,8 @@ module upd7810_periph (
     input  logic        sck_level,    // the new level
     input  logic        nmi_line,     // ASSERT = 1
     input  logic        int1_line,    // ASSERT = 1 (rising edge sets INTF1)
+    input  logic        int1_rise,    // a rising edge the board saw between two of its updates
+    output logic        pa_rd,        // port A read through RP() with MA != 0 (MAME pa_in_cb)
     input  logic        int2_line,    // ASSERT = 1 (falling-edge logic as MAME execute_set_input)
     output logic        ram_enable,   // MM bit 3: internal RAM FF00-FFFF visible
     output logic        to, co0, co1,
@@ -378,6 +380,7 @@ module upd7810_periph (
         logic        to_changed;
 
         sfr_ack <= 1'b0;
+        pa_rd <= 1'b0;
         skit_ack <= 1'b0;
         adv_ack <= 1'b0;
         pa_we <= 1'b0; pb_we <= 1'b0; pc_we <= 1'b0; pd_we <= 1'b0; pf_we <= 1'b0;
@@ -409,7 +412,7 @@ module upd7810_periph (
             nmi_q <= nmi_line;
             if (!nmi_q && nmi_line) irr_set = irr_set | INTFNMI;
             int1_q <= int1_line;
-            if (!int1_q && int1_line) irr_set = irr_set | INTF1;
+            if ((!int1_q && int1_line) || int1_rise) irr_set = irr_set | INTF1;
             if (int2_q && int2_line) irr_set = irr_set | INTF2;   // (!m_int2) == CLEAR && ASSERT
             int2_q <= !int2_line;
 
@@ -430,7 +433,7 @@ module upd7810_periph (
                 sfr_ack <= 1'b1;
                 if (!sfr_we) begin
                     case (sfr_id)
-                        S_PA: sfr_rdata <= {8'h0, rp(3'd0)};
+                        S_PA: begin sfr_rdata <= {8'h0, rp(3'd0)}; pa_rd <= MA != 8'h00; end
                         S_PB: sfr_rdata <= {8'h0, rp(3'd1)};
                         S_PC: sfr_rdata <= {8'h0, rp(3'd2)};
                         S_PD: sfr_rdata <= {8'h0, rp(3'd3)};
