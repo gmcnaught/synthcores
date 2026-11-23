@@ -1,0 +1,419 @@
+{
+ "cases": {
+  "boot": {
+   "lcd_last": "LCD 11.75 |C01A Vol127 Pan00  User |000..drm:Piatti         |",
+   "midi_sha256": "006363982c3c5d36de6efd522a4101d7bec65b679c5379d5ba8b729fad7fd6ea",
+   "seconds": 17.0,
+   "trace": {
+    "by_kind": {
+     "G": 41329,
+     "H": 6672,
+     "HR": 116264,
+     "X": 8196
+    },
+    "lines": 172461,
+    "note_starts": 0,
+    "voices_started": 0,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "0fefaf8421f0d4fda6b91b3ac4463fe713025ee79f4914dc15d2bcd99cec5c8f",
+   "wav": {
+    "audible_100ms_blocks": 0,
+    "channels": 2,
+    "frames": 816001,
+    "peak": 0,
+    "rate": 48000,
+    "rms": [
+     0.0,
+     0.0
+    ]
+   },
+   "wav_sha256": "56ac1b7913ff3ae414d5db223a85068161ec527af395fb9519a99427cc3aa6fe"
+  },
+  "ctrl": {
+   "lcd_last": "LCD 20.75 |C01A Vol127 Pan00 ......|071........ne           |",
+   "midi_sha256": "0daea9ca8b03cf310c0385602bbbbeeb49cbc7966621a615667a37e74fd435eb",
+   "seconds": 26.15,
+   "trace": {
+    "by_kind": {
+     "G": 42037,
+     "H": 8148,
+     "HR": 135604,
+     "MIDI": 113,
+     "X": 8196
+    },
+    "lines": 194098,
+    "note_starts": 14,
+    "voices_started": 14,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "8f4b58184aefa60f7ffe5e0fba0e5416d670af749351559efdcfd5ea7c68e3e7",
+   "wav": {
+    "audible_100ms_blocks": 73,
+    "channels": 2,
+    "frames": 1248001,
+    "peak": 3285,
+    "rate": 48000,
+    "rms": [
+     387.9,
+     405.0
+    ]
+   },
+   "wav_sha256": "cdec372d866cd90f8eadc2e4b728fe9f9b8aa24a2e5b99f387210f2b8a17f980"
+  },
+  "multi": {
+   "lcd_last": "LCD 12.50 |C01A Vol127 Pan00  P2Ksy|087..rom:Micro Moog     |",
+   "midi_sha256": "2b27ea321bedf9a33498393df5a472050972bb119f6106ee7f2dc1b607985f61",
+   "seconds": 20.3,
+   "trace": {
+    "by_kind": {
+     "G": 46513,
+     "H": 19486,
+     "HR": 120326,
+     "MIDI": 168,
+     "X": 8196
+    },
+    "lines": 194689,
+    "note_starts": 144,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "91ae607dc3aafb29c0781b19746987b5333e2339e9ca0a40d93021d5819ffde2",
+   "wav": {
+    "audible_100ms_blocks": 48,
+    "channels": 2,
+    "frames": 960001,
+    "peak": 17284,
+    "rate": 48000,
+    "rms": [
+     1243.7,
+     1298.7
+    ]
+   },
+   "wav_sha256": "986a034f961ee3373c3c5b2aa21f3770374d076d1e9d84b9ad58104faa658f44"
+  },
+  "poly": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "a2f1b5dd898265aab2bd5ff94be06b78cbb8ecc36942d85fd6dae006847eaf39",
+   "seconds": 23.0,
+   "trace": {
+    "by_kind": {
+     "G": 46597,
+     "H": 31284,
+     "HR": 122714,
+     "MIDI": 153,
+     "X": 8196
+    },
+    "lines": 208944,
+    "note_starts": 150,
+    "voices_started": 128,
+    "voices_started_64_127": 64
+   },
+   "trace_sha256": "4e33eb179ce57d8e140118095e937368cff181e2aa2cc0e09547f113af32692d",
+   "wav": {
+    "audible_100ms_blocks": 68,
+    "channels": 2,
+    "frames": 1104001,
+    "peak": 17869,
+    "rate": 48000,
+    "rms": [
+     1752.2,
+     1829.4
+    ]
+   },
+   "wav_sha256": "b155f923687a584f44c909853017a8da7463405a58556877f203b007fda24c36"
+  },
+  "range": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|112........ganClassic   |",
+   "midi_sha256": "fca1457049d3ea53f5e3b5e0fc9a4c0af7ac74969ffe3dc7f8102c509e6c5c52",
+   "seconds": 25.75,
+   "trace": {
+    "by_kind": {
+     "G": 42417,
+     "H": 9102,
+     "HR": 133198,
+     "MIDI": 84,
+     "X": 8196
+    },
+    "lines": 192997,
+    "note_starts": 32,
+    "voices_started": 32,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "b7bb8dda9f58874d9de32e3fb75861e7718ba6899eb7b9142e0c09cee18a7619",
+   "wav": {
+    "audible_100ms_blocks": 76,
+    "channels": 2,
+    "frames": 1200001,
+    "peak": 1644,
+    "rate": 48000,
+    "rms": [
+     199.0,
+     207.8
+    ]
+   },
+   "wav_sha256": "824814538b0c8ff32a15ba4bb83385ae9a7f979c34b8cb74f1d172f340a90d83"
+  },
+  "sweep0": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..bas:Filt Bass      |",
+   "midi_sha256": "8479e6a5d8afb49d6c3697a49d230a9a6eaf45096cfff7eaf8c9821d71b6e717",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45767,
+     "H": 18513,
+     "HR": 296310,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 369298,
+    "note_starts": 127,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "65f51b0e03045f19f5a11f12404ae9cae6ccd54f6f6779c6fc29cec8b23317b8",
+   "wav": {
+    "audible_100ms_blocks": 553,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 1872,
+    "rate": 48000,
+    "rms": [
+     319.3,
+     333.4
+    ]
+   },
+   "wav_sha256": "ae019ad520a470c53dd018b54587e850b72c54deebdb507c16e26be9747f828a"
+  },
+  "sweep1": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Bongo Fury     |",
+   "midi_sha256": "d7e86bd19a5d2aa63fbc80e2b4ac0242f28e1b139d9eabf16d09dccdcf5891bb",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45869,
+     "H": 20243,
+     "HR": 296144,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 370964,
+    "note_starts": 129,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "6cc9c32a0d38a3cc84d30d36ccfc6825cb22b23fc60f6ae028ebc69efec2559a",
+   "wav": {
+    "audible_100ms_blocks": 650,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 2515,
+    "rate": 48000,
+    "rms": [
+     327.3,
+     343.4
+    ]
+   },
+   "wav_sha256": "ee51665db00c538f998019e4e9b965a405efd126e467147d2addd1bd080767f8"
+  },
+  "sweep2": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:FullPinkNois   |",
+   "midi_sha256": "7663930a7f51aece3bbdf58fbdb923416810ddc184ed7c7b263ecf2e02205b8e",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45707,
+     "H": 17616,
+     "HR": 296202,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 368233,
+    "note_starts": 128,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "76a0fa76180e4a05cff4c82ead61777b57816a201005359f96d977073dd4a497",
+   "wav": {
+    "audible_100ms_blocks": 429,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 1820,
+    "rate": 48000,
+    "rms": [
+     176.2,
+     184.0
+    ]
+   },
+   "wav_sha256": "f6d78c23e30862f1b62ef3ce3980f8fc2b650d7c1a523877353d9b87e80b8c80"
+  },
+  "sweep3": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Percced        |",
+   "midi_sha256": "0992000fed27d6805d7a2707cc4fbce8667eae119a8201215b10126310849820",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45711,
+     "H": 17546,
+     "HR": 296198,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 368163,
+    "note_starts": 128,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "62402d092c973ba43b0b7f95a6790e6648283954c6936966e46caa370fd1dc63",
+   "wav": {
+    "audible_100ms_blocks": 419,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 1903,
+    "rate": 48000,
+    "rms": [
+     197.8,
+     206.5
+    ]
+   },
+   "wav_sha256": "b0d5b0e24e2a924ce1f034dcec7d9e3e2206de116cb0534564b271829b580abb"
+  },
+  "sweep4": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Tambourin      |",
+   "midi_sha256": "45da37d469a109c7afb6494ad7b3bc18b24bfbb488c7ce711fffd228b2898b82",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45703,
+     "H": 19364,
+     "HR": 296182,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 369957,
+    "note_starts": 128,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "c6a560dc693d522ac6ff37d796f85249237cfa55ec8a14bc273539db1eecfeca",
+   "wav": {
+    "audible_100ms_blocks": 433,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 1904,
+    "rate": 48000,
+    "rms": [
+     174.7,
+     182.4
+    ]
+   },
+   "wav_sha256": "40d1d7726a204d15e640c66e9c08d83b1b299f67f0e42a904d9080eea1c0aaf6"
+  },
+  "sweep5": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..sfx:Boink          |",
+   "midi_sha256": "6ab67e57d46b28ed15c8040b61a95e0149a67f0d031cdea83042f6ad51490af6",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45823,
+     "H": 20125,
+     "HR": 296214,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 370870,
+    "note_starts": 129,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "eed52789e445909b4a33fca34c65e370e7db42a5ffc5179aa5a03901f7c7d7f7",
+   "wav": {
+    "audible_100ms_blocks": 586,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 3533,
+    "rate": 48000,
+    "rms": [
+     265.6,
+     274.7
+    ]
+   },
+   "wav_sha256": "9c3c9b26f581c8ae0e79d508840bd82b2622442fe6710cd7bda5c88acf32589f"
+  },
+  "sweep6": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..pad:Under Pad FM   |",
+   "midi_sha256": "3ba5ed66a28a6ab64e98380b2f2b3848c9e2487c79d05a8a4ea249b8fb6cd4ab",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45835,
+     "H": 23912,
+     "HR": 296192,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 374647,
+    "note_starts": 128,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "cd2cb31f4bfcd920bb73bf525674021777efe7519a57f8e19d1d773ddf3e29c6",
+   "wav": {
+    "audible_100ms_blocks": 692,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 1815,
+    "rate": 48000,
+    "rms": [
+     333.1,
+     347.8
+    ]
+   },
+   "wav_sha256": "7190de78aa088b7377416418f2d7ed0abc46069bbe2bb1b544d8e0bb68b9ad67"
+  },
+  "sweep7": {
+   "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..rom:Tine Piano     |",
+   "midi_sha256": "5d2e31b2bef0d4ee4aefb021a872fcbd4a6c4c9c671601ff2db2a0a429310b35",
+   "seconds": 104.6,
+   "trace": {
+    "by_kind": {
+     "G": 45913,
+     "H": 20601,
+     "HR": 296106,
+     "MIDI": 512,
+     "X": 8196
+    },
+    "lines": 371328,
+    "note_starts": 129,
+    "voices_started": 112,
+    "voices_started_64_127": 56
+   },
+   "trace_sha256": "296286aebecc69326699e55217277e0046df78126c0f12ccf26a16397dc3b632",
+   "wav": {
+    "audible_100ms_blocks": 688,
+    "channels": 2,
+    "frames": 4992001,
+    "peak": 3869,
+    "rate": 48000,
+    "rms": [
+     386.4,
+     402.8
+    ]
+   },
+   "wav_sha256": "293c1053366812db95bdbfc395c0b1b44137fcbe6e8cdc61a4509d81b1c554f8"
+  }
+ },
+ "inputs": {
+  "mame_base": "4a92d534267335170f70f977a4d2485c2625d30d",
+  "mame_patches": {
+   "0001-emu68k-proteusxr-sound.patch": "2282c20c8b33b89c5f2eb010a30d4203a721323386a766e4a9e6877f3dbfe6d1",
+   "0002-emup2k-proteus2000-research.patch": "dbdc9aeae465df8e89c55106bcce7a1ae3b7bfa33c4f89dbac29b5f622c5bdd0",
+   "0003-p2k-bustrace-vector-reads.patch": "e60eab6b200096db2916416b17313e827f6c0041f151ab0bbae3ef44267e479e"
+  },
+  "simm": {
+   "baby.bin": "fb5ac63dd5521d2307e3324bb4c252019c6063fa4cc4e4bafe7391df353cd882",
+   "big.bin": "c7d27b6729879b959b53930b1d22fb2bb953b6801ace2f0939771b87702ee097",
+   "flash_clean.nv": "c0cf3eeb02bcded880388ff9c4b8efb201d003e61929080e044248f701a3c977"
+  }
+ }
+}

@@ -1,0 +1,2 @@
+# p2k_corpus case boot; render to 7.000 s (file time)
+# power-on to the main screen, no MIDI
