@@ -3,7 +3,9 @@
 // (cores/cz101/sim/upd933/upd933_log2ev.py) and checks it against what MAME logged:
 //   upd933_replay FILE.ev [--samples CZ_SAMPLES.bin] [--seed 0x9d14abd7] [--out REF.s32]
 // Checks: the stream-update rule (logged sample count at each access), read data, timer expiry
-// ticks (T lines), IRQ changes (Q lines), and the samples against MAME's int32 dump.
+// ticks (T lines), IRQ changes (Q lines), and the samples against MAME's int32 dump. Noise comes
+// from the N lines when the log has them (each must be used exactly once), else from the LCG
+// seeded with --seed.
 #include "upd933_ref.h"
 
 #include <cstdio>
@@ -42,6 +44,12 @@ int main(int argc, char **argv)
 	line("reads", r.read_checked, r.read_mismatch, r.read_first);
 	line("timer", r.timer_checked, r.timer_mismatch, r.timer_first);
 	line("irq", r.q_checked, r.q_mismatch, r.q_first);
+	if (r.noise_used || r.noise_missing || r.noise_unused)
+	{
+		printf("noise    %10llu used from N lines, %llu missing (LCG used), %llu left over\n",
+			(unsigned long long)r.noise_used, (unsigned long long)r.noise_missing, (unsigned long long)r.noise_unused);
+		bad += (r.noise_missing || r.noise_unused) != 0;
+	}
 
 	if (!outf.empty())
 		if (FILE *o = fopen(outf.c_str(), "wb")) { fwrite(r.samples.data(), 4, r.samples.size(), o); fclose(o); }

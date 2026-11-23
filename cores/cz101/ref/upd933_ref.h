@@ -101,7 +101,8 @@ public:
 	FILE *mamelog = nullptr;
 	u64 now = 0;
 	std::deque<u32> noise_override; // log replay: values for machine().rand(), in order
-	u64 noise_override_misses = 0;
+	bool noise_from_log = false;    // log replay has N lines: an empty queue is a miss
+	u64 noise_override_used = 0, noise_override_misses = 0;
 
 private:
 	static constexpr unsigned NOTE_SHIFT = 9;
@@ -161,6 +162,7 @@ struct RunResult {
 	u64 read_checked = 0, read_mismatch = 0; std::string read_first;
 	u64 timer_checked = 0, timer_mismatch = 0; std::string timer_first;
 	u64 q_checked = 0, q_mismatch = 0; std::string q_first;
+	u64 noise_used = 0, noise_missing = 0, noise_unused = 0;   // log replay N values
 };
 
 struct RunOptions {

@@ -268,11 +268,15 @@ u32 Upd933::machine_rand()
 	{
 		const u32 v = noise_override.front();
 		noise_override.pop_front();
+		noise_override_used++;
 		return v;
 	}
+	if (noise_from_log)
+		noise_override_misses++;
 	m_rand_seed = 1664525 * m_rand_seed + 1013904223;
 	const u32 v = (m_rand_seed >> 16) | (m_rand_seed << 16);
-	if (mamelog) fprintf(mamelog, "%llu %u N %08X\n", (unsigned long long)now, m_sample_count, v);
+	// patched MAME: logged inside sound_stream_update, so no tick; count = sample being generated
+	if (mamelog) fprintf(mamelog, "- %u N %08X\n", m_sample_count, v);
 	return v;
 }
 
@@ -630,6 +634,9 @@ RunResult Runner::finish()
 {
 	char buf[256];
 	r.irq = chip.irq_log;
+	r.noise_used = chip.noise_override_used;
+	r.noise_missing = chip.noise_override_misses;
+	r.noise_unused = chip.noise_override.size();
 	if (!m_expect_q.empty())
 	{
 		std::vector<IrqChange> got;
@@ -657,6 +664,7 @@ RunResult run(const std::vector<Event> &ev, const RunOptions &opt)
 {
 	const bool log_timers = std::any_of(ev.begin(), ev.end(), [](const Event &e) { return e.op == 'T'; });
 	Runner rn(opt, log_timers);
+	rn.chip.noise_from_log = std::any_of(ev.begin(), ev.end(), [](const Event &e) { return e.op == 'N'; });
 	for (const Event &e : ev)
 		rn.apply(e);
 	return rn.finish();
