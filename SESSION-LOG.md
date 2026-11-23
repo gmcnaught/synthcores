@@ -2,6 +2,54 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 13: CZ-101, C0-C5 (2026-11-23, branch `iter13-cz101`)
+
+Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
+- **C0, reference:** MAME `cz101` subtarget built in `../mame-cz101` (commit 4a92d534, the P2K
+  checkout's) with `cores/cz101/mame/patches/0001-cz101-logging.patch`: CPU trace with IRR
+  (`CZ_TRACE`), uPD933 write log and raw 40 kHz samples (`CZ_SND_LOG`, `CZ_SAMPLES`). Generated test
+  ROMs run on the same machine. Finding: MAME maps the uPD7811 internal ROM over 0000-0FFF in front
+  of the program ROM, so the core needs `upd7811g-120.bin`.
+- **C1, instruction set:** `hdl/upd7810/upd7810_core.sv` with a decode ROM generated from MAME's
+  tables. 120 random programs x 25,000 instructions identical to MAME. MAME quirk found: `ADCX_*`
+  pass carry 0 to `ZHC_ADD`.
+- **C2, peripherals (random programs):** `upd7810_periph.sv`, `upd7811.sv`. 160 programs with special
+  registers, interrupt handlers, SKIT/SKNIT and HLT identical, 309,527 interrupt entries. Fixed on the
+  way: prefixed opcodes call `handle_timers` twice (A/D reset timing); prescaler backlog drains as
+  MAME's while-loops; mode-0 serial steps only on TO changes. 1,064 of 1,110 opcode forms covered.
+- **C3, uPD933:** a subagent is writing the HDL and a standalone copy of MAME's model.
+- **Timing model for C4:** MAME's scheduler applies an event at time T before the instruction
+  starting at cycle s when T < (s + 1) x 300 ns; during an instruction `machine().time()` is its start,
+  or its start + cycles for a prefixed opcode. The core now exports `vcyc`/`acc_time` and waits at
+  each boundary for the board's events. `hdl/cz101_lcd.sv`: MAME's HD44780 with the busy flag in
+  CPU cycles (busy while s - t_w <= 122 or 5060).
+- **ROMs:** the user's MAME set (`synth-projects/nuked-sc55/firmware/cz101-mame/`). The internal ROM
+  `upd7811g-120.bin` is byte-identical to the program ROM's first 4 KB.
+- **C3 done:** uPD933 HDL (subagent), identical to a standalone copy of MAME's model; external-timer
+  mode so the board places its IRQ at the exact instruction boundary.
+- **C4:** `hdl/cz101_board.sv`. With the real firmware and `tests/midi/basic.txt`, 6.5 M instructions
+  (boot and MIDI playback, 17.9 s) identical to MAME and 716,728 samples identical. Fixed on the way:
+  the timer base must be the arming /CS request, not the latest one.
+- **C5, MiSTer core:** `mister/CZ101.sv` with a 40 KB ROM pack (program ROM, `init_ram`, HD44780
+  character ROM), pacing at 3,333,334 CPU cycles/s, live MIDI through a board serializer (10 bits
+  of 128 SCK edges; the C4 run fed this way is identical too), 800 x 600 LCD and LED video, MAME's
+  panel keys plus F1-F8/Enter, Power/cartridge/protect switches, and the 8 KB RAM save.
+  - Quartus 17 fixes: untyped string parameters, `synthesis translate_off` around the RAM
+    `initial` (5000-iteration limit), a true-dual-port RAM (two write addresses had made it
+    registers: 187 % fit, now 35 %), `DDRAM_CLK` clocked (an unclocked one gave 0-byte screenshots).
+  - Audio: new `modules/synthframe/hdl/audio/synthframe_resample.sv` (MIT), L/M polyphase FIR,
+    40 -> 96 kHz, 960 taps; `tests/resample/run.sh`: 13,443 outputs identical to the integer
+    model at both pacings.
+  - After the rebase onto main: `synthframe_nvsave` now saves with the core running, so the board
+    exports `nv_written` for its `mem_written`.
+  - Build 11: 14,577 ALMs, 37 DSP, core clock +4.13 ns. Smoke test passes (ROM ok, no underrun,
+    MIDI and a key change the LCD, 8 KB save differs from `init_ram`).
+  - On the MiSTer the user heard nothing at first: `uartmode.CZ-101` routed MidiLink to
+    FluidSynth; setting the UART to MidiLink fixed it.
+- **Open:** an edited patch surviving a reload is not shown by the smoke test (the firmware boots
+  to preset 1); music keys, pitch wheel and MIDI out are not mapped; licence default
+  BSD-3-Clause, not yet confirmed.
+
 ## Iteration 8: panel as data (2026-11-23, branch `iter8-panel`)
 
 - **Modules** (`modules/synthframe/hdl/panel`, MIT; contract in its `README.md`):

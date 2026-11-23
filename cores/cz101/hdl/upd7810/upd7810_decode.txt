@@ -1,0 +1,2048 @@
+XX 00 NOP              len=1 cyc= 4/ 4 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 01 LDAW_wa          len=2 cyc=10/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+XX 02 INX_SP           len=1 cyc= 7/ 4 L=3 INX     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 03 DCX_SP           len=1 cyc= 7/ 4 L=3 DCX     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 04 LXI_S_w          len=3 cyc=10/10 L=3 LXI     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=2
+XX 05 ANIW_wa_xx       len=3 cyc=19/10 L=3 ALU8    aop= 5 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 06 illegal          len=1 cyc= 4/ 4 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 07 ANI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 5 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 08 MOV_A_EAH        len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  8 mode= 0 lskip=0 nargs=0
+XX 09 MOV_A_EAL        len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  9 mode= 0 lskip=0 nargs=0
+XX 0A MOV_A_B          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+XX 0B MOV_A_C          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+XX 0C MOV_A_D          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+XX 0D MOV_A_E          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+XX 0E MOV_A_H          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+XX 0F MOV_A_L          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+XX 10 EXA              len=1 cyc= 4/ 4 L=3 EX      aop= 1 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 11 EXX              len=1 cyc= 4/ 4 L=3 EX      aop= 2 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 12 INX_BC           len=1 cyc= 7/ 4 L=3 INX     aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX 13 DCX_BC           len=1 cyc= 7/ 4 L=3 DCX     aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX 14 LXI_B_w          len=3 cyc=10/10 L=3 LXI     aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=2
+XX 15 ORIW_wa_xx       len=3 cyc=19/10 L=3 ALU8    aop= 6 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 16 XRI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 7 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 17 ORI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 6 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 18 MOV_EAH_A        len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  8 s2=  1 mode= 0 lskip=0 nargs=0
+XX 19 MOV_EAL_A        len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  9 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1A MOV_B_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1B MOV_C_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1C MOV_D_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1D MOV_E_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1E MOV_H_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+XX 1F MOV_L_A          len=1 cyc= 4/ 4 L=3 ALU8    aop= 0 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+XX 20 INRW_wa          len=2 cyc=16/ 7 L=3 INCDEC8 aop= 0 s1=127 s2=  0 mode=14 lskip=0 nargs=1
+XX 21 JB               len=1 cyc= 4/ 4 L=3 JB      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 22 INX_DE           len=1 cyc= 7/ 4 L=3 INX     aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX 23 DCX_DE           len=1 cyc= 7/ 4 L=3 DCX     aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX 24 LXI_D_w          len=3 cyc=10/10 L=3 LXI     aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=2
+XX 25 GTIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop=10 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 26 ADINC_A_xx       len=2 cyc= 7/ 7 L=3 ALU8    aop= 8 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 27 GTI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop=10 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 28 illegal          len=1 cyc= 4/ 4 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 29 LDAX_B           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+XX 2A LDAX_D           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+XX 2B LDAX_H           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+XX 2C LDAX_Dp          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+XX 2D LDAX_Hp          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+XX 2E LDAX_Dm          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+XX 2F LDAX_Hm          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+XX 30 DCRW_wa          len=2 cyc=16/ 7 L=3 INCDEC8 aop= 1 s1=127 s2=  0 mode=14 lskip=0 nargs=1
+XX 31 BLOCK            len=1 cyc=13/ 4 L=3 BLOCK   aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 32 INX_HL           len=1 cyc= 7/ 4 L=3 INX     aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX 33 DCX_HL           len=1 cyc= 7/ 4 L=3 DCX     aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX 34 LXI_H_w          len=3 cyc=10/10 L=2 LXI     aop= 0 s1=  3 s2=  0 mode= 0 lskip=1 nargs=2
+XX 35 LTIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop=11 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 36 SUINB_A_xx       len=2 cyc= 7/ 7 L=3 ALU8    aop= 9 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 37 LTI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop=11 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 38 illegal          len=1 cyc= 4/ 4 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 39 STAX_B           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 0 lskip=0 nargs=0
+XX 3A STAX_D           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 1 lskip=0 nargs=0
+XX 3B STAX_H           len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 2 lskip=0 nargs=0
+XX 3C STAX_Dp          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 3 lskip=0 nargs=0
+XX 3D STAX_Hp          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 4 lskip=0 nargs=0
+XX 3E STAX_Dm          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 5 lskip=0 nargs=0
+XX 3F STAX_Hm          len=1 cyc= 7/ 4 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 6 lskip=0 nargs=0
+XX 40 CALL_w           len=3 cyc=16/10 L=3 CALL    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=2
+XX 41 INR_A            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX 42 INR_B            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX 43 INR_C            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX 44 LXI_EA_s         len=3 cyc=10/10 L=3 LXI     aop= 0 s1=  4 s2=  0 mode= 0 lskip=0 nargs=2
+XX 45 ONIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop=14 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 46 ADI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 1 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 47 ONI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop=14 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 48 PRE_48           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 49 MVIX_BC_xx       len=2 cyc=10/ 7 L=3 ALU8    aop= 0 s1=127 s2=126 mode= 0 lskip=0 nargs=1
+XX 4A MVIX_DE_xx       len=2 cyc=10/ 7 L=3 ALU8    aop= 0 s1=127 s2=126 mode= 1 lskip=0 nargs=1
+XX 4B MVIX_HL_xx       len=2 cyc=10/ 7 L=3 ALU8    aop= 0 s1=127 s2=126 mode= 2 lskip=0 nargs=1
+XX 4C PRE_4C           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 4D PRE_4D           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 4E JRE              len=2 cyc=10/ 7 L=3 JRE     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 4F JRE              len=2 cyc=10/ 7 L=3 JRE     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 50 EXH              len=1 cyc= 4/ 4 L=3 EX      aop= 4 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 51 DCR_A            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 1 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX 52 DCR_B            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 1 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX 53 DCR_C            len=1 cyc= 4/ 4 L=3 INCDEC8 aop= 1 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX 54 JMP_w            len=3 cyc=10/10 L=3 JMP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=2
+XX 55 OFFIW_wa_xx      len=3 cyc=13/10 L=3 ALU8    aop=15 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 56 ACI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 2 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 57 OFFI_A_xx        len=2 cyc= 7/ 7 L=3 ALU8    aop=15 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 58 BIT_0_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 0 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 59 BIT_1_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 1 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5A BIT_2_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 2 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5B BIT_3_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 3 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5C BIT_4_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 4 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5D BIT_5_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 5 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5E BIT_6_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 6 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 5F BIT_7_wa         len=2 cyc=10/ 7 L=3 BIT     aop= 7 s1=  0 s2=  0 mode=14 lskip=0 nargs=1
+XX 60 PRE_60           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 61 DAA              len=1 cyc= 4/ 4 L=3 DAA     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 62 RETI             len=1 cyc=13/ 4 L=3 RETI    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 63 STAW_wa          len=2 cyc=10/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode=14 lskip=0 nargs=1
+XX 64 PRE_64           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 65 NEIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop=12 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 66 SUI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 3 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 67 NEI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop=12 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 68 MVI_V_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+XX 69 MVI_A_xx         len=2 cyc= 7/ 7 L=1 ALU8    aop= 0 s1=  1 s2=126 mode= 0 lskip=2 nargs=1
+XX 6A MVI_B_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+XX 6B MVI_C_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+XX 6C MVI_D_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+XX 6D MVI_E_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+XX 6E MVI_H_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 0 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+XX 6F MVI_L_xx         len=2 cyc= 7/ 7 L=2 ALU8    aop= 0 s1=  7 s2=126 mode= 0 lskip=1 nargs=1
+XX 70 PRE_70           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 71 MVIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop= 0 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 72 SOFTI            len=1 cyc=16/ 4 L=3 SOFTI   aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 73 illegal          len=1 cyc= 0/ 0 L=3 ILLEGAL0 aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 74 PRE_74           len=1 cyc= 0/ 0 L=3 PREFIX  aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 75 EQIW_wa_xx       len=3 cyc=13/10 L=3 ALU8    aop=13 s1=127 s2=126 mode=14 lskip=0 nargs=2
+XX 76 SBI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop= 4 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 77 EQI_A_xx         len=2 cyc= 7/ 7 L=3 ALU8    aop=13 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+XX 78 CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 79 CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7A CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7B CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7C CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7D CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7E CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 7F CALF             len=2 cyc=13/ 7 L=3 CALF    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=1
+XX 80 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 81 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 82 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 83 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 84 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 85 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 86 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 87 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 88 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 89 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8A CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8B CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8C CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8D CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8E CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 8F CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 90 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 91 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 92 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 93 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 94 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 95 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 96 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 97 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 98 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 99 CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9A CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9B CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9C CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9D CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9E CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX 9F CALT             len=1 cyc=16/ 4 L=3 CALT    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX A0 POP_VA           len=1 cyc=10/ 4 L=3 POP     aop= 0 s1=  5 s2=  0 mode= 0 lskip=0 nargs=0
+XX A1 POP_BC           len=1 cyc=10/ 4 L=3 POP     aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX A2 POP_DE           len=1 cyc=10/ 4 L=3 POP     aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX A3 POP_HL           len=1 cyc=10/ 4 L=3 POP     aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX A4 POP_EA           len=1 cyc=10/ 4 L=3 POP     aop= 0 s1=  4 s2=  0 mode= 0 lskip=0 nargs=0
+XX A5 DMOV_EA_BC       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+XX A6 DMOV_EA_DE       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+XX A7 DMOV_EA_HL       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+XX A8 INX_EA           len=1 cyc= 7/ 4 L=3 INX     aop= 0 s1=  4 s2=  0 mode= 0 lskip=0 nargs=0
+XX A9 DCX_EA           len=1 cyc= 7/ 4 L=3 DCX     aop= 0 s1=  4 s2=  0 mode= 0 lskip=0 nargs=0
+XX AA EI               len=1 cyc= 4/ 4 L=3 EI      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX AB LDAX_D_xx        len=2 cyc=13/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 7 lskip=0 nargs=1
+XX AC LDAX_H_A         len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 8 lskip=0 nargs=0
+XX AD LDAX_H_B         len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode= 9 lskip=0 nargs=0
+XX AE LDAX_H_EA        len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode=10 lskip=0 nargs=0
+XX AF LDAX_H_xx        len=2 cyc=13/ 7 L=3 ALU8    aop= 0 s1=  1 s2=127 mode=11 lskip=0 nargs=1
+XX B0 PUSH_VA          len=1 cyc=13/ 4 L=3 PUSH    aop= 0 s1=  5 s2=  0 mode= 0 lskip=0 nargs=0
+XX B1 PUSH_BC          len=1 cyc=13/ 4 L=3 PUSH    aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+XX B2 PUSH_DE          len=1 cyc=13/ 4 L=3 PUSH    aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+XX B3 PUSH_HL          len=1 cyc=13/ 4 L=3 PUSH    aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+XX B4 PUSH_EA          len=1 cyc=13/ 4 L=3 PUSH    aop= 0 s1=  4 s2=  0 mode= 0 lskip=0 nargs=0
+XX B5 DMOV_BC_EA       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+XX B6 DMOV_DE_EA       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  2 s2=  4 mode= 0 lskip=0 nargs=0
+XX B7 DMOV_HL_EA       len=1 cyc= 4/ 4 L=3 MOV16   aop= 0 s1=  3 s2=  4 mode= 0 lskip=0 nargs=0
+XX B8 RET              len=1 cyc=10/ 4 L=3 RET     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX B9 RETS             len=1 cyc=10/ 4 L=3 RETS    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX BA DI               len=1 cyc= 4/ 4 L=3 DI      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX BB STAX_D_xx        len=2 cyc=13/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 7 lskip=0 nargs=1
+XX BC STAX_H_A         len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 8 lskip=0 nargs=0
+XX BD STAX_H_B         len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode= 9 lskip=0 nargs=0
+XX BE STAX_H_EA        len=1 cyc=13/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode=10 lskip=0 nargs=0
+XX BF STAX_H_xx        len=2 cyc=13/ 7 L=3 ALU8    aop= 0 s1=127 s2=  1 mode=11 lskip=0 nargs=1
+XX C0 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C1 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C2 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C3 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C4 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C5 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C6 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C7 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C8 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX C9 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CA JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CB JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CC JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CD JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CE JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX CF JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D0 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D1 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D2 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D3 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D4 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D5 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D6 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D7 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D8 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX D9 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DA JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DB JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DC JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DD JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DE JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX DF JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E0 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E1 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E2 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E3 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E4 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E5 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E6 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E7 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E8 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX E9 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX EA JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX EB JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX EC JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX ED JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX EE JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX EF JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F0 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F1 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F2 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F3 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F4 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F5 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F6 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F7 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F8 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX F9 JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FA JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FB JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FC JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FD JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FE JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+XX FF JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 01 SLRC_A           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 3 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 02 SLRC_B           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 3 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 03 SLRC_C           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 3 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 05 SLLC_A           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 2 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 06 SLLC_B           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 2 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 07 SLLC_C           len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 2 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 08 SK_NV            len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 09 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0A SK_CY            len=2 cyc= 8/ 8 L=3 SK      aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0B SK_HC            len=2 cyc= 8/ 8 L=3 SK      aop= 1 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0C SK_Z             len=2 cyc= 8/ 8 L=3 SK      aop= 2 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 0F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 10 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 11 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 12 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 13 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 14 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 15 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 16 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 17 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 18 SKN_NV           len=2 cyc= 8/ 8 L=3 SK      aop= 7 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 19 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1A SKN_CY           len=2 cyc= 8/ 8 L=3 SK      aop= 4 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1B SKN_HC           len=2 cyc= 8/ 8 L=3 SK      aop= 5 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1C SKN_Z            len=2 cyc= 8/ 8 L=3 SK      aop= 6 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 1F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 20 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 21 SLR_A            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 1 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 22 SLR_B            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 1 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 23 SLR_C            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 1 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 24 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 25 SLL_A            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 0 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 26 SLL_B            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 0 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 27 SLL_C            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 0 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 28 JEA              len=2 cyc= 8/ 8 L=3 JEA     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 29 CALB             len=2 cyc=17/ 8 L=3 CALB    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 2A CLC              len=2 cyc= 8/ 8 L=3 CLC     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 2B STC              len=2 cyc= 8/ 8 L=3 STC     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 2C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 2D MUL_A            len=2 cyc=32/ 8 L=3 MUL     aop= 0 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+48 2E MUL_B            len=2 cyc=32/ 8 L=3 MUL     aop= 0 s1=  0 s2=  2 mode= 0 lskip=0 nargs=0
+48 2F MUL_C            len=2 cyc=32/ 8 L=3 MUL     aop= 0 s1=  0 s2=  3 mode= 0 lskip=0 nargs=0
+48 30 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 31 RLR_A            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 5 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 32 RLR_B            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 5 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 33 RLR_C            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 5 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 34 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 35 RLL_A            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 4 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 36 RLL_B            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 4 s1=  2 s2=  0 mode= 0 lskip=0 nargs=0
+48 37 RLL_C            len=2 cyc= 8/ 8 L=3 SHIFT8  aop= 4 s1=  3 s2=  0 mode= 0 lskip=0 nargs=0
+48 38 RLD              len=2 cyc=17/ 8 L=3 RLD     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 39 RRD              len=2 cyc=17/ 8 L=3 RRD     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 3A NEGA             len=2 cyc= 8/ 8 L=3 NEGA    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 3B HLT              len=2 cyc=12/ 8 L=3 HLT     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 3C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 3D DIV_A            len=2 cyc=59/ 8 L=3 DIV     aop= 0 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+48 3E DIV_B            len=2 cyc=59/ 8 L=3 DIV     aop= 0 s1=  0 s2=  2 mode= 0 lskip=0 nargs=0
+48 3F DIV_C            len=2 cyc=59/ 8 L=3 DIV     aop= 0 s1=  0 s2=  3 mode= 0 lskip=0 nargs=0
+48 40 SKIT_NMI         len=2 cyc= 8/ 8 L=3 SKIT    aop=18 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 41 SKIT_FT0         len=2 cyc= 8/ 8 L=3 SKIT    aop= 1 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 42 SKIT_FT1         len=2 cyc= 8/ 8 L=3 SKIT    aop= 2 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 43 SKIT_F1          len=2 cyc= 8/ 8 L=3 SKIT    aop= 3 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 44 SKIT_F2          len=2 cyc= 8/ 8 L=3 SKIT    aop= 4 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 45 SKIT_FE0         len=2 cyc= 8/ 8 L=3 SKIT    aop= 5 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 46 SKIT_FE1         len=2 cyc= 8/ 8 L=3 SKIT    aop= 6 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 47 SKIT_FEIN        len=2 cyc= 8/ 8 L=3 SKIT    aop= 7 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 48 SKIT_FAD         len=2 cyc= 8/ 8 L=3 SKIT    aop= 8 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 49 SKIT_FSR         len=2 cyc= 8/ 8 L=3 SKIT    aop= 9 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4A SKIT_FST         len=2 cyc= 8/ 8 L=3 SKIT    aop=10 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4B SKIT_ER          len=2 cyc= 8/ 8 L=3 SKIT    aop=11 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4C SKIT_OV          len=2 cyc= 8/ 8 L=3 SKIT    aop=12 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 4F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 50 SKIT_AN4         len=2 cyc= 8/ 8 L=3 SKIT    aop=13 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 51 SKIT_AN5         len=2 cyc= 8/ 8 L=3 SKIT    aop=14 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 52 SKIT_AN6         len=2 cyc= 8/ 8 L=3 SKIT    aop=15 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 53 SKIT_AN7         len=2 cyc= 8/ 8 L=3 SKIT    aop=16 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 54 SKIT_SB          len=2 cyc= 8/ 8 L=3 SKIT    aop=17 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 55 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 56 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 57 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 58 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 59 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 5F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 60 SKNIT_NMI        len=2 cyc= 8/ 8 L=3 SKIT    aop=18 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 61 SKNIT_FT0        len=2 cyc= 8/ 8 L=3 SKIT    aop= 1 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 62 SKNIT_FT1        len=2 cyc= 8/ 8 L=3 SKIT    aop= 2 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 63 SKNIT_F1         len=2 cyc= 8/ 8 L=3 SKIT    aop= 3 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 64 SKNIT_F2         len=2 cyc= 8/ 8 L=3 SKIT    aop= 4 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 65 SKNIT_FE0        len=2 cyc= 8/ 8 L=3 SKIT    aop= 5 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 66 SKNIT_FE1        len=2 cyc= 8/ 8 L=3 SKIT    aop= 6 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 67 SKNIT_FEIN       len=2 cyc= 8/ 8 L=3 SKIT    aop= 7 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 68 SKNIT_FAD        len=2 cyc= 8/ 8 L=3 SKIT    aop= 8 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 69 SKNIT_FSR        len=2 cyc= 8/ 8 L=3 SKIT    aop= 9 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 6A SKNIT_FST        len=2 cyc= 8/ 8 L=3 SKIT    aop=10 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 6B SKNIT_ER         len=2 cyc= 8/ 8 L=3 SKIT    aop=11 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 6C SKNIT_OV         len=2 cyc= 8/ 8 L=3 SKIT    aop=12 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 6D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 6E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 6F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 70 SKNIT_AN4        len=2 cyc= 8/ 8 L=3 SKIT    aop=13 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 71 SKNIT_AN5        len=2 cyc= 8/ 8 L=3 SKIT    aop=14 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 72 SKNIT_AN6        len=2 cyc= 8/ 8 L=3 SKIT    aop=15 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 73 SKNIT_AN7        len=2 cyc= 8/ 8 L=3 SKIT    aop=16 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 74 SKNIT_SB         len=2 cyc= 8/ 8 L=3 SKIT    aop=17 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+48 75 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 76 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 77 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 78 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 79 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 7F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 82 LDEAX_D          len=2 cyc=14/ 8 L=3 LD16    aop= 0 s1=  4 s2=  0 mode= 1 lskip=0 nargs=0
+48 83 LDEAX_H          len=2 cyc=14/ 8 L=3 LD16    aop= 0 s1=  4 s2=  0 mode= 2 lskip=0 nargs=0
+48 84 LDEAX_Dp         len=2 cyc=14/ 8 L=3 LD16    aop= 0 s1=  4 s2=  0 mode=12 lskip=0 nargs=0
+48 85 LDEAX_Hp         len=2 cyc=14/ 8 L=3 LD16    aop= 0 s1=  4 s2=  0 mode=13 lskip=0 nargs=0
+48 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 88 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 89 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 8A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 8B LDEAX_D_xx       len=3 cyc=20/11 L=3 LD16    aop= 0 s1=  4 s2=  0 mode= 7 lskip=0 nargs=1
+48 8C LDEAX_H_A        len=2 cyc=20/11 L=3 LD16    aop= 0 s1=  4 s2=  0 mode= 8 lskip=0 nargs=0
+48 8D LDEAX_H_B        len=2 cyc=20/11 L=3 LD16    aop= 0 s1=  4 s2=  0 mode= 9 lskip=0 nargs=0
+48 8E LDEAX_H_EA       len=2 cyc=20/11 L=3 LD16    aop= 0 s1=  4 s2=  0 mode=10 lskip=0 nargs=0
+48 8F LDEAX_H_xx       len=3 cyc=20/11 L=3 LD16    aop= 0 s1=  4 s2=  0 mode=11 lskip=0 nargs=1
+48 90 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 91 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 92 STEAX_D          len=2 cyc=14/ 8 L=3 ST16    aop= 0 s1=  4 s2=  0 mode= 1 lskip=0 nargs=0
+48 93 STEAX_H          len=2 cyc=14/ 8 L=3 ST16    aop= 0 s1=  4 s2=  0 mode= 2 lskip=0 nargs=0
+48 94 STEAX_Dp         len=2 cyc=14/ 8 L=3 ST16    aop= 0 s1=  4 s2=  0 mode=12 lskip=0 nargs=0
+48 95 STEAX_Hp         len=2 cyc=14/ 8 L=3 ST16    aop= 0 s1=  4 s2=  0 mode=13 lskip=0 nargs=0
+48 96 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 97 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 98 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 99 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 9A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 9B STEAX_D_xx       len=3 cyc=20/11 L=3 ST16    aop= 0 s1=  4 s2=  0 mode= 7 lskip=0 nargs=1
+48 9C STEAX_H_A        len=2 cyc=20/11 L=3 ST16    aop= 0 s1=  4 s2=  0 mode= 8 lskip=0 nargs=0
+48 9D STEAX_H_B        len=2 cyc=20/11 L=3 ST16    aop= 0 s1=  4 s2=  0 mode= 9 lskip=0 nargs=0
+48 9E STEAX_H_EA       len=2 cyc=20/11 L=3 ST16    aop= 0 s1=  4 s2=  0 mode=10 lskip=0 nargs=0
+48 9F STEAX_H_xx       len=3 cyc=20/11 L=3 ST16    aop= 0 s1=  4 s2=  0 mode=11 lskip=0 nargs=1
+48 A0 DSLR_EA          len=2 cyc= 8/ 8 L=3 SHIFT16 aop= 1 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A4 DSLL_EA          len=2 cyc= 8/ 8 L=3 SHIFT16 aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A8 TABLE            len=2 cyc=17/ 8 L=3 TABLE   aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 A9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AC EXA              len=2 cyc= 8/ 8 L=3 EX      aop= 1 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AD EXR              len=2 cyc= 8/ 8 L=3 EX      aop= 3 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AE EXH              len=2 cyc= 8/ 8 L=3 EX      aop= 4 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 AF EXX              len=2 cyc= 8/ 8 L=3 EX      aop= 2 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B0 DRLR_EA          len=2 cyc= 8/ 8 L=3 SHIFT16 aop= 3 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B4 DRLL_EA          len=2 cyc= 8/ 8 L=3 SHIFT16 aop= 2 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 B9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BB STOP             len=2 cyc=12/ 8 L=3 STOP    aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 BF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C0 DMOV_EA_ECNT     len=2 cyc=14/ 8 L=3 MOV16   aop= 0 s1=  4 s2= 96 mode= 0 lskip=0 nargs=0
+48 C1 DMOV_EA_ECPT     len=2 cyc=14/ 8 L=3 MOV16   aop= 0 s1=  4 s2= 97 mode= 0 lskip=0 nargs=0
+48 C2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 C9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 CF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D2 DMOV_ETM0_EA     len=2 cyc=14/ 8 L=3 MOV16   aop= 0 s1= 94 s2=  4 mode= 0 lskip=0 nargs=0
+48 D3 DMOV_ETM1_EA     len=2 cyc=14/ 8 L=3 MOV16   aop= 0 s1= 95 s2=  4 mode= 0 lskip=0 nargs=0
+48 D4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 D9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 DF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 E9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 EA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 EB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 EC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 ED illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 EE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 EF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 F9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+48 FF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 01 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 02 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 03 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 05 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 06 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 07 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 08 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 09 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 0F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 10 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 11 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 12 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 13 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 14 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 15 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 16 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 17 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 18 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 19 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 1F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 20 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 21 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 22 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 23 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 24 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 25 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 26 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 27 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 28 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 29 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 2F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 30 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 31 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 32 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 33 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 34 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 35 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 36 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 37 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 38 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 39 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 3F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 40 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 41 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 42 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 43 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 44 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 45 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 46 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 47 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 48 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 49 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 4F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 50 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 51 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 52 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 53 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 54 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 55 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 56 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 57 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 58 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 59 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 5F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 60 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 61 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 62 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 63 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 64 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 65 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 66 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 67 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 68 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 69 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 6F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 70 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 71 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 72 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 73 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 74 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 75 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 76 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 77 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 78 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 79 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 7F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 82 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 83 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 84 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 85 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 88 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 89 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 8F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 90 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 91 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 92 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 93 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 94 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 95 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 96 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 97 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 98 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 99 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C 9F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C A9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C AF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C B9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C BF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C C0 MOV_A_PA         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 64 mode= 0 lskip=0 nargs=0
+4C C1 MOV_A_PB         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 65 mode= 0 lskip=0 nargs=0
+4C C2 MOV_A_PC         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 66 mode= 0 lskip=0 nargs=0
+4C C3 MOV_A_PD         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 67 mode= 0 lskip=0 nargs=0
+4C C4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C C5 MOV_A_PF         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 68 mode= 0 lskip=0 nargs=0
+4C C6 MOV_A_MKH        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 69 mode= 0 lskip=0 nargs=0
+4C C7 MOV_A_MKL        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 70 mode= 0 lskip=0 nargs=0
+4C C8 MOV_A_ANM        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 71 mode= 0 lskip=0 nargs=0
+4C C9 MOV_A_SMH        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 72 mode= 0 lskip=0 nargs=0
+4C CA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C CB MOV_A_EOM        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 74 mode= 0 lskip=0 nargs=0
+4C CC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C CD MOV_A_TMM        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 76 mode= 0 lskip=0 nargs=0
+4C CE MOV_A_PT         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 93 mode= 0 lskip=0 nargs=0
+4C CF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C D9 MOV_A_RXB        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 84 mode= 0 lskip=0 nargs=0
+4C DA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C DB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C DC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C DD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C DE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C DF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E0 MOV_A_CR0        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 87 mode= 0 lskip=0 nargs=0
+4C E1 MOV_A_CR1        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 88 mode= 0 lskip=0 nargs=0
+4C E2 MOV_A_CR2        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 89 mode= 0 lskip=0 nargs=0
+4C E3 MOV_A_CR3        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1=  1 s2= 90 mode= 0 lskip=0 nargs=0
+4C E4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C E9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C EA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C EB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C EC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C ED illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C EE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C EF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C F9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4C FF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 01 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 02 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 03 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 05 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 06 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 07 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 08 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 09 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 0F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 10 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 11 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 12 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 13 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 14 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 15 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 16 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 17 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 18 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 19 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 1F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 20 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 21 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 22 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 23 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 24 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 25 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 26 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 27 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 28 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 29 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 2F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 30 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 31 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 32 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 33 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 34 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 35 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 36 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 37 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 38 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 39 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 3F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 40 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 41 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 42 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 43 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 44 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 45 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 46 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 47 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 48 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 49 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 4F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 50 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 51 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 52 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 53 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 54 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 55 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 56 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 57 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 58 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 59 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 5F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 60 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 61 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 62 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 63 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 64 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 65 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 66 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 67 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 68 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 69 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 6F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 70 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 71 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 72 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 73 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 74 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 75 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 76 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 77 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 78 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 79 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 7F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 82 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 83 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 84 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 85 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 88 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 89 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 8F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 90 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 91 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 92 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 93 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 94 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 95 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 96 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 97 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 98 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 99 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D 9F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D A9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D AF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D B9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D BF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D C0 MOV_PA_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 64 s2=  1 mode= 0 lskip=0 nargs=0
+4D C1 MOV_PB_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 65 s2=  1 mode= 0 lskip=0 nargs=0
+4D C2 MOV_PC_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 66 s2=  1 mode= 0 lskip=0 nargs=0
+4D C3 MOV_PD_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 67 s2=  1 mode= 0 lskip=0 nargs=0
+4D C4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D C5 MOV_PF_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 68 s2=  1 mode= 0 lskip=0 nargs=0
+4D C6 MOV_MKH_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 69 s2=  1 mode= 0 lskip=0 nargs=0
+4D C7 MOV_MKL_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 70 s2=  1 mode= 0 lskip=0 nargs=0
+4D C8 MOV_ANM_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 71 s2=  1 mode= 0 lskip=0 nargs=0
+4D C9 MOV_SMH_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 72 s2=  1 mode= 0 lskip=0 nargs=0
+4D CA MOV_SML_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 73 s2=  1 mode= 0 lskip=0 nargs=0
+4D CB MOV_EOM_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 74 s2=  1 mode= 0 lskip=0 nargs=0
+4D CC MOV_ETMM_A       len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 75 s2=  1 mode= 0 lskip=0 nargs=0
+4D CD MOV_TMM_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 76 s2=  1 mode= 0 lskip=0 nargs=0
+4D CE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D CF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D D0 MOV_MM_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 77 s2=  1 mode= 0 lskip=0 nargs=0
+4D D1 MOV_MCC_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 78 s2=  1 mode= 0 lskip=0 nargs=0
+4D D2 MOV_MA_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 79 s2=  1 mode= 0 lskip=0 nargs=0
+4D D3 MOV_MB_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 80 s2=  1 mode= 0 lskip=0 nargs=0
+4D D4 MOV_MC_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 81 s2=  1 mode= 0 lskip=0 nargs=0
+4D D5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D D6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D D7 MOV_MF_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 82 s2=  1 mode= 0 lskip=0 nargs=0
+4D D8 MOV_TXB_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 83 s2=  1 mode= 0 lskip=0 nargs=0
+4D D9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D DA MOV_TM0_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 85 s2=  1 mode= 0 lskip=0 nargs=0
+4D DB MOV_TM1_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 86 s2=  1 mode= 0 lskip=0 nargs=0
+4D DC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D DD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D DE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D DF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E5 MOV_MT_A         len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 92 s2=  1 mode= 0 lskip=0 nargs=0
+4D E6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D E8 MOV_ZCM_A        len=2 cyc=10/ 8 L=3 ALU8    aop= 0 s1= 91 s2=  1 mode= 0 lskip=0 nargs=0
+4D E9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D EA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D EB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D EC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D ED illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D EE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D EF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F5 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F6 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F7 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D F9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FD illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FE illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+4D FF illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 01 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 02 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 03 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 05 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 06 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 07 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 08 ANA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 09 ANA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 0A ANA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 0B ANA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 0C ANA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 0D ANA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 0E ANA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 0F ANA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 10 XRA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 11 XRA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 12 XRA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 13 XRA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 14 XRA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 15 XRA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 16 XRA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 17 XRA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 18 ORA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 19 ORA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 1A ORA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 1B ORA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 1C ORA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 1D ORA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 1E ORA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 1F ORA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 20 ADDNC_V_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 21 ADDNC_A_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 22 ADDNC_B_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 23 ADDNC_C_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 24 ADDNC_D_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 25 ADDNC_E_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 26 ADDNC_H_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 27 ADDNC_L_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 28 GTA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 29 GTA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 2A GTA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 2B GTA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 2C GTA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 2D GTA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 2E GTA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 2F GTA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 30 SUBNB_V_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 31 SUBNB_A_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 32 SUBNB_B_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 33 SUBNB_C_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 34 SUBNB_D_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 35 SUBNB_E_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 36 SUBNB_H_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 37 SUBNB_L_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 38 LTA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 39 LTA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 3A LTA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 3B LTA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 3C LTA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 3D LTA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 3E LTA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 3F LTA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 40 ADD_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 41 ADD_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 42 ADD_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 43 ADD_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 44 ADD_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 45 ADD_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 46 ADD_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 47 ADD_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 48 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 49 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 4F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 50 ADC_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 51 ADC_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 52 ADC_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 53 ADC_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 54 ADC_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 55 ADC_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 56 ADC_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 57 ADC_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 58 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 59 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 5F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 60 SUB_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 61 SUB_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 62 SUB_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 63 SUB_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 64 SUB_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 65 SUB_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 66 SUB_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 67 SUB_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 68 NEA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 69 NEA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 6A NEA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 6B NEA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 6C NEA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 6D NEA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 6E NEA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 6F NEA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 70 SBB_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 71 SBB_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 72 SBB_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 73 SBB_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 74 SBB_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 75 SBB_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 76 SBB_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 77 SBB_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 78 EQA_V_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  0 s2=  1 mode= 0 lskip=0 nargs=0
+60 79 EQA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 7A EQA_B_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  2 s2=  1 mode= 0 lskip=0 nargs=0
+60 7B EQA_C_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  3 s2=  1 mode= 0 lskip=0 nargs=0
+60 7C EQA_D_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+60 7D EQA_E_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  5 s2=  1 mode= 0 lskip=0 nargs=0
+60 7E EQA_H_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  6 s2=  1 mode= 0 lskip=0 nargs=0
+60 7F EQA_L_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  7 s2=  1 mode= 0 lskip=0 nargs=0
+60 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 82 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 83 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 84 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 85 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+60 88 ANA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 89 ANA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 8A ANA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 8B ANA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 8C ANA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 8D ANA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 8E ANA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 8F ANA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 5 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 90 XRA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 91 XRA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 92 XRA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 93 XRA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 94 XRA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 95 XRA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 96 XRA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 97 XRA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 7 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 98 ORA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 99 ORA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 9A ORA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 9B ORA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 9C ORA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 9D ORA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 9E ORA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 9F ORA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 6 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 A0 ADDNC_A_V        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 A1 ADDNC_A_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 A2 ADDNC_A_B        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 A3 ADDNC_A_C        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 A4 ADDNC_A_D        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 A5 ADDNC_A_E        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 A6 ADDNC_A_H        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 A7 ADDNC_A_L        len=2 cyc= 8/ 8 L=3 ALU8    aop= 8 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 A8 GTA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 A9 GTA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 AA GTA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 AB GTA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 AC GTA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 AD GTA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 AE GTA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 AF GTA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop=10 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 B0 SUBNB_A_V        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 B1 SUBNB_A_A        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 B2 SUBNB_A_B        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 B3 SUBNB_A_C        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 B4 SUBNB_A_D        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 B5 SUBNB_A_E        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 B6 SUBNB_A_H        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 B7 SUBNB_A_L        len=2 cyc= 8/ 8 L=3 ALU8    aop= 9 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 B8 LTA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 B9 LTA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 BA LTA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 BB LTA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 BC LTA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 BD LTA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 BE LTA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 BF LTA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop=11 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 C0 ADD_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 C1 ADD_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 C2 ADD_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 C3 ADD_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 C4 ADD_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 C5 ADD_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 C6 ADD_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 C7 ADD_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 1 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 C8 ONA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 C9 ONA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 CA ONA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 CB ONA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 CC ONA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 CD ONA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 CE ONA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 CF ONA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop=14 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 D0 ADC_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 D1 ADC_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 D2 ADC_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 D3 ADC_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 D4 ADC_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 D5 ADC_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 D6 ADC_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 D7 ADC_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 2 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 D8 OFFA_A_V         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 D9 OFFA_A_A         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 DA OFFA_A_B         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 DB OFFA_A_C         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 DC OFFA_A_D         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 DD OFFA_A_E         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 DE OFFA_A_H         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 DF OFFA_A_L         len=2 cyc= 8/ 8 L=3 ALU8    aop=15 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 E0 SUB_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 E1 SUB_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 E2 SUB_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 E3 SUB_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 E4 SUB_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 E5 SUB_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 E6 SUB_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 E7 SUB_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 3 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 E8 NEA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 E9 NEA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 EA NEA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 EB NEA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 EC NEA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 ED NEA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 EE NEA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 EF NEA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop=12 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 F0 SBB_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 F1 SBB_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 F2 SBB_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 F3 SBB_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 F4 SBB_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 F5 SBB_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 F6 SBB_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 F7 SBB_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop= 4 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+60 F8 EQA_A_V          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  0 mode= 0 lskip=0 nargs=0
+60 F9 EQA_A_A          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  1 mode= 0 lskip=0 nargs=0
+60 FA EQA_A_B          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  2 mode= 0 lskip=0 nargs=0
+60 FB EQA_A_C          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  3 mode= 0 lskip=0 nargs=0
+60 FC EQA_A_D          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  4 mode= 0 lskip=0 nargs=0
+60 FD EQA_A_E          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  5 mode= 0 lskip=0 nargs=0
+60 FE EQA_A_H          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  6 mode= 0 lskip=0 nargs=0
+60 FF EQA_A_L          len=2 cyc= 8/ 8 L=3 ALU8    aop=13 s1=  1 s2=  7 mode= 0 lskip=0 nargs=0
+64 00 MVI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 01 MVI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 02 MVI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 03 MVI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 04 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 05 MVI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 06 MVI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 07 MVI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 08 ANI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 09 ANI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 0A ANI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 0B ANI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 0C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 0D ANI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 0E ANI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 0F ANI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 10 XRI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 11 XRI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 12 XRI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 13 XRI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 14 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 15 XRI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 16 XRI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 17 XRI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 18 ORI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 19 ORI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 1A ORI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 1B ORI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 1C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 1D ORI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 1E ORI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 1F ORI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 20 ADINC_PA_xx      len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 21 ADINC_PB_xx      len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 22 ADINC_PC_xx      len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 23 ADINC_PD_xx      len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 24 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 25 ADINC_PF_xx      len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 26 ADINC_MKH_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 27 ADINC_MKL_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 28 GTI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 29 GTI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 2A GTI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 2B GTI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 2C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 2D GTI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 2E GTI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 2F GTI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 30 SUINB_PA_xx      len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 31 SUINB_PB_xx      len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 32 SUINB_PC_xx      len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 33 SUINB_PD_xx      len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 34 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 35 SUINB_PF_xx      len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 36 SUINB_MKH_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 37 SUINB_MKL_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 38 LTI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 39 LTI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 3A LTI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 3B LTI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 3C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 3D LTI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 3E LTI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 3F LTI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 40 ADI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 41 ADI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 42 ADI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 43 ADI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 44 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 45 ADI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 46 ADI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 47 ADI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 48 ONI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 49 ONI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 4A ONI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 4B ONI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 4C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 4D ONI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 4E ONI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 4F ONI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 50 ACI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 51 ACI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 52 ACI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 53 ACI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 54 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 55 ACI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 56 ACI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 57 ACI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 58 OFFI_PA_xx       len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 59 OFFI_PB_xx       len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 5A OFFI_PC_xx       len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 5B OFFI_PD_xx       len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 5C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 5D OFFI_PF_xx       len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 5E OFFI_MKH_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 5F OFFI_MKL_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 60 SUI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 61 SUI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 62 SUI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 63 SUI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 64 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 65 SUI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 66 SUI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 67 SUI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 68 NEI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 69 NEI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 6A NEI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 6B NEI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 6C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 6D NEI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 6E NEI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 6F NEI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 70 SBI_PA_xx        len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 71 SBI_PB_xx        len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 72 SBI_PC_xx        len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 73 SBI_PD_xx        len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 74 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 75 SBI_PF_xx        len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 76 SBI_MKH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 77 SBI_MKL_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 78 EQI_PA_xx        len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 64 s2=126 mode= 0 lskip=0 nargs=1
+64 79 EQI_PB_xx        len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 65 s2=126 mode= 0 lskip=0 nargs=1
+64 7A EQI_PC_xx        len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 66 s2=126 mode= 0 lskip=0 nargs=1
+64 7B EQI_PD_xx        len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 67 s2=126 mode= 0 lskip=0 nargs=1
+64 7C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 7D EQI_PF_xx        len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 68 s2=126 mode= 0 lskip=0 nargs=1
+64 7E EQI_MKH_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 69 s2=126 mode= 0 lskip=0 nargs=1
+64 7F EQI_MKL_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 70 s2=126 mode= 0 lskip=0 nargs=1
+64 80 MVI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 81 MVI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 82 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 83 MVI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 84 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 85 MVI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop= 0 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 86 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 87 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 88 ANI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 89 ANI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 8A illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 8B ANI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 8C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 8D ANI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 5 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 8E illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 8F illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 90 XRI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 91 XRI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 92 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 93 XRI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 94 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 95 XRI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 7 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 96 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 97 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 98 ORI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 99 ORI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 9A illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 9B ORI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 9C illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 9D ORI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 6 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 9E illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 9F illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 A0 ADINC_ANM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 A1 ADINC_SMH_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 A2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 A3 ADINC_EOM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 A4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 A5 ADINC_TMM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 8 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 A6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 A7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 A8 GTI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 A9 GTI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 AA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 AB GTI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 AC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 AD GTI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop=10 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 AE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 AF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 B0 SUINB_ANM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 B1 SUINB_SMH_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 B2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 B3 SUINB_EOM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 B4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 B5 SUINB_TMM_xx     len=3 cyc=20/11 L=3 ALU8    aop= 9 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 B6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 B7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 B8 LTI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 B9 LTI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 BA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 BB LTI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 BC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 BD LTI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop=11 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 BE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 BF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 C0 ADI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 C1 ADI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 C2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 C3 ADI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 C4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 C5 ADI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 1 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 C6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 C7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 C8 ONI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 C9 ONI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 CA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 CB ONI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 CC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 CD ONI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop=14 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 CE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 CF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 D0 ACI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 D1 ACI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 D2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 D3 ACI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 D4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 D5 ACI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 2 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 D6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 D7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 D8 OFFI_ANM_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 D9 OFFI_SMH_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 DA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 DB OFFI_EOM_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 DC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 DD OFFI_TMM_xx      len=3 cyc=14/11 L=3 ALU8    aop=15 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 DE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 DF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 E0 SUI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 E1 SUI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 E2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 E3 SUI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 E4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 E5 SUI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 3 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 E6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 E7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 E8 NEI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 E9 NEI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 EA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 EB NEI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 EC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 ED NEI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop=12 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 EE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 EF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 F0 SBI_ANM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 F1 SBI_SMH_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 F2 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 F3 SBI_EOM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 F4 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 F5 SBI_TMM_xx       len=3 cyc=20/11 L=3 ALU8    aop= 4 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 F6 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 F7 illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 F8 EQI_ANM_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 71 s2=126 mode= 0 lskip=0 nargs=1
+64 F9 EQI_SMH_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 72 s2=126 mode= 0 lskip=0 nargs=1
+64 FA illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 FB EQI_EOM_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 74 s2=126 mode= 0 lskip=0 nargs=1
+64 FC illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 FD EQI_TMM_xx       len=3 cyc=14/11 L=3 ALU8    aop=13 s1= 76 s2=126 mode= 0 lskip=0 nargs=1
+64 FE illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+64 FF illegal2         len=3 cyc=11/11 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 01 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 02 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 03 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 05 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 06 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 07 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 08 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 09 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 0A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 0B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 0C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 0D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 0E SSPD_w           len=4 cyc=20/14 L=3 ST16    aop= 0 s1=  0 s2=  0 mode=15 lskip=0 nargs=2
+70 0F LSPD_w           len=4 cyc=20/14 L=3 LD16    aop= 0 s1=  0 s2=  0 mode=15 lskip=0 nargs=2
+70 10 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 11 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 12 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 13 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 14 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 15 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 16 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 17 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 18 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 19 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 1A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 1B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 1C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 1D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 1E SBCD_w           len=4 cyc=20/14 L=3 ST16    aop= 0 s1=  1 s2=  0 mode=15 lskip=0 nargs=2
+70 1F LBCD_w           len=4 cyc=20/14 L=3 LD16    aop= 0 s1=  1 s2=  0 mode=15 lskip=0 nargs=2
+70 20 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 21 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 22 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 23 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 24 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 25 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 26 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 27 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 28 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 29 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 2A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 2B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 2C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 2D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 2E SDED_w           len=4 cyc=20/14 L=3 ST16    aop= 0 s1=  2 s2=  0 mode=15 lskip=0 nargs=2
+70 2F LDED_w           len=4 cyc=20/14 L=3 LD16    aop= 0 s1=  2 s2=  0 mode=15 lskip=0 nargs=2
+70 30 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 31 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 32 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 33 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 34 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 35 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 36 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 37 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 38 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 39 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 3A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 3B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 3C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 3D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 3E SHLD_w           len=4 cyc=20/14 L=3 ST16    aop= 0 s1=  3 s2=  0 mode=15 lskip=0 nargs=2
+70 3F LHLD_w           len=4 cyc=20/14 L=3 LD16    aop= 0 s1=  3 s2=  0 mode=15 lskip=0 nargs=2
+70 40 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 41 EADD_EA_A        len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2= 33 mode= 0 lskip=0 nargs=0
+70 42 EADD_EA_B        len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2= 34 mode= 0 lskip=0 nargs=0
+70 43 EADD_EA_C        len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2= 35 mode= 0 lskip=0 nargs=0
+70 44 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 45 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 46 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 47 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 48 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 49 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 4F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 50 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 51 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 52 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 53 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 54 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 55 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 56 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 57 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 58 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 59 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5D illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5E illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 5F illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 60 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 61 ESUB_EA_A        len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2= 33 mode= 0 lskip=0 nargs=0
+70 62 ESUB_EA_B        len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2= 34 mode= 0 lskip=0 nargs=0
+70 63 ESUB_EA_C        len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2= 35 mode= 0 lskip=0 nargs=0
+70 64 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 65 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 66 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 67 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 68 MOV_V_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  0 s2=127 mode=15 lskip=0 nargs=2
+70 69 MOV_A_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  1 s2=127 mode=15 lskip=0 nargs=2
+70 6A MOV_B_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  2 s2=127 mode=15 lskip=0 nargs=2
+70 6B MOV_C_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  3 s2=127 mode=15 lskip=0 nargs=2
+70 6C MOV_D_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  4 s2=127 mode=15 lskip=0 nargs=2
+70 6D MOV_E_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  5 s2=127 mode=15 lskip=0 nargs=2
+70 6E MOV_H_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  6 s2=127 mode=15 lskip=0 nargs=2
+70 6F MOV_L_w          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=  7 s2=127 mode=15 lskip=0 nargs=2
+70 70 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 71 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 72 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 73 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 74 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 75 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 76 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 77 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 78 MOV_w_V          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  0 mode=15 lskip=0 nargs=2
+70 79 MOV_w_A          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  1 mode=15 lskip=0 nargs=2
+70 7A MOV_w_B          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  2 mode=15 lskip=0 nargs=2
+70 7B MOV_w_C          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  3 mode=15 lskip=0 nargs=2
+70 7C MOV_w_D          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  4 mode=15 lskip=0 nargs=2
+70 7D MOV_w_E          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  5 mode=15 lskip=0 nargs=2
+70 7E MOV_w_H          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  6 mode=15 lskip=0 nargs=2
+70 7F MOV_w_L          len=4 cyc=17/14 L=3 ALU8    aop= 0 s1=127 s2=  7 mode=15 lskip=0 nargs=2
+70 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 82 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 83 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 84 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 85 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 88 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 89 ANAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 8A ANAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 8B ANAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 8C ANAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 8D ANAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 8E ANAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 8F ANAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 5 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 90 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 91 XRAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 92 XRAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 93 XRAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 94 XRAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 95 XRAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 96 XRAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 97 XRAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 7 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 98 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 99 ORAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 9A ORAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 9B ORAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 9C ORAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 9D ORAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 9E ORAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 9F ORAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 6 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 A0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 A1 ADDNCX_B         len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 A2 ADDNCX_D         len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 A3 ADDNCX_H         len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 A4 ADDNCX_Dp        len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 A5 ADDNCX_Hp        len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 A6 ADDNCX_Dm        len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 A7 ADDNCX_Hm        len=2 cyc=11/ 8 L=3 ALU8    aop= 8 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 A8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 A9 GTAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 AA GTAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 AB GTAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 AC GTAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 AD GTAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 AE GTAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 AF GTAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=10 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 B0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 B1 SUBNBX_B         len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 B2 SUBNBX_D         len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 B3 SUBNBX_H         len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 B4 SUBNBX_Dp        len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 B5 SUBNBX_Hp        len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 B6 SUBNBX_Dm        len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 B7 SUBNBX_Hm        len=2 cyc=11/ 8 L=3 ALU8    aop= 9 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 B8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 B9 LTAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 BA LTAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 BB LTAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 BC LTAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 BD LTAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 BE LTAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 BF LTAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=11 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 C0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 C1 ADDX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 C2 ADDX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 C3 ADDX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 C4 ADDX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 C5 ADDX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 C6 ADDX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 C7 ADDX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 1 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 C8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 C9 ONAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 CA ONAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 CB ONAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 CC ONAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 CD ONAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 CE ONAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 CF ONAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 D0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 D1 ADCX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 D2 ADCX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 D3 ADCX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 D4 ADCX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 D5 ADCX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 D6 ADCX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 D7 ADCX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 D8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 D9 OFFAX_B          len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 DA OFFAX_D          len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 DB OFFAX_H          len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 DC OFFAX_Dp         len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 DD OFFAX_Hp         len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 DE OFFAX_Dm         len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 DF OFFAX_Hm         len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 E0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 E1 SUBX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 E2 SUBX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 E3 SUBX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 E4 SUBX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 E5 SUBX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 E6 SUBX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 E7 SUBX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 3 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 E8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 E9 NEAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 EA NEAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 EB NEAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 EC NEAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 ED NEAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 EE NEAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 EF NEAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=12 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 F0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 F1 SBBX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 F2 SBBX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 F3 SBBX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 F4 SBBX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 F5 SBBX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 F6 SBBX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 F7 SBBX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 4 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 F8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+70 F9 EQAX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 FA EQAX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 FB EQAX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 FC EQAX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 FD EQAX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 FE EQAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 FF EQAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=13 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+74 00 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 01 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 02 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 03 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 04 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 05 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 06 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 07 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 08 ANI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 09 ANI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 0A ANI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 0B ANI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 0C ANI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 0D ANI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 0E ANI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 0F ANI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 5 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 10 XRI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 11 XRI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 12 XRI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 13 XRI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 14 XRI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 15 XRI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 16 XRI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 17 XRI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 7 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 18 ORI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 19 ORI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 1A ORI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 1B ORI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 1C ORI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 1D ORI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 1E ORI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 1F ORI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 6 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 20 ADINC_V_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 21 ADINC_A_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 22 ADINC_B_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 23 ADINC_C_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 24 ADINC_D_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 25 ADINC_E_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 26 ADINC_H_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 27 ADINC_L_xx       len=3 cyc=11/11 L=3 ALU8    aop= 8 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 28 GTI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 29 GTI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 2A GTI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 2B GTI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 2C GTI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 2D GTI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 2E GTI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 2F GTI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop=10 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 30 SUINB_V_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 31 SUINB_A_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 32 SUINB_B_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 33 SUINB_C_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 34 SUINB_D_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 35 SUINB_E_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 36 SUINB_H_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 37 SUINB_L_xx       len=3 cyc=11/11 L=3 ALU8    aop= 9 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 38 LTI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 39 LTI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 3A LTI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 3B LTI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 3C LTI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 3D LTI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 3E LTI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 3F LTI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop=11 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 40 ADI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 41 ADI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 42 ADI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 43 ADI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 44 ADI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 45 ADI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 46 ADI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 47 ADI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 1 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 48 ONI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 49 ONI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 4A ONI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 4B ONI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 4C ONI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 4D ONI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 4E ONI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 4F ONI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop=14 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 50 ACI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 51 ACI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 52 ACI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 53 ACI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 54 ACI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 55 ACI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 56 ACI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 57 ACI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 2 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 58 OFFI_V_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 59 OFFI_A_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 5A OFFI_B_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 5B OFFI_C_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 5C OFFI_D_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 5D OFFI_E_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 5E OFFI_H_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 5F OFFI_L_xx        len=3 cyc=11/11 L=3 ALU8    aop=15 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 60 SUI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 61 SUI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 62 SUI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 63 SUI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 64 SUI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 65 SUI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 66 SUI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 67 SUI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 3 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 68 NEI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 69 NEI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 6A NEI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 6B NEI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 6C NEI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 6D NEI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 6E NEI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 6F NEI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop=12 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 70 SBI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 71 SBI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 72 SBI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 73 SBI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 74 SBI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 75 SBI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 76 SBI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 77 SBI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop= 4 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 78 EQI_V_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  0 s2=126 mode= 0 lskip=0 nargs=1
+74 79 EQI_A_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  1 s2=126 mode= 0 lskip=0 nargs=1
+74 7A EQI_B_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  2 s2=126 mode= 0 lskip=0 nargs=1
+74 7B EQI_C_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  3 s2=126 mode= 0 lskip=0 nargs=1
+74 7C EQI_D_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  4 s2=126 mode= 0 lskip=0 nargs=1
+74 7D EQI_E_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  5 s2=126 mode= 0 lskip=0 nargs=1
+74 7E EQI_H_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  6 s2=126 mode= 0 lskip=0 nargs=1
+74 7F EQI_L_xx         len=3 cyc=11/11 L=3 ALU8    aop=13 s1=  7 s2=126 mode= 0 lskip=0 nargs=1
+74 80 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 81 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 82 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 83 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 84 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 85 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 86 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 87 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 88 ANAW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 5 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 89 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 8A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 8B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 8C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 8D DAN_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop= 5 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 8E DAN_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop= 5 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 8F DAN_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop= 5 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 90 XRAW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 7 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 91 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 92 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 93 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 94 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 95 DXR_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop= 7 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 96 DXR_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop= 7 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 97 DXR_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop= 7 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 98 ORAW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 6 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 99 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 9A illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 9B illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 9C illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 9D DOR_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop= 6 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 9E DOR_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop= 6 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 9F DOR_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop= 6 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 A0 ADDNCW_wa        len=3 cyc=14/11 L=3 ALU8    aop= 8 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 A1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 A2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 A3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 A4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 A5 DADDNC_EA_BC     len=2 cyc=11/ 8 L=3 ALU16   aop= 8 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 A6 DADDNC_EA_DE     len=2 cyc=11/ 8 L=3 ALU16   aop= 8 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 A7 DADDNC_EA_HL     len=2 cyc=11/ 8 L=3 ALU16   aop= 8 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 A8 GTAW_wa          len=3 cyc=14/11 L=3 ALU8    aop=10 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 A9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 AA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 AB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 AC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 AD DGT_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop=10 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 AE DGT_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop=10 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 AF DGT_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop=10 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 B0 SUBNBW_wa        len=3 cyc=14/11 L=3 ALU8    aop= 9 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 B1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 B2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 B3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 B4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 B5 DSUBNB_EA_BC     len=2 cyc=11/ 8 L=3 ALU16   aop= 9 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 B6 DSUBNB_EA_DE     len=2 cyc=11/ 8 L=3 ALU16   aop= 9 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 B7 DSUBNB_EA_HL     len=2 cyc=11/ 8 L=3 ALU16   aop= 9 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 B8 LTAW_wa          len=3 cyc=14/11 L=3 ALU8    aop=11 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 B9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 BA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 BB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 BC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 BD DLT_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop=11 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 BE DLT_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop=11 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 BF DLT_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop=11 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 C0 ADDW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 1 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 C1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 C2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 C3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 C4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 C5 DADD_EA_BC       len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 C6 DADD_EA_DE       len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 C7 DADD_EA_HL       len=2 cyc=11/ 8 L=3 ALU16   aop= 1 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 C8 ONAW_wa          len=3 cyc=14/11 L=3 ALU8    aop=14 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 C9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 CA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 CB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 CC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 CD DON_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop=14 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 CE DON_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop=14 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 CF DON_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop=14 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 D0 ADCW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 2 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 D1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 D2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 D3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 D4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 D5 DADC_EA_BC       len=2 cyc=11/ 8 L=3 ALU16   aop= 2 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 D6 DADC_EA_DE       len=2 cyc=11/ 8 L=3 ALU16   aop= 2 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 D7 DADC_EA_HL       len=2 cyc=11/ 8 L=3 ALU16   aop= 2 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 D8 OFFAW_wa         len=3 cyc=14/11 L=3 ALU8    aop=15 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 D9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 DA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 DB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 DC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 DD DOFF_EA_BC       len=2 cyc=11/ 8 L=3 ALU16   aop=15 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 DE DOFF_EA_DE       len=2 cyc=11/ 8 L=3 ALU16   aop=15 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 DF DOFF_EA_HL       len=2 cyc=11/ 8 L=3 ALU16   aop=15 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 E0 SUBW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 3 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 E1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 E2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 E3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 E4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 E5 DSUB_EA_BC       len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 E6 DSUB_EA_DE       len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 E7 DSUB_EA_HL       len=2 cyc=11/ 8 L=3 ALU16   aop= 3 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 E8 NEAW_wa          len=3 cyc=14/11 L=3 ALU8    aop=12 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 E9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 EA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 EB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 EC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 ED DNE_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop=12 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 EE DNE_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop=12 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 EF DNE_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop=12 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 F0 SBBW_wa          len=3 cyc=14/11 L=3 ALU8    aop= 4 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 F1 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 F2 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 F3 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 F4 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 F5 DSBB_EA_BC       len=2 cyc=11/ 8 L=3 ALU16   aop= 4 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 F6 DSBB_EA_DE       len=2 cyc=11/ 8 L=3 ALU16   aop= 4 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 F7 DSBB_EA_HL       len=2 cyc=11/ 8 L=3 ALU16   aop= 4 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0
+74 F8 EQAW_wa          len=3 cyc=14/11 L=3 ALU8    aop=13 s1=  1 s2=127 mode=14 lskip=0 nargs=1
+74 F9 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 FA illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 FB illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 FC illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
+74 FD DEQ_EA_BC        len=2 cyc=11/ 8 L=3 ALU16   aop=13 s1=  4 s2=  1 mode= 0 lskip=0 nargs=0
+74 FE DEQ_EA_DE        len=2 cyc=11/ 8 L=3 ALU16   aop=13 s1=  4 s2=  2 mode= 0 lskip=0 nargs=0
+74 FF DEQ_EA_HL        len=2 cyc=11/ 8 L=3 ALU16   aop=13 s1=  4 s2=  3 mode= 0 lskip=0 nargs=0

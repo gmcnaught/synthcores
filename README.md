@@ -10,6 +10,7 @@ planned. The layout follows jotego's jtcores and JTFRAME.
 | Roland SC-55 / SC-55mk2 / SC-155 | [`cores/sc55`](cores/sc55) | released; sample-exact against Nuked-SC55 | GPL-2.0-or-later |
 | E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | runs on MiSTer; Proteus 2000 CPU in progress under `p2k/` | GPL-3.0-or-later |
 | New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on MiSTer | MIT |
+| Casio CZ-101 | [`cores/cz101`](cores/cz101) | runs on MiSTer; instruction- and sample-exact against MAME | BSD-3-Clause (default, not yet confirmed) |
 
 - **`modules/`:** shared code. `synthframe`, the shared MIT framework, is to come. The
   reference models are submodules (`modules/nuked-sc55`).
