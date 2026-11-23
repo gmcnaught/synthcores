@@ -76,8 +76,12 @@ load)
     mcmd "load_core ${1:?load PATH}" ;;
 shot)
     core=${1:?shot CORE OUT}; out=${2:?shot CORE OUT}; d=$FAT/screenshots/$(shot_dir "$core")
-    "${SSH[@]}" "rm -f $d/*.png"; mcmd screenshot; sleep 3
-    f=$("${SSH[@]}" "ls -t $d/ | head -1"); [ -n "$f" ] || { echo "no screenshot" >&2; exit 1; }
+    "${SSH[@]}" "rm -f $d/*.png"; mcmd screenshot
+    # Main_MiSTer creates the file empty and fills it later (30 s seen on 2026-11-23): wait up
+    # to 60 s for a non-empty file whose size holds for a second
+    f=$("${SSH[@]}" "p=0; for i in \$(seq 120); do sleep 0.5; f=\$(ls -t $d/ 2>/dev/null | head -1);
+        [ -n \"\$f\" ] || continue; s=\$(stat -c %s $d/\$f); [ \$s -gt 0 ] && [ \$s = \$p ] && { echo \$f; break; }; p=\$s; done")
+    [ -n "$f" ] || { echo "no screenshot" >&2; exit 1; }
     scp -q "$DEV:$d/$f" "$out"; echo "$out" ;;
 peek)
     a=${1:?peek ADDR BYTES}; n=${2:?peek ADDR BYTES}
