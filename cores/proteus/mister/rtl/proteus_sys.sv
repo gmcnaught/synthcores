@@ -3,7 +3,7 @@
 //  MAME proteusxr driver (see docs/hardware-notes.md):
 //    000000-01FFFF  program ROM (128 KB, block RAM, loaded from the image)
 //    400001         latch (write, ignored)
-//    500000-50004F  per-voice pan byte at 500009 + 2 * voice
+//    500008-500047  per-voice pan byte at 500009 + 2 * voice (rest of 500000-50004F ignored)
 //    700000-700003  HD44780 (odd bytes; A1 = RS)
 //    800000-8003FF  sound chip
 //    900000-90002F  MC68901 MFP (odd bytes; A5..A1 = register)
@@ -124,7 +124,7 @@ wire iack_cycle = FC0 & FC1 & FC2;
 // ---------------------------------------------------------------- bus decode
 wire sel_rom  = (addr[23:17] == 7'd0);
 wire sel_ram  = (addr[23:16] == 8'hFF);
-wire sel_pan  = (addr[23:8] == 16'h5000) && (addr[7:0] < 8'h50);
+wire sel_pan  = (addr[23:8] == 16'h5000) && (addr[7:0] >= 8'h08) && (addr[7:0] < 8'h48);  // voices 0-31
 wire sel_lcd  = (addr[23:2] == 22'h1C0000);                 // 700000-700003
 wire sel_snd  = (addr[23:10] == 14'h2000);                   // 800000-8003FF
 wire sel_mfp  = (addr[23:8] == 16'h9000) && (addr[7:0] < 8'h30);
