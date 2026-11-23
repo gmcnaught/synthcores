@@ -14,8 +14,9 @@ make -C third_party/mame SUBTARGET=proteus SOURCES=src/mame/emusys/emu68k.cpp,sr
 
 What the patch adds:
 - `src/mame/emusys/proteus_snd.*`: behavioural model of the Proteus/1 sound chip (32 voices, 39062.5 Hz, register map and inferences documented in the source header).
-- `emu68k.cpp` (`proteusxr`): RAM at 0xff0000 (XR detection), MIDI in/out on the MFP, 6850 debug serial at 0xd00000, output-jack sense at 0xc00001, volume pot via MFP timer B pulse width (0xa00000 strobe), per-voice pan at 0x500009, sound ROM region with the dumped Proteus/1 sound ROMs (IP382–IP385, IP402–IP405; from proteus.nekoweb.org `poprockroms.zip`, put them in `roms/proteusxr/`); new set `proteusxrpl` (ProtoLogic expansion).
-- `mc68901.cpp`: timer A/B pulse-width mode now counts at the prescaled rate while the input is active (it never counted before).
+- `emu68k.cpp` (`proteusxr`): firmware v2.30 (default BIOS, IP485/IP486) and v2.00 (`-bios v200`, IP441C/IP442C); RAM at 0xff0000 (XR detection), MIDI in/out on the MFP, 6850 debug serial at 0xd00000, output-jack sense at 0xc00001, volume pot via MFP timer B pulse width (0xa00000 strobe), per-voice pan at 0x500009 + 2 * voice (0x500008-0x500047), sound ROM region with the dumped Proteus/1 sound ROMs (IP382–IP385, IP402–IP405; from proteus.nekoweb.org `poprockroms.zip`). Put the sound ROMs and both firmware pairs in `roms/proteusxr/`; new clone `proteusxrpl` (ProtoLogic expansion ROMs in `roms/proteusxrpl/`).
+- `mc68901.cpp`: timer A/B pulse-width mode counts at the prescaled rate while the input is at its active level, restarting the period when it becomes active (re-enabling the stopped MAME timer fired every missed period at once). The driver ends the volume pulse half a count after the last one, so the count does not depend on which of two timers expiring together runs first. The firmware's stored volume (0xFFF98E) is now 0xCA on every measurement, the same as the HDL system simulation; before, it was sometimes 0xCF (timer B read 47/48 instead of 53).
+- This patch is the same code as the upstream MAME pull-request branches `mc68901-pulse-width` and `emu68k-proteus-sound` (github.com/gmcnaught/mame).
 
 Run headless (never takes macOS focus): `tools/mame-headless.sh <set> [args]`.
 
