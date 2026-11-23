@@ -95,6 +95,32 @@ definition, stereo mixdown, user flash SIMMs only).
 - **Open:** a run before the warp change ended with a segfault after its STALL report (exit
   139); it did not recur in the later runs and was not reproduced.
 
+## JV-880 silent with a MIDI controller (2026-11-22)
+
+- **Symptom:** the user's Launchkey MK3 25 played nothing on the JV-880, though PREVIEW
+  sounded. The SC-55 played the same input.
+- **Cause:** the Launchkey sends MIDI clock (F8) continuously, about 48 bytes a second. The
+  reference (Nuked-SC55) keeps bytes that arrive while the firmware's serial receiver is off
+  (the first ~4 s of boot, until step 6,757,031) and delivers them later. After that backlog the
+  JV-880 firmware ignores notes. The HDL did the same.
+- **Evidence:**
+    - The bench's new `--clock-hz` option sends clock from power-on. The HDL and the reference
+      are identical, and both are silent.
+    - With clock only while SCR.RE is on, the song plays.
+    - On hardware, the new OSD diagnostics line read PCM peak 0000 with clock from boot, and
+      0x100C without it.
+- **Fix:** the JV-880 drops bytes while SCR.RE is off, as the H8/532 does. The SC-55 is
+  unchanged.
+- **Verification:**
+    - Clock from power-on: lockstep identical, −14.1 dBFS; through the UART pin, −14.6 dBFS.
+    - `jv880.mid` hash 73feda3c… unchanged. SC-55 MCU, system and board tests pass.
+    - Windows build 28,452 ALMs, timing met.
+    - Hardware: with clock from boot, the PCM peak reads 0x1078.
+- **Also:**
+    - `synth-mister shot` now waits until the PNG is written. It used to copy a 0-byte file
+      under load.
+    - The smoke test's NVRAM comparison ignores the cursor rows (blink).
+
 ## JV-880 NVRAM save file (2026-11-22)
 
 - **Module:** `modules/synthframe/hdl/save/synthframe_nvsave.sv` (MIT) moves battery-backed RAM

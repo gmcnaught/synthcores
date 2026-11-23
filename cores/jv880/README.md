@@ -36,6 +36,13 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
       so its NVRAM edits are not kept. Don't keep a `boot.rom` next to a pack you load from
       the OSD.
 3. **MIDI:** set the UART to MidiLink and send MIDI.
+    - In Patch mode the unit receives on channel 1 (`RxCH`). In Perf mode each part has its
+      own channel.
+    - MIDI that arrives while the firmware's receiver is still off (the first ~4 s of boot) is
+      dropped, as on the real unit. The reference keeps those bytes, and a controller's MIDI
+      clock during boot then leaves the firmware deaf to notes.
+    - OSD **Diagnostics** shows a hex line under the status strip: MIDI bytes received, the
+      last 4 bytes, the PCM's peak, the output's peak, and the underrun count.
 4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full
    scale, so the 16-bit conversion never clamps. +6 dB is the reference renderer's level (`>> 15`), which
    clamps the top 6 dB: 48 of the 64 factory patches reach it with one note or a 4-note chord at

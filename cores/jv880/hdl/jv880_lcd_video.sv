@@ -21,6 +21,9 @@ module jv880_lcd_video (
     input  logic       underrun_led,
     input  logic       underrun_seen,
     input  logic       lag_seen,
+    // debug line below the strip: 24 characters (font codes, as the LCD's)
+    input  logic [7:0] dbg_ch [24],
+    input  logic       dbg_on,
     output logic       hs,
     output logic       vs,
     output logic       hblank,
@@ -31,6 +34,7 @@ module jv880_lcd_video (
 );
     localparam int X0 = 16, Y0 = 196, PW = 768, PH = 104;     // the LCD panel
     localparam int SY = Y0 + 144;                             // the status strip, 20 lines
+    localparam int DY = SY + 40;                              // the debug line, 40 lines
 
     function automatic logic [4:0] font_row(input logic [7:0] fc, input logic [3:0] fr);
         `include "lcd_font.svh"
@@ -49,7 +53,8 @@ module jv880_lcd_video (
     // ------------------------------------------------------------ stage 0: cell and dot
     // x: character j = (x - X0) / 32, dot column (offset / 5, on when offset % 5 < 4 and < 25)
     // y: row i = (y - Y0 - 4) / 50, dot row (offset / 5, on when offset % 5 < 4 and < 40)
-    logic        in_panel0, dot_x0, dot_y0, hs0, vs0, hb0, vb0;
+    logic        in_panel0, dot_x0, dot_y0, hs0, vs0, hb0, vb0, in_dbg0, ddot_y0;
+    logic [2:0]  ddr0;
     logic [4:0]  j0;
     logic        i0;
     logic [2:0]  dc0;
@@ -58,7 +63,7 @@ module jv880_lcd_video (
     logic [9:0]  y0;
     always_ff @(posedge clk) begin : stage0
         logic [10:0] lx;
-        logic [9:0]  ly, oy;
+        logic [9:0]  ly, oy, dly;
         logic [4:0]  ox;
         lx = x - 11'(X0);
         ly = y - 10'(Y0 + 4);
@@ -72,6 +77,10 @@ module jv880_lcd_video (
         dot_x0 <= x >= 11'(X0) && ox < 5'd25 && (ox % 5'd5) < 5'd4;
         dr0 <= 3'(oy / 10'd5);
         dot_y0 <= y >= 10'(Y0 + 4) && ly < 10'd100 && oy < 10'd40 && (oy % 10'd5) < 10'd4;
+        dly = y - 10'(DY);
+        in_dbg0 <= dbg_on && x >= 11'(X0) && x < 11'(X0 + PW) && y >= 10'(DY) && y < 10'(DY + 40);
+        ddr0 <= 3'(dly / 10'd5);
+        ddot_y0 <= y >= 10'(DY) && dly < 10'd40 && (dly % 10'd5) < 10'd4;
         hb0 <= x >= 11'd800;
         vb0 <= y >= 10'd600;
         hs0 <= (x >= 11'd840 && x < 11'd968);
@@ -80,27 +89,28 @@ module jv880_lcd_video (
 
     // ------------------------------------------------------------ stage 1: character code
     logic [7:0]  ch1;
-    logic        cur1, in_panel1, dot1, hs1, vs1, hb1, vb1;
+    logic        cur1, in_panel1, dot1, hs1, vs1, hb1, vb1, in_dbg1;
     logic [2:0]  dc1, dr1;
     logic [10:0] x1;
     logic [9:0]  y1;
     always_ff @(posedge clk) begin
-        ch1 <= dd[7'(i0) * 7'd40 + 7'(j0)];
-        cur1 <= cursor_on && dd_ram[6] == i0 && dd_ram[5:0] == 6'(j0) && dr0 == 3'd7;
-        in_panel1 <= in_panel0; dot1 <= in_panel0 && dot_x0 && dot_y0 && j0 < 5'd24;
-        dc1 <= dc0; dr1 <= dr0;
+        ch1 <= in_dbg0 ? dbg_ch[j0 < 5'd24 ? j0 : 5'd0] : dd[7'(i0) * 7'd40 + 7'(j0)];
+        cur1 <= !in_dbg0 && cursor_on && dd_ram[6] == i0 && dd_ram[5:0] == 6'(j0) && dr0 == 3'd7;
+        in_panel1 <= in_panel0; in_dbg1 <= in_dbg0;
+        dot1 <= (in_panel0 && dot_x0 && dot_y0 || in_dbg0 && dot_x0 && ddot_y0) && j0 < 5'd24;
+        dc1 <= dc0; dr1 <= in_dbg0 ? ddr0 : dr0;
         hs1 <= hs0; vs1 <= vs0; hb1 <= hb0; vb1 <= vb0; x1 <= x0; y1 <= y0;
     end
 
     // ------------------------------------------------------------ stage 2: font row
     logic [4:0]  row2;
-    logic        cur2, in_panel2, dot2, hs2, vs2, hb2, vb2;
+    logic        cur2, in_panel2, dot2, hs2, vs2, hb2, vb2, in_dbg2;
     logic [2:0]  dc2;
     logic [10:0] x2;
     logic [9:0]  y2;
     always_ff @(posedge clk) begin
         row2 <= (dr1 == 3'd7) ? 5'h00 : (ch1 >= 8'd16) ? font_row(ch1 - 8'd16, {1'b0, dr1}) : cg[{ch1[2:0], dr1}];
-        cur2 <= cur1; in_panel2 <= in_panel1; dot2 <= dot1; dc2 <= dc1;
+        cur2 <= cur1; in_panel2 <= in_panel1; in_dbg2 <= in_dbg1; dot2 <= dot1; dc2 <= dc1;
         hs2 <= hs1; vs2 <= vs1; hb2 <= hb1; vb2 <= vb1; x2 <= x1; y2 <= y1;
     end
 
@@ -123,6 +133,7 @@ module jv880_lcd_video (
                 {r, g, b} <= st[4] ? 24'hff4040 : st[5] ? 24'h902020 : 24'h303848;
             if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 340) && x2 < 11'(X0 + 380))
                 {r, g, b} <= st[6] ? 24'he0a020 : 24'h303848;
+            if (in_dbg2 && dot2 && row2[3'd4 - dc2]) {r, g, b} <= 24'he0e0e0;
         end
     end
 endmodule
