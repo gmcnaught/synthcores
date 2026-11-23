@@ -3,9 +3,10 @@ name: tests
 # Runs each core's test suite (Verilator benches, lockstep against the reference models,
 # repo hygiene) for the cores a change touches. A change to synthframe's HDL or to this file runs
 # every core. The JV-880 has no suite of its own yet; a change to it runs the SC-55 job (shared
-# modules) and the panel frame test. ROM-dependent tests skip without ROMs. Proteus runs the P2K
-# sound/flash model unit tests (no ROMs needed); its MAME corpus and RTL replay need ROMs and run
-# locally.
+# modules) and the panel frame test. The CZ-101's lockstep needs MAME and ROMs and runs locally;
+# a change to its HDL runs the Proteus job for the panel frame test. ROM-dependent tests skip
+# without ROMs. Proteus runs the P2K sound/flash model unit tests (no ROMs needed); its MAME
+# corpus and RTL replay need ROMs and run locally.
 
 on:
   push:
@@ -37,6 +38,7 @@ jobs:
               - 'cores/synclavier/**'
             proteus:
               - 'cores/proteus/**'
+              - 'cores/cz101/hdl/**'
               - 'modules/synthframe/ver/**'
       - id: pick
         shell: bash
