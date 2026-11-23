@@ -144,7 +144,10 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   it on after a power-down resets the board (RAM kept), as a power cycle.
 - **Keys:** MAME's PC-key assignments for the panel (`hdl/cz101_kbd.sv`); notes come from MIDI.
 - **Video:** `hdl/cz101_lcd_video.sv`, MAME's 97 x 19 LCD at 8x on 800 x 600, plus the 16 LEDs.
-- **Audio:** mono, zero-order hold from 40 kHz into the framework's 48 kHz output.
+- **Audio:** mono; `synthframe_resample` converts 40 kHz to 96 kHz (L = 12, M = 5, 960-tap
+  Kaiser FIR, cutoff 20 kHz, passband flat to 18 kHz, images at or below -92 dB from 22 kHz),
+  then the audio FIFO plays it at 96 kHz. The framework's 48 or 96 kHz output sees no 40 kHz
+  staircase. Test: `modules/synthframe/tests/resample/run.sh` (HDL against the integer model).
 
 ## Open questions
 
