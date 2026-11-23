@@ -10,8 +10,10 @@
 // steps run while the pacer allows (and step_gate, for the bench).
 //
 // NVRAM save file (synthframe_nvsave, SD slot 0): after a download the core stays in reset
-// until the mounted save file, if it holds 32 KB, has replaced the pack's NVRAM; a save pauses
-// the steps and writes the NVRAM (from the MCU's copy for the dump) to the file.
+// until the mounted save file, if it holds 32 KB, has replaced the pack's NVRAM; a save writes
+// the NVRAM (from the MCU's copy for the dump) to the file with the steps running, and again with
+// them paused only if the firmware wrote the NVRAM meanwhile (it writes it on edits, not while
+// playing: none in 10 s of notes and program changes on the reference).
 module jv880_board #(
     parameter longint CLK_HZ = 50_000_000,
     parameter logic [31:0] WAVE_BASE = 32'h3000_0000
@@ -54,7 +56,7 @@ module jv880_board #(
     input  logic        enc_dir,          // 1: up (MCU_EncoderTrigger dir 1)
 
     input  logic        pace_enable,
-    input  logic [1:0]  gain,             // output gain: 0, +6, +12, +18 dB (after the PCM, saturating)
+    input  logic [1:0]  gain,             // output gain: 0, +6, +12, +18 dB (0 dB: 20-bit PCM full scale = s16 full scale)
     input  logic        step_gate,        // 1 on hardware; the bench opens it one step at a time
 
     output logic signed [15:0] audio_l,
@@ -114,14 +116,14 @@ module jv880_board #(
     assign rom_ok = ok;
 
     // ---------------------------------------------------------- NVRAM save file
-    logic        nv_we, nv_hold, nv_pause, core_idle;
+    logic        nv_we, nv_hold, nv_pause, core_idle, nv_wrote;
     logic [14:0] nv_addr;
     logic [7:0]  nv_wdata, nv_rdata;
     synthframe_nvsave #(.AW(15)) nvsave (
         .clk, .rst, .loading(ioctl_download || loading), .image_ok(ok),
         .img_mounted, .img_readonly, .img_size,
         .sd_lba, .sd_blk_cnt, .sd_rd, .sd_wr, .sd_ack, .sd_buff_addr, .sd_buff_dout, .sd_buff_wr, .sd_buff_din,
-        .save_req, .osd_open, .autosave,
+        .save_req, .osd_open, .autosave, .mem_written(nv_wrote),
         .mem_we(nv_we), .mem_addr(nv_addr), .mem_wdata(nv_wdata), .mem_rdata(nv_rdata),
         .core_idle, .boot_hold(nv_hold), .pause(nv_pause), .saving, .restored(nv_restored)
     );
@@ -185,7 +187,7 @@ module jv880_board #(
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
         .ld_we(c_ld_we), .ld_sel(c_ld_sel), .ld_addr(c_ld_addr), .ld_data(c_ld_data),
-        .nv_dump_a(nv_addr), .nv_dump_d(nv_rdata), .idle(core_idle),
+        .nv_dump_a(nv_addr), .nv_dump_d(nv_rdata), .nv_wrote, .idle(core_idle),
         .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
         .enc_we(enc_go), .enc_dir(enc_pdir),
         .rom2x_req(), .rom2x_addr(), .rom2x_ack(1'b0), .rom2x_data(8'h00),
@@ -244,11 +246,14 @@ module jv880_board #(
     );
 
     // ---------------------------------------------------------- audio
-    // the renderer's s16 conversion (clamp(x >> 15)) with `gain` in 6 dB steps, 64 -> 48 kHz
-    // (resample.sv, the mk1 rate), then a FIFO that plays at 48 kHz in real time
+    // s16 conversion clamp(x >> (16 - gain)), 64 -> 48 kHz (resample.sv, the mk1 rate), then a FIFO
+    // that plays at 48 kHz in real time. The PCM's samples are its 20-bit mix << 12; at 0 dB the
+    // 20-bit full scale is s16 full scale, so nothing clamps. The renderer's conversion
+    // (x >> 15, +6 dB here) clamps the top 6 dB: 48 of the 64 factory patches reach it with one
+    // note or a 4-note chord at velocity 127.
     function automatic logic signed [15:0] to16(input logic signed [31:0] v, input logic [1:0] g);
         logic signed [31:0] s;
-        s = v >>> (5'd15 - {3'd0, g});
+        s = v >>> (5'd16 - {3'd0, g});
         if (s > 32'sd32767) return 16'sh7fff;
         if (s < -32'sd32768) return 16'sh8000;
         return s[15:0];

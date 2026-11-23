@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
-"""Copy the reference backend and add observation hooks for the lockstep benches.
+"""Copy the reference backend, apply FIXES, and add observation hooks for the lockstep benches.
 
-The hooks only observe: with no hook installed, the patched backend behaves
-exactly like the original (checked by tests/test_ref_patch.py, which renders
-with both builds and compares the audio).
+FIXES go into both builds (the plain one with --fixes-only). They change behaviour only where the
+fork departs from Nuked-SC55's original:
+  - JV-880: addclip20 saturates at 20 bits again. jcmoyer/Nuked-SC55 7204125 replaced the
+    original (nukeykt) saturating add with a plain sign-extended add, noting that if these
+    functions do overflow "their outputs simply need to saturate at 20 ... bits". The JV-880
+    overflows in loud chords (the 20-bit mix wrapped from full negative to full positive). The
+    SC-55 models keep the plain add (none of their tests overflow; saturating them costs the
+    SC-55 core its timing). The jv880.mid integration-test hash is unchanged.
 
-Usage: patch_ref.py NUKED_SRC_DIR OUT_SRC_DIR   (copies all of src/, patches src/backend)
+The hooks only observe: with no hook installed, the hooked backend behaves exactly like the
+plain one (checked by tests/test_ref_patch.py, which renders with both builds and compares the
+audio).
+
+Usage: patch_ref.py [--fixes-only] NUKED_SRC_DIR OUT_SRC_DIR   (copies all of src/, patches src/backend)
 """
 import pathlib
 import shutil
@@ -17,6 +26,28 @@ HOOK_DECLS = """
 """
 
 # (file, old, new): every `old` must occur exactly once.
+FIXES = [
+    ("backend/pcm.cpp",
+     "inline int32_t addclip20(int32_t add1, int32_t add2, int32_t cin)\n"
+     "{\n"
+     "    return sx20(add1) + sx20(add2) + cin;\n"
+     "}",
+     "// JV-880: saturate at 20 bits, as Nuked-SC55's original (ref/patch_ref.py FIXES)\n"
+     "static bool g_addclip20_saturate = false;\n"
+     "\n"
+     "inline int32_t addclip20(int32_t add1, int32_t add2, int32_t cin)\n"
+     "{\n"
+     "    const int32_t sum = sx20(add1) + sx20(add2) + cin;\n"
+     "    if (!g_addclip20_saturate)\n"
+     "        return sum;\n"
+     "    return sum > 0x7ffff ? 0x7ffff : sum < -0x80000 ? -0x80000 : sum;\n"
+     "}"),
+    ("backend/pcm.cpp",
+     "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n",
+     "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n"
+     "    g_addclip20_saturate = pcm.mcu->is_jv880;\n"),
+]
+
 EDITS = [
     ("backend/mcu.cpp",
      "uint8_t MCU_Read(mcu_t& mcu, uint32_t address)\n{",
@@ -75,12 +106,15 @@ extern RefHooks g_ref_hooks;
 
 
 def main() -> int:
-    src = pathlib.Path(sys.argv[1])
-    out = pathlib.Path(sys.argv[2])
+    args = sys.argv[1:]
+    fixes_only = "--fixes-only" in args
+    args = [a for a in args if a != "--fixes-only"]
+    src = pathlib.Path(args[0])
+    out = pathlib.Path(args[1])
     if out.exists():
         shutil.rmtree(out)
     shutil.copytree(src, out)
-    for name, old, new in EDITS:
+    for name, old, new in FIXES + ([] if fixes_only else EDITS):
         path = out / name
         text = path.read_text()
         count = text.count(old)
@@ -88,6 +122,8 @@ def main() -> int:
             print(f"patch_ref: {name}: expected 1 match, found {count}:\n{old}", file=sys.stderr)
             return 1
         path.write_text(text.replace(old, new))
+    if fixes_only:
+        return 0
     for name, extra in APPEND.items():
         path = out / name
         text = path.read_text()
