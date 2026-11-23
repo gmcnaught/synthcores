@@ -2,6 +2,24 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 11: P2K CPU against MAME (2026-11-22, branch `iter11-p2k-mame`)
+
+- **Gate passed:** from reset to the OS 2.26 main screen, the RTL matches all 5,175,832
+  non-DRAM word accesses of a 12 s MAME trace (MAME main screen at 10.5 s; demo SIMM).
+  `tools/p2k_trace_cmp.py --nodram` on the saved RTL trace: `matched 5175832 word accesses;
+  end of MAME trace`. RTL LCD: `C02A Vol127 Pan00  P2Ksy|     (not installed)`, as MAME.
+- **The recorded divergence** (8080 to 0x00400000 vs MAME's read of 0x02000074) was a timer
+  interrupt taken at a different instruction, not a CPU error. MAME's cycle counts do not model
+  the MCF5206e, so the testbench now replays MAME's interrupt points (details in
+  `cores/proteus/docs/p2k-core-cpu.md` §6).
+- **RTL fix:** the interrupt-acknowledge cycle no longer goes to the board bus (`p2k_cpu.sv`).
+- **Testbench/model changes:** replay mode with interrupt gating and timer warp, LCD and flash
+  status replay, a flash command model, an MBAR write log, and P2K debug outputs on the TG68K
+  kernel. MAME patch 0003 keeps vector-table reads in NODRAM traces.
+- **Regression:** `p2k/sim/frame_test.py` passes.
+- **Open:** a run before the warp change ended with a segfault after its STALL report (exit
+  139); it did not recur in the later runs and was not reproduced.
+
 ## JV-880 NVRAM save file (2026-11-22)
 
 - **Module:** `modules/synthframe/hdl/save/synthframe_nvsave.sv` (MIT) moves battery-backed RAM
@@ -51,6 +69,7 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
       key again does.
     - NVRAM saving to the SD card is not done.
 
+||||||| parent of 1c62c0f (P2K CPU matches MAME from reset to the OS 2.26 main screen (iteration 11))
 ## Iteration 12 preparation: JV-880 (2026-11-22)
 
 - **ROMs:** the user's dumps are in `nuked-sc55/firmware/Roland JV880/`. All five files match

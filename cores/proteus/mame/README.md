@@ -1,12 +1,13 @@
 # MAME reference model
 
-Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch` and `patches/0002-emup2k-proteus2000-research.patch` (apply in order; base commit in `patches/BASE`).
+Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch`, `patches/0002-emup2k-proteus2000-research.patch` and `patches/0003-p2k-bustrace-vector-reads.patch` (apply in order; base commit in `patches/BASE`).
 
 ```sh
 git clone https://github.com/mamedev/mame.git third_party/mame
 git -C third_party/mame checkout $(cut -d' ' -f3 mame/patches/BASE)
 git -C third_party/mame apply ../../mame/patches/0001-emu68k-proteusxr-sound.patch
 git -C third_party/mame apply ../../mame/patches/0002-emup2k-proteus2000-research.patch
+git -C third_party/mame apply ../../mame/patches/0003-p2k-bustrace-vector-reads.patch
 make -C third_party/mame SUBTARGET=proteus SOURCES=src/mame/emusys/emu68k.cpp,src/mame/emusys/emup2k.cpp NOWERROR=1 REGENIE=1 -j8
 ```
 

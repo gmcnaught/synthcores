@@ -141,7 +141,12 @@ entity TG68KdotC_Kernel is
 		CACR_out					: out std_logic_vector( 3 downto 0);
 		VBR_out					: out std_logic_vector(31 downto 0);
 		MBAR_out					: out std_logic_vector(31 downto 0);	-- P2K: ColdFire MBAR (MOVEC $C0F)
-		RAMBAR_out				: out std_logic_vector(31 downto 0)	-- P2K: ColdFire RAMBAR (MOVEC $C04/$C05)
+		RAMBAR_out				: out std_logic_vector(31 downto 0);	-- P2K: ColdFire RAMBAR (MOVEC $C04/$C05)
+		PC_out					: out std_logic_vector(31 downto 0);	-- P2K: testbench, TG68_PC
+		opcPC_out				: out std_logic_vector(31 downto 0);	-- P2K: testbench, last_opc_pc
+		dbg_out					: out std_logic_vector(7 downto 0);	-- P2K: testbench, kernel state bits
+		endOPC_out				: out std_logic;	-- P2K: testbench, instruction boundary (setendOPC)
+		interrupt_out			: out std_logic	-- P2K: testbench, interrupt accepted at this boundary (setinterrupt)
 		);
 end TG68KdotC_Kernel;
 
@@ -4074,6 +4079,16 @@ PROCESS (clk, cpu, OP1out, OP2out, opcode, exe_condition, nextpass, micro_state,
 
   CACR_out <= CACR;
   VBR_out <= VBR;
+  PC_out <= TG68_PC;									-- P2K
+  opcPC_out <= last_opc_pc;								-- P2K
+  dbg_out(1 downto 0) <= state;						-- P2K
+  dbg_out(3 downto 2) <= setstate;					-- P2K
+  dbg_out(4) <= '1' WHEN TG68_PC_brw='1' ELSE '0';	-- P2K
+  dbg_out(5) <= '1' WHEN TG68_PC_word='1' ELSE '0';	-- P2K
+  dbg_out(6) <= '1' WHEN decodeOPC='1' ELSE '0';	-- P2K
+  dbg_out(7) <= '1' WHEN execOPC='1' ELSE '0';		-- P2K
+  endOPC_out <= '1' WHEN setendOPC='1' AND clkena_lw='1' ELSE '0';			-- P2K
+  interrupt_out <= '1' WHEN setinterrupt='1' AND clkena_lw='1' ELSE '0';	-- P2K
   MBAR_out <= MBAR;		-- P2K
   RAMBAR_out <= RAMBAR;	-- P2K
 -----------------------------------------------------------------------------

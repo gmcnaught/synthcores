@@ -4,13 +4,22 @@
 //
 //   p2k_cpu_tb FLASH.bin TRACE.txt [cycles]
 // Trace: every data access (opcode fetches excluded):
-//   <R|W> <word address> <data16> <lanes 3/2/1> <last fetch address>
+//   <R|W> <word address> <data16> <lanes 3/2/1> <last fetch address> [V]
+// V marks a read of the vector table (VBR..VBR+0x3FF); it is written even with P2K_TB_NODRAM.
+//
+// P2K_TB_REPLAY=MAME.bt (a P2K_BUSTRACE_NODRAM trace): compare against MAME while running and
+// stop at the first divergence (same filters as tools/p2k_trace_cmp.py). Interrupts are taken
+// where MAME took them: the SIM's interrupt level is hidden from the kernel until MAME's next
+// access is an interrupt-vector read and the kernel would stack MAME's PC at that read (the
+// interrupted instruction); then a timer at that level is made to reach its reference (warp_level). Exit 0 at the
+// end of the MAME trace, 1 on divergence, a stall or no progress.
 #include "Vp2k_cpu.h"
 #include "verilated.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <vector>
 
@@ -37,10 +46,83 @@ struct board
 	bool lcd_dirty = false;
 	board() { memset(ddram, ' ', sizeof(ddram)); }
 
+	// Flash: Sharp LH28F160S3 command set as MAME's intelfsh16 (maker 0xB0, device 0xD0), the
+	// subset the OS reaches. Erase and program complete at once (MAME: status busy for a while;
+	// replay mode takes MAME's status reads).
+	enum { F_NORMAL, F_READID, F_STATUS, F_WRITE1, F_CLEAR1, F_MASTER, F_AMD1, F_AMD2, F_AMD3, F_BYTEPROG } fmode = F_NORMAL;
+	uint16_t fstatus = 0x80;
+	bool fmaster = false;
+
+	uint16_t flash_read(uint32_t w)
+	{
+		switch (fmode)
+		{
+		case F_STATUS: return fstatus;
+		case F_AMD3: return (w & 0xff) == 0 ? 0xb0 : (w & 0xff) == 1 ? 0xd0 : 0;
+		case F_READID:
+			switch (w & 0xff) { case 0: return 0xb0; case 1: return 0xd0; case 3: return fmaster; default: return 0; }
+		default: return flash[w];
+		}
+	}
+
+	void flash_write(uint32_t w, uint16_t d)
+	{
+		const uint8_t c = d & 0xff;
+		switch (fmode)
+		{
+		case F_NORMAL: case F_STATUS: case F_READID: case F_AMD3:
+			switch (c)
+			{
+			case 0xf0: case 0xff: fmode = F_NORMAL; break;
+			case 0x90: fmode = F_READID; break;
+			case 0x40: case 0x10: fmode = F_WRITE1; break;
+			case 0x50: fstatus = 0x80; fmode = F_STATUS; break;
+			case 0x20: fmode = F_CLEAR1; break;
+			case 0x60: fmode = F_MASTER; break;
+			case 0x70: fmode = F_STATUS; break;
+			case 0xaa: if ((w & 0xfff) == 0x555 || (w & 0xfff) == 0xaaa) fmode = F_AMD1; break;
+			default: fprintf(stderr, "flash: unknown command %02X at word %06X\n", c, w); break;
+			}
+			break;
+		case F_AMD1:
+			fmode = c == 0x55 && ((w & 0xffff) == 0x2aa || (w & 0xffff) == 0x2aaa || (w & 0xfff) == 0x555) ? F_AMD2 : F_NORMAL;
+			break;
+		case F_AMD2:
+			{
+				const bool cmd = (w & 0xffff) == 0x555 || (w & 0xffff) == 0x5555 || (w & 0xfff) == 0xaaa;
+				fmode = F_NORMAL;
+				if (cmd && c == 0x90) fmode = F_AMD3;
+				else if (cmd && c == 0xa0) fmode = F_BYTEPROG;
+				else if (cmd && c == 0x80) fprintf(stderr, "flash: AMD erase sequence not modelled (word %06X)\n", w);
+				else if (!(cmd && c == 0xf0) && !(((w & 0xfff) == 0xaaa || (w & 0xfff) == 0x555) && c == 0x20))
+					fprintf(stderr, "flash: unexpected %02X at word %06X after AA/55\n", c, w);
+			}
+			break;
+		case F_BYTEPROG: flash[w] &= d; fmode = F_NORMAL; break;
+		case F_WRITE1: flash[w] &= d; fstatus = 0x80; fmode = F_STATUS; break;
+		case F_CLEAR1:
+			if (c == 0xd0)
+			{
+				const uint32_t base = (w * 2) & ~0xffffu;            // 64 KB block, as MAME
+				for (uint32_t i = 0; i < 0x8000; i++) flash[(base >> 1) + i] = 0xffff;
+				fstatus = 0x80;
+				fmode = F_STATUS;
+			}
+			else
+				fprintf(stderr, "flash: unexpected %02X in block erase\n", c);
+			break;
+		case F_MASTER:
+			if (c == 0xf1) fmaster = true;
+			else if (c == 0xd0) fmaster = false;
+			fmode = F_STATUS;
+			break;
+		}
+	}
+
 	uint16_t read(uint32_t a)
 	{
 		if (a < 0x200000 || (a >= 0x02000000 && a < 0x02200000))
-			return flash[(a & 0x1fffff) >> 1];
+			return flash_read((a & 0x1fffff) >> 1);
 		if (a >= 0x01000000 && a < 0x01800000)
 			return dram[(a & 0x7fffff) >> 1];
 		if (a == 0x400000)
@@ -99,6 +181,7 @@ struct board
 			if (lower) m = (m & 0xff00) | (d & 0x00ff);
 		};
 		if (a >= 0x01000000 && a < 0x01800000) merge(dram[(a & 0x7fffff) >> 1]);
+		else if (a < 0x200000 || (a >= 0x02000000 && a < 0x02200000)) flash_write((a & 0x1fffff) >> 1, d);
 		else if (a >= 0x500000 && a < 0x600000) merge(hmem[(a & 0xfffff) >> 1]);
 		else if (a >= 0x600000 && a < 0x600080)
 		{
@@ -136,6 +219,128 @@ struct board
 		{
 			if (a & 2) open_bus = (open_bus & 0xffff0000) | d;
 			else open_bus = (open_bus & 0x0000ffff) | (uint32_t(d) << 16);
+		}
+	}
+};
+
+
+// ---- MAME lockstep (port of tools/p2k_trace_cmp.py) ----
+struct word
+{
+	char k;          // 'R' or 'W'
+	uint32_t a;      // word address
+	uint16_t d;
+	unsigned lanes;  // 2 upper, 1 lower
+	uint32_t pc;     // MAME: PC at the access; RTL: last fetch address
+};
+
+bool flash_area(uint32_t a) { return a < 0x200000 || (a >= 0x02000000 && a < 0x02200000); }
+uint32_t adiff(uint32_t x, uint32_t y) { return x > y ? x - y : y - x; }
+bool near_fetch(const word &t) { return t.k == 'R' && flash_area(t.a) && adiff(t.a, t.pc) <= 32; }
+bool polled(const word &t) { return t.k == 'R' && t.a == 0x00400000; }   // LCD busy flag
+
+bool same(const word &x, const word &y)
+{
+	if (x.k != y.k || x.a != y.a)
+		return false;
+	const unsigned l = x.lanes & y.lanes;
+	const uint16_t m = (l & 2 ? 0xff00 : 0) | (l & 1 ? 0x00ff : 0);
+	return (x.d & m) == (y.d & m);
+}
+
+struct replay
+{
+	FILE *f = nullptr;
+	std::deque<word> m, r, hist;
+	uint64_t matched = 0, mame_records = 0;
+	bool m_eof = false;
+	enum { RUN, END, DIVERGED } state = RUN;
+
+	bool fill_m(size_t n)
+	{
+		while (m.size() < n && !m_eof)
+		{
+			uint32_t rec[4];
+			if (fread(rec, 4, 4, f) != 4) { m_eof = true; break; }
+			mame_records++;
+			const bool w = rec[3] & 1;
+			const uint32_t pc = rec[3] & ~1u;
+			for (int half = 0; half < 2; half++)
+			{
+				const uint32_t mk = half ? rec[2] & 0xffff : rec[2] >> 16;
+				if (!mk) continue;
+				const uint32_t wa = rec[0] + 2 * half;
+				const unsigned lanes = (mk & 0xff00 ? 2 : 0) | (mk & 0x00ff ? 1 : 0);
+				if (!w && flash_area(wa) && adiff(wa, pc) <= 16) continue;     // opcode fetch from flash
+				m.push_back({w ? 'W' : 'R', wa, uint16_t(half ? rec[1] & 0xffff : rec[1] >> 16), lanes, pc});
+			}
+		}
+		return m.size() >= n;
+	}
+
+	void ok(const word &t)
+	{
+		hist.push_back(t);
+		if (hist.size() > 16) hist.pop_front();
+		matched++;
+	}
+
+	static void fmt(const char *tag, const word &t)
+	{
+		fprintf(stderr, "   %-5s %c %08X %04X l%u pc %08X\n", tag, t.k, t.a, t.d, t.lanes, t.pc);
+	}
+
+	void diverge()
+	{
+		state = DIVERGED;
+		fprintf(stderr, "DIVERGENCE after %llu matched word accesses (MAME record %llu)\n",
+		        (unsigned long long)matched, (unsigned long long)mame_records);
+		for (const word &t : hist) fmt("ok", t);
+		fmt("MAME", m[0]);
+		fmt("RTL", r[0]);
+	}
+
+	void step()
+	{
+		while (state == RUN && !r.empty())
+		{
+			fill_m(2);
+			if (m.empty()) { state = END; return; }
+			if (same(m[0], r[0])) { ok(m[0]); m.pop_front(); r.pop_front(); continue; }
+			if (r.size() < 2 && m.size() > 1 && same(m[1], r[0]))
+				return;                                   // maybe a swapped pair: wait for the next RTL word
+			if (r.size() > 1 && m.size() > 1 && same(m[0], r[1]) && same(m[1], r[0]))
+			{
+				ok(m[0]); ok(m[1]);
+				m.pop_front(); m.pop_front(); r.pop_front(); r.pop_front();
+				continue;
+			}
+			if (polled(r[0])) r.pop_front();
+			else if (polled(m[0])) m.pop_front();
+			else if (near_fetch(r[0])) r.pop_front();
+			else if (near_fetch(m[0])) m.pop_front();
+			else diverge();
+		}
+	}
+
+	// MAME's next significant access is an interrupt-vector read: -1 if not, else the level for an
+	// autovector (25-31), 0 for vector 24 or a vector >= 64 (level not known from the vector)
+	// (due_pc: MAME's PC at the vector read, the interrupted instruction's address)
+	uint32_t due_pc = 0;
+	int irq_due(uint32_t vbr)
+	{
+		if (state != RUN || !r.empty())
+			return -1;
+		for (size_t i = 0;; i++)
+		{
+			if (!fill_m(i + 1)) return -1;
+			const word &t = m[i];
+			if (polled(t) || near_fetch(t)) continue;
+			const uint32_t o = t.a - vbr;
+			if (t.k != 'R' || t.a < vbr) return -1;
+			due_pc = t.pc;
+			if (o >= 0x60 && o < 0x80) return (o - 0x60) / 4;
+			return o >= 0x100 && o < 0x400 ? 0 : -1;
 		}
 	}
 };
@@ -187,11 +392,24 @@ int main(int argc, char **argv)
 	// ColdFire is pipelined); peripherals tick on the system clock enable
 	const unsigned ratio = getenv("P2K_TB_RATIO") ? atoi(getenv("P2K_TB_RATIO")) : 4;
 	FILE *lcd = getenv("P2K_TB_LCD") ? fopen(getenv("P2K_TB_LCD"), "w") : nullptr;
+	replay rp;
+	if (const char *bt = getenv("P2K_TB_REPLAY"))
+	{
+		rp.f = fopen(bt, "rb");
+		if (!rp.f) { perror(bt); return 1; }
+	}
+	const uint64_t stall_limit = 33000000ULL * 4 * ratio;    // 4 s of system time without the interrupt
+	uint64_t stalled = 0, idle = 0;
+	FILE *mbarlog = getenv("P2K_TB_MBARLOG") ? fopen(getenv("P2K_TB_MBARLOG"), "w") : nullptr;
+	if (mbarlog) setvbuf(mbarlog, nullptr, _IOLBF, 0);
 
 	auto cpu = std::make_unique<Vp2k_cpu>();
 	cpu->u1_rxd = 1;
 	cpu->u2_rxd = 1;
 	cpu->pp_in = 0xff;
+	cpu->cpu_ena = 1;
+	cpu->ipl_mask = rp.f != nullptr;
+	cpu->warp_level = 0;
 	cpu->reset_n = 0;
 	for (int i = 0; i < 10; i++)
 	{
@@ -200,8 +418,62 @@ int main(int argc, char **argv)
 	}
 	cpu->reset_n = 1;
 
+	// Interrupt gate (replay): MAME's next access is an interrupt vector and the kernel would stack
+	// MAME's interrupted PC at this boundary: TG68_PC while the kernel is in a fetch state (state
+	// 00), else the prefetched opcode's address (measured over 30 interrupts in 6 state
+	// combinations of the unreplayed boot). Then the SIM's level goes through, and a timer at that
+	// level counts as at its reference (warp_level). MAME may run DRAM-only code before the
+	// interrupt, which the trace does not show, so the CPU keeps running until then.
+	int due = -1;
+	auto gate = [&]() {
+		due = rp.irq_due(cpu->vbr_out);
+		const uint32_t stack_pc = (cpu->kdbg & 3) == 0 ? cpu->pc_out : cpu->opc_pc;
+		const bool at = due >= 0 && stack_pc == rp.due_pc;
+		cpu->ipl_mask = !at;
+		cpu->warp_level = at && due > 0 ? due : 0;
+	};
+	const int bdbg_n = getenv("P2K_TB_BDBG") ? atoi(getenv("P2K_TB_BDBG")) : 0;
+	int bdbg = bdbg_n;
 	for (uint64_t c = 0; c < cycles; c++)
 	{
+		if (rp.f)
+		{
+			gate();
+			if (due < 0)
+				stalled = 0;
+			else if (++stalled > stall_limit)
+			{
+				fprintf(stderr, "STALL: MAME takes an interrupt after %llu matched word accesses; the RTL has not taken it in 4 s (SIM level %u, last fetch %08X)\n",
+				        (unsigned long long)rp.matched, cpu->ipl_raw, b.last_fetch);
+				rp.fmt("MAME", rp.m[0]);
+				rp.state = replay::DIVERGED;
+				break;
+			}
+		}
+		if (rp.f && rp.r.empty() && !rp.fill_m(1))
+		{
+			rp.state = replay::END;                  // every MAME access matched
+			break;
+		}
+		if (rp.f && ++idle > stall_limit)
+		{
+			fprintf(stderr, "NO PROGRESS: no RTL access for 4 s of system time after %llu matched word accesses (SIM level %u, mask %u, last fetch %08X)\n",
+			        (unsigned long long)rp.matched, cpu->ipl_raw, cpu->ipl_mask, b.last_fetch);
+			rp.fill_m(4);
+			for (size_t i = 0; i < rp.m.size() && i < 4; i++) rp.fmt("MAME", rp.m[i]);
+			for (const word &t : rp.r) rp.fmt("RTL", t);
+			// P2K_TB_PEEK=addr[,addr...]: long words to show (DRAM or flash)
+			if (const char *pk = getenv("P2K_TB_PEEK"))
+				for (const char *q = pk; *q;)
+				{
+					char *e;
+					const uint32_t pa = strtoul(q, &e, 0) & ~1u;
+					fprintf(stderr, "   PEEK %08X = %04X%04X\n", pa, b.read(pa), b.read(pa + 2));
+					q = *e ? e + 1 : e;
+				}
+			rp.state = replay::DIVERGED;
+			break;
+		}
 		cpu->ce_sys = (c % ratio) == 0;
 		if (lcd && b.lcd_dirty && (c % (33000000ULL * ratio / 4)) == 0)    // LCD text every 0.25 s of system time
 		{
@@ -226,12 +498,27 @@ int main(int argc, char **argv)
 		}
 		cpu->clk = 0;
 		cpu->eval();
+		if (getenv("P2K_TB_IRQDBG") && cpu->irq_take)
+			fprintf(stderr, "IRQ take: pc_out %08X opc_pc %08X last fetch %08X kdbg %02X busstate %u\n", cpu->pc_out, cpu->opc_pc, b.last_fetch, cpu->kdbg, cpu->busstate);
 		const uint32_t a = cpu->addr;
 		const unsigned bs = cpu->busstate;
+		if (mbarlog && cpu->cpu_ena && bs == 3 && (cpu->mbar_out & 1) && (a >> 10) == (cpu->mbar_out >> 10))
+			fprintf(mbarlog, "MW %03X %04X %d%d pc %08X matched %llu\n", a & 0x3ff, cpu->dout, cpu->uds, cpu->lds,
+			        b.last_fetch, (unsigned long long)rp.matched);
 		if (cpu->ext_req)
 		{
 			const bool upper = cpu->uds, lower = cpu->lds;
-			const uint16_t d = bs == 3 ? 0 : b.read(a & ~1u);
+			uint16_t d = bs == 3 ? 0 : b.read(a & ~1u);
+			// replay: LCD status polls return MAME's value (its HD44780 model reports busy; the
+			// number of polls decides where a timer interrupt lands)
+			if (rp.f && bs == 2 && (a & ~1u) == 0x400000 && rp.r.empty() && rp.fill_m(1) && rp.m[0].k == 'R'
+			    && rp.m[0].a == 0x400000)
+				d = rp.m[0].d;
+			// replay: flash reads outside read-array mode (status, IDs) return MAME's value (its
+			// erase/program take emulated time; the status polls follow it)
+			if (rp.f && bs == 2 && b.fmode != board::F_NORMAL && flash_area(a & ~1u) && rp.r.empty() && rp.fill_m(1)
+			    && rp.m[0].k == 'R' && rp.m[0].a == (a & ~1u))
+				d = rp.m[0].d;
 			cpu->ext_din = d;
 			cpu->eval();
 			if (bs == 0)
@@ -239,8 +526,25 @@ int main(int argc, char **argv)
 			else
 			{
 				const uint16_t v = bs == 3 ? cpu->dout : d;
-				if (!(nodram && a >= 0x01000000 && a < 0x01800000))
-					fprintf(tf, "%c %08X %04X %d %08X\n", bs == 3 ? 'W' : 'R', a & ~1u, v, (upper ? 2 : 0) | (lower ? 1 : 0), b.last_fetch);
+				const uint32_t wa = a & ~1u, vbr = cpu->vbr_out;
+				const bool vec = bs != 3 && wa >= vbr && wa < vbr + 0x400;
+				const bool dram = wa >= 0x01000000 && wa < 0x01800000;
+				const unsigned lanes = (upper ? 2 : 0) | (lower ? 1 : 0);
+				if (!(nodram && dram) || vec)
+					fprintf(tf, "%c %08X %04X %u %08X%s\n", bs == 3 ? 'W' : 'R', wa, v, lanes, b.last_fetch, vec ? " V" : "");
+				// replay: same RTL-side filter as p2k_trace_cmp.py (MBAR never reaches the board)
+				if (rp.f && !(bs != 3 && wa < 8) && !(dram && !vec)
+				    && !(bs != 3 && flash_area(wa) && adiff(wa, b.last_fetch) <= 16))
+				{
+					rp.r.push_back({bs == 3 ? 'W' : 'R', wa, v, lanes, b.last_fetch});
+					idle = 0;
+					rp.step();
+					if (rp.state != replay::RUN)
+					{
+						b.write(wa, cpu->dout, upper && bs == 3, lower && bs == 3);
+						break;
+					}
+				}
 				if (bs == 3)
 				{
 					b.write(a & ~1u, cpu->dout, upper, lower);
@@ -249,10 +553,32 @@ int main(int argc, char **argv)
 		}
 		else if (bs == 0)
 			b.last_fetch = a;
+		if (rp.f)
+		{
+			gate();                                  // an access matched this cycle can make the interrupt due
+			cpu->eval();
+			if (bdbg > 0 && due >= 0 && cpu->endopc)
+			{
+				bdbg--;
+				fprintf(stderr, "BOUNDARY due %08X pc_out %08X opc_pc %08X kdbg %02X bus %u mask %u take %u\n",
+				        rp.due_pc, cpu->pc_out, cpu->opc_pc, cpu->kdbg, cpu->busstate, cpu->ipl_mask, cpu->irq_take);
+			}
+		}
 		cpu->clk = 1;
 		cpu->eval();
 	}
 	fclose(tf);
 	cpu->final();
+	if (rp.f)
+	{
+		if (rp.state == replay::RUN && rp.m_eof && rp.m.empty()) rp.state = replay::END;
+		if (rp.state == replay::END)
+			printf("REPLAY END: matched %llu word accesses; end of the MAME trace (%llu records)\n",
+			       (unsigned long long)rp.matched, (unsigned long long)rp.mame_records);
+		else if (rp.state == replay::RUN)
+			printf("REPLAY RUNNING: matched %llu word accesses at the cycle limit (MAME record %llu)\n",
+			       (unsigned long long)rp.matched, (unsigned long long)rp.mame_records);
+		return rp.state == replay::DIVERGED;
+	}
 	return 0;
 }
