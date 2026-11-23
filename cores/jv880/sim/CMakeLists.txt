@@ -24,6 +24,8 @@ set(JV880_SV
     "${SYNTHFRAME}/midi/synthframe_midi_rx.sv" "${SYNTHFRAME}/audio/synthframe_audio_fifo.sv"
     "${SYNTHFRAME}/mem/synthframe_mem_ddr3.sv" "${SYNTHFRAME}/mem/synthframe_mem_arb.sv"
     "${SYNTHFRAME}/save/synthframe_nvsave.sv"
+    "${SYNTHFRAME}/panel/synthframe_vtiming.sv" "${SYNTHFRAME}/panel/synthframe_charlcd.sv"
+    "${SYNTHFRAME}/panel/synthframe_status_strip.sv"
     "${HDL}/jv880_lcd_video.sv" "${HDL}/jv880_board.sv")
 
 add_executable(jv880_board_bench jv880_board_bench.cpp "${SC55}/sim/common/midi_demo.cpp" "${NUKED}/src/renderer/smf.cpp")

@@ -40,7 +40,8 @@ verilate(system_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8
 
 file(GLOB BOARD_SV "${HDL}/board/*.sv" "${ROLAND}/board/*.sv")
 list(APPEND BOARD_SV "${SYNTHFRAME}/midi/synthframe_midi_rx.sv" "${SYNTHFRAME}/audio/synthframe_audio_fifo.sv"
-     "${SYNTHFRAME}/mem/synthframe_mem_ddr3.sv" "${SYNTHFRAME}/mem/synthframe_mem_arb.sv")
+     "${SYNTHFRAME}/mem/synthframe_mem_ddr3.sv" "${SYNTHFRAME}/mem/synthframe_mem_arb.sv"
+     "${SYNTHFRAME}/panel/synthframe_vtiming.sv" "${SYNTHFRAME}/panel/synthframe_status_strip.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
 verilate(board_lockstep SOURCES ${BOARD_SV} "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${ROLAND}/core/sc55_core.sv"

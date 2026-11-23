@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// synthframe (from the Proteus/1 XR core, cores/proteus/mister/rtl/hd44780.sv)
 //============================================================================
 //  HD44780 LCD controller (8-bit interface), modelled on MAME's
 //  hd44780_base_device: DDRAM 128 x 8, CGRAM 64 x 8, address counter
@@ -8,9 +10,11 @@
 //
 //  Render port: for a display line/position returns the character code and,
 //  for codes < 0x10, the CGRAM row bits; the font ROM lives in the display.
+//  The render port is combinational (README.md, "Character LCD read port").
+//  POS_W: width of the position input (4: 16 columns).
 //============================================================================
 
-module hd44780
+module synthframe_hd44780 #(parameter int POS_W = 4)
 (
 	input            clk,
 	input            reset,
@@ -23,7 +27,7 @@ module hd44780
 	output reg [7:0] dout,
 
 	input            r_line,
-	input      [3:0] r_pos,
+	input [POS_W-1:0] r_pos,
 	input      [2:0] r_row,
 	output     [7:0] r_code,
 	output     [4:0] r_cgbits,
@@ -139,7 +143,7 @@ always @* begin
 end
 
 // ------------------------------------------------ render
-wire [6:0] sp   = {3'd0, r_pos} + disp_shift;               // 0..94
+wire [6:0] sp   = 7'(r_pos) + disp_shift;                  // 0..118
 wire [6:0] m40  = (sp >= 7'd80) ? sp - 7'd80 : (sp >= 7'd40) ? sp - 7'd40 : sp;
 wire [6:0] cpos = (two_line ? (r_line ? 7'h40 : 7'h00) : 7'h00) + m40;
 assign r_code   = ddram[cpos];
