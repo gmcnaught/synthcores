@@ -16,7 +16,7 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   ones (amber loading, dark red underrun seen, lag box); the smoke test reads them.
 - **Frame benches:** new CZ-101 bench through the CZ-101's pins. The Proteus bench's cursor
   command was 10 bits in a 9-bit slot (it wrote a data byte); fixed, and the Proteus/1 and
-  CZ-101 hashes recorded again from main (c1d83cd) before any change. All 16 hashes unchanged by
+  CZ-101 hashes recorded again from main (4c45522) before any change. All 16 hashes unchanged by
   the move; the CZ-101 strip change alters only the strip's pixels (x 12-391, y 412-431). A
   one-line wrap mutation changes the one-line seed's hash.
 - **C4** (`tests/c4_run.sh tests/midi/basic.txt 6500000`): pass, as on main: 7,922,583 trace
@@ -409,6 +409,6 @@ definition, stereo mixdown, user flash SIMMs only).
       | Proteus | 24,249 | 40 |
       | Synclavier | 26,568 | 52 |
 
-    - PR #1 merged as 3d24918.
+    - PR #1 merged as 39cd1d7.
     - The first push's builds were cancelled by the concurrency group when I started a run by
       hand. A single hand-started run then built all three.
