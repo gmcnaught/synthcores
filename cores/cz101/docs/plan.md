@@ -109,10 +109,19 @@ construction.
 
 | # | Result |
 |---|---|
-| C0 | Patched MAME builds (`../mame-cz101`); test-ROM harness works. Waiting for the ROMs for the corpus. |
+| C0 | Done: patched MAME (`../mame-cz101`, `mame/patches/0001-cz101-logging.patch`), test-ROM harness, user's ROM set |
 | C1 | Done: 120 random programs, 3 M instructions identical to MAME (`docs/upd7810.md`) |
-| C2 | Peripherals done for the random tests (160 programs, 310 k interrupts identical). Firmware boot lockstep waits for the ROMs. |
-| C3 | In progress (uPD933) |
+| C2 | Done: peripherals on 160 random programs (310 k interrupts); firmware boot identical (below) |
+| C3 | Done: uPD933 identical to a standalone copy of MAME's model on synthetic stimuli; identical to MAME itself inside C4 |
+| C4 | `tests/c4_run.sh tests/midi/basic.txt 6500000`: 6.5 M instructions (17.9 s, boot and MIDI playback) identical to MAME, 716,728 samples identical |
+| C5 | Not started: MiSTer top, ROM pack, MidiLink, LCD video, keys, NVRAM save |
+
+Timing rules the board implements (all from MAME's source, confirmed by the lockstep):
+- CPU cycle P = 299,999,940,000 as (attoseconds per cycle for 3,333,334 cycles/s).
+- An event at time T is applied before the instruction starting at cycle s iff T < (s + 1) P;
+  a line change caused by the CPU's own access is applied at the next boundary.
+- An access happens at the instruction's start, or at its end for a prefixed opcode.
+- SCK edge k at k x 250 ns; uPD933 timer expiry T_arm + n x 24,999,999,999,968 as.
 
 ## Open questions
 
