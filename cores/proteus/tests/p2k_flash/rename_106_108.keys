@@ -1,0 +1,21 @@
+# P2K_KEYS script: Save/Copy -> RENAME FLASH SIMM (8 knob steps), cursor right x6 to the ID field,
+# ID +2 (106 -> 108), Enter, Enter at "Press ENTER to update Flash SIMM data". Keys: 9 Save/Copy,
+# 8 Home/Enter, 12 cursor right (panel bits, docs/p2k-findings.md).
+14.0 key 9 0.2
+15.0 enc 1
+15.4 enc 1
+15.8 enc 1
+16.2 enc 1
+16.6 enc 1
+17.0 enc 1
+17.4 enc 1
+17.8 enc 1
+19.0 key 12 0.15
+19.4 key 12 0.15
+19.8 key 12 0.15
+20.2 key 12 0.15
+20.6 key 12 0.15
+21.0 key 12 0.15
+22.0 enc 2
+23.0 key 8 0.2
+25.0 key 8 0.2

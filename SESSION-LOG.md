@@ -2,6 +2,30 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## P2K MAME prerequisites, steps 1-5 (2026-11-23, branch `p2k-sound-model`)
+
+Plan: `cores/proteus/docs/p2k-mame-plan.md` (user decisions: no unit, the integer MAME model is the
+definition, stereo mixdown, user flash SIMMs only).
+- **Step 1, register contract:** every G20/H/G05 field the OS writes is [O] or a recorded [I] choice
+  (`docs/p2k-findings.md` "Register contract"). New: G20 +0x00 bit 12 end select (read by the OS);
+  H interpolators (+0x30-0x3E, live destinations +0x71/+0x73/+0x7C, approach time +0x44/+0x46);
+  +0x7B bit fields and output channels; level law = H code decode; G05 send/dry bytes; filter
+  modulation goes to +0x7C, not +0x3E. Corrections recorded for the selector table address, dead init
+  code, port roles and the panel Enter button.
+- **Step 2, integer model:** `p2k/model/p2k_sound.h` (BSD-3, used by MAME through patch 0004).
+  Against its double-precision twin: SNR 65-85 dB on all 22 cases, no saturation.
+- **Step 3, standalone model:** `p2k/model/p2k_render` replays `P2K_SNDLOG` and reproduces MAME's
+  `P2K_SNDOUT` bit for bit on all 22 cases (`p2k_corpus.py model`).
+- **Step 4, corpus:** 9 new cases (51 filter types, FX A/B algorithms, routing and sends, modulation,
+  10-minute soak); all deterministic over two renders and feature-checked. Memory port: peak 256
+  sample words per output sample (11.3 M words/s).
+- **Step 5, user flash SIMMs:** `p2k/model/p2k_flash.h`; `tools/p2k_flash_test.py` drives the OS's
+  RENAME FLASH SIMM page (scripted panel `P2K_KEYS`): ID 106 -> 108 written to Big and Baby,
+  persists, plays after a restart. The OS has no sample import.
+- **CI:** Proteus now runs the model/flash unit tests (`p2k/model/build.sh`, no ROMs).
+- **Open:** step 6 (hardware); the arpeggiator did not start over SysEx [U]; listening check of the
+  new model by the user.
+
 ## P2K reference corpus (2026-11-22, branch `p2k-ref-corpus`)
 
 - **`cores/proteus/tools/p2k_corpus.py` and `tests/p2k_corpus/`:** 13 MIDI cases rendered by

@@ -5,19 +5,24 @@ with the stand-in Composer SIMM. For each case `tools/p2k_corpus.py` records:
 
 - the audio (`-wavwrite`);
 - the sound-chip register log (`P2K_TRACE`: every G20 voice, H filter and G05 access with its
-  time and PC).
+  time and PC);
+- the sample-indexed register log (`P2K_SNDLOG`, `snd.log`) and the sound model's own output
+  (`P2K_SNDOUT`, `snd.raw`, 16-bit stereo at 44.1 kHz). `p2k/model/p2k_render` fed only `snd.log` and
+  the SIMM reproduces `snd.raw` bit for bit (`p2k_corpus.py model`); the HDL is checked against it.
 
 `manifest.json` holds their SHA-256 hashes and summary statistics, plus the hashes of the
 inputs. A P2K sound core is checked against these logs and this audio, as the Proteus/1 is
-checked against MAME. The MAME sound models (H filter, G05 effects) are approximations
-(`docs/p2k-findings.md`, [I]). So the audio hashes pin down MAME's output, not the real unit's;
-the register logs are firmware behaviour.
+checked against MAME. The sound model (`p2k/model/p2k_sound.h`, integer) is the definition the
+core matches; where it is inferred rather than measured it says so ([I], `docs/p2k-findings.md`).
+So the audio hashes pin down the model's output, not the real unit's; the register logs are
+firmware behaviour (they depend on the model only through the registers the OS reads back: the
+voice address, the end select bit and the H interpolator values).
 
 ## Inputs (not committed)
 
 | Input | How it is made | Manifest key |
 |---|---|---|
-| `big.bin`, `baby.bin` | `tools/p2k_spec_from_dir.py "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples" spec.json`, then `tools/p2k_build_simm.py spec.json DIR`. Rebuilt 2026-11-22: byte-identical. | `inputs.simm` |
+| `big.bin`, `baby.bin` | `tools/p2k_spec_from_dir.py "roms/_src/p2k/mf/x/Proteus 2000/Proteus 2000 Samples" spec.json`, then `tools/p2k_build_simm.py spec.json DIR`. Rebuilt 2026-11-23 after the builder gained E-mu's header checksum pairs (+0x68A/+0x68C/+0x69E): only those header words changed. | `inputs.simm` |
 | `flash_clean.nv` | One `P2K_CLEAN=1` boot of about 60 s emulated (`mame/README.md`) | `inputs.simm` |
 | MAME | `mame/patches/BASE` + patches 0001-0003 | `inputs.mame_*` |
 
@@ -26,10 +31,12 @@ export P2K_MAME=.../third_party/mame/proteus P2K_ROMPATH=.../roms P2K_SIMMDIR=..
 tools/p2k_corpus.py run --jobs 6               # compare with the manifest; exit 1 on a difference
 tools/p2k_corpus.py run --repeat 2 --update    # re-record (checks that two renders are identical)
 tools/p2k_corpus.py gen                        # rewrite the case scripts from the generator
+tools/p2k_corpus.py model --snr                # standalone renderer vs snd.raw; integer vs float
 ```
 
-Outputs go to `build/p2k/corpus/<case>.<n>/`: `out.wav`, `sound.trace`, `error.log`, `in.mid`.
-The full set is 13 cases and about 980 s emulated; it takes about 2 minutes with 6 jobs.
+Outputs go to `build/p2k/corpus/<case>.<n>/`: `out.wav`, `sound.trace`, `snd.log`, `snd.raw`,
+`error.log`, `in.mid`. The full set is 22 cases and about 2,100 s emulated; it takes about
+8 minutes with 10 jobs (the 10-minute `soak` case alone writes ~1 GB of logs).
 
 ## Cases
 
@@ -44,6 +51,15 @@ screen is up at about 11.75 s.
 | `multi` | 16 channels, a different preset on each, chords | 144 / 112 |
 | `range` | Notes 60-100 on an unlooped organ (stand-in key range ends at 91) | 32 / 32 |
 | `sweep0`-`sweep7` | Every stand-in preset (bank MSB 4, LSB 0-7, programs 0-127), one C4 each | 127-129 / 112 |
+| `filt0`-`filt2` | The 51 filter types (SysEx 1537; 12th-order types as 0x80 \| n) at Q 0 and 127, cutoff swept by the mod wheel (cord to FiltFreq), B3 organ | 34 / 34 each |
+| `fxa0`, `fxa1` | FX A algorithms 1-44 (SysEx 1153), A send 1 = 100; decay / HF damping variants | 28, 22 |
+| `fxb` | FX B algorithms 1-32 (SysEx 1160), B send 1 = 100; feedback, LFO rate, delay variants | 38 |
+| `route` | Layer Mix Output Main / Sub 1 / Sub 2 x A/B sends 1-4, then B -> A | 13 |
+| `mod` | LFO 1 to pitch and filter with five shapes, volume and filter envelopes, glide, coarse tune | 16 / 14 |
+| `soak` | 600 s of pseudo-random notes, controllers, program changes and SysEx edits on 16 channels | ~4,600 / 120 |
+
+Each case's register log is checked for the feature it names (`FEATURES` in `p2k_corpus.py`, from
+`snd.log` statistics: distinct filter words and live cutoff values, G05 writes, routing bytes).
 
 ## Stand-in limits
 
