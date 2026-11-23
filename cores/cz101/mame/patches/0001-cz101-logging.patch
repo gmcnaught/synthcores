@@ -1,20 +1,25 @@
 diff --git a/src/devices/cpu/upd7810/upd7810.cpp b/src/devices/cpu/upd7810/upd7810.cpp
-index d15490c3..86032f09 100644
+index d15490c3..7cfe564f 100644
 --- a/src/devices/cpu/upd7810/upd7810.cpp
 +++ b/src/devices/cpu/upd7810/upd7810.cpp
-@@ -373,6 +373,31 @@ STOP            01001000  10111011          12  stop
+@@ -373,6 +373,36 @@ STOP            01001000  10111011          12  stop
  #include "upd7810_macros.h"
  #include "upd7810_dasm.h"
  
 +#include <cstdlib>
 +
 +// cz101 logging: one line per instruction after it executes:
-+//   <cycles before> <PPC> <OP> <OP2> <cc> V A B C D E H L EAH EAL SP PSW
++//   <cycles before> <PPC> <OP> <OP2> <cc> V A B C D E H L EAH EAL SP PSW IRR
 +// "W addr data" for each memory write, "I vector" for each interrupt taken.
 +void upd7810_device::cz_trace_insn(int cc)
 +{
-+	fprintf(m_cztrace, "%llu %04X %02X %02X %d %02X%02X%02X%02X%02X%02X%02X%02X %04X %04X %02X\n",
-+		(unsigned long long)m_czcyc, PPC, OP, OP2, cc, V, A, B, C, D, E, H, L, EA, SP, PSW);
++	fprintf(m_cztrace, "%llu %04X %02X %02X %d %02X%02X%02X%02X%02X%02X%02X%02X %04X %04X %02X %04X\n",
++		(unsigned long long)m_czcyc, PPC, OP, OP2, cc, V, A, B, C, D, E, H, L, EA, SP, PSW, IRR);
++	if (getenv("CZ_TRACE_AD"))
++		fprintf(m_cztrace, "AD %u %u %u %u %02X %02X T %02X %d %02X %02X %02X %d %02X\n", m_adcnt, m_adtot, m_adout, m_shdone, ANM, PANM,
++			CNT0, m_ovc0, TM0, TMM, CNT1, m_ovc1, TM1);
++	if (getenv("CZ_TRACE_AD"))
++		fprintf(m_cztrace, "SIO %02X %02X %d %d %d %d %04X %04X %d\n", SMH, SML, m_ovcs, m_edges, m_rxcnt, m_txcnt, m_rxs, m_txs, m_txbuf);
 +	m_czcyc += cc;
 +	if (m_czlimit && ++m_czn >= m_czlimit)
 +	{
@@ -34,7 +39,7 @@ index d15490c3..86032f09 100644
  
  DEFINE_DEVICE_TYPE(UPD7810,  upd7810_device,  "upd7810",  "NEC uPD7810")
  DEFINE_DEVICE_TYPE(UPD78C10, upd78c10_device, "upd78c10", "NEC uPD78C10")
-@@ -937,6 +962,7 @@ void upd7810_device::upd7810_take_irq()
+@@ -937,6 +967,7 @@ void upd7810_device::upd7810_take_irq()
  		WM( SP, PCH );
  		SP--;
  		WM( SP, PCL );
@@ -42,7 +47,7 @@ index d15490c3..86032f09 100644
  		IFF = m_iff_pending = 0;
  		IRR &= ~irr_mask;
  		PSW &= ~(SK|L0|L1);
-@@ -1002,6 +1028,7 @@ void upd7801_device::upd7810_take_irq()
+@@ -1002,6 +1033,7 @@ void upd7801_device::upd7810_take_irq()
  		WM( SP, PCH );
  		SP--;
  		WM( SP, PCL );
@@ -50,7 +55,7 @@ index d15490c3..86032f09 100644
  		IFF = m_iff_pending = 0;
  		IRR &= ~irr_mask;
  		PSW &= ~(SK|L0|L1);
-@@ -1792,6 +1819,13 @@ void upd7810_device::device_start()
+@@ -1792,6 +1824,13 @@ void upd7810_device::device_start()
  {
  	base_device_start();
  
@@ -64,7 +69,7 @@ index d15490c3..86032f09 100644
  	MM = 8;
  	m_ram_view.select(0);
  
-@@ -2053,12 +2087,14 @@ void upd7810_device::execute_run()
+@@ -2053,12 +2092,14 @@ void upd7810_device::execute_run()
  			debugger_wait_hook();
  			// continue running peripherals until a pending (internal or external) interrupt
  			m_icount--;
@@ -79,7 +84,7 @@ index d15490c3..86032f09 100644
  
  		PPC = PC;
  		debugger_instruction_hook(PC);
-@@ -2127,6 +2163,7 @@ void upd7810_device::execute_run()
+@@ -2127,6 +2168,7 @@ void upd7810_device::execute_run()
  			(this->*m_opXX[OP].opfunc)();
  		}
  		m_icount -= cc;

@@ -271,13 +271,14 @@ module upd7810_core #(
     // ------------------------------------------------------------------ state machine
     typedef enum logic [3:0] {
         ST_RESET, ST_PACE, ST_FETCH, ST_DEC0W, ST_DEC0, ST_FETCH2, ST_DEC1W, ST_ISSUE, ST_ADV,
-        ST_EXEC, ST_END, ST_IRQ, ST_HALT_ADV
+        ST_EXEC, ST_END, ST_IRQ, ST_HALT_ADV, ST_ADV2
     } st_t;
     st_t st;
 
     logic [7:0]  op, op2;
     logic        prefixed;
     logic [6:0]  cc;            // cycles of this instruction
+    logic [6:0]  adv2_cycles;   // prefix-table cycles (second handle_timers call)
     logic [7:0]  owed;          // machine cycles not yet paid by cyc_ce
     logic        skipping;
     logic [15:0] ppc;
@@ -479,16 +480,28 @@ module upd7810_core #(
                             adv_cycles <= {3'b0, x_cyc_skip};
                         end
                     end else begin
+                        // MAME: handle_timers(main-table cycles), then for a prefixed opcode
+                        // PRE_xx calls handle_timers(prefix-table cycles) separately (the A/D
+                        // converter acts once per call)
                         skipping <= 1'b0;
                         cc <= {1'b0, x_cyc} + (prefixed ? {1'b0, dec_q[8:3]} : 7'd0);
-                        adv_cycles <= {1'b0, x_cyc} + (prefixed ? {1'b0, dec_q[8:3]} : 7'd0);
+                        adv_cycles <= {1'b0, x_cyc};
+                        adv2_cycles <= {1'b0, dec_q[8:3]};
                     end
                     adv_req <= 1'b1; wait_bus <= 1'b1;
                     step <= 0;
                     st <= ST_ADV;
                 end
 
-                ST_ADV: st <= skipping ? ST_END : ST_EXEC;
+                ST_ADV: begin
+                    if (!skipping && prefixed) begin
+                        adv_cycles <= adv2_cycles;
+                        adv_req <= 1'b1; wait_bus <= 1'b1;
+                        st <= ST_ADV2;
+                    end else st <= skipping ? ST_END : ST_EXEC;
+                end
+
+                ST_ADV2: st <= ST_EXEC;
 
                 ST_EXEC: exec_step();
 
