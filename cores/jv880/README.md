@@ -12,8 +12,9 @@ against [Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) (`modules/nuked-sc55
 |---|---|---|
 | MCU (memory map, gate array, panel, encoder, NVRAM, timers) | `mcu_lockstep --romset jv880-v1.0.1 --jv880-factory`: from an empty NVRAM through the factory preset | 21,324,800 steps identical; the NVRAM's SHA-256 is d5da7845…d207, the reference's documented factory preset |
 | PCM (wave ROM banks, 25/29 clock, filter) | `system_lockstep --smf jv880.mid` from the factory NVRAM | SHA-256 73feda3c…bbbc, the reference's integration-test hash |
-| Board (pack, DDR3, pacing, MIDI, LCD) | `sim/jv880_board_bench` from power-on | in progress |
-| MiSTer | `scripts/mister/smoke.sh` | to do |
+| Board (pack, DDR3, pacing, MIDI, LCD) | `sim/jv880_board_bench --smf jv880.mid` from power-on, wave ROM through a DDR3 model | 42,181,775 steps and 1,640,121 samples identical to the reference; SHA-256 73feda3c…bbbc; 18.1 clocks a step of 30 |
+| Quartus (Windows build host) | `winbuild.sh jv880`, seed 2 | 28,180 ALMs (67 %); timing met |
+| MiSTer | `scripts/mister/smoke.sh` with the factory-preset pack | boots to "I-01:Syn Lead"; 60 s of `jv880.mid` over MidiLink with no underrun or lag; panel keys and the encoder respond as the reference's |
 
 The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](docs/plan.md).
 
@@ -51,7 +52,11 @@ Panel keys (PS/2 or USB keyboard, the reference frontend's map):
 | ← → | CURSOR |
 | , . or ↓ ↑ | the VALUE encoder |
 
-NVRAM edits last until the pack is loaded again; saving them to the SD card is not done yet.
+As on the unit, pressing a mode button (UTILITY, SYSTEM, RHYTHM, EDIT) again returns to play
+mode; PATCH/PERFORM switches between patch and performance play.
+
+NVRAM edits last until the pack or the core is loaded again; saving them to the SD card is not
+done yet.
 
 ## Building and testing
 
