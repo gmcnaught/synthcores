@@ -25,6 +25,20 @@
 // IRQ: irq = /CS & /ID & pending, as MAME. irq_evt pulses on every change with the tick MAME
 // would log it at (timer deadline or request tick). The timer deadline is tick + 250 * new_time.
 //
+// External timer (ext_timer = 1, for exact placement at CPU instruction boundaries): the internal
+// deadline compare is off. The chip reports every adjust() of MAME's IRQ timer and the board fires it:
+//   timer_arm + timer_n (one clk): update_pending_irq() armed the timer for timer_n samples
+//     (new_time; MAME's expiry is T_arm + timer_n * 112 chip clocks, T_arm = the arming access).
+//     Only a /CS rising edge (op 2, data[0] 0 -> 1) calls update_pending_irq(); the pulse is in the
+//     clock of that request's req_ack. timer_n = 0 when an envelope IRQ flag is already set.
+//   timer_cancel (one clk): adjust(attotime::never). From the same /CS rising edge when no envelope
+//     is active (pulse with its req_ack), and from a device reset (op 4, pulse while it is serviced,
+//     before its req_ack). Arming again replaces the previous expiry, as adjust() does.
+//   timer_fire (input, one clk): timer_tick(): pending = 1 and the IRQ update, no stream update.
+//     irq_evt_tick takes timer_fire_tick. Pulse it only while req_valid is low (between requests);
+//     the board disarms its own copy when it fires (MAME's timer is one-shot).
+// timer_arm/timer_n/timer_cancel are also driven when ext_timer = 0.
+//
 // Noise: MAME's machine().rand() (LCG 1664525/1013904223) from RAND_SEED, advanced only by this
 // chip.
 //
@@ -48,6 +62,13 @@ module upd933 #(
 	input  logic [39:0]        req_order,
 	output logic               req_ack,
 	output logic [7:0]         rd_data,
+
+	input  logic               ext_timer,
+	output logic               timer_arm,
+	output logic [31:0]        timer_n,
+	output logic               timer_cancel,
+	input  logic               timer_fire,
+	input  logic [39:0]        timer_fire_tick,
 
 	output logic               irq,
 	output logic               irq_evt,
@@ -164,7 +185,7 @@ module upd933 #(
 
 	assign irq = irq_r;
 	assign busy = (state != S_IDLE);
-	assign settled = (state == S_IDLE) && !req_ack && !(now_tick >= next_bnd) && !(tmr_armed && tmr_deadline <= now_tick);
+	assign settled = (state == S_IDLE) && !req_ack && !(now_tick >= next_bnd) && !(!ext_timer && tmr_armed && tmr_deadline <= now_tick);
 
 	// ------------------------------------------------------------------ work registers
 	logic [2:0]  vi;
@@ -346,14 +367,22 @@ module upd933 #(
 		req_ack <= 1'b0;
 		irq_evt <= 1'b0;
 		sample_valid <= 1'b0;
+		timer_arm <= 1'b0;
+		timer_cancel <= 1'b0;
 		for (int k = 0; k < 3; k++) env_we[k] <= 1'b0;
+
+		// external timer_tick(); the case below does not touch pend/irq while no request is open
+		if (ext_timer && timer_fire) begin
+			pend <= 1'b1;
+			if ((cs_r & id_r) != irq_r) begin irq_r <= cs_r & id_r; irq_evt <= 1'b1; irq_evt_tick <= timer_fire_tick; end
+		end
 
 		case (state)
 		// ============================================================= idle / dispatch
 		S_IDLE: begin
 			if (svc_ok) begin
 				if (req_tick + TPS < next_bnd) late <= 1'b1;
-				if (tmr_armed && tmr_deadline <= req_order) begin
+				if (!ext_timer && tmr_armed && tmr_deadline <= req_order) begin
 					// timer_tick() first
 					tmr_armed <= 1'b0;
 					pend <= 1'b1;
@@ -421,6 +450,8 @@ module upd933 #(
 							if (|irqf) begin
 								tmr_armed <= 1'b1;
 								tmr_deadline <= req_tick;
+								timer_arm <= 1'b1;
+								timer_n <= 32'd0;
 								cs_r <= 1'b1;
 								if ((1'b1 & id_r & 1'b0) != irq_r) begin irq_r <= 1'b0; irq_evt <= 1'b1; irq_evt_tick <= req_tick; end
 								req_ack <= 1'b1;
@@ -450,6 +481,7 @@ module upd933 #(
 						pend <= 1'b0;
 						if (irq_r) begin irq_r <= 1'b0; irq_evt <= 1'b1; irq_evt_tick <= req_tick; end
 						tmr_armed <= 1'b0;
+						timer_cancel <= 1'b1;
 						dpos <= '0; sd0 <= '0; sd1 <= '0;
 						scnt <= '0;
 						last <= '0;
@@ -473,7 +505,7 @@ module upd933 #(
 				vi <= '0;
 				acc <= '0;
 				state <= E_RD;
-			end else if (tmr_armed && tmr_deadline <= now_tick && !(req_ok && req_order < tmr_deadline)) begin
+			end else if (!ext_timer && tmr_armed && tmr_deadline <= now_tick && !(req_ok && req_order < tmr_deadline)) begin
 				tmr_armed <= 1'b0;
 				pend <= 1'b1;
 				if ((cs_r & id_r) != irq_r) begin irq_r <= cs_r & id_r; irq_evt <= 1'b1; irq_evt_tick <= tmr_deadline; end
@@ -662,6 +694,9 @@ module upd933 #(
 		end
 		B_SCAN_DONE: begin
 			tmr_armed <= sc_act;
+			timer_arm <= sc_act;
+			timer_cancel <= !sc_act;
+			timer_n <= {2'b0, sc_min};
 			// new_time * 250 = (n << 8) - (n << 2) - (n << 1)
 			tmr_deadline <= req_tick + ({10'b0, sc_min} << 8) - ({10'b0, sc_min} << 2) - ({10'b0, sc_min} << 1);
 			cs_r <= 1'b1;
@@ -691,6 +726,7 @@ module upd933 #(
 			next_bnd <= '0;
 			cs_r <= 1'b1; id_r <= 1'b1; pend <= 1'b0; irq_r <= 1'b0;
 			tmr_armed <= 1'b0; tmr_deadline <= '0;
+			timer_arm <= 1'b0; timer_cancel <= 1'b0; timer_n <= '0;
 			dpos <= '0; sd0 <= '0; sd1 <= '0;
 			scnt <= '0; last <= '0;
 			seed <= RAND_SEED;

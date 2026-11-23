@@ -5,7 +5,8 @@
 #      cores/cz101/hdl/upd933/*.hex;
 #   2. runs the HDL against the reference on synthetic stimuli (SECONDS each, default 40):
 #      samples, IRQ change ticks and read data must be identical;
-#   3. runs one stimulus with a slow 10 MHz time base (--real) and early requests;
+#   3. runs one stimulus with a slow 10 MHz time base (--real) and early requests, and three runs
+#      with ext_timer = 1 (the bench fires the IRQ timer as the board would);
 #   4. self-tests the MAME-log path (log -> upd933_log2ev.py -> upd933_replay).
 # Optional: UPD933_LOG=<CZ_SND_LOG file> UPD933_SAMPLES=<CZ_SAMPLES file> also replays a real
 # MAME log through the reference and compares with MAME's samples.
@@ -53,6 +54,15 @@ grep -q '^DIFF' "$out/bench.txt" && fail=1
 # 3. slow 10 MHz time base (5 clk per tick), requests up to 60 ticks early
 "$out_bin/upd933_stimgen" 9 5 "$out/stim/r9.ev" | head -1
 "$out_bin/upd933_bench" --real 5 --lead 60 "$out/stim/r9.ev" || fail=1
+
+# 3b. external IRQ timer (ext_timer = 1, bench plays the board)
+for f in s1 s5; do "$out_bin/upd933_bench" --ext "$out/stim/$f.ev" >"$out/ext_$f.txt" 2>&1 & done
+"$out_bin/upd933_bench" --ext --real 5 --lead 60 "$out/stim/r9.ev" >"$out/ext_r9.txt" 2>&1
+wait
+cat "$out"/ext_{s1,s5,r9}.txt >"$out/bench_ext.txt"
+cat "$out/bench_ext.txt"
+grep -q '^DIFF' "$out/bench_ext.txt" && fail=1
+[ "$(grep -c '^MATCH' "$out/bench_ext.txt")" = 3 ] || fail=1
 
 # 4. MAME-log path self-test
 "$out_bin/upd933_stimgen" 7 5 "$out/stim/l7.ev" --order --mamelog "$out/stim/l7.log" "$out/stim/l7.s32" >/dev/null
