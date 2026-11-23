@@ -9,6 +9,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cz101_board.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cz101_kbd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cz101_lcd_video.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv

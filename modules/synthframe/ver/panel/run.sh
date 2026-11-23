@@ -4,7 +4,9 @@
 # Usage: run.sh [OUT_DIR]   (default: out/ next to this script)
 # expected.txt holds the hashes of the renderers as they were before they moved onto
 # modules/synthframe/hdl/panel (SC-55, JV-880: before iteration 8; Proteus/1 and CZ-101: main at
-# c1d83cd, before the CZ-101 move); test_panel.py compares against it.
+# c1d83cd, before the CZ-101 move). The CZ-101 hashes were recorded again when it took
+# synthframe_status_strip: its frames differ from c1d83cd's only inside the strip
+# (x 12-391, y 412-431). test_panel.py compares against it.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)

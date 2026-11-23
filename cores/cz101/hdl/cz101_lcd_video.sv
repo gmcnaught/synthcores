@@ -5,10 +5,11 @@
 // HD44780 render() as MAME's: CGRAM for codes below 0x10, else the character ROM
 // (hd44780_a00.bin, 16 bytes a code, loaded from the ROM pack); cursor underline on row 7;
 // blink fills the cell every other 102,400 LCD clocks; nothing while the display is off or
-// the power is off. Below: the 16 panel LEDs and a status strip.
+// the power is off. Below: the 16 panel LEDs and the status strip.
 //
-// Built from synthframe's panel modules: synthframe_vtiming and synthframe_charlcd (each MAME
-// pixel is a 7 x 7 dot on an 8-pixel pitch).
+// Built from synthframe's panel modules: synthframe_vtiming, synthframe_charlcd (each MAME
+// pixel is a 7 x 7 dot on an 8-pixel pitch) and synthframe_status_strip (running: a ROM pack
+// and not loading; no underrun-now or lag source).
 //
 // The LCD state lives in the core clock domain and is read here asynchronously (display only).
 
@@ -106,6 +107,13 @@ module cz101_lcd_video (
         x0 <= x; x1 <= x0; x2 <= x1; y0 <= y; y1 <= y0; y2 <= y1;
     end
 
+    // ------------------------------------------------------------ status strip
+    logic        st_hit;
+    logic [23:0] st_rgb;
+    synthframe_status_strip #(.X0(X0), .Y0(SY)) strip (
+        .x(x2), .y(y2), .rom_ok, .loading, .running(rom_ok && !loading), .midi_led,
+        .underrun_led(1'b0), .underrun_seen, .lag_seen(1'b0), .hit(st_hit), .rgb(st_rgb));
+
     // ------------------------------------------------------------ colour
     wire        in_led = y2 >= 10'(LY) && y2 < 10'(LY + 24) && x2 >= 11'(X0) && x2 < 11'(X0 + 16 * 48);
     wire [10:0] lxo = x2 - 11'(X0);
@@ -117,12 +125,8 @@ module cz101_lcd_video (
             else {r, g, b} <= 24'h8A9294;                                  // background
         end else if (in_led && (lxo % 11'd48) < 11'd24) begin
             {r, g, b} <= leds[led_i] ? 24'hFF3020 : 24'h402018;
-        end else if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0) && x2 < 11'(X0 + 200)) begin
-            {r, g, b} <= loading ? 24'h2060C0 : rom_ok ? 24'h20C040 : 24'hC02020;
-        end else if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 220) && x2 < 11'(X0 + 260)) begin
-            {r, g, b} <= midi_led ? 24'hFFFFFF : 24'h303848;
-        end else if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 280) && x2 < 11'(X0 + 320)) begin
-            {r, g, b} <= underrun_seen ? 24'hE0A020 : 24'h303848;
+        end else if (st_hit) begin
+            {r, g, b} <= st_rgb;
         end else {r, g, b} <= 24'h101828;
     end
 endmodule
