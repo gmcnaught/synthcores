@@ -2,7 +2,7 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
-## Iteration 13: CZ-101, C0-C2 (2026-11-23, branch `iter13-cz101`, in progress)
+## Iteration 13: CZ-101, C0-C4 (2026-11-23, branch `iter13-cz101`, in progress)
 
 Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
 - **C0, reference:** MAME `cz101` subtarget built in `../mame-cz101` (commit 4a92d534, the P2K
@@ -23,8 +23,15 @@ Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
   or its start + cycles for a prefixed opcode. The core now exports `vcyc`/`acc_time` and waits at
   each boundary for the board's events. `hdl/cz101_lcd.sv`: MAME's HD44780 with the busy flag in
   CPU cycles (busy while s - t_w <= 122 or 5060).
-- **Blocked:** firmware boot lockstep (end of C2) and the MIDI corpus (C4) need the user's
-  `Casio CZ-101 EPROM Firmware.zip` (dbwbp.com), plus `upd7811g-120.bin`.
+- **ROMs:** the user's MAME set (`synth-projects/nuked-sc55/firmware/cz101-mame/`). The internal ROM
+  `upd7811g-120.bin` is byte-identical to the program ROM's first 4 KB.
+- **C3 done:** uPD933 HDL (subagent), identical to a standalone copy of MAME's model; external-timer
+  mode so the board places its IRQ at the exact instruction boundary.
+- **C4:** `hdl/cz101_board.sv`. With the real firmware and `tests/midi/basic.txt`, 6.5 M instructions
+  (boot and MIDI playback, 17.9 s) identical to MAME and 716,728 samples identical. Fixed on the way:
+  the timer base must be the arming /CS request, not the latest one.
+- **Next:** C5, the MiSTer top (ROM pack over ioctl, MidiLink, LCD video, keys, NVRAM save), then the
+  Windows build and the MiSTer smoke test.
 
 ## Iteration 8: panel as data (2026-11-23, branch `iter8-panel`)
 
