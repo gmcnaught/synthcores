@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # C1: random uPD7810 programs, HDL trace against MAME's. Usage: tools/c1_run.sh SEED [N] [--sfr]
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

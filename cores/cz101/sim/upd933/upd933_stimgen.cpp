@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // license:BSD-3-Clause
 // Synthetic uPD933 bus traffic, generated closed-loop against the C++ reference so that IRQs are
 // serviced the way the CZ-101 firmware does (/CS low, read the IRQ source, write the next envelope

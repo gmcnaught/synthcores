@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Build the CZ-101 MiSTer core (CZ101.qpf) into an RBF with
 # Quartus Lite 17.0: locally (quartus_sh on PATH) or in CI, inside the
 # raetro/quartus:17.0 Docker image (.github/workflows/build-rbf.yml).

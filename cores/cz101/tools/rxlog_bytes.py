@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Decode MAME's CZ_RX_LOG (MIDI-in line changes) into bytes with their start cycles.
 
     tools/rxlog_bytes.py RXLOG > BYTES      lines "CYCLE BYTE": CYCLE = start bit time / P

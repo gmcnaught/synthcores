@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 # uPD933 (CZ-101 sound chip, milestone C3): C++ reference, table generator, stimulus generator,
 # log replay and the Verilator bench. Included by cores/cz101/sim/CMakeLists.txt, which sets
 # CMAKE_CXX_STANDARD, find_package(verilator) and VFLAGS.

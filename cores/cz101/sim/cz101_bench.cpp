@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // CZ-101 board bench: the real firmware from power-on, trace in the patched MAME's format.
 //   cz101_bench ROMDIR N OUT.trace [SAMPLES.s32 [RXLOG]]
 // RXLOG: MAME's CZ_RX_LOG (seconds attoseconds level per MIDI-in line change).

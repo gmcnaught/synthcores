@@ -1,4 +1,5 @@
 #!/usr/bin/env pypy3
+# SPDX-License-Identifier: MIT
 # license:BSD-3-Clause
 """Convert a patched-MAME CZ_SND_LOG into a uPD933 event list for upd933_replay / upd933_bench.
 

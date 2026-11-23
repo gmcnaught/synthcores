@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 # Worst setup paths of the compiled design (quartus_sta -t sta_paths.tcl):
 #   output_files/worst_paths.txt        60 worst paths, all clocks
 #   output_files/worst_paths_core.txt   30 worst into the core clock (50 MHz)
