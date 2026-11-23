@@ -83,8 +83,8 @@ construction.
   If a later core needs the uPD7810 (Juno-106, TR-909 per brief §2), it moves to `modules/`.
 - From synthframe: `midi_rx` is not needed (MIDI enters the CPU's own serial port as bits);
   `audio_fifo`, `nvsave` (RAM and cartridge to the SD card).
-- HD44780: the Proteus core's `hd44780.sv` (a port of MAME's device, GPL-3.0) [OBS]. See open
-  questions.
+- HD44780: `hdl/cz101_lcd.sv`, transcribed from MAME's hd44780 with the busy flag in CPU
+  cycles.
 
 ## Size [INF, to be checked by the first build]
 
@@ -116,9 +116,9 @@ construction.
 
 ## Open questions
 
-- **Licence.** MAME's sources are BSD-3-Clause. If the core reuses the Proteus `hd44780.sv`
-  (GPL-3.0), the core is GPL-3.0. Moving the HD44780 into synthframe (MIT) was iteration 8's plan
-  and needs the author's agreement. Default until decided: the core is GPL-3.0.
+- **Licence.** Every file so far is written from MAME's BSD-3-Clause sources; the LCD is
+  `hdl/cz101_lcd.sv`, transcribed from MAME's hd44780, not the Proteus core's GPL-3.0
+  `hd44780.sv`. Default: BSD-3-Clause, as the reference. The author decides before release.
 - **ROM version** in the dbwbp archive [UNK].
 - **SIO timing:** MAME clocks the serial port from a 2 MHz clock device (4 M callbacks/s). The
   HDL needs the same bit timing to keep the MIDI corpus in lockstep [UNK how exact this must be;
