@@ -9,7 +9,11 @@
 //
 // Usage: jv880_board_bench --roms DIR --pack FILE [--romset jv880-v1.0.1] [--steps N]
 //            [--smf FILE [--reset-steps N] [--out FILE]] [--midi-demo S] [--seed S]
-//            [--ddr-busy N] [--ddr-lat MIN MAX]
+//            [--ddr-busy N] [--ddr-lat MIN MAX] [--sav FILE] [--save-at N]... [--sav-out FILE]
+//   --sav mounts FILE as the save file (hps_io SD slot 0, as Main_MiSTer at the end of the
+//   download; an empty or missing file mounts with size 0); the model starts from its NVRAM when
+//   it holds 32 KB. --save-at N raises "Save NVRAM" in the middle of step N; the file written
+//   through the SD model must equal the model's NVRAM after that step. --sav-out keeps the file.
 //   --smf reproduces the renderer's jv880 test (no reset message, reset steps, then the file's
 //   events at 600 ns a step); --out writes the HDL's samples after the reset steps as the
 //   renderer's s16 stream (its SHA-256 compares with `sc55-render --stdout`).
@@ -54,6 +58,8 @@ int main(int argc, char** argv)
     uint64_t    steps = 6'000'000, seed = 1, reset_steps = 24'000'000;
     int64_t     midi_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
+    std::string sav_path, sav_out;
+    std::vector<uint64_t> save_at;
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -68,6 +74,9 @@ int main(int argc, char** argv)
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
+        else if (a == "--sav" && i + 1 < argc) sav_path = argv[++i];
+        else if (a == "--save-at" && i + 1 < argc) save_at.push_back(std::strtoull(argv[++i], nullptr, 0));
+        else if (a == "--sav-out" && i + 1 < argc) sav_out = argv[++i];
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -98,6 +107,16 @@ int main(int argc, char** argv)
     pcm_t& pm = emu.GetPCM();
     if (!m.is_jv880) { fprintf(stderr, "%s is not a JV-880 romset\n", romset.c_str()); return 2; }
     if (pack_nvram) std::copy(pack.begin() + NV_AT, pack.begin() + NV_AT + NVRAM_SIZE, m.nvram);
+    // the save file: the HDL restores it over the pack's NVRAM when it holds 32 KB
+    std::vector<uint8_t> sav;
+    if (!sav_path.empty())
+    {
+        std::ifstream sf(sav_path, std::ios::binary);
+        if (sf) sav.assign(std::istreambuf_iterator<char>(sf), {});
+    }
+    const uint64_t sav_size = sav.size();
+    const bool sav_restore = sav_size >= NVRAM_SIZE;
+    if (sav_restore) std::copy(sav.begin(), sav.begin() + NVRAM_SIZE, m.nvram);
     emu.Reset();
     emu.StartLCD();
     pm.enable_oversampling = true;
@@ -124,7 +143,60 @@ int main(int argc, char** argv)
     const uint32_t base_w = 0x30000000u >> 3;
     std::deque<std::pair<uint64_t, uint32_t>> rdq;
     std::deque<Frame> hdl;
+    // hps_io's SD side (slot 0): a request (sd_rd / sd_wr) is answered after a delay with sd_ack
+    // over the whole transfer of (sd_blk_cnt + 1) x 512 bytes. Reads: sd_buff_dout with a
+    // one-clock sd_buff_wr, the address 2 clocks later. Writes: sd_buff_din sampled every few
+    // clocks at the current address, then the next address.
+    struct Sd { int phase = 0; uint32_t lba = 0, n = 0, i = 0; int wait = 0; bool wr = false; } sd;
+    uint64_t sd_reads = 0, sd_writes = 0;
+    auto sd_clock = [&]() {
+        t->sd_buff_wr = 0;
+        switch (sd.phase)
+        {
+        case 0:
+            if (!t->rst && (t->sd_rd || t->sd_wr)) { sd.phase = 1; sd.wait = 20 + (int)(rng() % 50); }
+            break;
+        case 1:
+            if (--sd.wait > 0) break;
+            sd.wr = t->sd_wr; sd.lba = t->sd_lba; sd.n = (t->sd_blk_cnt + 1u) * 512u; sd.i = 0;
+            t->sd_ack = 1; t->sd_buff_addr = 0; sd.phase = 2; sd.wait = 3;
+            if (sd.wr) ++sd_writes; else ++sd_reads;
+            break;
+        case 2:
+            if (--sd.wait > 0) break;
+            {
+                const size_t at = (size_t)sd.lba * 512 + sd.i;
+                if (sd.wr)
+                {
+                    if (sav.size() < at + 1) sav.resize(at + 1, 0);
+                    sav[at] = t->sd_buff_din;
+                    t->sd_buff_addr = (t->sd_buff_addr + 1) & 0x3fff;
+                    sd.wait = 3 + (int)(rng() % 3);
+                }
+                else
+                {
+                    t->sd_buff_dout = at < sav.size() ? sav[at] : 0;
+                    t->sd_buff_wr = 1;
+                    sd.phase = 3; sd.wait = 2;
+                    break;
+                }
+            }
+            if (++sd.i == sd.n) { sd.phase = 4; sd.wait = 4; }
+            break;
+        case 3:                                   // the address moves 2 clocks after the write
+            if (--sd.wait > 0) break;
+            t->sd_buff_addr = (t->sd_buff_addr + 1) & 0x3fff;
+            if (++sd.i == sd.n) { sd.phase = 4; sd.wait = 4; }
+            else { sd.phase = 2; sd.wait = 2 + (int)(rng() % 3); }
+            break;
+        case 4:
+            if (--sd.wait > 0) break;
+            t->sd_ack = 0; sd.phase = 0;
+            break;
+        }
+    };
     auto tick = [&]() {
+        sd_clock();
         t->DDRAM_BUSY = busy_mod > 0 && (rng() % busy_mod) == 0;
         t->DDRAM_DOUT_READY = 0;
         if (!rdq.empty() && rdq.front().first <= clocks)
@@ -157,6 +229,8 @@ int main(int argc, char** argv)
 
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
     t->midi_inject = 0; t->buttons = 0; t->enc_we = 0; t->enc_dir = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0;
+    t->img_mounted = 0; t->img_readonly = 0; t->img_size = 0; t->sd_ack = 0; t->sd_buff_wr = 0; t->sd_buff_addr = 0;
+    t->save_req = 0; t->osd_open = 0; t->autosave = 0;
     for (int i = 0; i < 8; ++i) tick();
     t->rst = 0;
     tick();
@@ -175,15 +249,26 @@ int main(int argc, char** argv)
         if (rng() % 3 == 0) tick();
     }
     while (t->ioctl_wait) tick();
+    if (!sav_path.empty())
+    {
+        // Main_MiSTer mounts saves/<core>/<image>.sav before it ends the download
+        for (int g = 0; g < 100; ++g) tick();
+        t->img_size = sav_size; t->img_mounted = 1;
+        tick();
+        t->img_mounted = 0;
+        for (int g = 0; g < 100; ++g) tick();
+    }
     t->ioctl_download = 0;
     const uint64_t load_clocks = clocks;
-    for (int g = 0; g < 100000 && !t->running; ++g) tick();
+    for (int g = 0; g < 2000000 && !t->running; ++g) tick();
     if (!t->rom_ok || !t->running) { fprintf(stderr, "core did not start: rom_ok %d running %d\n", t->rom_ok, t->running); return 1; }
     {
         size_t bad = 0;
         for (size_t i = 0; i < 0x8000; ++i) bad += R->jv880_board__DOT__core__DOT__mcu__DOT__u_rom1__DOT__mem[i] != m.rom1[i];
         for (size_t i = 0; i < 0x40000; ++i) bad += R->jv880_board__DOT__core__DOT__mcu__DOT__u_rom2__DOT__mem[i] != m.rom2[i];
         for (size_t i = 0; i < NVRAM_SIZE; ++i) bad += R->jv880_board__DOT__core__DOT__mcu__DOT__g_jv880_rams__DOT__u_nvram__DOT__mem[i] != m.nvram[i];
+        for (size_t i = 0; i < NVRAM_SIZE; ++i) bad += R->jv880_board__DOT__core__DOT__mcu__DOT__g_jv880_rams__DOT__u_nvram_dump__DOT__mem[i] != m.nvram[i];
+        if (sav_restore != (bool)t->nv_restored) { fprintf(stderr, "nv_restored %d, expected %d\n", t->nv_restored, (int)sav_restore); return 1; }
         if (bad) { fprintf(stderr, "after load: %zu bytes of ROM1, ROM2 or NVRAM differ from the model\n", bad); return 1; }
         for (uint32_t w = 0; w < 0x80000; ++w)
         {
@@ -221,14 +306,33 @@ int main(int argc, char** argv)
         tick();
         t->midi_inject = 0;
     };
+    size_t saves = 0;
     auto step = [&]() {
         emu.Step();
         uint64_t c0 = clocks;
+        const bool save_now = std::find(save_at.begin(), save_at.end(), step_no + 1) != save_at.end();
         t->step_gate = 1;
         tick();
         t->step_gate = 0;
+        if (save_now) t->save_req = 1;            // in the middle of the step: the save waits for it
         for (int g = 0; g < 50'000'000 && !t->step_done; ++g) tick();
         const bool done = t->step_done;
+        if (save_now)
+        {
+            for (int g = 0; g < 50 && !t->saving; ++g) tick();
+            if (!t->saving) { fprintf(stderr, "step %" PRIu64 ": Save NVRAM did not start\n", step_no + 1); return false; }
+            for (int g = 0; g < 20'000'000 && (t->saving || sd.phase); ++g) tick();
+            t->save_req = 0;
+            tick();
+            size_t bad = 0;
+            for (size_t i = 0; i < NVRAM_SIZE; ++i) bad += i >= sav.size() || sav[i] != m.nvram[i];
+            if (sav.size() != NVRAM_SIZE || bad)
+            {
+                fprintf(stderr, "step %" PRIu64 ": save file %zu bytes, %zu differ from the model's NVRAM\n", step_no + 1, sav.size(), bad);
+                return false;
+            }
+            ++saves;
+        }
         max_step = std::max(max_step, clocks - c0);
         run_clocks += clocks - c0;
         ++step_no;
@@ -291,6 +395,11 @@ int main(int argc, char** argv)
     printf("|");
     for (int i = 40; i < 64; ++i) { uint8_t c = lc.LCD_Data[i]; putchar(c >= 32 && c < 127 ? c : '.'); }
     printf("|\n");
+    if (!sav_out.empty())
+    {
+        std::ofstream f(sav_out, std::ios::binary);
+        f.write((const char*)sav.data(), (std::streamsize)sav.size());
+    }
     if (!out_path.empty())
     {
         std::ofstream f(out_path, std::ios::binary);
@@ -298,9 +407,12 @@ int main(int argc, char** argv)
     }
     printf("OK: pack loaded in %" PRIu64 " clocks (NVRAM %s), %" PRIu64 " steps, %" PRIu64 " samples identical (peak %.1f dBFS), "
            "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu\n",
-           load_clocks, pack_nvram ? "from the pack" : "empty", step_no, compared,
+           load_clocks, sav_restore ? "from the save file" : pack_nvram ? "from the pack" : "empty", step_no, compared,
            peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0, (double)run_clocks / (double)std::max<uint64_t>(1, step_no),
            max_step, ddr_reads, midi_bytes);
+    if (!sav_path.empty() || saves)
+        printf("save file: %s; %zu saves identical to the model's NVRAM; SD requests: %" PRIu64 " reads, %" PRIu64 " writes\n",
+               sav_restore ? "restored at boot" : "not restored (under 32 KB)", saves, sd_reads, sd_writes);
     delete t;
     return 0;
 }

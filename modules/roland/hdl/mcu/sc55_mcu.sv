@@ -42,6 +42,11 @@ module sc55_mcu #(
     input  logic [2:0]  ld_sel,          // 0 ROM1, 1 ROM2, 2 SRAM, 3 RAM, 4 sub-MCU ROM, 5 NVRAM, 6 card RAM
     input  logic [18:0] ld_addr,
     input  logic [7:0]  ld_data,
+    // JV-880 NVRAM dump (save file): a copy of the NVRAM with its own read port, data one clock
+    // after the address; `idle` = no step in progress (with run_step low, the CPU writes nothing)
+    input  logic [14:0] nv_dump_a,
+    output logic [7:0]  nv_dump_d,
+    output logic        idle,
 
     // MIDI bytes into the UART receive buffer (MCU_PostUART)
     input  logic        midi_valid,
@@ -297,6 +302,7 @@ module sc55_mcu #(
     logic       rd_b;
     logic [15:0] clr_a;
     assign ready = (q != Q_CLEAR) && sm_ready;
+    assign idle = (q == Q_IDLE);
     assign c_step_now = (q == Q_IDLE) && !reset_start && run_step;
 
     wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
@@ -413,11 +419,14 @@ module sc55_mcu #(
         if (JV880_RAMS) begin : g_jv880_rams
             sdp_ram #(.AW(15), .DW(8)) u_nvram (.clk, .we(nvram_we), .wa(nvram_wa), .wd(nvram_wd),
                                                .ra(bram_a[14:0]), .rd(nvram_rd));
+            sdp_ram #(.AW(15), .DW(8)) u_nvram_dump (.clk, .we(nvram_we), .wa(nvram_wa), .wd(nvram_wd),
+                                                    .ra(nv_dump_a), .rd(nv_dump_d));
             sdp_ram #(.AW(15), .DW(8)) u_card  (.clk, .we(card_we), .wa(card_wa), .wd(card_wd),
                                                .ra(bram_a[14:0]), .rd(card_rd));
         end else begin : g_no_jv880_rams
             assign nvram_rd = 8'hff;
             assign card_rd = 8'hff;
+            assign nv_dump_d = 8'hff;
         end
     endgenerate
     sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),

@@ -23,14 +23,18 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
 1. **Make the ROM pack from your own JV-880 ROM dumps.** Use `jv880_rom1.bin`, a
    `jv880_rom2` (v1.0.0 or v1.0.1) and `jv880_waverom1/2.bin`; the files are recognised by
    SHA-256, whatever their names:
-   `python3 cores/sc55/tools/romset.py pack DIR boot.rom --romset jv880-v1.0.1`.
+   `python3 cores/sc55/tools/romset.py pack DIR jv880.rom --romset jv880-v1.0.1`.
     - Optionally add `--nvram factory.nvram` to start from the factory preset.
     - `cores/sc55/ref/jv880_nvram.cpp` (built with the SC-55 simulators as `jv880-nvram`)
       makes that file: `jv880-nvram DIR factory.nvram`.
     - Without it, the unit starts as one whose battery ran down ("Internal RAM read error"). Then
       press UTILITY, turn to "Util:Factory preset" and press ENTER twice.
-2. **Install:** copy `boot.rom` to `games/JV-880/` and the core (`JV880_YYYYMMDD.rbf`) to
-   `_Devices/`. Load the pack from the OSD.
+2. **Install:** copy `jv880.rom` to `games/JV-880/` and the core (`JV880_YYYYMMDD.rbf`) to
+   `_Devices/`. Load the pack once from the OSD ("Load ROM pack"). The core remembers it and
+   loads it again each time it starts.
+    - A pack named `boot.rom` also loads by itself, but Main_MiSTer mounts no save file for it,
+      so its NVRAM edits are not kept. Don't keep a `boot.rom` next to a pack you load from
+      the OSD.
 3. **MIDI:** set the UART to MidiLink and send MIDI.
 
 Panel keys (PS/2 or USB keyboard, the reference frontend's map):
@@ -55,14 +59,21 @@ Panel keys (PS/2 or USB keyboard, the reference frontend's map):
 As on the unit, pressing a mode button (UTILITY, SYSTEM, RHYTHM, EDIT) again returns to play
 mode; PATCH/PERFORM switches between patch and performance play.
 
-NVRAM edits last until the pack or the core is loaded again; saving them to the SD card is not
-done yet.
+**NVRAM (the unit's battery-backed memory):** the core keeps it in `saves/JV-880/<pack>.sav`
+(32 KB, the reference's NVRAM layout).
+- When the pack loads, the save file replaces the pack's NVRAM image. Before the first save,
+  the unit starts from the pack's NVRAM image, or from an empty NVRAM.
+- The core writes the file:
+    - when the OSD opens ("Autosave on OSD open", on by default);
+    - from "Save NVRAM".
+- The sound pauses for a moment while the file is written.
+- A reset keeps the NVRAM.
 
 ## Building and testing
 
 ```bash
 cmake -S sim -B out/sim -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C out/sim
-out/sim/jv880_board_bench --roms DIR --pack boot.rom [--smf jv880.mid --out out.raw]
+out/sim/jv880_board_bench --roms DIR --pack jv880.rom [--smf jv880.mid --out out.raw] [--sav F --save-at N]
 SYNTHROOT=$PWD/../.. ../../scripts/build-hosts/winbuild.sh jv880   # Quartus 17.0 on the Windows build host
 ```
 

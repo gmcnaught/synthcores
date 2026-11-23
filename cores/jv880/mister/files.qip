@@ -13,6 +13,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/step_pacer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/rom_loader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/save/synthframe_nvsave.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/resample.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/lcd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/jv880_lcd_video.sv

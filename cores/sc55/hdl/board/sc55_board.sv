@@ -138,6 +138,7 @@ module sc55_board #(
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155, .jv880(1'b0), .enc_we(1'b0), .enc_dir(1'b0),
+        .nv_dump_a(15'd0), .nv_dump_d(), .idle(),
         .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data,
         .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,

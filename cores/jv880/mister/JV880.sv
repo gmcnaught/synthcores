@@ -8,9 +8,10 @@
 //  GPL-2.0): OSD and ROM download through hps_io, DDR3, video, audio.
 //
 //  Use: make the ROM pack from your own JV-880 ROMs with
-//  `cores/sc55/tools/romset.py pack DIR boot.rom --romset jv880-v1.0.1
-//  [--nvram factory.nvram]` and copy it to games/JV-880/boot.rom; set UART to
-//  MidiLink for MIDI in. Without an NVRAM image the unit starts as one whose
+//  `cores/sc55/tools/romset.py pack DIR jv880.rom --romset jv880-v1.0.1
+//  [--nvram factory.nvram]`, copy it to games/JV-880/ and load it once from the
+//  OSD (FSC: remembered, and saves/JV-880/<pack>.sav holds the NVRAM; saved
+//  when the OSD opens or from "Save NVRAM"); set UART to MidiLink for MIDI in. Without an NVRAM image the unit starts as one whose
 //  battery ran down ("Internal RAM read error"): UTILITY, turn to
 //  "Factory preset", ENTER twice.
 //============================================================================
@@ -45,7 +46,7 @@ assign VIDEO_ARY = 12'd3;
 localparam CONF_STR = {
 	"JV-880;UART31250,MIDI;",
 	"-;",
-	"F1,ROM,Load ROM pack;",
+	"FSC1,ROM,Load ROM pack;",
 	"-;",
 	"-,Q tone W edit E sys R rhythm T util;",
 	"-,A patch S mute D mon F cmp G enter;",
@@ -54,6 +55,9 @@ localparam CONF_STR = {
 	"-;",
 	"O[3:2],Output gain,0 dB,+6 dB,+12 dB,+18 dB;",
 	"O[1],Real-time pacing,On,Off;",
+	"-;",
+	"T[4],Save NVRAM;",
+	"O[5],Autosave on OSD open,On,Off;",
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
@@ -67,6 +71,13 @@ wire         ioctl_download, ioctl_wr, ioctl_wait;
 wire  [26:0] ioctl_addr;
 wire   [7:0] ioctl_dout;
 wire  [15:0] ioctl_index;
+wire         img_mounted, img_readonly;
+wire  [63:0] img_size;
+wire  [31:0] sd_lba;
+wire   [5:0] sd_blk_cnt;
+wire         sd_rd, sd_wr, sd_ack, sd_buff_wr;
+wire  [13:0] sd_buff_addr;
+wire   [7:0] sd_buff_dout, sd_buff_din;
 
 hps_io #(.CONF_STR(CONF_STR)) hps_io
 (
@@ -85,7 +96,21 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
-	.ioctl_wait(ioctl_wait)
+	.ioctl_wait(ioctl_wait),
+
+	// save file: the NVRAM (saves/JV880/<pack>.sav)
+	.img_mounted(img_mounted),
+	.img_readonly(img_readonly),
+	.img_size(img_size),
+	.sd_lba('{sd_lba}),
+	.sd_blk_cnt('{sd_blk_cnt}),
+	.sd_rd(sd_rd),
+	.sd_wr(sd_wr),
+	.sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_buff_dout(sd_buff_dout),
+	.sd_buff_din('{sd_buff_din}),
+	.sd_buff_wr(sd_buff_wr)
 );
 
 ///////////////////////   CLOCKS   ///////////////////////////////
@@ -116,6 +141,7 @@ wire hs, vs, hblank, vblank;
 wire [7:0] r, g, b;
 wire        rom_ok, running, midi_seen, step_done;
 wire [15:0] underruns;
+wire        saving;
 
 assign DDRAM_CLK = clk_sys;
 jv880_board #(.CLK_HZ(50_000_000)) board
@@ -130,6 +156,12 @@ jv880_board #(.CLK_HZ(50_000_000)) board
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wait(ioctl_wait),
+
+	.img_mounted(img_mounted), .img_readonly(img_readonly), .img_size(img_size),
+	.sd_lba(sd_lba), .sd_blk_cnt(sd_blk_cnt), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr), .sd_buff_din(sd_buff_din),
+	.save_req(status[4]), .osd_open(OSD_STATUS), .autosave(~status[5]),
+	.saving(saving), .nv_restored(),
 
 	.uart_rxd(UART_RXD),
 	.midi_inject(1'b0),
@@ -170,11 +202,11 @@ jv880_board #(.CLK_HZ(50_000_000)) board
 	.DDRAM_WE(DDRAM_WE)
 );
 
-// LEDs: MIDI activity (stretched), loading
+// LEDs: MIDI activity (stretched); disk: loading or saving
 reg [21:0] midi_stretch;
 always @(posedge clk_sys) midi_stretch <= midi_seen ? 22'h3fffff : (midi_stretch ? midi_stretch - 1'd1 : 22'd0);
 assign LED_USER = midi_stretch != 0;
-assign LED_DISK = {1'b1, ioctl_download};
+assign LED_DISK = {1'b1, ioctl_download | saving};
 
 ///////////////////////   VIDEO   ////////////////////////////////
 
