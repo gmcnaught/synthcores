@@ -12,11 +12,14 @@
 //
 // mk1: wave ROM banks 0..2 = waverom1..3 (1 MB each), the mk1 filter (multi/addclip20).
 // mk2: bank 0 = waverom1 (2 MB), bank 1 = waverom2; the filter in plain 32-bit arithmetic.
+// JV-880: banks 0 and 1 = waverom1/2 (2 MB each; card and expansion banks 2-6 read 0), the mk2
+// filter, and the PCM clock at 25/29 (PCM_Update: cycles += new_cycles * 25 / 29 a frame).
 
 module sc55_pcm (
     input  logic        clk,
     input  logic        rst,
     input  logic        mk2,                // SC-55mk2: wave ROM layout, filter arithmetic
+    input  logic        jv880,              // JV-880: wave ROM layout, mk2 filter, 25/29 clock
 
     // CPU side (e000-e03f)
     input  logic        cpu_req,
@@ -35,7 +38,8 @@ module sc55_pcm (
     input  logic        enable_oversampling,
 
     // wave ROM: byte reads at a linear address: mk1 bank * 1 MB + offset;
-    // mk2 bank 0 at 0 (2 MB), bank 1 at 2 MB, bank 2 at 3 MB (reads 0).
+    // mk2 bank 0 at 0 (2 MB), bank 1 at 2 MB, bank 2 at 3 MB (reads 0);
+    // JV-880 bank 0 at 0, bank 1 at 2 MB (2 MB each).
     // A request is taken in a clock with rom_req && rom_ready; data comes back
     // in request order, one byte per rom_rvalid, any number of clocks later.
     output logic        rom_req,
@@ -67,7 +71,7 @@ module sc55_pcm (
     logic [15:0] r2_wd [16];
     logic [1:0]  fe_i;                  // frame end: rows 28..31 written back one per clock
     logic [15:0] pitch [32];            // copy of ram2[n][0] for the indirect read
-    // eram (16K x 16) is a block RAM (hdl/common/sdp_ram.sv): reads and writes are
+    // eram (16K x 16) is a block RAM (modules/roland/hdl/common/sdp_ram.sv): reads and writes are
     // registered requests; after a read the reverb program waits two clocks
     // (er_wait) and takes the data into er_q.
     logic        er_we;
@@ -96,7 +100,80 @@ module sc55_pcm (
     // interrupt check need not wait for the whole frame.
     logic        pre_done, pre_hit;
     logic [5:0]  pre_i;
-    wire  [47:0] frame_len = ({42'h0, reg_slots} + 48'd1) * 48'd25;
+    wire         nm1 = mk2 || jv880;          // not the mk1: plain filter arithmetic
+    // a frame's cycles: (reg_slots + 1) * 25, times 25/29 on the JV-880 (truncated each frame)
+    // (a table, not a divider: reg_slots is 6 bits, and frame_len feeds the IRQ look-ahead, a short path)
+    function automatic logic [47:0] jv_frame_len(input logic [5:0] rs);
+        case (rs)
+            6'd0: return 48'd21;
+            6'd1: return 48'd43;
+            6'd2: return 48'd64;
+            6'd3: return 48'd86;
+            6'd4: return 48'd107;
+            6'd5: return 48'd129;
+            6'd6: return 48'd150;
+            6'd7: return 48'd172;
+            6'd8: return 48'd193;
+            6'd9: return 48'd215;
+            6'd10: return 48'd237;
+            6'd11: return 48'd258;
+            6'd12: return 48'd280;
+            6'd13: return 48'd301;
+            6'd14: return 48'd323;
+            6'd15: return 48'd344;
+            6'd16: return 48'd366;
+            6'd17: return 48'd387;
+            6'd18: return 48'd409;
+            6'd19: return 48'd431;
+            6'd20: return 48'd452;
+            6'd21: return 48'd474;
+            6'd22: return 48'd495;
+            6'd23: return 48'd517;
+            6'd24: return 48'd538;
+            6'd25: return 48'd560;
+            6'd26: return 48'd581;
+            6'd27: return 48'd603;
+            6'd28: return 48'd625;
+            6'd29: return 48'd646;
+            6'd30: return 48'd668;
+            6'd31: return 48'd689;
+            6'd32: return 48'd711;
+            6'd33: return 48'd732;
+            6'd34: return 48'd754;
+            6'd35: return 48'd775;
+            6'd36: return 48'd797;
+            6'd37: return 48'd818;
+            6'd38: return 48'd840;
+            6'd39: return 48'd862;
+            6'd40: return 48'd883;
+            6'd41: return 48'd905;
+            6'd42: return 48'd926;
+            6'd43: return 48'd948;
+            6'd44: return 48'd969;
+            6'd45: return 48'd991;
+            6'd46: return 48'd1012;
+            6'd47: return 48'd1034;
+            6'd48: return 48'd1056;
+            6'd49: return 48'd1077;
+            6'd50: return 48'd1099;
+            6'd51: return 48'd1120;
+            6'd52: return 48'd1142;
+            6'd53: return 48'd1163;
+            6'd54: return 48'd1185;
+            6'd55: return 48'd1206;
+            6'd56: return 48'd1228;
+            6'd57: return 48'd1250;
+            6'd58: return 48'd1271;
+            6'd59: return 48'd1293;
+            6'd60: return 48'd1314;
+            6'd61: return 48'd1336;
+            6'd62: return 48'd1357;
+            6'd63: return 48'd1379;
+            default: return 48'd0;
+        endcase
+    endfunction
+    wire  [47:0] frame_cyc = ({42'h0, reg_slots} + 48'd1) * 48'd25;
+    wire  [47:0] frame_len = jv880 ? jv_frame_len(reg_slots) : frame_cyc;
     wire         caught_up = (pcm_cycles >= target);
     assign irq0 = irq_assert | (pre_done & pre_hit);
     assign irq_known = (ps == P_IDLE && caught_up) || (pre_done && (pcm_cycles + frame_len >= target));
@@ -242,10 +319,16 @@ module sc55_pcm (
     // ------------------------------------------------------------------
     // ROM bank decode (PCM_ReadROM, mk1)
     // ------------------------------------------------------------------
-    function automatic logic [22:0] rom_map(input logic [31:0] address, input logic [7:0] r3d, input logic m2);
+    function automatic logic [22:0] rom_map(input logic [31:0] address, input logic [7:0] r3d, input logic m2,
+                                            input logic jv);
         // {valid, linear address}
         logic [2:0] bank;
         bank = r3d[5] ? address[23:21] : address[21:19];
+        if (jv) case (bank)
+            3'd0: return {1'b1, 1'b0, address[20:0]};
+            3'd1: return {1'b1, 1'b1, address[20:0]};
+            default: return {1'b0, 22'h0};   // card / expansion (not fitted): the reference's empty buffers read 0
+        endcase
         case (bank)
             3'd0: return m2 ? {1'b1, 1'b0, address[20:0]} : {1'b1, 2'd0, address[19:0]};
             3'd1: return {1'b1, m2 ? 2'd2 : 2'd1, address[19:0]};
@@ -456,7 +539,7 @@ module sc55_pcm (
                             2'd3: begin
                                 t32 = (wave_read_address & ~32'h0000ff) | {24'h0, cpu_wdata};
                                 wave_read_address <= t32;
-                                rm = rom_map(t32, config_reg_3d, mk2);
+                                rm = rom_map(t32, config_reg_3d, mk2, jv880);
                                 if (rm[22]) begin
                                     // read the byte before acknowledging the CPU
                                     cpu_ack <= 1'b0;
@@ -647,8 +730,8 @@ module sc55_pcm (
                     sl_oldn[pre_i[4:0]] <= ag_oldn; sl_spo[pre_i[4:0]] <= ag_spo; sl_ratio[pre_i[4:0]] <= ag_ratio;
                     for (int k = 2; k <= 6; k++) sl_ncmp[pre_i[4:0]][k] <= ag_ncmp[k];
                     sl_r14_we[pre_i[4:0]] <= ag_r14_we; sl_r14[pre_i[4:0]] <= ag_r14; sl_r28[pre_i[4:0]] <= ag_r28;
-                    m[0] = rom_map({8'h0, ag_hi, ag_wave}, config_reg_3d, mk2);
-                    for (int k = 0; k < 4; k++) m[k + 1] = rom_map({8'h0, ag_hi, 20'h0} | ag_addr[k], config_reg_3d, mk2);
+                    m[0] = rom_map({8'h0, ag_hi, ag_wave}, config_reg_3d, mk2, jv880);
+                    for (int k = 0; k < 4; k++) m[k + 1] = rom_map({8'h0, ag_hi, 20'h0} | ag_addr[k], config_reg_3d, mk2, jv880);
                     got = 5'b0;
                     for (int k = 0; k < 5; k++) begin
                         iss_addr[k] <= m[k][21:0];
@@ -836,9 +919,9 @@ module sc55_pcm (
 
             P_SLOT_FILT: begin
                 // mk1 filter, 1/4: the products of reg1 (ram1[1]); filter = ram2[11] before its envelope update
-                pp[0] <= fmul(r1[1], r2[11][15:8], mk2);
-                pp[1] <= fmul(r1[1], {1'b0, r2[11][7:1]}, mk2);
-                pp[2] <= fmul(r1[1], {1'b0, r2[6][14:8]}, mk2);
+                pp[0] <= fmul(r1[1], r2[11][15:8], nm1);
+                pp[1] <= fmul(r1[1], {1'b0, r2[11][7:1]}, nm1);
+                pp[2] <= fmul(r1[1], {1'b0, r2[6][14:8]}, nm1);
                 r1[5] <= v_reference;
                 // irq
                 if (v_active && r2[6][0] && !r2[8][14] && !irq_assert && v_irq_flag) begin
@@ -852,27 +935,27 @@ module sc55_pcm (
             P_SLOT_FILT2: begin : b_filt2
                 // 2/4: ram1[3] and v3
                 logic signed [31:0] vv1, vv2, subvar;
-                vv2 = fadd(r1[3], pp[0] >>> 6, (pp[0] >>> 5) & 1, mk2);
-                vv1 = fadd(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1, mk2);
-                subvar = fadd(vv1, pp[2] >>> 6, (pp[2] >>> 5) & 1, mk2);
+                vv2 = fadd(r1[3], pp[0] >>> 6, (pp[0] >>> 5) & 1, nm1);
+                vv1 = fadd(vv2, pp[1] >>> 13, (pp[1] >>> 12) & 1, nm1);
+                subvar = fadd(vv1, pp[2] >>> 6, (pp[2] >>> 5) & 1, nm1);
                 r1[3] <= vv1;
                 // mk1: addclip20(test, subvar ^ 0xfffff, 1); mk2: sx20(test) - subvar
-                v_v3 <= mk2 ? sx20(v_test) - subvar : addclip20(v_test, subvar ^ 32'hfffff, 1);
+                v_v3 <= nm1 ? sx20(v_test) - subvar : addclip20(v_test, subvar ^ 32'hfffff, 1);
                 ps <= P_SLOT_FILT3;
             end
 
             P_SLOT_FILT3: begin
                 // 3/4: the products of v3
-                pp[0] <= fmul(v_v3, r2[11][15:8], mk2);
-                pp[1] <= fmul(v_v3, {1'b0, r2[11][7:1]}, mk2);
+                pp[0] <= fmul(v_v3, r2[11][15:8], nm1);
+                pp[1] <= fmul(v_v3, {1'b0, r2[11][7:1]}, nm1);
                 ps <= P_SLOT_FILT4;
             end
 
             P_SLOT_FILT4: begin : b_filt4
                 // 4/4: ram1[1]
                 logic signed [31:0] v4;
-                v4 = fadd(r1[1], pp[0] >>> 6, (pp[0] >>> 5) & 1, mk2);
-                r1[1] <= fadd(v4, pp[1] >>> 13, (pp[1] >>> 12) & 1, mk2);
+                v4 = fadd(r1[1], pp[0] >>> 6, (pp[0] >>> 5) & 1, nm1);
+                r1[1] <= fadd(v4, pp[1] >>> 13, (pp[1] >>> 12) & 1, nm1);
                 ps <= P_SLOT_TV0;
             end
 
@@ -990,7 +1073,7 @@ module sc55_pcm (
                 if (fe_i == 2'd3) begin
                 nfs <= 1'b1;
                 pre_done <= 1'b0;
-                pcm_cycles <= pcm_cycles + ({42'h0, reg_slots} + 48'd1) * 48'd25;
+                pcm_cycles <= pcm_cycles + frame_len;
                 ps <= P_FRAME;
                 end
             end

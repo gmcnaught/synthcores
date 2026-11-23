@@ -1,4 +1,4 @@
-// PCM lockstep (M3): hdl/pcm/sc55_pcm.sv against the reference model's PCM.
+// PCM lockstep (M3): modules/roland/hdl/pcm/sc55_pcm.sv against the reference model's PCM.
 //
 // The full model runs (firmware, MIDI). Each step's PCM register accesses are
 // replayed into the HDL PCM in order (reads must return the model's data),
@@ -7,6 +7,7 @@
 // and all of ram1/ram2 must match, and eram every 1000 steps.
 //
 // Usage: pcm_lockstep --roms DIR [--steps N] [--midi-demo SEED] [--rom-latency N]
+//        JV-880: --romset jv880-v1.0.1 [--nvram FILE] (the factory preset: otherwise the unit is silent)
 #include "Vsc55_pcm.h"
 #include "Vsc55_pcm___024root.h"
 #include "verilated.h"
@@ -74,11 +75,11 @@ struct Access
 };
 static std::vector<Access> g_pcm;
 static bool                g_recording = false;
-static bool g_mk2 = false;
+static bool g_mk2 = false, g_jv = false;
 static void bus_hook(void*, bool write, uint32_t addr, uint8_t data)
 {
     addr &= 0xffffff;
-    if (g_recording && addr >= 0xe000 && addr < (g_mk2 ? 0xe400u : 0xe040u))
+    if (g_recording && (g_jv ? addr >= 0xf000 && addr < 0xf400u : addr >= 0xe000 && addr < (g_mk2 ? 0xe400u : 0xe040u)))
         g_pcm.push_back({write, (uint8_t)(addr & 0x3f), data});
 }
 static void cpu_done_hook(void*) { g_recording = false; }
@@ -89,7 +90,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_samples.push_back
 
 int main(int argc, char** argv)
 {
-    std::string rom_dir, romset = "mk1-v1.21";
+    std::string rom_dir, romset = "mk1-v1.21", nvram_in;
     uint64_t    steps = 2'000'000, midi_start = 4'000'000;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
@@ -103,6 +104,7 @@ int main(int argc, char** argv)
         else if (a == "--midi-loud" && i + 1 < argc) loud_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--midi-start" && i + 1 < argc) midi_start = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--rom-latency" && i + 1 < argc) rom_latency = std::atoi(argv[++i]);
+        else if (a == "--nvram" && i + 1 < argc) nvram_in = argv[++i];
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -116,6 +118,12 @@ int main(int argc, char** argv)
     Emulator emu;
     emu.Init({.lcd_backend = nullptr});
     emu.LoadRoms(load.romset, load.romset_info);
+    if (!nvram_in.empty())
+    {
+        FILE* f = fopen(nvram_in.c_str(), "rb");
+        if (!f || fread(emu.GetMCU().nvram, 1, NVRAM_SIZE, f) != NVRAM_SIZE) { fprintf(stderr, "cannot read %s\n", nvram_in.c_str()); return 2; }
+        fclose(f);
+    }
     emu.Reset();
     emu.SetSampleCallback(sample_cb, nullptr);
     mcu_t& m = emu.GetMCU();
@@ -132,8 +140,10 @@ int main(int argc, char** argv)
     // wave ROM: a request is taken when rom_req && rom_ready; data returns in
     // order rom_latency clocks later (reads pipeline, like the DDR3 stream)
     std::deque<std::pair<uint64_t, uint32_t>> romq;
-    const bool mk2 = !emu.GetMCU().is_mk1;
+    const bool jv  = emu.GetMCU().is_jv880;
+    const bool mk2 = !emu.GetMCU().is_mk1 && !jv;
     auto rom_byte = [&](uint32_t a) -> uint8_t {
+        if (jv) return a < 0x200000 ? p.waverom1[a] : a < 0x400000 ? p.waverom2[a - 0x200000] : 0;
         if (mk2) return a < 0x200000 ? p.waverom1[a] : a < 0x300000 ? p.waverom2[a - 0x200000] : 0;
         uint32_t bank = a >> 20, off = a & 0xfffff;
         return bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
@@ -152,8 +162,8 @@ int main(int argc, char** argv)
         ++clocks;
         if (t->sample_valid) hdl_samples.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
     };
-    g_mk2 = mk2;
-    t->mk2 = mk2;
+    g_mk2 = mk2; g_jv = jv;
+    t->mk2 = mk2; t->jv880 = jv;
     t->rst = 1; t->cpu_req = 0; t->run = 0; t->enable_oversampling = p.enable_oversampling; t->rom_rvalid = 0; t->rom_ready = 1;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;

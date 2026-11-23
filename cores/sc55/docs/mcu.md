@@ -1,4 +1,4 @@
-# MCU system (`hdl/mcu/sc55_mcu.sv`, M2)
+# MCU system (`modules/roland/hdl/mcu/sc55_mcu.sv`, M2)
 
 The H8/532 CPU (`docs/cpu.md`) with the mk1's memories, on-chip peripherals
 and gate array, sequenced like the reference model's `MCU_Step`:

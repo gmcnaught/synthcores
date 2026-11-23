@@ -91,7 +91,7 @@ def main() -> int:
                                   for f in (1000, 10000, 18000, 20000, 22000, 24000, 28000, 33000)))
         return 0
     lines = [f"{w:05x}" for w in rom()]
-    (ROOT / "hdl" / "board" / "resample_coef.hex").write_text("\n".join(lines) + "\n")
+    (ROOT.parent.parent / "modules" / "roland" / "hdl" / "board" / "resample_coef.hex").write_text("\n".join(lines) + "\n")
     print("wrote hdl/board/resample_coef.hex")
     return 0
 

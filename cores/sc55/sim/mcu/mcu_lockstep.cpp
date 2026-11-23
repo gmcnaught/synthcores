@@ -1,4 +1,4 @@
-// MCU system lockstep (M2): hdl/mcu/sc55_mcu.sv (CPU + memories + peripherals)
+// MCU system lockstep (M2): modules/roland/hdl/mcu/sc55_mcu.sv (CPU + memories + peripherals)
 // against the reference model, in one process.
 //
 // The HDL serves its own memories and devices. The bench supplies only what
@@ -10,6 +10,10 @@
 //
 // Usage: mcu_lockstep --roms DIR [--romset mk1-v1.21] [--steps N] [--midi-demo SEED]
 //                     [--buttons SEED]
+//        JV-880 (--romset jv880-v1.0.1): [--nvram FILE] loads the NVRAM into both;
+//        [--jv880-factory] plays the factory-preset key presses (cores/sc55/ref/jv880_nvram.cpp:
+//        UTILITY, nine encoder detents, ENTER twice) from 6 s; [--nvram-out FILE] writes the HDL's
+//        NVRAM at the end, after checking it equals the model's.
 #include "Vsc55_mcu.h"
 #include "Vsc55_mcu___024root.h"
 #include "verilated.h"
@@ -17,6 +21,7 @@
 #include "emu.h"
 #include "mcu.h"
 #include "mcu_timer.h"
+#include "pcm.h"
 #include "submcu.h"
 #include "ref_hooks.h"
 #include "rom_loader.h"
@@ -26,6 +31,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <deque>
+#include <fstream>
+#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -56,6 +63,8 @@ int main(int argc, char** argv)
     std::string rom_dir, romset = "mk1-v1.21";
     uint64_t    steps = 2'000'000;
     int64_t     midi_seed = -1, button_seed = -1;
+    std::string nvram_in, nvram_out;
+    bool        jv_factory = false;
     uint64_t    trace_from = ~0ull;
     for (int i = 1; i < argc; ++i)
     {
@@ -65,6 +74,9 @@ int main(int argc, char** argv)
         else if (a == "--steps" && i + 1 < argc) steps = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--buttons" && i + 1 < argc) button_seed = std::strtoll(argv[++i], nullptr, 0);
+        else if (a == "--nvram" && i + 1 < argc) nvram_in = argv[++i];
+        else if (a == "--nvram-out" && i + 1 < argc) nvram_out = argv[++i];
+        else if (a == "--jv880-factory") jv_factory = true;
         else if (a == "--trace-from" && i + 1 < argc) trace_from = std::strtoull(argv[++i], nullptr, 0);
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
@@ -82,8 +94,15 @@ int main(int argc, char** argv)
     if (!emu.LoadRoms(load.romset, load.romset_info)) { fprintf(stderr, "LoadRoms failed\n"); return 2; }
     mcu_t&       m  = emu.GetMCU();
     mcu_timer_t& tm = *m.timer;
-    const bool mk2 = !m.is_mk1;
-    if (m.is_jv880 || m.is_scb55 || m.is_cm300) { fprintf(stderr, "only SC-55 / SC-155 romsets (mk1, mk2)\n"); return 2; }
+    const bool jv  = m.is_jv880;
+    const bool mk2 = !m.is_mk1 && !jv;
+    if (m.is_scb55 || m.is_cm300) { fprintf(stderr, "only SC-55 / SC-155 (mk1, mk2) and JV-880 romsets\n"); return 2; }
+    pcm_t& pcm = emu.GetPCM();
+    if (!nvram_in.empty())
+    {
+        std::ifstream f(nvram_in, std::ios::binary);
+        if (!f.read((char*)m.nvram, NVRAM_SIZE)) { fprintf(stderr, "cannot read %s\n", nvram_in.c_str()); return 2; }
+    }
 
     VerilatedContext ctx;
     ctx.commandArgs(argc, argv);
@@ -93,7 +112,7 @@ int main(int argc, char** argv)
     auto tick = [&]() { t->clk = 0; t->eval(); t->clk = 1; t->eval(); ++clocks; };
 
     t->rst = 1; t->run_step = 0; t->reset_start = 0; t->ld_we = 0; t->midi_valid = 0;
-    t->mk2 = mk2; t->sc155 = m.is_sc155; t->rom2x_ack = 0;
+    t->mk2 = mk2; t->sc155 = m.is_sc155; t->jv880 = jv; t->enc_we = 0; t->enc_dir = 0; t->rom2x_ack = 0;
     t->buttons = 0; t->pcm_ack = 0; t->pcm_irq0 = 0; t->pcm_irq_known = 1; t->cpu_ld_en = 0;
     for (int i = 0; i < 4; ++i) tick();
     t->rst = 0;
@@ -110,6 +129,7 @@ int main(int argc, char** argv)
     if (mk2) load_mem(4, m.sm->rom, 4096);
     load_mem(2, m.sram, sizeof m.sram);
     load_mem(3, m.ram, sizeof m.ram);
+    if (jv) { load_mem(5, m.nvram, NVRAM_SIZE); load_mem(6, m.cardram, CARDRAM_SIZE); }
 
     emu.Reset();
     t->reset_start = 1; tick(); t->reset_start = 0;
@@ -124,6 +144,21 @@ int main(int argc, char** argv)
     size_t midi_pos = 0;
     std::mt19937_64 brng(button_seed >= 0 ? (uint64_t)button_seed : 0);
     uint32_t buttons = 0;
+
+    // JV-880 factory preset (jv880_nvram.cpp's timing at 600 ns a step): step -> action
+    // (b<n>: button n down, u: all up, e: encoder +1)
+    std::map<uint64_t, std::string> script;
+    if (jv_factory)
+    {
+        const uint64_t ms = 1'000'000 / 600;
+        uint64_t at = 6000 * ms;
+        auto press = [&](int b, uint64_t after) { script[at] = "b" + std::to_string(b); at += 100 * ms; script[at] = "u"; at += after * ms; };
+        press(MCU_BUTTON_UTILITY, 400);
+        for (int i = 0; i < 9; ++i) { script[at] = "e"; at += 300 * ms; }
+        press(MCU_BUTTON_ENTER, 400);
+        press(MCU_BUTTON_ENTER, 3000);
+        if (steps < at) steps = at;
+    }
 
     std::deque<std::string> hist;
     auto fail = [&](const std::string& what) {
@@ -146,12 +181,27 @@ int main(int argc, char** argv)
             buttons = (brng() % 3 == 0) ? (1u << (1 + brng() % 22)) : 0;   // never POWER (bit 0): it puts the unit in standby
             m.button_pressed = buttons;
         }
+        if (auto it = script.find(s); it != script.end())
+        {
+            const std::string& act = it->second;
+            if (act[0] == 'b') buttons |= 1u << std::stoi(act.substr(1));
+            else if (act == "u") buttons = 0;
+            else if (act == "e")
+            {
+                MCU_EncoderTrigger(m, 1);
+                t->enc_we = 1; t->enc_dir = 1; tick(); t->enc_we = 0;
+            }
+            m.button_pressed = buttons;
+        }
         t->buttons = buttons;
 
         uint32_t pend0 = 0;
         for (int i = 0; i < INTERRUPT_SOURCE_MAX; ++i)
             if (m.interrupt_pending.Contains((MCU_Interrupt_Source)i)) pend0 |= 1u << i;
-        t->pcm_irq0 = (pend0 >> INTERRUPT_SOURCE_IRQ0) & 1;
+        // JV-880: the PCM's own request (pcm.irq_assert) goes to gate-array line 5; it can fall in
+        // the step's status read and rise in its PCM update (set at the HDL's pcm_tick below)
+        t->pcm_irq0 = jv ? pcm.irq_assert : (pend0 >> INTERRUPT_SOURCE_IRQ0) & 1;
+        const bool jv_irq_before = pcm.irq_assert;
         const uint16_t pc0 = m.pc;
         const uint8_t  cp0 = m.cp;
 
@@ -160,6 +210,7 @@ int main(int argc, char** argv)
         emu.Step();
         g_recording = false;
         const uint32_t irq0_after = m.interrupt_pending.Contains(INTERRUPT_SOURCE_IRQ0);
+        const bool jv_irq_after = pcm.irq_assert;
 
         size_t k = 0;
         t->run_step = 1;
@@ -174,7 +225,7 @@ int main(int argc, char** argv)
             t->pcm_ack = 0;
             if (t->pcm_req && !pcm_acked)
             {
-                if (k >= g_rec.size() || (g_rec[k].addr & (mk2 ? 0xfffc00u : 0xffffc0u)) != 0xe000 || g_rec[k].write != (bool)t->pcm_we ||
+                if (k >= g_rec.size() || (g_rec[k].addr & ((mk2 || jv) ? 0xfffc00u : 0xffffc0u)) != (jv ? 0xf000u : 0xe000u) || g_rec[k].write != (bool)t->pcm_we ||
                     (g_rec[k].addr & 0x3f) != t->pcm_addr)
                 {
                     char msg[160];
@@ -184,11 +235,14 @@ int main(int argc, char** argv)
                 }
                 t->pcm_rdata = g_rec[k].data;
                 t->pcm_ack = 1;
+                // JV-880: reading the status (3e) clears an asserted request (MCU_GA_SetGAInt(5, 0))
+                if (jv && jv_irq_before && !t->pcm_we && t->pcm_addr == 0x3e) t->pcm_irq0 = 0;
                 pcm_acked = true;
                 ++n_pcm;
             }
             if (!t->pcm_req) pcm_acked = false;
             tick();
+            if (jv && t->pcm_tick) t->pcm_irq0 = jv_irq_after;   // PCM_Update after the instruction
             if (t->mon_ack)
             {
                 if (k >= g_rec.size())
@@ -293,7 +347,11 @@ int main(int argc, char** argv)
             for (int i = 0; i < 32; ++i) if (R->sc55_mcu__DOT__sm__DOT__dm[i] != sm.device_mode[i]) cmp(("sm.dev" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__dm[i], sm.device_mode[i]);
             for (int i = 0; i < 128; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i] != sm.ram[i]) cmp(("sm.ram" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_ram__DOT__mem[i], sm.ram[i]);
             for (int i = 0; i < 192; ++i) if (R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i] != sm.shared_ram[i]) cmp(("sm.shared" + std::to_string(i)).c_str(), R->sc55_mcu__DOT__sm__DOT__u_shared__DOT__mem[i], sm.shared_ram[i]);
-            cmp("ga_int5", R->sc55_mcu__DOT__ga_int5, m.ga_int[5]);
+        }
+        if (mk2 || jv)
+        {
+            for (int l = 3; l <= 5; ++l)
+                cmp(("ga_int" + std::to_string(l)).c_str(), (R->sc55_mcu__DOT__ga_line >> l) & 1, (uint32_t)m.ga_int[l]);
             cmp("ga_enable", R->sc55_mcu__DOT__ga_en, m.ga_int_enable);
         }
         cmp("uart_tx_delay", R->sc55_mcu__DOT__uart_tx_delay, m.uart_tx_delay);
@@ -316,6 +374,23 @@ int main(int argc, char** argv)
     for (size_t i = 0; i < sizeof m.ram; ++i) bad += R->sc55_mcu__DOT__u_ram__DOT__mem[i] != m.ram[i];
     if (bad) return fail(std::to_string(bad) + " SRAM/RAM bytes differ at the end");
 
+    if (jv)
+    {
+        // the NVRAM (factory preset etc.): HDL = model, byte for byte; optionally saved
+        for (int i = 0; i < NVRAM_SIZE; ++i)
+            if (R->sc55_mcu__DOT__g_jv880_rams__DOT__u_nvram__DOT__mem[i] != m.nvram[i])
+            {
+                fprintf(stderr, "MISMATCH: NVRAM byte %04x: HDL %02x, model %02x\n", i,
+                        R->sc55_mcu__DOT__g_jv880_rams__DOT__u_nvram__DOT__mem[i], m.nvram[i]);
+                return 1;
+            }
+        if (!nvram_out.empty())
+        {
+            std::ofstream f(nvram_out, std::ios::binary);
+            for (int i = 0; i < NVRAM_SIZE; ++i) f.put((char)R->sc55_mcu__DOT__g_jv880_rams__DOT__u_nvram__DOT__mem[i]);
+        }
+        printf("NVRAM: HDL = model (%d bytes)\n", NVRAM_SIZE);
+    }
     printf("OK (%s): %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, ended at %02x:%04x\n",
            romset.c_str(), steps, n_acc, n_pcm, clocks, (double)clocks / (double)steps, midi_pos, m.cp, m.pc);
     delete t;
