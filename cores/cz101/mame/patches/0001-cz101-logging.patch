@@ -1,0 +1,196 @@
+diff --git a/src/devices/cpu/upd7810/upd7810.cpp b/src/devices/cpu/upd7810/upd7810.cpp
+index d15490c3..86032f09 100644
+--- a/src/devices/cpu/upd7810/upd7810.cpp
++++ b/src/devices/cpu/upd7810/upd7810.cpp
+@@ -373,6 +373,31 @@ STOP            01001000  10111011          12  stop
+ #include "upd7810_macros.h"
+ #include "upd7810_dasm.h"
+ 
++#include <cstdlib>
++
++// cz101 logging: one line per instruction after it executes:
++//   <cycles before> <PPC> <OP> <OP2> <cc> V A B C D E H L EAH EAL SP PSW
++// "W addr data" for each memory write, "I vector" for each interrupt taken.
++void upd7810_device::cz_trace_insn(int cc)
++{
++	fprintf(m_cztrace, "%llu %04X %02X %02X %d %02X%02X%02X%02X%02X%02X%02X%02X %04X %04X %02X\n",
++		(unsigned long long)m_czcyc, PPC, OP, OP2, cc, V, A, B, C, D, E, H, L, EA, SP, PSW);
++	m_czcyc += cc;
++	if (m_czlimit && ++m_czn >= m_czlimit)
++	{
++		fflush(m_cztrace);
++		machine().schedule_exit();
++		m_czlimit = 0;
++	}
++}
++
++void upd7810_device::cz_wm(uint16_t a, uint8_t v)
++{
++	if (m_cztrace)
++		fprintf(m_cztrace, "W %04X %02X\n", a, v);
++	m_program.write_byte(a, v);
++}
++
+ 
+ DEFINE_DEVICE_TYPE(UPD7810,  upd7810_device,  "upd7810",  "NEC uPD7810")
+ DEFINE_DEVICE_TYPE(UPD78C10, upd78c10_device, "upd78c10", "NEC uPD78C10")
+@@ -937,6 +962,7 @@ void upd7810_device::upd7810_take_irq()
+ 		WM( SP, PCH );
+ 		SP--;
+ 		WM( SP, PCL );
++		if (m_cztrace) fprintf(m_cztrace, "I %04X\n", vector);
+ 		IFF = m_iff_pending = 0;
+ 		IRR &= ~irr_mask;
+ 		PSW &= ~(SK|L0|L1);
+@@ -1002,6 +1028,7 @@ void upd7801_device::upd7810_take_irq()
+ 		WM( SP, PCH );
+ 		SP--;
+ 		WM( SP, PCL );
++		if (m_cztrace) fprintf(m_cztrace, "I %04X\n", vector);
+ 		IFF = m_iff_pending = 0;
+ 		IRR &= ~irr_mask;
+ 		PSW &= ~(SK|L0|L1);
+@@ -1792,6 +1819,13 @@ void upd7810_device::device_start()
+ {
+ 	base_device_start();
+ 
++	if (const char *t = getenv("CZ_TRACE"))
++	{
++		m_cztrace = fopen(t, "w");
++		if (const char *l = getenv("CZ_TRACE_LIMIT"))
++			m_czlimit = strtoull(l, nullptr, 0);
++	}
++
+ 	MM = 8;
+ 	m_ram_view.select(0);
+ 
+@@ -2053,12 +2087,14 @@ void upd7810_device::execute_run()
+ 			debugger_wait_hook();
+ 			// continue running peripherals until a pending (internal or external) interrupt
+ 			m_icount--;
++			m_czcyc++;
+ 			handle_timers(1);
+ 			upd7810_take_irq();
+ 			continue;
+ 		}
+ 
+ 		int cc;
++		const int cz_ic0 = m_icount;
+ 
+ 		PPC = PC;
+ 		debugger_instruction_hook(PC);
+@@ -2127,6 +2163,7 @@ void upd7810_device::execute_run()
+ 			(this->*m_opXX[OP].opfunc)();
+ 		}
+ 		m_icount -= cc;
++		if (m_cztrace) cz_trace_insn(cz_ic0 - m_icount); else m_czcyc += cz_ic0 - m_icount;
+ 		upd7810_take_irq();
+ 		m_iff = m_iff_pending;
+ 	} while (m_icount > 0);
+diff --git a/src/devices/cpu/upd7810/upd7810.h b/src/devices/cpu/upd7810/upd7810.h
+index 2ecbd25e..66bd8e33 100644
+--- a/src/devices/cpu/upd7810/upd7810.h
++++ b/src/devices/cpu/upd7810/upd7810.h
+@@ -349,6 +349,12 @@ protected:
+ 	memory_access<16, 0, 0, ENDIANNESS_LITTLE>::specific m_io;
+ 	int m_icount;
+ 
++	// cz101 logging (CZ_TRACE, CZ_TRACE_LIMIT)
++	FILE *m_cztrace = nullptr;
++	uint64_t m_czcyc = 0, m_czn = 0, m_czlimit = 0;
++	void cz_trace_insn(int cc);
++	void cz_wm(uint16_t a, uint8_t v);
++
+ 	uint8_t RP(offs_t port);
+ 	void WP(offs_t port, uint8_t data);
+ 	void upd7810_write_EOM();
+diff --git a/src/devices/cpu/upd7810/upd7810_macros.h b/src/devices/cpu/upd7810/upd7810_macros.h
+index 1bd09284..49cd2072 100644
+--- a/src/devices/cpu/upd7810/upd7810_macros.h
++++ b/src/devices/cpu/upd7810/upd7810_macros.h
+@@ -105,7 +105,7 @@
+ #define RDOP(O)     O = m_opcodes.read_byte(PCD); PC++
+ #define RDOPARG(A)  A = m_opcodes.read_byte(PCD); PC++
+ #define RM(A)       m_program.read_byte(A)
+-#define WM(A,V)     m_program.write_byte(A,V)
++#define WM(A,V)     cz_wm(A,V)
+ 
+ 
+ //**************************************************************************
+diff --git a/src/devices/sound/upd933.cpp b/src/devices/sound/upd933.cpp
+index 9b714a47..e2a416a9 100644
+--- a/src/devices/sound/upd933.cpp
++++ b/src/devices/sound/upd933.cpp
+@@ -12,6 +12,8 @@
+ #include <climits>
+ #include <cmath>
+ #include <numbers>
++#include <cstdio>
++#include <cstdlib>
+ 
+ DEFINE_DEVICE_TYPE(UPD933, upd933_device, "upd933", "NEC uPD933")
+ 
+@@ -50,6 +52,13 @@ void upd933_device::device_start()
+ 
+ 	m_cs = m_id = 1;
+ 
++	// cz101 logging: "<10 MHz tick> <sample count> W <reg> <value>", "... R <data>", "... Q <irq>";
++	// raw 40 kHz samples (int32 LE, before clamping) to CZ_SAMPLES
++	if (const char *f = getenv("CZ_SND_LOG"))
++		m_czlog = fopen(f, "w");
++	if (const char *f = getenv("CZ_SAMPLES"))
++		m_czsamples = fopen(f, "wb");
++
+ 	save_item(NAME(m_irq_pending));
+ 	save_item(NAME(m_irq_state));
+ 	save_item(NAME(m_cs));
+@@ -217,6 +226,7 @@ void upd933_device::update_irq()
+ 	if (irq_state != m_irq_state)
+ 	{
+ 		m_irq_state = irq_state;
++		if (m_czlog) fprintf(m_czlog, "%llu %u Q %u\n", (unsigned long long)cz_tick(), m_sample_count, irq_state);
+ 		m_irq_cb(m_irq_state);
+ 	}
+ }
+@@ -227,7 +237,9 @@ u8 upd933_device::read()
+ 	if (!machine().side_effects_disabled())
+ 		m_stream->update();
+ 
+-	return m_cs ? 0xff : irq_data();
++	const u8 d = m_cs ? 0xff : irq_data();
++	if (m_czlog && !machine().side_effects_disabled()) fprintf(m_czlog, "%llu %u R %02X\n", (unsigned long long)cz_tick(), m_sample_count, d);
++	return d;
+ }
+ 
+ /**************************************************************************/
+@@ -242,6 +254,7 @@ void upd933_device::write(u8 data)
+ 		bool ok = true;
+ 		const u8 reg = m_sound_data[0];
+ 		const u16 value = m_sound_regs[reg] = (m_sound_data[1] << 8) | data;
++		if (m_czlog) fprintf(m_czlog, "%llu %u W %02X %04X\n", (unsigned long long)cz_tick(), m_sample_count, reg, value);
+ 
+ 		// the low 3 bits of the register number determine which voice is controlled by per-voice registers...
+ 		const int vnum = reg & 7;
+@@ -386,6 +399,7 @@ void upd933_device::sound_stream_update(sound_stream &stream)
+ 		for (int j : voice_map)
+ 			sample += update(j);
+ 
++		if (m_czsamples) { const s32 v = sample; fwrite(&v, 4, 1, m_czsamples); }
+ 		stream.put_int_clamp(0, i, sample, 1 << 15);
+ 		m_sample_count++;
+ 	}
+diff --git a/src/devices/sound/upd933.h b/src/devices/sound/upd933.h
+index 1f8049d0..cd9eb172 100644
+--- a/src/devices/sound/upd933.h
++++ b/src/devices/sound/upd933.h
+@@ -92,6 +92,10 @@ private:
+ 	std::array<u16, 256> m_sound_regs;
+ 
+ 	u32 m_sample_count;
++
++	// cz101 logging (CZ_SND_LOG, CZ_SAMPLES)
++	FILE *m_czlog = nullptr, *m_czsamples = nullptr;
++	u64 cz_tick() const { return machine().time().as_ticks(10'000'000); }
+ 	s16 m_last_sample;
+ 
+ 	std::array<voice_t, 8> m_voice;

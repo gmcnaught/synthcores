@@ -57,8 +57,9 @@ Assumptions:
 | 10 | ~~`xcau15p` size estimate~~ deferred: M64 work waits | — | — | — |
 | 11 | P2K CPU against MAME | 0 | — | bus trace matches MAME up to the main screen |
 | 12 | JV-880 core on the MiSTer | 4, 8 | yes | H8/532 firmware lockstep and `jv880.mid` render hash `73feda3c…bbbc` against Nuked-SC55 (`jv880-v1.0.1`); plays MIDI on the MiSTer with no underrun |
+| 13 | CZ-101 core on the MiSTer (`cores/cz101/docs/plan.md`, C0–C5) | 1, 2 | yes | uPD7811 trace and uPD933 samples identical to MAME (`cz101`) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 
-Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880). 9 and 11 fill build wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
+Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
 ### 0. Publish and root CI
 
@@ -158,6 +159,14 @@ Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880). 9 and 11 fil
 - Start from the last divergence: at the 2 ms tick, the RTL writes 8080 to 0x00400000
   (pc 02003B04) while MAME reads 02000074 (pc 02003A94).
 - **Gate:** `tools/p2k_trace_cmp.py` finds no divergence up to the MAME main screen.
+
+### 13. CZ-101
+
+- Scope, hardware map and milestones C0–C5: `cores/cz101/docs/plan.md`.
+- Reference: MAME `cz101` (BSD-3-Clause), built with logging patches in `../mame-cz101`.
+- ROMs: dbwbp.com `Casio CZ-101 EPROM Firmware.zip`, downloaded by the user. C1 and C3 run on
+  generated test ROMs and do not wait for it.
+- **Gate:** C4's corpus hashes identical to MAME's, and C5 on the MiSTer.
 
 ## Not in this session
 
