@@ -11,7 +11,9 @@ Log lines (10 MHz tick, then MAME's m_sample_count at the access):
     <tick> <count> I <state>                 id_w(state)
     <tick> <count> X                         device_reset(), count before it is cleared
     <tick> <count> T                         timer_tick() fired
-    <tick> <count> N <value hex>             machine().rand() value used for noise
+    -      <count> N <value hex>             machine().rand() value used for noise, logged inside
+                                             sound_stream_update (no tick; count = sample index);
+                                             placed at the last tick seen, order kept
     <tick> <count> S                         rq_r() with side effects (stream update)
 
 Without C lines /CS is taken as low from the first access, so register writes and reads are
@@ -38,11 +40,15 @@ def main():
             if len(p) < 3:
                 continue
             try:
-                tick, cnt, op = int(p[0]), int(p[1]), p[2]
+                tick = last_tick if p[0] == '-' else int(p[0])
+                cnt, op = int(p[1]), p[2]
             except ValueError:
                 continue  # not a uPD933 log line
+            if p[0] == '-' and op != 'N':
+                sys.stderr.write(f"{src}:{n}: '-' tick on a {op!r} line, skipped\n")
+                continue
             counts[op] = counts.get(op, 0) + 1
-            if first_tick is None:
+            if first_tick is None and p[0] != '-':
                 first_tick = tick
             last_tick = max(last_tick, tick)
             if op == 'W':
