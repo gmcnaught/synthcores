@@ -1,0 +1,1 @@
+cores/sc55/hdl/board/lcd_video.sv

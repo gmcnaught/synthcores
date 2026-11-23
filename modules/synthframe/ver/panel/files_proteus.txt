@@ -1,0 +1,2 @@
+cores/proteus/mister/rtl/hd44780.sv
+cores/proteus/mister/rtl/display.sv
