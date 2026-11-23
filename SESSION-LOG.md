@@ -2,6 +2,38 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 8, CZ-101: the panel modules (2026-11-23, branch `iter8b-cz101-panel`)
+
+- **`synthframe_hd44780`** now carries the CZ-101 controller's MAME details:
+    - busy time from an external time base (`BUSY_EXT`; the CZ-101's virtual CPU cycles) or
+      clock cycles (Proteus/1);
+    - reset and clear fill DDRAM one address a clock; reset zeroes CGRAM;
+    - instruction 0x00 sets no busy;
+    - one-line mode wraps at 80 as MAME's render().
+  `cores/cz101/hdl/cz101_lcd.sv` is now the pin side only.
+- **CZ-101 video:** `synthframe_vtiming`, `synthframe_charlcd` (new `LEFT` parameter and
+  `cell_row` output) and `synthframe_status_strip`. The strip's colours are now the shared
+  ones (amber loading, dark red underrun seen, lag box); the smoke test reads them.
+- **Frame benches:** new CZ-101 bench through the CZ-101's pins. The Proteus bench's cursor
+  command was 10 bits in a 9-bit slot (it wrote a data byte); fixed, and the Proteus/1 and
+  CZ-101 hashes recorded again from main (c1d83cd) before any change. All 16 hashes unchanged by
+  the move; the CZ-101 strip change alters only the strip's pixels (x 12-391, y 412-431). A
+  one-line wrap mutation changes the one-line seed's hash.
+- **C4** (`tests/c4_run.sh tests/midi/basic.txt 6500000`): pass, as on main: 7,922,583 trace
+  lines and 716,728 samples identical to MAME (sha256 08745dc2...0eb7), live-MIDI path too.
+- **Proteus/1 system simulation**, 4 s, against the iteration 8 baseline: writes, audio and LCD
+  text identical.
+- **Windows builds**, timing met: CZ-101 14,527 ALMs (main 14,577), Proteus/1 25,071 (24,710:
+  CGRAM clear and the sequential DDRAM clear), JV-880 28,902 (unchanged). Block memory and DSP
+  unchanged.
+- **MiSTer smoke:**
+    - CZ-101: running, no underrun, 16,317 lit pixels at boot (as main), MIDI and key change the
+      LCD, 8 KB save file.
+    - Proteus/1: 0 missed, ratio 1.008, worst 928/2048; boot sha a0c4feec... as iteration 8.
+    - The previous RBFs are in `/media/fat/_synth_backup/20261123-czpanel-pre/`.
+- **Open:** in one-line mode MAME draws only line 0; the render port returns line 0's
+  characters for line 1 as well (both cores' firmware use two lines).
+
 ## Iteration 13: CZ-101, C0-C5 (2026-11-23, branch `iter13-cz101`)
 
 Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
