@@ -38,7 +38,9 @@ module upd7811 #(
     input  logic        sck_level,
     input  logic        nmi_line,
     input  logic        int1_line,
+    input  logic        int1_rise,
     input  logic        int2_line,
+    output logic        pa_rd,
 
     // virtual time and the event handshake (upd7810_core)
     output logic [31:0] vcyc,
@@ -104,7 +106,7 @@ module upd7811 #(
         .pa_in, .pb_in, .pc_in, .pd_in, .pf_in,
         .pa_out, .pb_out, .pc_out, .pd_out, .pf_out,
         .pa_we, .pb_we, .pc_we, .pd_we, .pf_we,
-        .an, .rxd, .txd, .sck_edge, .sck_level, .nmi_line, .int1_line, .int2_line,
+        .an, .rxd, .txd, .sck_edge, .sck_level, .nmi_line, .int1_line, .int1_rise, .pa_rd, .int2_line,
         .ram_enable, .to, .co0, .co1, .r_irr
     );
 
