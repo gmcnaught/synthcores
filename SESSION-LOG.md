@@ -47,8 +47,9 @@ Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
   - On the MiSTer the user heard nothing at first: `uartmode.CZ-101` routed MidiLink to
     FluidSynth; setting the UART to MidiLink fixed it.
 - **Open:** an edited patch surviving a reload is not shown by the smoke test (the firmware boots
-  to preset 1); music keys, pitch wheel and MIDI out are not mapped; licence default
-  BSD-3-Clause, not yet confirmed.
+  to preset 1); music keys, pitch wheel and MIDI out are not mapped.
+- **Licence (after #18):** MIT, with MAME's BSD-3-Clause notice in `cores/cz101/NOTICE`; SPDX
+  headers on the core's own files; `ref/` and `mame/patches/` stay BSD-3-Clause.
 
 ## Iteration 8: panel as data (2026-11-23, branch `iter8-panel`)
 

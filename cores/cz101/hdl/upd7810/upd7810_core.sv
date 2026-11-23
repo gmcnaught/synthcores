@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // uPD7810/7811 CPU core: instruction execution.
 //
 // Follows MAME's upd7810 (BSD-3-Clause, Juergen Buchmueller) instruction for instruction:

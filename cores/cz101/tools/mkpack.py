@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Make the CZ-101 MiSTer ROM pack from MAME's cz101 set and the HD44780 character ROM.
 
     tools/mkpack.py CZ101_DIR HD44780_A00 OUT.rom [--version 1|2]

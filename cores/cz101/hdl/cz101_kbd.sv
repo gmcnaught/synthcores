@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // CZ-101 panel buttons from a PS/2 keyboard (MiSTer ps2_key), with the keys MAME's cz101
 // driver assigns (INPUT_PORTS cz101, kc9-kc15), plus, for keyboards without a keypad,
 // F1-F8 = Tone 1-8 and Enter = Select. The 49 music keys (kc0-kc8) are played over MIDI and

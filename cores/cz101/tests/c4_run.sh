@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # C4: the CZ-101 board HDL against MAME's cz101 with the real firmware and a MIDI script.
 #   tests/c4_run.sh MIDI_SCRIPT N_INSTRUCTIONS
 # Needs CZ101_ROM_DIR (MAME's cz101 set), HD44780_ROM (hd44780_a00.bin), the patched MAME

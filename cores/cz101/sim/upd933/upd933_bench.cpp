@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // license:BSD-3-Clause
 // uPD933 HDL against the C++ reference (MAME's model) on the same event lists.
 //
