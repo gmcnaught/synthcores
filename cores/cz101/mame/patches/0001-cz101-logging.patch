@@ -245,3 +245,30 @@ index 1f8049d0..cd9eb172 100644
  	s16 m_last_sample;
  
  	std::array<voice_t, 8> m_voice;
+diff --git a/src/mame/casio/cz101.cpp b/src/mame/casio/cz101.cpp
+index 225f364e..fde6bc54 100644
+--- a/src/mame/casio/cz101.cpp
++++ b/src/mame/casio/cz101.cpp
+@@ -420,6 +420,8 @@ void cz101_state::port_c_w(uint8_t data)
+ 
+ void cz101_state::machine_start()
+ {
++	if (getenv("CZ_POWER_ON"))
++		m_power = 1;
+ 	// register for save states
+ 	save_item(NAME(m_power));
+ 	save_item(NAME(m_port_b));
+@@ -442,7 +444,12 @@ void cz101_state::cz101(machine_config &config)
+ 	m_maincpu->set_addrmap(AS_PROGRAM, &cz101_state::maincpu_map);
+ 	m_maincpu->pa_in_cb().set(m_hd44780, FUNC(hd44780_device::db_r));
+ 	m_maincpu->pa_out_cb().set(m_hd44780, FUNC(hd44780_device::db_w));
+-	m_maincpu->pb_in_cb().set_ioport("PB");
++	// cz101 logging patch: CZ_POWER_ON=1 holds the Power switch on from time 0 (PB7 = 1)
++	m_maincpu->pb_in_cb().set([this] () -> u8 {
++		u8 v = ioport("PB")->read();
++		if (getenv("CZ_POWER_ON")) v |= 0x80;
++		return v;
++	});
+ 	m_maincpu->pb_out_cb().set(FUNC(cz101_state::port_b_w));
+ 	m_maincpu->pc_out_cb().set(FUNC(cz101_state::port_c_w));
+ 	m_maincpu->an1_func().set_ioport("AN1");
