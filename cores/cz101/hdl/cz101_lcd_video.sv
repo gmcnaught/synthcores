@@ -7,6 +7,9 @@
 // blink fills the cell every other 102,400 LCD clocks; nothing while the display is off or
 // the power is off. Below: the 16 panel LEDs and a status strip.
 //
+// Built from synthframe's panel modules: synthframe_vtiming and synthframe_charlcd (each MAME
+// pixel is a 7 x 7 dot on an 8-pixel pitch).
+//
 // The LCD state lives in the core clock domain and is read here asynchronously (display only).
 
 module cz101_lcd_video (
@@ -19,10 +22,9 @@ module cz101_lcd_video (
     // LCD read port (combinational, in the core domain)
     output logic       r_line,
     output logic [3:0] r_pos,
+    output logic [2:0] r_row,
     input  logic [7:0] r_code,
-    input  logic       r_cursor,
-    output logic [2:0] r_cg_code,
-    output logic [2:0] r_cg_row,
+    input  logic       r_at_ac,
     input  logic [4:0] r_cg_bits,
     input  logic       display_on,
     input  logic       cursor_on,
@@ -61,90 +63,58 @@ module cz101_lcd_video (
     // ------------------------------------------------------------ timing
     logic [10:0] x;
     logic [9:0]  y;
-    always_ff @(posedge clk) begin
-        if (x == 11'd1055) begin
-            x <= 11'd0;
-            y <= (y == 10'd627) ? 10'd0 : y + 10'd1;
-        end else x <= x + 11'd1;
-    end
+    logic        hb, vb, hsy, vsy;
+    synthframe_vtiming tm (.clk, .x, .y, .hblank(hb), .vblank(vb), .hsync(hsy), .vsync(vsy));
 
-    // ------------------------------------------------------------ stage 0: MAME pixel
-    logic        in_scr0, gap0, cell0, hs0, vs0, hb0, vb0;
-    logic        line0;
-    logic [3:0]  pos0;
-    logic [2:0]  col0, row0;
-    logic [10:0] x0;
-    logic [9:0]  y0;
-    always_ff @(posedge clk) begin : stage0
-        logic [10:0] lx;
-        logic [9:0]  ly;
-        logic [6:0]  px, cx;
-        logic [4:0]  py, cy;
-        lx = x - 11'(X0);
-        ly = y - 10'(Y0);
-        px = lx[9:3];
-        py = ly[7:3];
-        in_scr0 <= x >= 11'(X0) && x < 11'(X0 + 97 * 8) && y >= 10'(Y0) && y < 10'(Y0 + 19 * 8);
-        gap0 <= lx[2:0] == 3'd7 || ly[2:0] == 3'd7;
-        cx = px - 7'd1;                          // 0..95: pos = cx / 6, col = cx % 6
-        cy = py - 5'd1;                          // 0..17: line = cy / 9, row = cy % 9
-        pos0 <= 4'(cx / 7'd6);
-        col0 <= 3'(cx % 7'd6);
-        line0 <= cy >= 5'd9;
-        row0 <= 3'((cy >= 5'd9) ? cy - 5'd9 : cy);
-        cell0 <= px >= 7'd1 && px <= 7'd96 && cx % 7'd6 < 7'd5 && py >= 5'd1 && py <= 5'd18
-                 && cy != 5'd8 && cy != 5'd17;
-        x0 <= x; y0 <= y;
-        hb0 <= x >= 11'd800;
-        vb0 <= y >= 10'd600;
-        hs0 <= (x >= 11'd840 && x < 11'd968);
-        vs0 <= (y >= 10'd601 && y < 10'd605);
-    end
+    // ------------------------------------------------------------ LCD dots
+    logic [1:0]  c_line;
+    logic [5:0]  c_col;
+    logic [2:0]  c_row;
+    logic [4:0]  gbits;
+    logic        at_cursor, panel, dot, lit;
+    synthframe_charlcd #(.X0(X0), .Y0(Y0), .COLS(16), .LINES(2), .PW(97 * 8), .PH(19 * 8),
+                         .LEFT(8), .TOP(8), .CHAR_P(48), .LINE_P(72), .DOT_W(7), .DOT_H(7),
+                         .DOT_PX(8), .DOT_PY(8), .ROW7_GLYPH(1)) lcd (
+        .clk, .x, .y,
+        .cell_line(c_line), .cell_col(c_col), .cell_row(c_row), .cell_code(r_code),
+        .cell_cursor(at_cursor), .glyph_code(), .glyph_row(), .glyph_bits(gbits), .fetch(),
+        .panel, .dot, .lit);
+    assign r_line = c_line[0];
+    assign r_pos = c_col[3:0];
+    assign r_row = c_row;
+    assign at_cursor = r_at_ac && cursor_on && display_on;      // underline (row 7)
 
-    // ------------------------------------------------------------ stage 1: character code
-    assign r_line = line0;
-    assign r_pos = pos0;
-    assign r_cg_code = r_code[2:0];
-    assign r_cg_row = row0;
-    logic        cg1, cur1, in_scr1, gap1, cell1, hs1, vs1, hb1, vb1;
-    logic [4:0]  cgb1;
-    logic [2:0]  col1, row1;
-    logic [10:0] x1;
-    logic [9:0]  y1;
-    logic [7:0]  font_q;
+    // the glyph row, looked up with the character code (font RAM read, CG RAM, blink fill)
+    logic       cg1, fill1;
+    logic [4:0] cgb1;
+    logic [7:0] font_q;
     always_ff @(posedge clk) begin
-        font_q <= font[{r_code, 1'b0, row0}];
+        font_q <= font[{r_code, 1'b0, c_row}];
         cg1 <= r_code < 8'h10;
         cgb1 <= r_cg_bits;
-        cur1 <= r_cursor;
-        in_scr1 <= in_scr0; gap1 <= gap0; cell1 <= cell0; col1 <= col0; row1 <= row0;
-        hs1 <= hs0; vs1 <= vs0; hb1 <= hb0; vb1 <= vb0; x1 <= x0; y1 <= y0;
+        fill1 <= r_at_ac && blink_on && !blink;
+    end
+    assign gbits = !display_on ? 5'h00 : fill1 ? 5'h1F : cg1 ? cgb1 : font_q[4:0];
+
+    // ------------------------------------------------------------ sync and position, 3 clocks
+    logic [2:0]  hs_q, vs_q, hb_q, vb_q;
+    logic [10:0] x0, x1, x2;
+    logic [9:0]  y0, y1, y2;
+    always_ff @(posedge clk) begin
+        hs_q <= {hs_q[1:0], hsy}; vs_q <= {vs_q[1:0], vsy};
+        hb_q <= {hb_q[1:0], hb};  vb_q <= {vb_q[1:0], vb};
+        x0 <= x; x1 <= x0; x2 <= x1; y0 <= y; y1 <= y0; y2 <= y1;
     end
 
-    // ------------------------------------------------------------ stage 2: dot
-    logic        on2, in_scr2, gap2, cell2, hs2, vs2, hb2, vb2;
-    logic [10:0] x2;
-    logic [9:0]  y2;
-    always_ff @(posedge clk) begin : stage2
-        logic [4:0] bits;
-        bits = cg1 ? cgb1 : font_q[4:0];
-        if (cur1 && cursor_on && row1 == 3'd7) bits = 5'h1F;
-        if (cur1 && blink_on && !blink) bits = 5'h1F;
-        if (!display_on) bits = 5'h00;
-        on2 <= bits[3'd4 - col1];
-        in_scr2 <= in_scr1; gap2 <= gap1; cell2 <= cell1 && power;
-        hs2 <= hs1; vs2 <= vs1; hb2 <= hb1; vb2 <= vb1; x2 <= x1; y2 <= y1;
-    end
-
-    // ------------------------------------------------------------ stage 3: colour
+    // ------------------------------------------------------------ colour
     wire        in_led = y2 >= 10'(LY) && y2 < 10'(LY + 24) && x2 >= 11'(X0) && x2 < 11'(X0 + 16 * 48);
     wire [10:0] lxo = x2 - 11'(X0);
     wire [3:0]  led_i = 4'(lxo / 11'd48);
     always_ff @(posedge clk) begin
-        hs <= !hs2; vs <= !vs2; hblank <= hb2; vblank <= vb2;
-        if (in_scr2) begin
-            if (cell2 && !gap2) {r, g, b} <= on2 ? 24'h3F3B3E : 24'h83888B;   // on / off
-            else {r, g, b} <= 24'h8A9294;                                   // background
+        hs <= !hs_q[2]; vs <= !vs_q[2]; hblank <= hb_q[2]; vblank <= vb_q[2];
+        if (panel) begin
+            if (dot && power) {r, g, b} <= lit ? 24'h3F3B3E : 24'h83888B;   // on / off
+            else {r, g, b} <= 24'h8A9294;                                  // background
         end else if (in_led && (lxo % 11'd48) < 11'd24) begin
             {r, g, b} <= leds[led_i] ? 24'hFF3020 : 24'h402018;
         end else if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0) && x2 < 11'(X0 + 200)) begin

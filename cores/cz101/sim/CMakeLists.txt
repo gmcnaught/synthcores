@@ -28,6 +28,7 @@ verilate(upd7811_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/
 add_executable(cz101_bench cz101_bench.cpp)
 verilate(cz101_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/upd7810_periph.sv"
          "${HDL}/upd7810/upd7811.sv" "${HDL}/upd933/upd933_mem.sv" "${HDL}/upd933/upd933.sv"
+         "${HDL}/../../../modules/synthframe/hdl/panel/synthframe_hd44780.sv"
          "${HDL}/cz101_lcd.sv" "${HDL}/cz101_board.sv"
          TOP_MODULE cz101_board PREFIX Vcz101_board
          VERILATOR_ARGS ${VFLAGS} --public-flat-rw -Wno-PINCONNECTEMPTY -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC

@@ -61,7 +61,7 @@ module jv880_lcd_video (
     synthframe_charlcd #(.X0(X0), .Y0(Y0), .COLS(24), .LINES(2), .PW(PW), .PH(PH), .TOP(4),
                          .CHAR_P(32), .LINE_P(50), .DOT_W(4), .DOT_H(4), .DOT_PX(5), .DOT_PY(5)) lcd (
         .clk, .x, .y,
-        .cell_line(l_line), .cell_col(l_col), .cell_code(l_code),
+        .cell_line(l_line), .cell_col(l_col), .cell_row(), .cell_code(l_code),
         .cell_cursor(cursor_on && dd_ram[6] == l_line[0] && dd_ram[5:0] == l_col),
         .glyph_code(l_gcode), .glyph_row(l_grow), .glyph_bits(gbits), .fetch(l_fetch),
         .panel(l_panel), .dot(l_dot), .lit(l_lit));
@@ -72,7 +72,7 @@ module jv880_lcd_video (
     synthframe_charlcd #(.X0(X0), .Y0(DY), .COLS(24), .LINES(1), .PW(PW), .PH(40), .TOP(0),
                          .CHAR_P(32), .LINE_P(40), .DOT_W(4), .DOT_H(4), .DOT_PX(5), .DOT_PY(5)) dbg (
         .clk, .x, .y,
-        .cell_line(d_line), .cell_col(d_col), .cell_code(d_code), .cell_cursor(1'b0),
+        .cell_line(d_line), .cell_col(d_col), .cell_row(), .cell_code(d_code), .cell_cursor(1'b0),
         .glyph_code(d_gcode), .glyph_row(d_grow), .glyph_bits(gbits), .fetch(d_fetch),
         .panel(d_panel), .dot(d_dot), .lit(d_lit));
 
