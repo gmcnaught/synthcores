@@ -1,6 +1,6 @@
 # Reference model: jcmoyer/Nuked-SC55 backend + renderer, built without the
 # SDL/rtmidi frontend. Used by tools and by the Verilator benches. Both builds carry
-# ref/patch_ref.py's FIXES (addclip20 saturates at 20 bits, as the original Nuked-SC55).
+# ref/patch_ref.py's FIXES (JV-880: addclip20 saturates at 20 bits, as the original Nuked-SC55).
 #
 #   sc55_backend / sc55-render          : the released backend with FIXES (decoder2 on)
 #   sc55_backend_traced / sc55-render-traced

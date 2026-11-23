@@ -3,11 +3,12 @@
 
 FIXES go into both builds (the plain one with --fixes-only). They change behaviour only where the
 fork departs from Nuked-SC55's original:
-  - addclip20 saturates at 20 bits again. jcmoyer/Nuked-SC55 7204125 replaced the original
-    (nukeykt) saturating add with a plain sign-extended add, noting that if these functions do
-    overflow "their outputs simply need to saturate at 20 ... bits". The JV-880 overflows in
-    loud chords (the 20-bit mix wrapped from full negative to full positive); the SC-55 and
-    JV-880 integration-test hashes are unchanged.
+  - JV-880: addclip20 saturates at 20 bits again. jcmoyer/Nuked-SC55 7204125 replaced the
+    original (nukeykt) saturating add with a plain sign-extended add, noting that if these
+    functions do overflow "their outputs simply need to saturate at 20 ... bits". The JV-880
+    overflows in loud chords (the 20-bit mix wrapped from full negative to full positive). The
+    SC-55 models keep the plain add (none of their tests overflow; saturating them costs the
+    SC-55 core its timing). The jv880.mid integration-test hash is unchanged.
 
 The hooks only observe: with no hook installed, the hooked backend behaves exactly like the
 plain one (checked by tests/test_ref_patch.py, which renders with both builds and compares the
@@ -31,12 +32,20 @@ FIXES = [
      "{\n"
      "    return sx20(add1) + sx20(add2) + cin;\n"
      "}",
+     "// JV-880: saturate at 20 bits, as Nuked-SC55's original (ref/patch_ref.py FIXES)\n"
+     "static bool g_addclip20_saturate = false;\n"
+     "\n"
      "inline int32_t addclip20(int32_t add1, int32_t add2, int32_t cin)\n"
      "{\n"
-     "    // saturate at 20 bits, as Nuked-SC55's original (ref/patch_ref.py FIXES)\n"
      "    const int32_t sum = sx20(add1) + sx20(add2) + cin;\n"
+     "    if (!g_addclip20_saturate)\n"
+     "        return sum;\n"
      "    return sum > 0x7ffff ? 0x7ffff : sum < -0x80000 ? -0x80000 : sum;\n"
      "}"),
+    ("backend/pcm.cpp",
+     "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n",
+     "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n"
+     "    g_addclip20_saturate = pcm.mcu->is_jv880;\n"),
 ]
 
 EDITS = [
