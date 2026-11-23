@@ -4,7 +4,8 @@
 //  The instrument is hdl/cz101_board.sv (uPD7811, uPD933, HD44780, battery RAM, RA-3
 //  cartridge), checked against MAME's cz101 instruction by instruction and sample by sample
 //  (cores/cz101/docs/plan.md). This file connects it to the MiSTer framework (sys/,
-//  Template_MiSTer, GPL-2.0): OSD and ROM download through hps_io, video, audio, MidiLink.
+//  Template_MiSTer, GPL-2.0): OSD and ROM download through hps_io, video, audio (resampled
+//  from 40 to 96 kHz), MidiLink.
 //
 //  Use: make the ROM pack from MAME's cz101 set and the HD44780 character ROM with
 //  `cores/cz101/tools/mkpack.py`, copy it to games/CZ-101/ and load it once from the OSD
@@ -297,12 +298,24 @@ assign LED_DISK = {1'b1, ioctl_download | saving};
 
 ///////////////////////   AUDIO   ////////////////////////////////
 
-wire signed [15:0] fifo_out;
-wire [15:0] underruns;
-synthframe_audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(40_000), .DEPTH_BITS(7)) fifo
+// 40 kHz -> 96 kHz (polyphase FIR, cutoff 20 kHz, images below -90 dB), so the framework's
+// 48 or 96 kHz output gets no 40 kHz staircase images
+wire        rs_valid;
+wire signed [15:0] rs_out;
+synthframe_resample #(.L(12), .M(5), .TAPS(80),
+	.COEF_HEX("../../../modules/synthframe/hdl/audio/synthframe_resample_40k_96k.hex")) resample
 (
 	.clk(clk_sys), .rst(board_reset),
-	.in_valid(sample_valid), .in_l(sample), .in_r(sample),
+	.in_valid(sample_valid), .in_l(sample), .in_r(16'sd0),
+	.out_valid(rs_valid), .out_l(rs_out), .out_r()
+);
+
+wire signed [15:0] fifo_out;
+wire [15:0] underruns;
+synthframe_audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(96_000), .DEPTH_BITS(8)) fifo
+(
+	.clk(clk_sys), .rst(board_reset),
+	.in_valid(rs_valid), .in_l(rs_out), .in_r(rs_out),
 	.out_l(fifo_out), .out_r(), .out_strobe(),
 	.underruns(underruns), .overruns()
 );
