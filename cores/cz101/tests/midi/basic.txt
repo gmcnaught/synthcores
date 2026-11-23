@@ -1,0 +1,39 @@
+# CZ-101 basic MIDI test: preset 1 (boot default), single notes, a chord, pitch bend,
+# modulation, program changes. Channel 1. Times in seconds; MAME's midiin starts playback
+# 10 s after power-on.
+0.20  on  1 60 100
+0.70  off 1 60
+0.80  on  1 64 80
+0.80  on  1 67 80
+0.80  on  1 72 80
+0.80  on  1 76 80
+1.80  off 1 64
+1.80  off 1 67
+1.80  off 1 72
+1.80  off 1 76
+2.00  on  1 48 127
+2.10  pb  1 4000
+2.40  pb  1 -4000
+2.70  pb  1 0
+2.80  cc  1 1 100
+3.60  cc  1 1 0
+3.70  off 1 48
+4.20  pc  1 3
+4.40  on  1 55 90
+4.40  on  1 59 90
+4.90  off 1 55
+4.90  off 1 59
+5.20  pc  1 9
+5.30  on  1 36 120
+5.50  on  1 43 110
+5.70  on  1 79 70
+6.70  off 1 36
+6.70  off 1 43
+6.70  off 1 79
+7.20  pc  1 14
+7.30  on  1 62 100
+7.32 off 1 62
+7.40  on  1 62 100
+7.42 off 1 62
+7.50  on  1 65 100
+8.50 off 1 65
