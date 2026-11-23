@@ -30,7 +30,7 @@ verilate(cz101_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/up
          "${HDL}/upd7810/upd7811.sv" "${HDL}/upd933/upd933_mem.sv" "${HDL}/upd933/upd933.sv"
          "${HDL}/cz101_lcd.sv" "${HDL}/cz101_board.sv"
          TOP_MODULE cz101_board PREFIX Vcz101_board
-         VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
+         VERILATOR_ARGS ${VFLAGS} --public-flat-rw -Wno-PINCONNECTEMPTY -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
          "-GDECODE_HEX=\"${HDL}/upd7810/upd7810_decode.hex\"" "-GTABLE_DIR=\"${HDL}/upd933/\"")
 
 include(upd933.cmake OPTIONAL)

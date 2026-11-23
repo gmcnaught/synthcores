@@ -246,7 +246,7 @@ index 1f8049d0..cd9eb172 100644
  
  	std::array<voice_t, 8> m_voice;
 diff --git a/src/mame/casio/cz101.cpp b/src/mame/casio/cz101.cpp
-index 225f364e..fde6bc54 100644
+index 225f364e..9613348d 100644
 --- a/src/mame/casio/cz101.cpp
 +++ b/src/mame/casio/cz101.cpp
 @@ -420,6 +420,8 @@ void cz101_state::port_c_w(uint8_t data)
@@ -272,3 +272,22 @@ index 225f364e..fde6bc54 100644
  	m_maincpu->pb_out_cb().set(FUNC(cz101_state::port_b_w));
  	m_maincpu->pc_out_cb().set(FUNC(cz101_state::port_c_w));
  	m_maincpu->an1_func().set_ioport("AN1");
+@@ -454,7 +461,17 @@ void cz101_state::cz101(machine_config &config)
+ 	CASIO_RA3(config, m_cart);
+ 
+ 	midi_port_device& mdin(MIDI_PORT(config, "mdin", midiin_slot, "midiin"));
+-	mdin.rxd_handler().set([this] (int state) { m_midi_rx = state; });
++	mdin.rxd_handler().set([this] (int state) {
++		// cz101 logging patch: CZ_RX_LOG gets every MIDI-in line change with its exact time
++		static FILE *rxlog = getenv("CZ_RX_LOG") ? fopen(getenv("CZ_RX_LOG"), "w") : nullptr;
++		if (rxlog && state != m_midi_rx)
++		{
++			const attotime t = machine().time();
++			fprintf(rxlog, "%u %llu %d\n", t.seconds(), (unsigned long long)t.attoseconds(), state);
++			fflush(rxlog);
++		}
++		m_midi_rx = state;
++	});
+ 	m_maincpu->rxd_func().set([this] () { return m_midi_rx; });
+ 
+ 	MIDI_PORT(config, "mdout", midiout_slot, "midiout");
