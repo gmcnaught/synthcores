@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Run the patched MAME cz101 build headless (no window, no focus).
 # Usage: tools/mame-cz101.sh ROMPATH WORKDIR [MAME args...]
 #   ROMPATH holds cz101/ (hn613256ps40.bin, upd7811g-120.bin, init_ram.bin).

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // HD44780 as the CZ-101 uses it (8-bit bus on port A, E/RW/RS on port C), transcribed from
 // MAME's hd44780_base_device (BSD-3-Clause): control_write, data_write, control_read,
 // data_read, correct_ac, update_ac, shift_display; function set allowed at any time

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // uPD7811 bench (core + peripherals + internal memory) on a stub CZ-101 board: writes a trace
 // in the patched MAME's format (cores/cz101/mame/patches/0001-cz101-logging.patch).
 //   upd7811_bench ROM.bin N OUT.trace

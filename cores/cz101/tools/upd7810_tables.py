@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Extract the uPD7810 opcode tables from MAME's upd7810_table.cpp.
 
 Usage: upd7810_tables.py MAME_DIR [OUT.json]

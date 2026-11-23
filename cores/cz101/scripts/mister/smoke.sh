@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # Hardware smoke test of a CZ-101 RBF on a MiSTer (cores/cz101/docs/plan.md, C5).
 #
 #   MISTER=root@<address> scripts/mister/smoke.sh RBF PACK OUTDIR

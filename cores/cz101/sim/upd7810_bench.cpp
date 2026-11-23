@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // uPD7810 core bench: runs a 32 KB program image and writes a trace in the format of the
 // patched MAME (cores/cz101/mame/patches/0001-cz101-logging.patch), so the two diff directly.
 //   upd7810_bench ROM.bin N OUT.trace

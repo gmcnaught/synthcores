@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // license:BSD-3-Clause
 // uPD933 memories: inferred ROM (from a $readmemh file) and simple dual-port RAM.
 // Both have a registered read: the address is sampled at a clock edge and the data is valid

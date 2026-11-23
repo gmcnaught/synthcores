@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Compare two CZ-101 traces (patched MAME format) up to N instruction lines.
 Usage: trace_cmp.py A B N   -> 'identical K' or the first difference with context."""
 import sys

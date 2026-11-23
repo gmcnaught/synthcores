@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // license:BSD-3-Clause
 // NEC/Casio uPD933 "Phase Distortion" sound chip, bit-exact to MAME's behavioural model
 // (src/devices/sound/upd933.cpp, Devin Acker; standalone copy in cores/cz101/ref/upd933_ref.cpp).

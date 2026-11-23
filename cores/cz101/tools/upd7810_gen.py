@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Generate the uPD7810/7811 decode ROM from MAME's opcode tables.
 
 Usage: upd7810_gen.py MAME_DIR OUT_DIR

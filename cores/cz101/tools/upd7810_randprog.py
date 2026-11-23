@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Random uPD7810 test programs for the C1 lockstep against MAME.
 
 Usage: upd7810_randprog.py DECODE_TXT SEED OUT.bin [--sfr]

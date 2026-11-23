@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // NEC uPD7811: uPD7810 core + on-chip peripherals + 4 KB internal ROM + 256 B internal RAM.
 //
 // Memory map as MAME's upd_internal_4096_rom_256_ram_map: the internal ROM answers
