@@ -7,6 +7,10 @@ against the logs and audio of these runs, as the Proteus/1 is checked against MA
 
   p2k_corpus.py gen                                  write tests/p2k_corpus/<case>.txt
   p2k_corpus.py run [--update] [--repeat N] [--jobs N] [--cases a,b] [--out DIR]
+  p2k_corpus.py model [--cases a,b] [--out DIR] [--snr]
+                                                     replay each case's snd.log through the standalone
+                                                     renderer (p2k/model, build.sh) and compare with
+                                                     MAME's snd.raw; --snr also reports integer vs float
 
 run needs (environment or options):
   P2K_MAME      the proteus MAME binary built with mame/patches 0001-0003
@@ -138,8 +142,177 @@ def case_range():
     return ev, t
 
 
+# ---------------------------------------------------------------- step 4 cases (SysEx edits)
+# Parameter edits go to the edit buffer of the preset on the basic channel (channel 1):
+# F0 18 0F 00 55 01 <count of 14-bit words> [897 -1] [898 layer] [id value]... F7 (docs/p2k-findings.md).
+# IDs and values: the Pistol Instruments Proteus 2000 Editor reference (docs/p2k-findings.md).
+FILTERS = [127, 0, 1, 2, 260, 261, 262, 264, 265, 8, 9, 16, 17, 18, 32, 33, 34, 274, 259, 268, 270,
+           275, 276, 277, 278, 80, 81, 271, 269, 272, 279, 280, 281, 64, 65, 282, 283, 72, 284, 285,
+           263, 267, 273, 286, 287, 288, 289, 290, 266, 66, 291]      # Off + the 50 Z-plane types
+CORDS_OFF = [(1921 + 3 * k + j, 0) for k in range(24) for j in range(3)]   # layer cords 1-24 cleared
+A_SENDS, B_SENDS = (1157, 1158, 1159, 1167), (1164, 1165, 1166, 1168)
+
+
+def ftype(v):
+    """Editor filter-type value -> the byte the OS stores (preset +0xC8, range 0..255 in the OS table
+    0x010491B4): 12th-order types 259-291 are 0x80 | n (descriptor table 0x01020444); sending the
+    editor's 14-bit value stores its low byte, which is not a filter type."""
+    return 0x80 | (v - 256) if v >= 256 else v
+
+
+def edit(t, params, layer=0):
+    """SysEx parameter edits (edit buffer, layer `layer`), split into messages of <= 41 values."""
+    out, head = [], [(897, -1), (898, layer)]
+    for i in range(0, len(params), 39):
+        vals = head + params[i:i + 39]
+        b = [0x18, 0x0F, 0x00, 0x55, 0x01, 2 * len(vals)]
+        for pid, v in vals:
+            b += [pid & 0x7F, pid >> 7, v & 0x7F, (v >> 7) & 0x7F]
+        out.append(f"{t + 0.01 * (i // 39):.3f} syx " + " ".join(f"{x:02x}" for x in b))
+    return out
+
+
+def case_filt(part):
+    types = FILTERS[part::3]
+    ev = [f"# filter types {', '.join(map(str, types))} (SysEx 1537) on the looped B3 organ, note 48:",
+          "# Q 0 and 127, frequency 0 swept up by the mod wheel (cord 1 ModWhl -> FiltFreq +100)"]
+    ev += sel(START, 1, B3)
+    t = START + 0.4
+    ev += edit(t, CORDS_OFF + [(1921, 17), (1922, 56), (1923, 100)])
+    t += 0.2
+    for ft in types:
+        for q in (0, 127):
+            ev += edit(t, [(1537, ftype(ft)), (1538, 0), (1539, q)])
+            ev += [f"{t + 0.05:.3f} cc 1 1 0", f"{t + 0.1:.3f} on 1 48 100"]
+            ev += [f"{t + 0.15 + 0.05 * i:.3f} cc 1 1 {min(127, 11 * i)}" for i in range(13)]
+            ev.append(f"{t + 0.85:.3f} off 1 48")
+            t += 1.0
+    return ev, t
+
+
+def case_fxa(part):
+    algs = list(range(1, 23)) if part == 0 else list(range(23, 45))
+    ev = [f"# FX A algorithms {algs[0]}-{algs[-1]} (SysEx 1153), A send 1 = 100, B sends 0: staccato notes and tails"]
+    ev += sel(START, 1, B3)
+    t = START + 0.4
+    ev += edit(t, [(a, 100 if a == 1157 else 0) for a in A_SENDS] + [(b, 0) for b in B_SENDS] + [(1156, 0)])
+    t += 0.2
+    runs = [(a, None) for a in algs]
+    if part == 0:   # decay / HF damping on Room 1 and Delay
+        runs += [(a, dd) for a in (1, 7) for dd in ((0, 0), (90, 0), (90, 127))]
+    for alg, dd in runs:
+        ev += edit(t, [(1153, alg)] + ([(1154, dd[0]), (1155, dd[1])] if dd else []))
+        ev += [f"{t + 0.1:.3f} on 1 60 110", f"{t + 0.3:.3f} off 1 60"]
+        t += 1.8
+    return ev, t
+
+
+def case_fxb():
+    ev = ["# FX B algorithms 1-32 (SysEx 1160), B send 1 = 100, A sends 0; feedback, LFO rate and delay variants"]
+    ev += sel(START, 1, B3)
+    t = START + 0.4
+    ev += edit(t, [(a, 0) for a in A_SENDS] + [(b, 100 if b == 1164 else 0) for b in B_SENDS] + [(1156, 0)])
+    t += 0.2
+    runs = [(b, []) for b in range(1, 33)]
+    runs += [(1, [(1161, fb), (1162, r)]) for fb, r in ((0, 0), (127, 127), (64, 3))]
+    runs += [(18, [(1161, 100), (1163, d)]) for d in (0, 64, 127)]
+    for alg, extra in runs:
+        ev += edit(t, [(1160, alg)] + extra)
+        ev += [f"{t + 0.1:.3f} on 1 60 110", f"{t + 0.9:.3f} off 1 60"]
+        t += 1.8
+    return ev, t
+
+
+def case_route():
+    ev = ["# layer Mix Output Main / Sub 1 / Sub 2 (SysEx 1412) x A and B sends 1-4 (Room 1, Chorus 1), then B -> A"]
+    ev += sel(START, 1, B3)
+    t = START + 0.4
+    ev += edit(t, [(1153, 1), (1160, 1), (1156, 0)])
+    t += 0.2
+    for out in (0, 1, 2):
+        for k in range(4):
+            sends = [(a, 100 if i == k else 0) for i, a in enumerate(A_SENDS)] + \
+                    [(b, 100 if i == k else 0) for i, b in enumerate(B_SENDS)]
+            ev += edit(t, [(1412, out)] + sends)
+            ev += [f"{t + 0.1:.3f} on 1 60 110", f"{t + 0.6:.3f} off 1 60"]
+            t += 1.5
+    ev += edit(t, [(1412, 0), (1156, 127), (1157, 100), (1164, 100)])
+    ev += [f"{t + 0.1:.3f} on 1 60 110", f"{t + 0.6:.3f} off 1 60"]
+    return ev, t + 1.5
+
+
+def case_mod():
+    ev = ["# CPU-side modulation: LFO 1 -> pitch / filter with shapes, volume and filter envelopes,",
+          "# glide in solo mode, coarse tune (the arpeggiator did not play over SysEx: docs/p2k-findings.md)"]
+    ev += sel(START, 1, B3)
+    t = START + 0.4
+    ev += edit(t, CORDS_OFF + [(1537, 0), (1538, 128), (1539, 64)])
+    t += 0.2
+    for shape in (1, 0, 2, 3, -1):                            # sine, triangle, saw, square, random
+        ev += edit(t, [(1665, 90), (1666, shape), (1921, 96), (1922, 48), (1923, 30), (1924, 96), (1925, 56), (1926, 60)])
+        ev += [f"{t + 0.1:.3f} on 1 60 100", f"{t + 1.4:.3f} off 1 60"]
+        t += 1.8
+    ev += edit(t, CORDS_OFF + [(1793, 1), (1794, 60), (1795, 100), (1796, 40), (1797, 50), (1798, 50), (1799, 0)])
+    ev += [f"{t + 0.1:.3f} on 1 60 100", f"{t + 1.1:.3f} off 1 60"]
+    t += 2.6
+    ev += edit(t, [(1806, 2), (1807, 30), (1808, 100), (1809, 50), (1810, 0), (1811, 40), (1812, 0),
+                   (1921, 80), (1922, 56), (1923, 100), (1538, 0)])
+    ev += [f"{t + 0.1:.3f} on 1 60 100", f"{t + 1.1:.3f} off 1 60"]
+    t += 2.6
+    ev += edit(t, CORDS_OFF + [(1793, 0), (1806, 1), (1538, 255), (1437, 2), (1432, 60)])   # Melody Last, glide
+    for i, n in enumerate((48, 60, 55, 67, 72)):
+        ev.append(f"{t + 0.1 + 0.4 * i:.3f} on 1 {n} 100")
+        ev.append(f"{t + 0.5 + 0.4 * i:.3f} off 1 {n}")
+    t += 2.5
+    ev += edit(t, [(1437, 0), (1432, 0), (1425, 12)])
+    ev += [f"{t + 0.1:.3f} on 1 48 100", f"{t + 0.6:.3f} off 1 48"]
+    t += 1.0
+    return ev, t + 0.5
+
+
+def case_soak():
+    """10 minutes of dense, deterministic pseudo-random playing on 16 channels."""
+    ev = ["# soak: 600 s of pseudo-random notes, controllers, program changes and SysEx edits on 16 channels"]
+    seed = 12345
+
+    def rnd(n):
+        nonlocal seed
+        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+        return (seed >> 8) % n
+    t, end, held = START, START + 600.0, []
+    for ch in range(1, 17):
+        ev += sel(t + 0.01 * ch, ch, rnd(1024))
+    t += 0.5
+    while t < end:
+        t += 0.02 + rnd(100) / 1000.0
+        k = rnd(100)
+        if k < 55 or not held:
+            ch, n = 1 + rnd(16), 30 + rnd(60)
+            ev.append(f"{t:.3f} on {ch} {n} {20 + rnd(108)}")
+            held.append((ch, n))
+        elif k < 85:
+            ch, n = held.pop(rnd(len(held)))
+            ev.append(f"{t:.3f} off {ch} {n}")
+        elif k < 93:
+            ev.append(f"{t:.3f} cc {1 + rnd(16)} {(1, 7, 10, 11, 64)[rnd(5)]} {rnd(128)}")
+        elif k < 96:
+            ev.append(f"{t:.3f} pb {1 + rnd(16)} {rnd(16384) - 8192}")
+        elif k < 99:
+            ev += sel(t, 1 + rnd(16), rnd(1024))
+        else:
+            ev += edit(t, [(1537, ftype(FILTERS[rnd(len(FILTERS))])), (1538, rnd(256)), (1153, 1 + rnd(44)), (1160, 1 + rnd(32))])
+    for ch, n in held:
+        ev.append(f"{end:.3f} off {ch} {n}")
+    for ch in range(1, 17):
+        ev.append(f"{end:.3f} cc {ch} 64 0")
+    return ev, end
+
+
 CASES = {"boot": case_boot, "poly": case_poly, "ctrl": case_ctrl, "multi": case_multi, "range": case_range}
 CASES.update({f"sweep{b}": (lambda b=b: case_sweep(b)) for b in range(8)})
+CASES.update({f"filt{p}": (lambda p=p: case_filt(p)) for p in range(3)})
+CASES.update({"fxa0": lambda: case_fxa(0), "fxa1": lambda: case_fxa(1), "fxb": case_fxb, "route": case_route,
+              "mod": case_mod, "soak": case_soak})
 
 
 def gen():
@@ -203,6 +376,36 @@ def trace_stats(lines):
             "voices_started": len(started), "voices_started_64_127": sum(1 for v in started if v >= 64)}
 
 
+def sndlog_stats(path):
+    """Features a case exercises, from its sound-register log (p2k_sound.h set_log format)."""
+    n = {"G": 0, "H": 0, "X": 0}
+    starts, coef, cut, rb, x, live = 0, set(), set(), set(), set(), set()
+    with open(path) as f:
+        for ln in f:
+            p = ln.split()
+            if len(p) < 5 or p[0] == "#":
+                continue
+            n[p[1]] += 1
+            if p[1] == "G" and int(p[2], 16) & 0x3f == 0x1a:
+                starts += 1
+            elif p[1] == "H":
+                a, d = int(p[2], 16), int(p[3], 16)
+                o = a & 0x7f
+                if o < 0x28 and d:
+                    coef.add(d)
+                elif o == 0x3e:
+                    cut.add(d & 0xff)
+                elif o == 0x7a and p[4] == "00ff":
+                    rb.add(d & 0xff)
+                elif o == 0x7c and p[4] == "ff00":
+                    live.add(d >> 8)
+            elif p[1] == "X":
+                x.add((p[2], p[3], p[4]))
+    return {"writes": n, "voice_starts": starts, "filter_words": len(coef), "cutoff_values": len(cut),
+            "cutoff_live_values": len(live),
+            "route_flag_bytes": sorted(rb), "g05_distinct_writes": len(x)}
+
+
 def render(name, mame, rompath, simm, out, rep):
     d = os.path.join(out, f"{name}.{rep}")
     if os.path.isdir(d):
@@ -219,6 +422,7 @@ def render(name, mame, rompath, simm, out, rep):
         subprocess.run([sys.executable, os.path.join(HERE, "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
         args += ["-midiin", os.path.join(d, "in.mid")]
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy", P2K_TRACE="1",
+               P2K_SNDLOG=os.path.join(d, "snd.log"), P2K_SNDOUT=os.path.join(d, "snd.raw"),
                P2K_SIMM1=os.path.join(simm, "big.bin"), P2K_BABY1=os.path.join(simm, "baby.bin"))
     for k in ("P2K_NOFX", "P2K_NOFILTER", "P2K_CLEAN", "P2K_BUSTRACE"):
         env.pop(k, None)
@@ -237,8 +441,34 @@ def render(name, mame, rompath, simm, out, rep):
         f.write("\n".join(trace) + "\n")
     return {"seconds": round(secs, 3), "midi_sha256": sha(script),
             "wav_sha256": sha(os.path.join(d, "out.wav")), "trace_sha256": sha(os.path.join(d, "sound.trace")),
+            "sndlog_sha256": sha(os.path.join(d, "snd.log")), "sndout_sha256": sha(os.path.join(d, "snd.raw")),
             "wav": wav_stats(os.path.join(d, "out.wav")), "trace": trace_stats(trace),
+            "sndlog": sndlog_stats(os.path.join(d, "snd.log")),
             "lcd_last": lcd[-1] if lcd else None}
+
+
+HASHES = ("wav_sha256", "trace_sha256", "sndlog_sha256", "sndout_sha256")
+
+# Step 4 gate: each case's register log exercises the feature it names. The boot alone writes
+# 8196 G05 words, 7 distinct filter words and route/flag bytes {0, 1, 0x72} (case boot, sweep0).
+FEATURES = {
+    "filt": lambda st, tr: st["filter_words"] >= 40 and st["cutoff_live_values"] >= 12
+    and any(b & 0x80 for b in st["sndlog"]["route_flag_bytes"]),
+    "fxa": lambda st, tr: st["writes"]["X"] > 30000,
+    "fxb": lambda st, tr: st["writes"]["X"] > 30000,
+    "route": lambda st, tr: {0x72, 0x7B, 0x44} <= set(st["route_flag_bytes"]),
+    "mod": lambda st, tr: st["cutoff_live_values"] >= 20 and tr["note_starts"] >= 13,
+    "soak": lambda st, tr: tr["note_starts"] >= 4000 and tr["voices_started"] >= 112 and st["filter_words"] >= 100
+    and st["writes"]["X"] > 100000,
+}
+
+
+def feature_ok(name, v):
+    for k, fn in FEATURES.items():
+        if name.startswith(k):
+            st = dict(v["sndlog"], sndlog=v["sndlog"])
+            return fn(st, v["trace"])
+    return None
 
 
 def inputs(simm):
@@ -267,18 +497,22 @@ def run(a):
     out, bad = {}, 0
     for (n, r), v in res:
         if n in out:
-            if (out[n]["wav_sha256"], out[n]["trace_sha256"]) != (v["wav_sha256"], v["trace_sha256"]):
+            if any(out[n][k] != v[k] for k in HASHES):
                 print(f"NONDETERMINISTIC {n}: run {r} differs from run 0")
                 bad += 1
             continue
         out[n] = v
     for n in names:
         v, ref = out[n], man["cases"].get(n)
-        same = ref and ref["wav_sha256"] == v["wav_sha256"] and ref["trace_sha256"] == v["trace_sha256"]
+        same = ref and all(ref.get(k) == v[k] for k in HASHES)
         tag = "same" if same else ("new" if not ref else "DIFFERENT")
         if not same and ref and not a.update:
             bad += 1
-        print(f"{tag:9} {n:8} {v['seconds']:7.2f}s wav {v['wav_sha256'][:12]} trace {v['trace_sha256'][:12]} "
+        fok = feature_ok(n, v)
+        if fok is False:
+            print(f"FEATURE   {n}: its register log does not exercise the feature it names: {v['sndlog']}")
+            bad += 1
+        print(f"{tag:9} {n:8} {v['seconds']:7.2f}s out {v['sndout_sha256'][:12]} log {v['sndlog_sha256'][:12]} "
               f"starts {v['trace']['note_starts']:4} voices {v['trace']['voices_started']:3} peak {v['wav']['peak']:5} "
               f"| {v['lcd_last']}")
     if a.update:
@@ -288,6 +522,53 @@ def run(a):
             json.dump(man, f, indent=1, sort_keys=True)
             f.write("\n")
         print(f"updated {MANIFEST}")
+    return 1 if bad else 0
+
+
+def patch_copy_ok():
+    """The model headers that mame/patches/0004 adds are the ones in p2k/model."""
+    files, cur = {}, None
+    for ln in open(os.path.join(CORE, "mame", "patches", "0004-p2k-integer-sound-model.patch")):
+        if ln.startswith("diff --git"):
+            name = ln.rstrip().rsplit("/", 1)[-1]
+            cur = name if name in ("p2k_sound.h", "p2k_flash.h") else None
+            if cur:
+                files[cur] = []
+        elif cur and ln.startswith("+") and not ln.startswith("+++"):
+            files[cur].append(ln[1:])
+    return all("".join(files.get(h, [])) == open(os.path.join(CORE, "p2k", "model", h)).read()
+               for h in ("p2k_sound.h", "p2k_flash.h"))
+
+
+def model(a):
+    """Step 3 gate: p2k_render fed only snd.log and the SIMM reproduces MAME's model output."""
+    if not patch_copy_ok():
+        print("p2k/model headers differ from the copies in mame/patches/0004 (mame/scripts/mkpatch0004.sh)")
+        return 1
+    simm = a.simm or os.environ.get("P2K_SIMMDIR")
+    if not simm:
+        raise SystemExit("set P2K_SIMMDIR (or --simm)")
+    exe = subprocess.run([os.path.join(CORE, "p2k", "model", "build.sh")], check=True,
+                         stdout=subprocess.PIPE, text=True).stdout.strip()
+    names = a.cases.split(",") if a.cases else list(CASES)
+    man = json.load(open(MANIFEST))
+
+    def one(n):
+        d = os.path.join(a.out, f"{n}.0")
+        raw = os.path.join(d, "snd.raw")
+        frames = os.path.getsize(raw) // 4
+        args = [exe, "--simm", "1=" + os.path.join(simm, "big.bin"), "--frames", str(frames)]
+        r = subprocess.run(args + (["--snr"] if a.snr else []) + [os.path.join(d, "snd.log"), os.path.join(d, "render.raw")],
+                           check=True, stdout=subprocess.PIPE, text=True).stdout.strip()
+        same = sha(os.path.join(d, "render.raw")) == sha(raw)
+        ref = man["cases"].get(n, {}).get("sndout_sha256")
+        return n, same, ref == sha(raw), r
+
+    bad = 0
+    with ThreadPoolExecutor(a.jobs) as ex:
+        for n, same, inman, r in ex.map(one, names):
+            bad += not (same and inman)
+            print(f"{'same' if same else 'DIFFERENT':9} {n:8} {'' if inman else '(snd.raw not the manifest hash) '}{r}")
     return 1 if bad else 0
 
 
@@ -302,7 +583,15 @@ def main():
     r.add_argument("--repeat", type=int, default=1)
     r.add_argument("--jobs", type=int, default=4)
     r.add_argument("--update", action="store_true")
+    m = sub.add_parser("model")
+    m.add_argument("--simm")
+    m.add_argument("--out", default=os.path.join(CORE, "build", "p2k", "corpus"))
+    m.add_argument("--cases")
+    m.add_argument("--jobs", type=int, default=4)
+    m.add_argument("--snr", action="store_true")
     a = ap.parse_args()
+    if a.cmd == "model":
+        return model(a)
     if a.cmd == "gen":
         gen()
         return 0

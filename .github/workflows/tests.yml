@@ -2,7 +2,8 @@ name: tests
 
 # Runs each core's test suite (Verilator benches, lockstep against the reference models,
 # repo hygiene) for the cores a change touches. A change to synthframe's HDL or to this file runs
-# every core. ROM-dependent tests skip without ROMs. Proteus has no automated suite yet.
+# every core. ROM-dependent tests skip without ROMs. Proteus runs the P2K sound/flash model unit
+# tests (no ROMs needed); its MAME corpus and RTL replay need ROMs and run locally.
 
 on:
   push:
@@ -30,11 +31,13 @@ jobs:
               - 'modules/nuked-sc55'
             synclavier:
               - 'cores/synclavier/**'
+            proteus:
+              - 'cores/proteus/**'
       - id: pick
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = workflow_dispatch ] || [ "${{ steps.filter.outputs.shared }}" = true ]; then
-            echo 'cores=["sc55","synclavier"]' >> "$GITHUB_OUTPUT"
+            echo 'cores=["sc55","synclavier","proteus"]' >> "$GITHUB_OUTPUT"
           else
             echo "cores=$(echo '${{ steps.filter.outputs.changes }}' | jq -c 'map(select(. != "shared"))')" >> "$GITHUB_OUTPUT"
           fi
@@ -88,6 +91,10 @@ jobs:
         run: |
           cmake -S sim -B out/sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-14
           ninja -C out/sim
+
+      - name: P2K sound and flash model unit tests (Proteus)
+        if: matrix.core == 'proteus'
+        run: CXX=g++-14 p2k/model/build.sh
 
       - name: Run tests
         env:
