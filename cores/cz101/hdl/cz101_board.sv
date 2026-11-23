@@ -69,9 +69,8 @@ module cz101_board #(
     input  logic        r_line,
     input  logic [3:0]  r_pos,
     output logic [7:0]  r_code,
-    output logic        r_cursor,
-    input  logic [2:0]  r_cg_code,
-    input  logic [2:0]  r_cg_row,
+    input  logic [2:0]  r_row,
+    output logic        r_at_ac,
     output logic [4:0]  r_cg_bits,
     output logic        lcd_display_on,
     output logic        lcd_cursor_on,
@@ -306,8 +305,8 @@ module cz101_board #(
         .clk, .reset, .now(acc_time), .insn_start(vcyc),
         .pc_we(lcd_pc_we), .pc(pc_out), .lcd_reset,
         .db_in(pa_out), .db_we(pa_we), .db_rd(pa_rd), .db_out(lcd_db),
-        .r_line, .r_pos, .r_code, .r_cursor, .r_cg_code, .r_cg_row, .r_cg_bits,
-        .display_on(lcd_display_on), .cursor_on(lcd_cursor_on), .blink_on(lcd_blink_on), .cursor_addr()
+        .r_line, .r_pos, .r_row, .r_code, .r_at_ac, .r_cg_bits,
+        .display_on(lcd_display_on), .cursor_on(lcd_cursor_on), .blink_on(lcd_blink_on)
     );
     assign pa_in = lcd_db;
     assign lcd_power = power;

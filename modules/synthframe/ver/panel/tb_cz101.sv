@@ -87,20 +87,20 @@ module tb_cz101 (
         end
     end
 
-    logic        r_line, r_cursor, disp_on, cur_on, blk_on;
+    logic        r_line, r_at_ac, disp_on, cur_on, blk_on;
     logic [3:0]  r_pos;
     logic [7:0]  r_code, db_out;
-    logic [2:0]  r_cg_code, r_cg_row;
+    logic [2:0]  r_row;
     logic [4:0]  r_cg_bits;
     cz101_lcd lcd (
         .clk, .reset(load), .now, .insn_start(now),
         .pc_we, .pc, .lcd_reset(1'b0), .db_in, .db_we, .db_rd, .db_out,
-        .r_line, .r_pos, .r_code, .r_cursor, .r_cg_code, .r_cg_row, .r_cg_bits,
-        .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on), .cursor_addr());
+        .r_line, .r_pos, .r_row, .r_code, .r_at_ac, .r_cg_bits,
+        .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on));
 
     cz101_lcd_video dut (
         .clk, .clk_sys(clk), .font_we, .font_addr, .font_data,
-        .r_line, .r_pos, .r_code, .r_cursor, .r_cg_code, .r_cg_row, .r_cg_bits,
+        .r_line, .r_pos, .r_row, .r_code, .r_at_ac, .r_cg_bits,
         .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on), .power, .leds,
         .rom_ok, .loading, .midi_led(midi), .underrun_seen(under),
         .hs, .vs, .hblank, .vblank, .r, .g, .b);

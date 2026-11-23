@@ -79,7 +79,7 @@ board with the RAM kept), **RA-3 cartridge**, **Memory protect**, **Auto power o
 | `hdl/upd7810/` | uPD7810/7811 CPU, peripherals, decode ROM generated from MAME's tables |
 | `hdl/upd933/` | uPD933 sound chip |
 | `hdl/cz101_board.sv` | the main board: memory map, LCD, keys, LEDs, timer, MIDI serializer |
-| `hdl/cz101_lcd.sv`, `cz101_lcd_video.sv`, `cz101_kbd.sv` | HD44780, LCD and LED video, PS/2 keys |
+| `hdl/cz101_lcd.sv`, `cz101_lcd_video.sv`, `cz101_kbd.sv` | HD44780 pins (the controller is `modules/synthframe/hdl/panel/synthframe_hd44780.sv`), LCD and LED video, PS/2 keys |
 | `mister/` | MiSTer top (`CZ101.sv`), Quartus project, `build.sh` |
 | `mame/patches/` | the MAME logging patch for the reference (`tools/mame-cz101.sh` runs it) |
 | `sim/`, `tests/` | Verilator benches and the C1-C4 lockstep tests |

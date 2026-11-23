@@ -83,8 +83,9 @@ construction.
   If a later core needs the uPD7810 (Juno-106, TR-909 per brief §2), it moves to `modules/`.
 - From synthframe: `midi_rx` is not needed (MIDI enters the CPU's own serial port as bits);
   `audio_fifo`, `nvsave` (RAM and cartridge to the SD card).
-- HD44780: `hdl/cz101_lcd.sv`, transcribed from MAME's hd44780 with the busy flag in CPU
-  cycles.
+- HD44780: `modules/synthframe/hdl/panel/synthframe_hd44780.sv` (MIT, MAME's hd44780) with
+  the busy flag in CPU cycles; `hdl/cz101_lcd.sv` is the pin side (port A data, port C
+  E/RW/RS). The LCD is drawn with `synthframe_charlcd` and `synthframe_vtiming`.
 
 ## Size [INF, to be checked by the first build]
 
@@ -154,8 +155,9 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
 
 - **Licence (decided 2026-11-23):** MIT, as the rest of the repository (`LICENSE`). The core is
   written from MAME's BSD-3-Clause sources, so `NOTICE` keeps MAME's notice and names the
-  authors; `ref/` and `mame/patches/` stay BSD-3-Clause. The LCD is `hdl/cz101_lcd.sv`,
-  transcribed from MAME's hd44780, not the Proteus core's GPL-3.0 `hd44780.sv`.
+  authors; `ref/` and `mame/patches/` stay BSD-3-Clause. The HD44780 controller is
+  `modules/synthframe/hdl/panel/synthframe_hd44780.sv` (MIT, after MAME's hd44780; its header
+  names MAME's notice); `hdl/cz101_lcd.sv` is the CZ-101's pin side.
 - **ROM version** in the dbwbp archive [UNK].
 - **SIO timing:** MAME clocks the serial port from a 2 MHz clock device (4 M callbacks/s). The
   HDL needs the same bit timing to keep the MIDI corpus in lockstep [UNK how exact this must be;
