@@ -114,7 +114,7 @@ construction.
 | C2 | Done: peripherals on 160 random programs (310 k interrupts); firmware boot identical (below) |
 | C3 | Done: uPD933 identical to a standalone copy of MAME's model on synthetic stimuli; identical to MAME itself inside C4 |
 | C4 | `tests/c4_run.sh tests/midi/basic.txt 6500000`: 6.5 M instructions (17.9 s, boot and MIDI playback) identical to MAME, 716,728 samples identical |
-| C5 | Not started: MiSTer top, ROM pack, MidiLink, LCD video, keys, NVRAM save |
+| C5 | In progress: MiSTer top written (below); first Quartus build and MiSTer test pending |
 
 Timing rules the board implements (all from MAME's source, confirmed by the lockstep):
 - CPU cycle P = 299,999,940,000 as (attoseconds per cycle for 3,333,334 cycles/s).
@@ -122,6 +122,29 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   a line change caused by the CPU's own access is applied at the next boundary.
 - An access happens at the instruction's start, or at its end for a prefixed opcode.
 - SCK edge k at k x 250 ns; uPD933 timer expiry T_arm + n x 24,999,999,999,968 as.
+
+## MiSTer core (C5)
+
+- **Pack** (`tools/mkpack.py`, 40 KB): 0000-7FFF program ROM, 8000-8FFF `init_ram.bin`,
+  9000-9FFF `hd44780_a00.bin` (the character ROM is MAME's, so it comes with the user's ROMs).
+- **Pacing:** a fractional counter makes 3,333,334 CPU cycles a second of real time; the CPU
+  runs (cyc_ce) while its virtual time `vcyc` is behind, so it leads by at most one
+  instruction. The uPD933's 40 kHz samples go through `synthframe_audio_fifo` (128 deep).
+- **MIDI in:** MidiLink bytes (`synthframe_midi_rx`) wait in a 64-byte queue; the board sends
+  each to the CPU's serial input as 10 bits of 128 SCK edges (31,250 baud in virtual time).
+  The SIO samples once a bit, at a phase that is fixed within a byte, so the decode does not
+  depend on where the edges fall. Sim check: MAME's MIDI log decoded to bytes
+  (`tools/rxlog_bytes.py`) and fed through this path (`CZ_MIDI_BYTES`).
+- **Time:** the tick counter for the uPD933 is incremental, and the board's cycle comparisons
+  are wrap-safe, so the core runs past the 32-bit `vcyc` wrap (21 minutes).
+- **RAM:** one 8 KB block: 0000-0FFF battery RAM, 1000-17FF RA-3 cartridge (OSD; MAME's RA-3
+  is 4 KB behind a 2 KB window). `synthframe_nvsave` saves all 8 KB to
+  `saves/CZ-101/<pack>.sav`.
+- **Power:** the OSD Power switch asserts /NMI when off (the firmware powers down); switching
+  it on after a power-down resets the board (RAM kept), as a power cycle.
+- **Keys:** MAME's PC-key assignments for the panel (`hdl/cz101_kbd.sv`); notes come from MIDI.
+- **Video:** `hdl/cz101_lcd_video.sv`, MAME's 97 x 19 LCD at 8x on 800 x 600, plus the 16 LEDs.
+- **Audio:** mono, zero-order hold from 40 kHz into the framework's 48 kHz output.
 
 ## Open questions
 
