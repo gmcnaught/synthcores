@@ -29,6 +29,7 @@ module sc55_core #(
     input  logic [7:0]  ld_data,
     input  logic [14:0] nv_dump_a,        // JV-880 NVRAM copy for the save file (sc55_mcu)
     output logic [7:0]  nv_dump_d,
+    output logic        nv_wrote,         // the NVRAM was written this clock
     output logic        idle,             // no step in progress
 
     input  logic        midi_valid,
@@ -67,7 +68,7 @@ module sc55_core #(
     assign ready = m_ready && p_ready;
     sc55_mcu #(.RXBUF_BITS(RXBUF_BITS), .ROM2_AW(ROM2_AW), .JV880_RAMS(JV880_RAMS)) mcu (
         .clk, .rst, .mk2, .sc155, .jv880, .enc_we, .enc_dir, .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
-        .ld_we, .ld_sel, .ld_addr, .ld_data, .nv_dump_a, .nv_dump_d, .idle,
+        .ld_we, .ld_sel, .ld_addr, .ld_data, .nv_dump_a, .nv_dump_d, .nv_wrote, .idle,
         .midi_valid, .midi_data, .midi_full, .buttons,
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),
         .pcm_tick(p_tick), .pcm_irq0(p_irq0), .pcm_irq_known(p_known),

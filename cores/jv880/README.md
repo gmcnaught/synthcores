@@ -36,6 +36,10 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
       so its NVRAM edits are not kept. Don't keep a `boot.rom` next to a pack you load from
       the OSD.
 3. **MIDI:** set the UART to MidiLink and send MIDI.
+4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full
+   scale, so the 16-bit conversion never clamps. +6 dB is the reference renderer's level (`>> 15`), which
+   clamps the top 6 dB: 48 of the 64 factory patches reach it with one note or a 4-note chord at
+   velocity 127 (I-22 SAW Lead with one note).
 
 Panel keys (PS/2 or USB keyboard, the reference frontend's map):
 
@@ -66,7 +70,8 @@ mode; PATCH/PERFORM switches between patch and performance play.
 - The core writes the file:
     - when the OSD opens ("Autosave on OSD open", on by default);
     - from "Save NVRAM".
-- The sound pauses for a moment while the file is written.
+- The sound keeps playing while the file is written. Only if the unit writes its NVRAM during
+  the save (an edit at that moment) is the file written again with the sound paused for a moment.
 - A reset keeps the NVRAM.
 
 ## Building and testing
