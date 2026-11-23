@@ -73,6 +73,9 @@ DDR3 (physical): `0x30000000` samples (8 MB), `0x31000000` output capture ring (
   and other I/O writes in the first 2.5 s equal MAME's (`mame/scripts/trace_writes.lua`,
   `tools/compare_writes.py`); RAM/MFP differ only by sub-millisecond interrupt jitter. A MIDI
   note-on programs the same voice registers as MAME (start, loop, pitch) and plays audio.
+- With the MAME fixes in patch 0001 (2026-11-23), 6 s from power-on: sound-chip (770) and other
+  I/O writes still equal; the firmware's stored volume (0xFFF98E) is 0xCA on all 188 measurements
+  in both (the previous MAME stored one 0xCF, from a timer B catch-up burst).
 - `sim/sim_main.cpp` (sound chip only): bit-exact with `tools/proteus_model.py`.
 - Earlier event-replay demo build: hardware capture bit-exact with the model for 66 s.
 

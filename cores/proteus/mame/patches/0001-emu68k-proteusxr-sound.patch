@@ -1,43 +1,113 @@
 diff --git a/src/devices/machine/mc68901.cpp b/src/devices/machine/mc68901.cpp
-index 14b405e9..dcc3dda7 100644
+index 14b405e9..68f95f66 100644
 --- a/src/devices/machine/mc68901.cpp
 +++ b/src/devices/machine/mc68901.cpp
-@@ -688,8 +688,13 @@ void mc68901_device::write(offs_t offset, u8 data)
+@@ -285,7 +285,8 @@ inline void mc68901_device::timer_input(int index, int value)
+ 	case TCR_TIMER_PULSE_64:
+ 	case TCR_TIMER_PULSE_100:
+ 	case TCR_TIMER_PULSE_200:
+-		m_timer[index]->enable((value == aer));
++		if (value != m_ti[index])
++			pulse_width_gate(index, value == aer);
+ 
+ 		if (((m_ti[index] ^ aer) == 0) && ((value ^ aer) == 1))
+ 		{
+@@ -301,6 +302,28 @@ inline void mc68901_device::timer_input(int index, int value)
+ }
+ 
+ 
++// pulse width mode: the timer counts at the prescaled rate only while its input is at the
++// active level. The period restarts when the input becomes active; on the chip the prescaler
++// runs freely, so the first count can come up to one prescaler period sooner.
++void mc68901_device::pulse_width_gate(int index, bool active)
++{
++	if (active)
++	{
++		if (!m_timer[index]->enabled())
++		{
++			const attotime period = attotime::from_hz(m_timer_clock / PRESCALER[(index ? m_tbcr : m_tacr) & 0x07]);
++			m_timer[index]->adjust(period, index, period);
++		}
++	}
++	else
++	{
++		// a disabled periodic timer keeps its old expiry time, so it must be restarted rather
++		// than re-enabled, or it would fire every period it missed at once
++		m_timer[index]->enable(false);
++	}
++}
++
++
+ inline void mc68901_device::gpio_input(int bit, int state)
+ {
+ 	if (state != BIT(m_gpio_input, bit))
+@@ -576,7 +599,18 @@ void mc68901_device::write(offs_t offset, u8 data)
+ 
+ 	case REGISTER_AER:
+ 		LOG("MC68901 Active Edge Register : %x\n", data);
+-		m_aer = data;
++		{
++			const u8 changed = m_aer ^ data;
++			m_aer = data;
++
++			// a timer in pulse width mode starts or stops when its active level changes
++			for (int i = TIMER_A; i <= TIMER_B; i++)
++			{
++				const int cr = i ? m_tbcr : m_tacr;
++				if ((cr & 0x0f) >= TCR_TIMER_PULSE_4 && BIT(changed, GPIO_TIMER[i]))
++					pulse_width_gate(i, m_ti[i] == BIT(m_aer, GPIO_TIMER[i]));
++			}
++		}
+ 		break;
+ 
+ 	case REGISTER_DDR:
+@@ -688,8 +722,9 @@ void mc68901_device::write(offs_t offset, u8 data)
  		case TCR_TIMER_PULSE_64:
  		case TCR_TIMER_PULSE_100:
  		case TCR_TIMER_PULSE_200:
 -			LOG("MC68901 Timer A Pulse Width Mode\n");
 -			m_timer[TIMER_A]->adjust(attotime::never);
-+			{
-+				// count at the prescaled rate only while the timer input is at its active level
-+				int divisor = PRESCALER[m_tacr & 0x07];
-+				LOG("MC68901 Timer A Pulse Width Mode : %u Prescale\n", divisor);
-+				m_timer[TIMER_A]->adjust(attotime::from_hz(m_timer_clock / divisor), TIMER_A, attotime::from_hz(m_timer_clock / divisor));
-+				m_timer[TIMER_A]->enable(m_ti[TIMER_A] == BIT(m_aer, GPIO_TIMER[TIMER_A]));
-+			}
++			LOG("MC68901 Timer A Pulse Width Mode : %u Prescale\n", PRESCALER[m_tacr & 0x07]);
++			m_timer[TIMER_A]->enable(false);
++			pulse_width_gate(TIMER_A, m_ti[TIMER_A] == BIT(m_aer, GPIO_TIMER[TIMER_A]));
  			break;
  		}
  
-@@ -739,8 +744,13 @@ void mc68901_device::write(offs_t offset, u8 data)
+@@ -739,8 +774,9 @@ void mc68901_device::write(offs_t offset, u8 data)
  		case TCR_TIMER_PULSE_64:
  		case TCR_TIMER_PULSE_100:
  		case TCR_TIMER_PULSE_200:
 -			LOG("MC68901 Timer B Pulse Width Mode\n");
 -			m_timer[TIMER_B]->adjust(attotime::never);
-+			{
-+				// count at the prescaled rate only while the timer input is at its active level
-+				int divisor = PRESCALER[m_tbcr & 0x07];
-+				LOG("MC68901 Timer B Pulse Width Mode : %u Prescale\n", divisor);
-+				m_timer[TIMER_B]->adjust(attotime::from_hz(m_timer_clock / divisor), TIMER_B, attotime::from_hz(m_timer_clock / divisor));
-+				m_timer[TIMER_B]->enable(m_ti[TIMER_B] == BIT(m_aer, GPIO_TIMER[TIMER_B]));
-+			}
++			LOG("MC68901 Timer B Pulse Width Mode : %u Prescale\n", PRESCALER[m_tbcr & 0x07]);
++			m_timer[TIMER_B]->enable(false);
++			pulse_width_gate(TIMER_B, m_ti[TIMER_B] == BIT(m_aer, GPIO_TIMER[TIMER_B]));
  			break;
  		}
  
+diff --git a/src/devices/machine/mc68901.h b/src/devices/machine/mc68901.h
+index 84606368..bc43955b 100644
+--- a/src/devices/machine/mc68901.h
++++ b/src/devices/machine/mc68901.h
+@@ -100,6 +100,7 @@ protected:
+ 	void rx_error();
+ 	TIMER_CALLBACK_MEMBER(timer_count);
+ 	void timer_input(int index, int value);
++	void pulse_width_gate(int index, bool active);
+ 	void gpio_input(int bit, int state);
+ 	void gpio_output();
+ 
 diff --git a/src/mame/emusys/emu68k.cpp b/src/mame/emusys/emu68k.cpp
-index d3d7d6a9..8fb1fda2 100644
+index d3d7d6a9..f85f63a9 100644
 --- a/src/mame/emusys/emu68k.cpp
 +++ b/src/mame/emusys/emu68k.cpp
+@@ -1,5 +1,5 @@
+ // license:BSD-3-Clause
+-// copyright-holders:AJR
++// copyright-holders:AJR, Grant McNaught
+ /***********************************************************************************************************************************
+ 
+     Skeleton driver for E-mu Proteus and other MC68000-based synthesizer modules.
 @@ -7,11 +7,19 @@
  ***********************************************************************************************************************************/
  
@@ -74,8 +144,6 @@ index d3d7d6a9..8fb1fda2 100644
 +	u8 jacks_r();
 +	u16 volume_strobe_r();
 +	TIMER_CALLBACK_MEMBER(volume_pulse_end);
-+	void latch4_w(u8 data);
-+	void latchb_w(u8 data);
 +
  	required_device<m68000_base_device> m_maincpu;
  	required_device<mc68901_device> m_mfp;
@@ -100,7 +168,9 @@ index d3d7d6a9..8fb1fda2 100644
 +		const int pot = m_volume.read_safe(100); // 0..100 %
 +		const int counts = 12 + pot * 190 / 100; // timer B counts at 2.5 MHz / 50
 +		m_mfp->tbi_w(1);
-+		m_volume_pulse->adjust(attotime::from_hz(40_MHz_XTAL / 16 / 50) * counts);
++		// end half a count after the last one, so the count does not depend on which of two
++		// timers expiring at the same time runs first
++		m_volume_pulse->adjust(attotime::from_hz(40_MHz_XTAL / 16 / 50) * (2 * counts + 1) / 2);
 +	}
 +	return 0xffff;
 +}
@@ -111,7 +181,7 @@ index d3d7d6a9..8fb1fda2 100644
  }
  
  HD44780_PIXEL_UPDATE(emu68k_state::lcd_pixel_update)
-@@ -61,6 +102,22 @@ HD44780_PIXEL_UPDATE(emu68k_state::lcd_pixel_update)
+@@ -61,6 +102,12 @@ HD44780_PIXEL_UPDATE(emu68k_state::lcd_pixel_update)
  }
  
  
@@ -121,26 +191,17 @@ index d3d7d6a9..8fb1fda2 100644
 +	return m_jacks.read_safe(0);
 +}
 +
-+void emu68k_state::latch4_w(u8 data)
-+{
-+	logerror("%s: latch 0x400001 <- %02x\n", machine().describe_context(), data);
-+}
-+
-+void emu68k_state::latchb_w(u8 data)
-+{
-+	logerror("%s: latch 0xb00001 <- %02x\n", machine().describe_context(), data);
-+}
-+
  void emu68k_state::proteus1_map(address_map &map)
  {
  	map(0x000000, 0x01ffff).rom().region("program", 0);
-@@ -73,13 +130,16 @@ void emu68k_state::proteus1_map(address_map &map)
+@@ -73,13 +120,17 @@ void emu68k_state::proteus1_map(address_map &map)
  void emu68k_state::proteusxr_map(address_map &map)
  {
  	map(0x000000, 0x01ffff).rom().region("program", 0);
 -	map(0x400000, 0x400001).nopw(); // ???
-+	map(0x400001, 0x400001).w(FUNC(emu68k_state::latch4_w)); // written 0x0d every main-loop pass
-+	map(0x500000, 0x50004f).w("snd", FUNC(proteus_snd_device::pan_w)).umask16(0x00ff); // per-voice output/pan byte at 0x500009 + 2 * voice
++	map(0x400000, 0x400001).nopw(); // latch at 0x400001, written 0x0d every main-loop pass; function unknown
++	map(0x500000, 0x50004f).nopw();
++	map(0x500008, 0x500047).w("snd", FUNC(proteus_snd_device::pan_w)).umask16(0x00ff); // per-voice output/pan byte at 0x500009 + 2 * voice
  	map(0x700000, 0x700003).rw("lcdc", FUNC(hd44780_device::read), FUNC(hd44780_device::write)).umask16(0x00ff);
 -	map(0x800000, 0x8003ff).nopw(); // ???
 +	map(0x800000, 0x8003ff).rw("snd", FUNC(proteus_snd_device::read), FUNC(proteus_snd_device::write));
@@ -149,17 +210,18 @@ index d3d7d6a9..8fb1fda2 100644
 -	map(0xb00000, 0xb00001).nopw(); // ???
 -	map(0xffc000, 0xffffff).ram();
 +	map(0xa00000, 0xa00001).r(FUNC(emu68k_state::volume_strobe_r));
-+	map(0xb00001, 0xb00001).w(FUNC(emu68k_state::latchb_w));
++	map(0xb00000, 0xb00001).nopw(); // latch at 0xb00001, function unknown
 +	map(0xc00001, 0xc00001).r(FUNC(emu68k_state::jacks_r));
 +	map(0xd00000, 0xd00003).rw("acia", FUNC(acia6850_device::read), FUNC(acia6850_device::write)).umask16(0x00ff); // factory debug serial
-+	map(0xff0000, 0xffffff).ram().share("nvram"); // XR RAM probe at 0xff0000; extent and battery-backed part unverified
++	map(0xff0000, 0xffffff).ram().share("nvram"); // the firmware detects the XR by probing RAM at 0xff0000; RAM size, decoding and battery-backed part unverified
  }
  
  void emu68k_state::vintkeys_map(address_map &map)
-@@ -107,6 +167,16 @@ void emu68k_state::fc7_map(address_map &map)
- 
- 
+@@ -109,6 +160,19 @@ void emu68k_state::fc7_map(address_map &map)
  static INPUT_PORTS_START(proteus1)
+ INPUT_PORTS_END
+ 
++static INPUT_PORTS_START(proteusxr)
 +	PORT_START("JACKS")
 +	PORT_DIPNAME(0x03, 0x00, "Sub out 1 jack")
 +	PORT_DIPSETTING(0x00, "Unplugged")
@@ -170,11 +232,17 @@ index d3d7d6a9..8fb1fda2 100644
 +
 +	PORT_START("VOLUME")
 +	PORT_ADJUSTER(100, "Volume")
++INPUT_PORTS_END
++
+ static INPUT_PORTS_START(procuss)
  INPUT_PORTS_END
  
- static INPUT_PORTS_START(procuss)
-@@ -181,13 +251,50 @@ void emu68k_state::proteusxr(machine_config &config)
- 	// TODO: NVRAM = 2x CXK5864BP-12L + DS1210 + battery?
+@@ -178,16 +242,53 @@ void emu68k_state::proteusxr(machine_config &config)
+ 	m_maincpu->set_addrmap(AS_PROGRAM, &emu68k_state::proteusxr_map);
+ 	m_maincpu->set_addrmap(m68000_base_device::AS_CPU_SPACE, &emu68k_state::fc7_map);
+ 
+-	// TODO: NVRAM = 2x CXK5864BP-12L + DS1210 + battery?
++	// TODO: RAM chips (2x CXK5864BP-12L, 16 KB, on the Proteus/1?), DS1210 + battery; the 64 KB mapping covers the firmware's XR probe at 0xff0000
  
  	MC68901(config, m_mfp, 40_MHz_XTAL / 4); // MC68901P
 -	m_mfp->set_timer_clock(40_MHz_XTAL / 16); // TODO: determine divider
@@ -215,21 +283,36 @@ index d3d7d6a9..8fb1fda2 100644
 +// interleave: word n = { IP40x[n >> 2], IP38x[n >> 2] }, x = 2 + (n & 3). The per-chip checksums
 +// in the ROM header match.
 +#define PROTEUS1_WAVES \
-+	ROMX_LOAD("ip402_b0msb.bin", 0x000000, 0x80000, CRC(ecb30a59) SHA1(edb714212bce3a84d5b76abbff1ac4af2961a42a), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip382_b0lsb.bin", 0x000001, 0x80000, CRC(f30101b6) SHA1(5eacb2208e254043676de685b545d8f17f284f5c), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip403_b1msb.bin", 0x000002, 0x80000, CRC(ab2086ec) SHA1(7ff5eb2c83ea45f33b9fc8983f94b8cf7cca4d4c), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip383_b1lsb.bin", 0x000003, 0x80000, CRC(8df7c2d2) SHA1(c3abe07987703fe4a19f27de40ca10ae3cf6b706), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip404_b2msb.bin", 0x000004, 0x80000, CRC(fd8fd68a) SHA1(a1c02c379d97faac2680507244b863fc3730d069), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip384_b2lsb.bin", 0x000005, 0x80000, CRC(b1bea229) SHA1(c246851b97e13fdd057fcfe0fbe6af7016a22e07), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip405_b3msb.bin", 0x000006, 0x80000, CRC(80d1a873) SHA1(66361832d6f9a160f49068e0730a80ae65b85fe3), ROM_SKIP(7)) \
-+	ROMX_LOAD("ip385_b3lsb.bin", 0x000007, 0x80000, CRC(375ca330) SHA1(4d662ac18bc2bd8f5fdeb45124b48a62e0ac5489), ROM_SKIP(7))
++	ROM_LOAD64_BYTE("ip402_b0msb.bin", 0x000000, 0x80000, CRC(ecb30a59) SHA1(edb714212bce3a84d5b76abbff1ac4af2961a42a)) \
++	ROM_LOAD64_BYTE("ip382_b0lsb.bin", 0x000001, 0x80000, CRC(f30101b6) SHA1(5eacb2208e254043676de685b545d8f17f284f5c)) \
++	ROM_LOAD64_BYTE("ip403_b1msb.bin", 0x000002, 0x80000, CRC(ab2086ec) SHA1(7ff5eb2c83ea45f33b9fc8983f94b8cf7cca4d4c)) \
++	ROM_LOAD64_BYTE("ip383_b1lsb.bin", 0x000003, 0x80000, CRC(8df7c2d2) SHA1(c3abe07987703fe4a19f27de40ca10ae3cf6b706)) \
++	ROM_LOAD64_BYTE("ip404_b2msb.bin", 0x000004, 0x80000, CRC(fd8fd68a) SHA1(a1c02c379d97faac2680507244b863fc3730d069)) \
++	ROM_LOAD64_BYTE("ip384_b2lsb.bin", 0x000005, 0x80000, CRC(b1bea229) SHA1(c246851b97e13fdd057fcfe0fbe6af7016a22e07)) \
++	ROM_LOAD64_BYTE("ip405_b3msb.bin", 0x000006, 0x80000, CRC(80d1a873) SHA1(66361832d6f9a160f49068e0730a80ae65b85fe3)) \
++	ROM_LOAD64_BYTE("ip385_b3lsb.bin", 0x000007, 0x80000, CRC(375ca330) SHA1(4d662ac18bc2bd8f5fdeb45124b48a62e0ac5489))
  
  ROM_START(proteus1)
  	ROM_REGION16_BE(0x20000, "program", 0)
-@@ -199,12 +306,38 @@ ROM_START(proteusxr)
- 	ROM_REGION16_BE(0x20000, "program", 0)
- 	ROM_LOAD16_BYTE("ip441c_emu__5089.ic38", 0x00000, 0x10000, CRC(01f11633) SHA1(a0612007b22c8e06c803ee5a5bad98e3f2bc4421)) // NMC27C512AN
- 	ROM_LOAD16_BYTE("ip442c_emu__5089.ic37", 0x00001, 0x10000, CRC(e8154a65) SHA1(1ec834712dc9ea4f4f01090b2fd5e558c1f08208)) // NMC27C512AN
+@@ -195,16 +296,48 @@ ROM_START(proteus1)
+ 	ROM_LOAD16_BYTE("e-mu proteus 1 lsb 2.05.bin", 0x00001, 0x10000, CRC(3ae786b4) SHA1(b9ad95a5cab86f2d316af34e6cb1b2873c58a9b5)) // 27C512
+ ROM_END
+ 
++// v2.30 is E-mu's update to v2.00
++#define PROTEUSXR_FIRMWARE \
++	ROM_REGION16_BE(0x20000, "program", 0) \
++	ROM_SYSTEM_BIOS(0, "v230", "v2.30") \
++	ROMX_LOAD("ip486_901101.bin", 0x00000, 0x10000, CRC(036bf047) SHA1(7e8f6474545bf24e6af318db4cd573ad05c66cbb), ROM_BIOS(0) | ROM_SKIP(1)) \
++	ROMX_LOAD("ip485_901101.bin", 0x00001, 0x10000, CRC(3c1d85c6) SHA1(bcd668ac2c5ffbf43dc1c50a3bbd85a87b537845), ROM_BIOS(0) | ROM_SKIP(1)) \
++	ROM_SYSTEM_BIOS(1, "v200", "v2.00") \
++	ROMX_LOAD("ip441c_emu__5089.ic38", 0x00000, 0x10000, CRC(01f11633) SHA1(a0612007b22c8e06c803ee5a5bad98e3f2bc4421), ROM_BIOS(1) | ROM_SKIP(1)) /* NMC27C512AN */ \
++	ROMX_LOAD("ip442c_emu__5089.ic37", 0x00001, 0x10000, CRC(e8154a65) SHA1(1ec834712dc9ea4f4f01090b2fd5e558c1f08208), ROM_BIOS(1) | ROM_SKIP(1)) /* NMC27C512AN */
++
+ ROM_START(proteusxr)
+-	ROM_REGION16_BE(0x20000, "program", 0)
+-	ROM_LOAD16_BYTE("ip441c_emu__5089.ic38", 0x00000, 0x10000, CRC(01f11633) SHA1(a0612007b22c8e06c803ee5a5bad98e3f2bc4421)) // NMC27C512AN
+-	ROM_LOAD16_BYTE("ip442c_emu__5089.ic37", 0x00001, 0x10000, CRC(e8154a65) SHA1(1ec834712dc9ea4f4f01090b2fd5e558c1f08208)) // NMC27C512AN
++	PROTEUSXR_FIRMWARE
 +
 +	ROM_REGION16_BE(0x800000, "snd", ROMREGION_ERASE00)
 +	PROTEUS1_WAVES
@@ -237,22 +320,20 @@ index d3d7d6a9..8fb1fda2 100644
 +
 +// Proteus/1 XR with the ProtoLogic 4 MB sound expansion (InVision Interactive)
 +ROM_START(proteusxrpl)
-+	ROM_REGION16_BE(0x20000, "program", 0) // v2.30
-+	ROM_LOAD16_BYTE("ip486_901101.bin", 0x00000, 0x10000, CRC(036bf047) SHA1(7e8f6474545bf24e6af318db4cd573ad05c66cbb))
-+	ROM_LOAD16_BYTE("ip485_901101.bin", 0x00001, 0x10000, CRC(3c1d85c6) SHA1(bcd668ac2c5ffbf43dc1c50a3bbd85a87b537845))
++	PROTEUSXR_FIRMWARE
 +
 +	// Sound ROMs: 16-bit signed samples, 4-way word interleave across chip pairs:
 +	// word n = { IP70x[n >> 2], IP50x[n >> 2] }, x = 5 + (n & 3)  (verified against a WAV conversion of the set)
 +	ROM_REGION16_BE(0x800000, "snd", ROMREGION_ERASE00)
 +	PROTEUS1_WAVES
-+	ROMX_LOAD("ip705.bin", 0x400000, 0x80000, CRC(9291ac91) SHA1(35c2ee0fafa9bf99643a34a610a8ab0b32a0f42d), ROM_SKIP(7))
-+	ROMX_LOAD("ip505.bin", 0x400001, 0x80000, CRC(26c3cbc5) SHA1(e7c587010713bd911b9805c8616e1e920c4307e1), ROM_SKIP(7))
-+	ROMX_LOAD("ip706.bin", 0x400002, 0x80000, CRC(e23d5890) SHA1(f02a46f2bbfa928356a0c4521b021f9fa38049b1), ROM_SKIP(7))
-+	ROMX_LOAD("ip506.bin", 0x400003, 0x80000, CRC(a316d1c7) SHA1(4eb67d722c064d66ab1604ffb9ffe02b039dfcd9), ROM_SKIP(7))
-+	ROMX_LOAD("ip707.bin", 0x400004, 0x80000, CRC(94b926ed) SHA1(1d10905cad823d340cfa5ceec1b3ade323f2bc31), ROM_SKIP(7))
-+	ROMX_LOAD("ip507.bin", 0x400005, 0x80000, CRC(e0fc7a84) SHA1(316df7f76b48f17b49b4397268a9c7021c84ed12), ROM_SKIP(7))
-+	ROMX_LOAD("ip708.bin", 0x400006, 0x80000, CRC(6235247e) SHA1(18fc57153bf69e854efa0c48f4fcec0b62c73654), ROM_SKIP(7))
-+	ROMX_LOAD("ip508.bin", 0x400007, 0x80000, CRC(5d48b113) SHA1(54571ee9b4c1992172a94557cf8e9c4b74fef0d4), ROM_SKIP(7))
++	ROM_LOAD64_BYTE("ip705.bin", 0x400000, 0x80000, CRC(9291ac91) SHA1(35c2ee0fafa9bf99643a34a610a8ab0b32a0f42d))
++	ROM_LOAD64_BYTE("ip505.bin", 0x400001, 0x80000, CRC(26c3cbc5) SHA1(e7c587010713bd911b9805c8616e1e920c4307e1))
++	ROM_LOAD64_BYTE("ip706.bin", 0x400002, 0x80000, CRC(e23d5890) SHA1(f02a46f2bbfa928356a0c4521b021f9fa38049b1))
++	ROM_LOAD64_BYTE("ip506.bin", 0x400003, 0x80000, CRC(a316d1c7) SHA1(4eb67d722c064d66ab1604ffb9ffe02b039dfcd9))
++	ROM_LOAD64_BYTE("ip707.bin", 0x400004, 0x80000, CRC(94b926ed) SHA1(1d10905cad823d340cfa5ceec1b3ade323f2bc31))
++	ROM_LOAD64_BYTE("ip507.bin", 0x400005, 0x80000, CRC(e0fc7a84) SHA1(316df7f76b48f17b49b4397268a9c7021c84ed12))
++	ROM_LOAD64_BYTE("ip708.bin", 0x400006, 0x80000, CRC(6235247e) SHA1(18fc57153bf69e854efa0c48f4fcec0b62c73654))
++	ROM_LOAD64_BYTE("ip508.bin", 0x400007, 0x80000, CRC(5d48b113) SHA1(54571ee9b4c1992172a94557cf8e9c4b74fef0d4))
  ROM_END
  
  ROM_START(procuss)
@@ -265,22 +346,24 @@ index d3d7d6a9..8fb1fda2 100644
  ROM_END
  
  ROM_START(vintkeys)
-@@ -242,6 +375,7 @@ ROM_END
+@@ -241,7 +374,8 @@ ROM_END
+ 
  
  SYST(1989, proteus1,  0, 0, proteus1,  proteus1,  emu68k_state, empty_init, "E-mu Systems", "Proteus/1 16-Bit Multi-Timbral Digital Sound Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
- SYST(1989, proteusxr, 0, 0, proteusxr, proteus1,  emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
-+SYST(1990, proteusxrpl, proteusxr, 0, proteusxr, proteus1, emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module (with ProtoLogic expansion)", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
+-SYST(1989, proteusxr, 0, 0, proteusxr, proteus1,  emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
++SYST(1989, proteusxr, 0, 0, proteusxr, proteusxr, emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING)
++SYST(199?, proteusxrpl, proteusxr, 0, proteusxr, proteusxr, emu68k_state, empty_init, "E-mu Systems", "Proteus/1 XR 16-Bit Multi-Timbral Digital Sound Module (with ProtoLogic expansion)", MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING)
  SYST(1991, procuss,   0, 0, proteusxr, procuss,   emu68k_state, empty_init, "E-mu Systems", "Pro/Cussion Maximum Percussion Module", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
  SYST(1993, vintkeys,  0, 0, vintkeys,  vintkeys,  emu68k_state, empty_init, "E-mu Systems", "Vintage Keys Classic Analog Keyboards", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
  SYST(1996, orbit9090, 0, 0, phatt,     orbit9090, emu68k_state, empty_init, "E-mu Systems", "Orbit 9090 - The Dance Planet", MACHINE_NO_SOUND | MACHINE_NOT_WORKING)
 diff --git a/src/mame/emusys/proteus_snd.cpp b/src/mame/emusys/proteus_snd.cpp
 new file mode 100644
-index 00000000..6e3c91a1
+index 00000000..a5ad0a7e
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.cpp
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,255 @@
 +// license:BSD-3-Clause
-+// copyright-holders:emu-proteus-xr-MiSTer contributors
++// copyright-holders:Grant McNaught
 +/***************************************************************************
 +
 +    E-mu Proteus/1 sound generator (custom chip, 32 voices)
@@ -298,13 +381,14 @@ index 00000000..6e3c91a1
 +             output sample, 12 fraction bits [O]. Reverse Sound negates it
 +             (neg.l; andi.l #$3ffff at 0x49f2). Bit 18 set only by the ROM tests:
 +             [I] "step on CPU read" (the voice advances once per read of +0x18
-+             instead of per sample). Bits 23..21: tone, 0..5 [O: 0x3b8a..0x3bc0,
++             instead of per sample). Bits 23..21: tone; the firmware writes 0..5 [O: 0x3b8a..0x3bc0,
 +             0x33e8], per instrument plus one step per 5 semitones of upward
 +             transposition. It selects the interpolation kernel (see below).
 +      +0x08  envelope: bits 23..12 = target level (12-bit float), bits 11..9 mode,
-+             bits 8..0 = signed rate [O: 0x4882..0x4896]. Mode bit 9 set: [I] jump
-+             to target immediately (written at note-on with target 0). Otherwise
-+             [I] level moves toward target by `rate` per output sample.
++             bits 8..0 = rate, a signed 9-bit value [O: 0x4882..0x4896]. Mode bit 9
++             set: [I] jump to target immediately (written at note-on with target 0).
++             Otherwise [I] level moves toward target by |rate| (at least 1) per
++             output sample; the direction comes from the target, not the sign.
 +      +0x0c  [U] (0xfff000 in ROM tests); stored only.
 +      +0x10  loop start (= sample loop start - 4) [O]
 +      +0x14  NOT(loop end) (loop end = sample loop end - 3) [O]
@@ -326,8 +410,8 @@ index 00000000..6e3c91a1
 +    cycles per voice for volume and mixing: 32 voices x 16 x 39062.5 Hz = 20 MHz,
 +    the chip clock [I]. The patent's "family of six filters" of lower cutoff is
 +    selected by the tone value: tone 0 = the patent's Table 1 kernel [O], tones 1..7
-+    designed to match it, scaled by 5 semitones per step [I] (tools/interp_kernels.py,
-+    which also writes the HDL ROM). Current position = address + 4 + fraction (the
++    designed to match it, scaled by 5 semitones per step [I]
++    (proteus_snd_kernels.ipp). Current position = address + 4 + fraction (the
 +    firmware programs start - 4); 8 words address+1 .. address+8 are read and the
 +    tap 3.5 or more words away has weight 0.
 +
@@ -344,7 +428,8 @@ index 00000000..6e3c91a1
 +#include "emu.h"
 +#include "proteus_snd.h"
 +
-+#include <cmath>
++#include <algorithm>
++#include <cstdlib>
 +
 +#include "proteus_snd_kernels.ipp"
 +
@@ -364,8 +449,11 @@ index 00000000..6e3c91a1
 +
 +void proteus_snd_device::device_start()
 +{
-+	m_stream = stream_alloc(0, 2, clock() / 256);
++	// rom_word() wraps addresses with a mask
++	if (m_waves.length() & (m_waves.length() - 1))
++		throw emu_fatalerror("%s: sound region size must be a power of two", tag());
 +
++	m_stream = stream_alloc(0, 2, clock() / 256);
 +
 +	save_item(NAME(m_regs));
 +	save_item(STRUCT_MEMBER(m_voice, addr));
@@ -382,7 +470,7 @@ index 00000000..6e3c91a1
 +{
 +	std::fill(std::begin(m_regs), std::end(m_regs), 0);
 +	for (voice &vc : m_voice)
-+		vc = voice{0, 0, 0, 0, 0, 0, 0, 0x08};
++		vc = voice();
 +}
 +
 +u32 proteus_snd_device::reg_long(unsigned v, unsigned word) const
@@ -488,7 +576,7 @@ index 00000000..6e3c91a1
 +void proteus_snd_device::pan_w(offs_t offset, u8 data)
 +{
 +	m_stream->update();
-+	m_voice[(offset - 4) & (VOICES - 1)].pan = data;
++	m_voice[offset & (VOICES - 1)].pan = data;
 +}
 +
 +void proteus_snd_device::sound_stream_update(sound_stream &stream)
@@ -513,7 +601,7 @@ index 00000000..6e3c91a1
 +			}
 +
 +			const s32 smp = interpolate(vc);
-+			const s32 out = (smp * s32(level_to_gain(vc.level))) >> 16;
++			const s32 out = s32((s64(smp) * level_to_gain(vc.level)) >> 16);
 +
 +			const s32 p = vc.pan & 0x0f;
 +			left += out * p;
@@ -522,28 +610,29 @@ index 00000000..6e3c91a1
 +			if (!BIT(vc.pitch, 18))
 +				step(vc);
 +		}
-+		// pan weights sum to 15; >> 6 (arithmetic) leaves ~4x headroom for 32 voices.
-+		// Power-of-two scaling so the HDL matches this model sample for sample.
++		// pan weights sum to 15, so one voice at full level panned hard to one side
++		// peaks near 65472 * 15 >> 6 = 15345: about two such voices reach full scale.
++		// Power-of-two scaling keeps the model exact in integer arithmetic.
 +		stream.put_int_clamp(0, i, s32(left >> 6), 32768);
 +		stream.put_int_clamp(1, i, s32(right >> 6), 32768);
 +	}
 +}
 diff --git a/src/mame/emusys/proteus_snd.h b/src/mame/emusys/proteus_snd.h
 new file mode 100644
-index 00000000..97392285
+index 00000000..15fbc5d4
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd.h
 @@ -0,0 +1,67 @@
 +// license:BSD-3-Clause
-+// copyright-holders:emu-proteus-xr-MiSTer contributors
++// copyright-holders:Grant McNaught
 +/***************************************************************************
 +
 +    E-mu Proteus/1 sound generator (custom chip, 32 voices)
 +
 +    Behavioural model reconstructed from the Proteus/1 XR firmware; see
 +    proteus_snd.cpp for the register map and which parts are inferred.
-+    Written as integer/fixed-point arithmetic so an HDL implementation can
-+    be compared against it sample for sample.
++    Written as integer/fixed-point arithmetic, so the output is exact and
++    can be compared sample for sample with a hardware implementation.
 +
 +***************************************************************************/
 +
@@ -561,7 +650,7 @@ index 00000000..97392285
 +	u16 read(offs_t offset, u16 mem_mask = ~0);
 +	void write(offs_t offset, u16 data, u16 mem_mask = ~0);
 +
-+	// 0x500000-0x50003f (odd bytes): per-voice output/pan byte
++	// per-voice output/pan byte, offset = voice (CPU 0x500009 + 2 * voice)
 +	void pan_w(offs_t offset, u8 data);
 +
 +protected:
@@ -576,14 +665,14 @@ index 00000000..97392285
 +
 +	struct voice
 +	{
-+		u32 addr;      // integer ROM word address (register +0x00)
-+		u16 frac;      // 12-bit fractional position (internal)
-+		u32 pitch;     // register +0x04
-+		u32 env;       // register +0x08
-+		u32 loop_start;// register +0x10
-+		u32 loop_end;  // NOT of register +0x14
-+		u16 level;     // current 12-bit float level
-+		u8 pan;        // 0x50000x byte
++		u32 addr = 0;       // integer ROM word address (register +0x00)
++		u16 frac = 0;       // 12-bit fractional position (internal)
++		u32 pitch = 0;      // register +0x04
++		u32 env = 0;        // register +0x08
++		u32 loop_start = 0; // register +0x10
++		u32 loop_end = 0;   // NOT of register +0x14
++		u16 level = 0;      // current 12-bit float level
++		u8 pan = 0x08;      // pan byte, centre
 +	};
 +
 +	u32 reg_long(unsigned v, unsigned word) const;
@@ -603,13 +692,13 @@ index 00000000..97392285
 +#endif // MAME_EMUSYS_PROTEUS_SND_H
 diff --git a/src/mame/emusys/proteus_snd_kernels.ipp b/src/mame/emusys/proteus_snd_kernels.ipp
 new file mode 100644
-index 00000000..3b23df8d
+index 00000000..c9739ff8
 --- /dev/null
 +++ b/src/mame/emusys/proteus_snd_kernels.ipp
 @@ -0,0 +1,14 @@
 +// license:BSD-3-Clause
-+// copyright-holders:emu-proteus-xr-MiSTer contributors
-+// Generated by tools/interp_kernels.py - do not edit.
++// copyright-holders:Grant McNaught
++// Generated from the tone 0 kernel (US 5,111,727 Table 1); see proteus_snd.cpp.
 +// Interpolation kernels [tone][a], a = 0..128 (32 per sample period), Q16.
 +static const s32 proteus_kernels[8][129] = {
 +	{ 67755, 67617, 67203, 66518, 65566, 64356, 62896, 61198, 59275, 57144, 54820, 52320, 49663, 46870, 43968, 40991, 37888, 34751, 31613, 28461, 25320, 22215, 19166, 16193, 13311, 10538, 7888, 5376, 3012, 809, -1227, -3088, -4769, -6267, -7580, -8708, -9654, -10419, -11010, -11431, -11690, -11796, -11759, -11586, -11290, -10881, -10381, -9849, -9102, -8365, -7590, -6775, -5928, -5067, -4199, -3338, -2489, -1663, -866, -106, 613, 1283, 1903, 2468, 2976, 3425, 3816, 4147, 4420, 4635, 4796, 4902, 4959, 4969, 4937, 4863, 4754, 4611, 4449, 4225, 3989, 3765, 3543, 3312, 3073, 2834, 2596, 2363, 2135, 1915, 1703, 1503, 1313, 1136, 972, 821, 684, 560, 449, 352, 266, 193, 131, 80, 38, 5, -20, -37, -49, -57, -56, -35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
@@ -622,7 +711,7 @@ index 00000000..3b23df8d
 +	{ 10670, 10669, 10668, 10666, 10664, 10660, 10656, 10651, 10645, 10639, 10632, 10624, 10615, 10605, 10595, 10584, 11212, 10871, 10839, 10807, 10775, 10741, 10707, 10672, 10637, 10601, 10565, 10527, 10490, 10451, 10412, 10373, 10333, 10292, 10251, 10209, 10167, 10124, 10081, 10037, 9992, 9948, 9902, 9857, 9810, 9763, 9716, 9669, 10106, 9657, 9591, 9525, 9458, 9392, 9324, 9257, 9189, 9121, 9053, 8984, 8915, 8846, 8777, 8707, 8637, 8567, 8497, 8426, 8356, 8285, 8214, 8143, 8072, 8001, 7930, 7859, 7787, 7716, 7644, 7573, 11450, 10730, 10573, 10416, 10260, 10105, 9951, 9797, 9645, 9494, 9343, 9194, 9046, 8898, 8752, 8607, 8463, 8320, 8179, 8038, 7899, 7761, 7624, 7489, 7355, 7222, 7090, 6960, 6831, 6703, 6577, 6453, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 +};
 diff --git a/src/mame/mame.lst b/src/mame/mame.lst
-index 6ac35f16..5b1c7bc5 100644
+index f7dc4f22..2594bd93 100644
 --- a/src/mame/mame.lst
 +++ b/src/mame/mame.lst
 @@ -18817,6 +18817,7 @@ phatt
