@@ -100,8 +100,15 @@ print(f"lag: {lag_s}")
 print(f"lcd_lit_pixels: {lit}")
 # the NVRAM: the LCD panel's pixels before the change, after it, and after the reload
 def panel(name):
-    im = Image.open(f"{out}/{name}.png").convert("RGB")
-    return im.crop((bx, by, bx + int(768 * k), by + int(104 * k))).tobytes()
+    # the panel without the cursor rows (dot row 7 of each text row: the underline may be in
+    # either phase of its blink)
+    im = Image.open(f"{out}/{name}.png").convert("RGB").crop((bx, by, bx + int(768 * k), by + int(104 * k)))
+    px = im.load()
+    for row in (0, 1):
+        for y in range(int((4 + 50 * row + 34) * k), min(im.size[1], int((4 + 50 * row + 41) * k))):
+            for x in range(im.size[0]):
+                px[x, y] = (0, 0, 0)
+    return im.tobytes()
 before, changed, reloaded = panel("nv_before"), panel("nv_changed"), panel("nv_reloaded")
 sav = int(open(f"{out}/sav_size").read().strip() or 0)
 nv_ok = sav == 32768 and changed != before and reloaded == changed

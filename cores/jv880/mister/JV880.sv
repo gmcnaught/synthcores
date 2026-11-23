@@ -55,6 +55,7 @@ localparam CONF_STR = {
 	"-;",
 	"O[3:2],Output gain,0 dB,+6 dB,+12 dB,+18 dB;",
 	"O[1],Real-time pacing,On,Off;",
+	"O[6],Diagnostics,Off,On;",
 	"-;",
 	"T[4],Save NVRAM;",
 	"O[5],Autosave on OSD open,On,Off;",
@@ -173,6 +174,7 @@ jv880_board #(.CLK_HZ(50_000_000)) board
 	.pace_enable(~status[1]),
 	.gain(status[3:2]),
 	.step_gate(1'b1),
+	.diag(status[6]),
 
 	.audio_l(audio_l),
 	.audio_r(audio_r),
