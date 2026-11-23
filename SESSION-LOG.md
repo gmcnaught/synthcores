@@ -2,6 +2,27 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## JV-880 NVRAM save file (2026-11-22)
+
+- **Module:** `modules/synthframe/hdl/save/synthframe_nvsave.sv` (MIT) moves battery-backed RAM
+  to and from the MiSTer save file on SD slot 0.
+    - CONF_STR `FSC1` mounts `saves/JV-880/<pack>.sav`.
+    - The module holds the core in reset until the restore is done.
+    - On a save (OSD "Save NVRAM", or autosave when the OSD opens) it pauses the steps, waits
+      until the MCU is idle, and writes 32 KB.
+    - The MCU has a second copy of the NVRAM for the dump, so the CPU's fetch path is unchanged.
+- **Bench (`--sav`, `--save-at`):**
+    - Restore from the factory file: boots to "I-01:Syn Lead", 12 M steps identical.
+    - A new file, and an empty NVRAM: saves requested in the middle of a step equal the model's
+      NVRAM, including the 2 bytes the firmware wrote while booting.
+- **Windows build:** JV-880 28,390 ALMs, block memory 74 %, timing met. SC-55 unchanged
+  (33,160 ALMs).
+- **MiSTer smoke (extended):**
+    - The file is 32 KB, and exactly the changed byte differs (Unit number 17 → 20 at 0x0d).
+    - After a reload the unit shows 20.
+- **Load path:** a `boot.rom` autoload gets no save file from Main_MiSTer (`opensave` 0), so
+  the pack is loaded from the OSD (and remembered).
+
 ## Iteration 12: JV-880 core, J1–J5 (2026-11-22, PR #8)
 
 - **J1:** the SC-55's CPU, MCU, PCM and board blocks moved to `modules/roland`. SC-55 suite
