@@ -1,0 +1,17 @@
+diff --git a/src/mame/emusys/emup2k.cpp b/src/mame/emusys/emup2k.cpp
+index bcd786b..9955168 100644
+--- a/src/mame/emusys/emup2k.cpp
++++ b/src/mame/emusys/emup2k.cpp
+@@ -417,7 +417,11 @@ void emup2k_state::machine_start()
+ 		address_space &prog = m_maincpu->space(AS_PROGRAM);
+ 		const bool nodram = std::getenv("P2K_BUSTRACE_NODRAM") != nullptr;   // skip 0x01000000-0x017FFFFF
+ 		auto rec = [this, nodram] (offs_t a, u32 d, u32 m, bool w) {
+-			if (!m_bustrace_left || (nodram && a >= 0x01000000 && a < 0x01800000))
++			// reads of the vector table (VBR..VBR+0x3FF) stay in the trace with NODRAM: they mark
++			// exception entries, which the RTL testbench replays at the same point
++			const u32 vbr = u32(m_maincpu->state_int(M68K_VBR));
++			const bool vec = !w && a >= vbr && a < vbr + 0x400;
++			if (!m_bustrace_left || (nodram && !vec && a >= 0x01000000 && a < 0x01800000))
+ 				return;
+ 			// with NODRAM also drop opcode fetches from flash (reads within 16 bytes of the PC)
+ 			const u32 pc = m_maincpu->pc();
