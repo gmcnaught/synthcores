@@ -103,7 +103,7 @@ jobs:
         if: matrix.core == 'proteus'
         run: CXX=g++-14 p2k/model/build.sh
 
-      - name: Panel renderer frame hashes (SC-55, JV-880, Proteus/1)
+      - name: Panel renderer frame hashes (SC-55, JV-880, Proteus/1, CZ-101)
         if: matrix.core == 'sc55' || matrix.core == 'proteus'
         run: python ../../modules/synthframe/ver/panel/test_panel.py
 
