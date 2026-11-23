@@ -52,6 +52,7 @@ module cz101_board #(
     input  logic        nv_we,
     input  logic [7:0]  nv_wdata,
     output logic [7:0]  nv_rdata,
+    output logic        nv_written,     // the CPU wrote the battery RAM or cartridge this clock
     output logic        powered_down,   // the firmware switched the power off (CPU in reset)
     output logic [31:0] cycles,         // vcyc: machine cycles of virtual time
 
@@ -150,6 +151,7 @@ module cz101_board #(
     wire        ram_we  = ld_ram || (bus_st == B_IDLE && ext_req && ext_we
                                      && (ext_addr[15:12] == 4'h8 || in_cart));
     wire [7:0]  ram_d   = ld_ram ? load_data : ext_wdata;
+    assign nv_written = ram_we && !ld_ram;
     always_ff @(posedge clk) begin
         if (ram_we) ram[ram_a] <= ram_d;
         ram_q <= ram[ram_a];

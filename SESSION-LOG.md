@@ -2,7 +2,7 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
-## Iteration 13: CZ-101, C0-C4 (2026-11-23, branch `iter13-cz101`, in progress)
+## Iteration 13: CZ-101, C0-C5 (2026-11-23, branch `iter13-cz101`)
 
 Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
 - **C0, reference:** MAME `cz101` subtarget built in `../mame-cz101` (commit 4a92d534, the P2K
@@ -30,8 +30,25 @@ Plan: `cores/cz101/docs/plan.md`; CPU notes: `cores/cz101/docs/upd7810.md`.
 - **C4:** `hdl/cz101_board.sv`. With the real firmware and `tests/midi/basic.txt`, 6.5 M instructions
   (boot and MIDI playback, 17.9 s) identical to MAME and 716,728 samples identical. Fixed on the way:
   the timer base must be the arming /CS request, not the latest one.
-- **Next:** C5, the MiSTer top (ROM pack over ioctl, MidiLink, LCD video, keys, NVRAM save), then the
-  Windows build and the MiSTer smoke test.
+- **C5, MiSTer core:** `mister/CZ101.sv` with a 40 KB ROM pack (program ROM, `init_ram`, HD44780
+  character ROM), pacing at 3,333,334 CPU cycles/s, live MIDI through a board serializer (10 bits
+  of 128 SCK edges; the C4 run fed this way is identical too), 800 x 600 LCD and LED video, MAME's
+  panel keys plus F1-F8/Enter, Power/cartridge/protect switches, and the 8 KB RAM save.
+  - Quartus 17 fixes: untyped string parameters, `synthesis translate_off` around the RAM
+    `initial` (5000-iteration limit), a true-dual-port RAM (two write addresses had made it
+    registers: 187 % fit, now 35 %), `DDRAM_CLK` clocked (an unclocked one gave 0-byte screenshots).
+  - Audio: new `modules/synthframe/hdl/audio/synthframe_resample.sv` (MIT), L/M polyphase FIR,
+    40 -> 96 kHz, 960 taps; `tests/resample/run.sh`: 13,443 outputs identical to the integer
+    model at both pacings.
+  - After the rebase onto main: `synthframe_nvsave` now saves with the core running, so the board
+    exports `nv_written` for its `mem_written`.
+  - Build 11: 14,577 ALMs, 37 DSP, core clock +4.13 ns. Smoke test passes (ROM ok, no underrun,
+    MIDI and a key change the LCD, 8 KB save differs from `init_ram`).
+  - On the MiSTer the user heard nothing at first: `uartmode.CZ-101` routed MidiLink to
+    FluidSynth; setting the UART to MidiLink fixed it.
+- **Open:** an edited patch surviving a reload is not shown by the smoke test (the firmware boots
+  to preset 1); music keys, pitch wheel and MIDI out are not mapped; licence default
+  BSD-3-Clause, not yet confirmed.
 
 ## Iteration 8: panel as data (2026-11-23, branch `iter8-panel`)
 
