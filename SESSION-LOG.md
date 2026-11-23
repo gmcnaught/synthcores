@@ -114,7 +114,10 @@ definition, stereo mixdown, user flash SIMMs only).
 - **Verification:**
     - Clock from power-on: lockstep identical, −14.1 dBFS; through the UART pin, −14.6 dBFS.
     - `jv880.mid` hash 73feda3c… unchanged. SC-55 MCU, system and board tests pass.
-    - Windows build 28,452 ALMs, timing met.
+    - Windows build 28,452 ALMs, timing met. After the rebase onto #15 (2026-11-23): seed 5
+      missed by 0.717 ns (the PCM address counter); seed 4 28,980 ALMs, +0.948 ns (seeds 1/3:
+      +0.136/+0.466). SC-55 seed 2 32,863 ALMs, +0.344 ns. MiSTer smoke: JV-880 (autosave,
+      NVRAM kept) and SC-55 pass, underrun and lag never.
     - Hardware: with clock from boot, the PCM peak reads 0x1078.
 - **Also:**
     - `synth-mister shot` now waits until the PNG is written. It used to copy a 0-byte file
