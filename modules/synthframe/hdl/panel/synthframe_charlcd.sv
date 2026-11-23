@@ -4,14 +4,15 @@
 // character at (line, col) and then for that character's dot row.
 //
 // Geometry: characters on a CHAR_P-pixel pitch, lines on LINE_P; dots DOT_W x DOT_H pixels on
-// a DOT_PX x DOT_PY pitch; the first dot row TOP pixels below Y0. The panel rectangle is
-// PW x PH at (X0, Y0). Row 7 (the cursor row) shows the glyph's row 7 when ROW7_GLYPH = 1,
+// a DOT_PX x DOT_PY pitch; the first character LEFT pixels right of X0 and its first dot row TOP
+// pixels below Y0. The panel rectangle is PW x PH at (X0, Y0). Row 7 (the cursor row) shows the glyph's row 7 when ROW7_GLYPH = 1,
 // otherwise only the cursor.
 //
 // Timing: x and y in clock 0; cell_line/cell_col are registers, and cell_code/cell_cursor are
 // sampled one clock later (the port is combinational); glyph_code/glyph_row are registers and
-// glyph_bits is sampled one clock after that. panel/dot/lit belong to the pixel at (x, y) two
-// clocks earlier; the caller registers its colour from them (three clocks in total). Two
+// glyph_bits is sampled one clock after that. A core whose font is a synchronous RAM looks up
+// (cell_code, cell_row) instead and registers glyph_bits on the clock glyph_code is registered.
+// panel/dot/lit belong to the pixel at (x, y) two clocks earlier; the caller registers its colour from them (three clocks in total). Two
 // instances that never draw the same pixel can share one glyph lookup: use the code and row of
 // the one whose fetch is high.
 module synthframe_charlcd #(
@@ -21,6 +22,7 @@ module synthframe_charlcd #(
     parameter int LINES = 2,
     parameter int PW = 768,
     parameter int PH = 104,
+    parameter int LEFT = 0,
     parameter int TOP = 4,
     parameter int CHAR_P = 32,
     parameter int LINE_P = 50,
@@ -36,6 +38,7 @@ module synthframe_charlcd #(
     // character LCD read port
     output logic [1:0]  cell_line,
     output logic [5:0]  cell_col,
+    output logic [2:0]  cell_row,        // the dot row, with cell_line/cell_col
     input  logic [7:0]  cell_code,
     input  logic        cell_cursor,     // the cursor is at (cell_line, cell_col) and shown
     output logic [7:0]  glyph_code,
@@ -54,7 +57,7 @@ module synthframe_charlcd #(
         logic [10:0] lx;
         logic [9:0]  ly, oy;
         logic [10:0] ox;
-        lx = x - 11'(X0);
+        lx = x - 11'(X0 + LEFT);
         ly = y - 10'(Y0 + TOP);
         ox = lx % 11'(CHAR_P);
         oy = ly % 10'(LINE_P);
@@ -62,7 +65,7 @@ module synthframe_charlcd #(
         cell_col  <= 6'(lx[9:0] / 10'(CHAR_P));
         cell_line <= 2'(ly / 10'(LINE_P));
         dc0 <= 3'(ox / 11'(DOT_PX));
-        dot_x0 <= x >= 11'(X0) && ox < 11'(5 * DOT_PX) && (ox % 11'(DOT_PX)) < 11'(DOT_W);
+        dot_x0 <= x >= 11'(X0 + LEFT) && ox < 11'(5 * DOT_PX) && (ox % 11'(DOT_PX)) < 11'(DOT_W);
         dr0 <= 3'(oy / 10'(DOT_PY));
         dot_y0 <= y >= 10'(Y0 + TOP) && ly < 10'(LINES * LINE_P) && oy < 10'(8 * DOT_PY)
                   && (oy % 10'(DOT_PY)) < 10'(DOT_H);
@@ -88,6 +91,7 @@ module synthframe_charlcd #(
         row2 <= (!ROW7_GLYPH && glyph_row == 3'd7) ? 5'h00 : glyph_bits;
         cur2 <= cur1; in_panel2 <= in_panel1; dot2 <= dot1; dc2 <= dc1;
     end
+    assign cell_row = dr0;
     assign fetch = in_panel1;
     assign panel = in_panel2;
     assign dot   = dot2;

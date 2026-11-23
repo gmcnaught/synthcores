@@ -1,0 +1,6 @@
+modules/synthframe/hdl/panel/synthframe_hd44780.sv
+modules/synthframe/hdl/panel/synthframe_vtiming.sv
+modules/synthframe/hdl/panel/synthframe_charlcd.sv
+modules/synthframe/hdl/panel/synthframe_status_strip.sv
+cores/cz101/hdl/cz101_lcd.sv
+cores/cz101/hdl/cz101_lcd_video.sv

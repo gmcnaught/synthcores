@@ -34,8 +34,9 @@ notes and the MAME flag bugs found on the way are in [`docs/upd7810.md`](docs/up
    40 kHz samples go through a 960-tap polyphase filter (flat to 18 kHz, images at or below
    -92 dB), so the HDMI and analog outputs carry no 40 kHz images.
 
-The status strip under the LCD shows the ROM pack (green ok, blue loading, red none), MIDI
-activity, and an audio underrun indicator.
+The status strip under the LCD (synthframe's, as on the SC-55 and JV-880) shows the core's
+state (green running, amber loading, red no ROM pack), MIDI activity, and an audio underrun
+indicator (dark red once an underrun was seen).
 
 Panel keys (PS/2 or USB keyboard, MAME's map, plus F1-F8 and Enter for keyboards without a
 keypad):
@@ -79,7 +80,7 @@ board with the RAM kept), **RA-3 cartridge**, **Memory protect**, **Auto power o
 | `hdl/upd7810/` | uPD7810/7811 CPU, peripherals, decode ROM generated from MAME's tables |
 | `hdl/upd933/` | uPD933 sound chip |
 | `hdl/cz101_board.sv` | the main board: memory map, LCD, keys, LEDs, timer, MIDI serializer |
-| `hdl/cz101_lcd.sv`, `cz101_lcd_video.sv`, `cz101_kbd.sv` | HD44780, LCD and LED video, PS/2 keys |
+| `hdl/cz101_lcd.sv`, `cz101_lcd_video.sv`, `cz101_kbd.sv` | HD44780 pins (the controller is `modules/synthframe/hdl/panel/synthframe_hd44780.sv`), LCD and LED video, PS/2 keys |
 | `mister/` | MiSTer top (`CZ101.sv`), Quartus project, `build.sh` |
 | `mame/patches/` | the MAME logging patch for the reference (`tools/mame-cz101.sh` runs it) |
 | `sim/`, `tests/` | Verilator benches and the C1-C4 lockstep tests |

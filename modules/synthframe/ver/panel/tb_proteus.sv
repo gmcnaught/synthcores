@@ -39,7 +39,7 @@ module tb_proteus (
             seq[n] <= seed[7] ? 9'h01c : 9'h018; n++;                 // display shift right/left
         end
         s = xs(s);
-        seq[n] <= {2'b01, s[0], 1'b0, s[11:8] < 4'd10 ? 2'(s[9:8]) : 2'd0, s[3:0]}; n++;   // cursor address
+        seq[n] <= {2'b01, s[0], 2'b00, s[3:0]}; n++;                    // cursor address, columns 0-15
         seq_n <= 9'(n);
         s = xs(s);
         leds <= s[7:0];
@@ -70,8 +70,10 @@ module tb_proteus (
 
     synthframe_hd44780 lcd (
         .clk, .reset(load), .cs(1'b1), .wr, .rd(1'b0), .rs, .din, .dout(lcd_dout),
+        .busy_t_set(32'd0), .busy_t_read(32'd0),
         .r_line(lcd_line), .r_pos(lcd_pos), .r_row(lcd_row), .r_code(lcd_code), .r_cgbits(lcd_cgbits),
-        .r_is_cg(lcd_is_cg), .r_cursor(lcd_cursor), .display_on(lcd_on));
+        .r_is_cg(lcd_is_cg), .r_at_ac(), .r_cursor(lcd_cursor), .display_on(lcd_on), .cursor_on(),
+        .blink_on());
 
     logic [4:0] voice;
     logic [7:0] level;

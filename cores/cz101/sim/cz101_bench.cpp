@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     auto tick = [&] { c->clk = 0; c->eval(); c->clk = 1; c->eval(); };
     c->reset = 1; c->cyc_ce = 1; c->power_on = 1; c->pitch_wheel = 0x7F; c->rx_valid = 0;
     for (int i = 0; i < 16; i++) c->keys[i] = 0xFF;
-    c->r_line = 0; c->r_pos = 0; c->r_cg_code = 0; c->r_cg_row = 0;
+    c->r_line = 0; c->r_pos = 0; c->r_row = 0;
     for (int a = 0; a < 0x9000; a++) {
         c->load_wr = 1; c->load_addr = a; c->load_data = a < 0x8000 ? prog[a] : ram[a - 0x8000];
         tick();

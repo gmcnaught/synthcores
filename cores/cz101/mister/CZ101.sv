@@ -247,10 +247,10 @@ wire        sample_valid;
 wire signed [15:0] sample;
 wire [15:0] leds;
 wire        lcd_power, lcd_display_on, lcd_cursor_on, lcd_blink_on;
-wire        r_line, r_cursor;
+wire        r_line, r_at_ac;
 wire  [3:0] r_pos;
 wire  [7:0] r_code;
-wire  [2:0] r_cg_code, r_cg_row;
+wire  [2:0] r_row;
 wire  [4:0] r_cg_bits;
 wire        midi_tx;
 
@@ -278,8 +278,8 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.leds(leds), .led_latch(), .lcd_power(lcd_power),
 	.sample_valid(sample_valid), .sample(sample), .sample_sum(),
 
-	.r_line(r_line), .r_pos(r_pos), .r_code(r_code), .r_cursor(r_cursor),
-	.r_cg_code(r_cg_code), .r_cg_row(r_cg_row), .r_cg_bits(r_cg_bits),
+	.r_line(r_line), .r_pos(r_pos), .r_row(r_row), .r_code(r_code), .r_at_ac(r_at_ac),
+	.r_cg_bits(r_cg_bits),
 	.lcd_display_on(lcd_display_on), .lcd_cursor_on(lcd_cursor_on), .lcd_blink_on(lcd_blink_on),
 
 	.insn_done(), .insn_cc(), .insn_pc(), .insn_op(), .insn_op2(), .halt_cycle(),
@@ -345,8 +345,8 @@ cz101_lcd_video video
 	.font_we(pack_wr && ioctl_addr[26:12] == 15'h9),
 	.font_addr(ioctl_addr[11:0]),
 	.font_data(ioctl_dout),
-	.r_line(r_line), .r_pos(r_pos), .r_code(r_code), .r_cursor(r_cursor),
-	.r_cg_code(r_cg_code), .r_cg_row(r_cg_row), .r_cg_bits(r_cg_bits),
+	.r_line(r_line), .r_pos(r_pos), .r_row(r_row), .r_code(r_code), .r_at_ac(r_at_ac),
+	.r_cg_bits(r_cg_bits),
 	.display_on(lcd_display_on), .cursor_on(lcd_cursor_on), .blink_on(lcd_blink_on),
 	.power(lcd_power), .leds(leds),
 	.rom_ok(rom_ok), .loading(ioctl_download), .midi_led(LED_USER),

@@ -291,8 +291,9 @@ synthframe_hd44780 lcd
 (
 	.clk(clk), .reset(reset),
 	.cs(1'b1), .wr(lcd_wr), .rd(lcd_rd), .rs(addr[1]), .din(oEdb[7:0]), .dout(lcd_dout),
+	.busy_t_set(32'd0), .busy_t_read(32'd0),
 	.r_line(lcd_line), .r_pos(lcd_pos), .r_row(lcd_row), .r_code(lcd_code), .r_cgbits(lcd_cgbits),
-	.r_is_cg(lcd_is_cg), .r_cursor(lcd_cursor), .display_on(lcd_on)
+	.r_is_cg(lcd_is_cg), .r_at_ac(), .r_cursor(lcd_cursor), .display_on(lcd_on), .cursor_on(), .blink_on()
 );
 
 endmodule
