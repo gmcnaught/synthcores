@@ -23,7 +23,7 @@ $M install proteus "$RBF"
 $M midi-stop
 $M load /media/fat/Proteus.mgl; sleep "${BOOT:-15}"
 $M shot proteus "$OUT/boot.png" >/dev/null
-scp -q tools/mister_soak.py "$MISTER:/tmp/"
+scp -q tools/mister_soak.py tools/mister_midi.py "$MISTER:/tmp/"
 $M midi-stop
 $M sh "python3 /tmp/mister_soak.py $SECS 1" | tee "$OUT/soak.txt"
 $M shot proteus "$OUT/end.png" >/dev/null
