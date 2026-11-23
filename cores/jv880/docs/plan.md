@@ -78,7 +78,7 @@ out at first: no PCM card is emulated.
 | J2 | `jv880` model in the MCU | `mcu_lockstep --romset jv880-v1.0.1` identical to the reference through boot, "Internal RAM read error", the factory preset (button and encoder script of `jv880_nvram.cpp`) and 20 M steps of `jv880.mid` |
 | J3 | `jv880` model in the PCM | `pcm_lockstep` jv880 identical; the system bench renders `jv880.mid` from the factory NVRAM to 73feda3c…bbbc |
 | J4 | MiSTer board `cores/jv880` | board bench identical from power-on (ROM pack over ioctl, wave ROMs in DDR3, NVRAM from the save file); Windows build meets timing |
-| J5 | On the MiSTer | boots to "Perf I-01:Syn Lead" with the factory NVRAM; plays `jv880.mid` over MidiLink with no underrun; panel keys and encoder work; NVRAM survives a reload |
+| J5 | On the MiSTer (done except NVRAM saving to the SD card) | boots to "Perf I-01:Syn Lead" with the factory NVRAM; plays `jv880.mid` over MidiLink with no underrun; panel keys and encoder work; NVRAM survives a reload |
 
 ## Open questions
 
