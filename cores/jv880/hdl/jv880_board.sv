@@ -8,6 +8,10 @@
 // The core is held in reset until a JV-880 pack (rom_loader model 4) has loaded, and again
 // during any later download; then the PCM clears its eram, the MCU takes its reset vector, and
 // steps run while the pacer allows (and step_gate, for the bench).
+//
+// NVRAM save file (synthframe_nvsave, SD slot 0): after a download the core stays in reset
+// until the mounted save file, if it holds 32 KB, has replaced the pack's NVRAM; a save pauses
+// the steps and writes the NVRAM (from the MCU's copy for the dump) to the file.
 module jv880_board #(
     parameter longint CLK_HZ = 50_000_000,
     parameter logic [31:0] WAVE_BASE = 32'h3000_0000
@@ -22,6 +26,25 @@ module jv880_board #(
     input  logic [26:0] ioctl_addr,
     input  logic [7:0]  ioctl_dout,
     output logic        ioctl_wait,
+
+    // save file (hps_io SD slot 0)
+    input  logic        img_mounted,
+    input  logic        img_readonly,
+    input  logic [63:0] img_size,
+    output logic [31:0] sd_lba,
+    output logic [5:0]  sd_blk_cnt,
+    output logic        sd_rd,
+    output logic        sd_wr,
+    input  logic        sd_ack,
+    input  logic [13:0] sd_buff_addr,
+    input  logic [7:0]  sd_buff_dout,
+    input  logic        sd_buff_wr,
+    output logic [7:0]  sd_buff_din,
+    input  logic        save_req,         // OSD "Save NVRAM" (level)
+    input  logic        osd_open,
+    input  logic        autosave,         // save when the OSD opens
+    output logic        saving,
+    output logic        nv_restored,      // the NVRAM came from the save file
 
     input  logic        uart_rxd,
     input  logic        midi_inject,      // bench: a MIDI byte straight into the receive buffer
@@ -90,6 +113,24 @@ module jv880_board #(
     assign ok = pack_ok && model == 3'd4;      // a JV-880 pack
     assign rom_ok = ok;
 
+    // ---------------------------------------------------------- NVRAM save file
+    logic        nv_we, nv_hold, nv_pause, core_idle;
+    logic [14:0] nv_addr;
+    logic [7:0]  nv_wdata, nv_rdata;
+    synthframe_nvsave #(.AW(15)) nvsave (
+        .clk, .rst, .loading(ioctl_download || loading), .image_ok(ok),
+        .img_mounted, .img_readonly, .img_size,
+        .sd_lba, .sd_blk_cnt, .sd_rd, .sd_wr, .sd_ack, .sd_buff_addr, .sd_buff_dout, .sd_buff_wr, .sd_buff_din,
+        .save_req, .osd_open, .autosave,
+        .mem_we(nv_we), .mem_addr(nv_addr), .mem_wdata(nv_wdata), .mem_rdata(nv_rdata),
+        .core_idle, .boot_hold(nv_hold), .pause(nv_pause), .saving, .restored(nv_restored)
+    );
+    // the MCU's load port: the pack loader, or the save file into the NVRAM (ld_sel 5)
+    wire        c_ld_we   = ld_we || nv_we;
+    wire [2:0]  c_ld_sel  = nv_we ? 3'd5 : ld_sel;
+    wire [18:0] c_ld_addr = nv_we ? {4'd0, nv_addr} : ld_addr;
+    wire [7:0]  c_ld_data = nv_we ? nv_wdata : ld_data;
+
     // ---------------------------------------------------------- sequencing
     typedef enum logic [2:0] { B_HOLD, B_CLEAR, B_RESET, B_RUN } bst_t;
     bst_t bst;
@@ -102,7 +143,7 @@ module jv880_board #(
             core_rst <= 1'b1;
         end else begin
             case (bst)
-                B_HOLD:  begin core_rst <= 1'b0; bst <= B_CLEAR; end
+                B_HOLD:  if (!nv_hold) begin core_rst <= 1'b0; bst <= B_CLEAR; end
                 B_CLEAR: if (core_ready) begin reset_start <= 1'b1; bst <= B_RESET; end
                 B_RESET: if (reset_done) bst <= B_RUN;
                 default: ;
@@ -116,7 +157,7 @@ module jv880_board #(
     step_pacer #(.CLK_HZ(CLK_HZ), .STEP_NS(600), .STEP_NS_FAST(600)) pacer (
         .clk, .rst(core_rst), .enable(pace_enable), .fast(1'b0), .step_done, .allow, .lag_us
     );
-    assign run_step = running && allow && step_gate;
+    assign run_step = running && allow && step_gate && !nv_pause;
 
     // ---------------------------------------------------------- MIDI
     logic       rx_valid;
@@ -143,7 +184,9 @@ module jv880_board #(
     sc55_core #(.ROM2_AW(18), .JV880_RAMS(1'b1)) core (
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
-        .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
+        .ld_we(c_ld_we), .ld_sel(c_ld_sel), .ld_addr(c_ld_addr), .ld_data(c_ld_data),
+        .nv_dump_a(nv_addr), .nv_dump_d(nv_rdata), .idle(core_idle),
+        .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
         .enc_we(enc_go), .enc_dir(enc_pdir),
         .rom2x_req(), .rom2x_addr(), .rom2x_ack(1'b0), .rom2x_data(8'h00),
         .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons({18'h0, buttons}),
