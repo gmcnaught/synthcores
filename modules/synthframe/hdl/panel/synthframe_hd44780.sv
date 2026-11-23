@@ -2,8 +2,9 @@
 // synthframe (from the Proteus/1 XR and CZ-101 cores)
 //============================================================================
 //  HD44780 LCD controller (8-bit interface), modelled on MAME's
-//  hd44780_base_device: DDRAM 128 x 8, CGRAM 64 x 8, address counter
-//  correction, entry mode, display/cursor shift, display control.
+//  hd44780_base_device (src/devices/video/hd44780.cpp, BSD-3-Clause,
+//  copyright-holders Sandro Ronco): DDRAM 128 x 8, CGRAM 64 x 8, address
+//  counter correction, entry mode, display/cursor shift, display control.
 //
 //  Reset (MAME device_reset) and clear display fill DDRAM with spaces, one
 //  address a clock for 128 clocks; reset also zeroes CGRAM. A write during
