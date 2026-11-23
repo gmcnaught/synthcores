@@ -17,4 +17,11 @@ verilate(upd7810_bench SOURCES "${HDL}/upd7810/upd7810_core.sv"
          TOP_MODULE upd7810_core PREFIX Vupd7810_core
          VERILATOR_ARGS ${VFLAGS} "-GDECODE_HEX=\"${HDL}/upd7810/upd7810_decode.hex\"")
 
+# uPD7811 with peripherals and internal memory (milestones C1, C2)
+add_executable(upd7811_bench upd7811_bench.cpp)
+verilate(upd7811_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/upd7810_periph.sv"
+         "${HDL}/upd7810/upd7811.sv"
+         TOP_MODULE upd7811 PREFIX Vupd7811
+         VERILATOR_ARGS ${VFLAGS} --public-flat-rw "-GDECODE_HEX=\"${HDL}/upd7810/upd7810_decode.hex\"")
+
 include(upd933.cmake OPTIONAL)

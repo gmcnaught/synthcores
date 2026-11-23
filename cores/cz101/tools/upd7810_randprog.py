@@ -24,6 +24,10 @@ SFR_NAMES = {"PA", "PB", "PC", "PD", "PF", "MKH", "MKL", "ANM", "SMH", "SML", "E
              "CR1", "CR2", "CR3", "ZCM", "MT", "PT", "ETM0", "ETM1", "ECNT", "ECPT"}
 PREFIX = {"48": 0x48, "4C": 0x4C, "4D": 0x4D, "60": 0x60, "64": 0x64, "70": 0x70, "74": 0x74}
 EXCLUDE = re.compile(r"^(illegal|PRE_|HLT|STOP|RET|RETS|RETI|LXI_S_w|LSPD_w|SKN?IT_|NOP)")
+# --sfr: special registers the CZ-101 board makes unsafe or time-dependent in a random test:
+# PA (LCD bus), PC/MC/MCC (power-down and LCD strobes, SCK level), MA (LCD bus direction).
+SFR_UNSAFE = {"PA", "PC", "MA", "MC", "MCC"}
+COMPARE = ("GTI", "LTI", "NEI", "EQI", "ONI", "OFFI")
 
 
 def load(path):
@@ -46,6 +50,19 @@ class Gen:
         names = [n for n in ops if not EXCLUDE.match(n)]
         if not sfr:
             names = [n for n in names if not (set(n.split("_")) & SFR_NAMES)]
+        else:
+            def ok(n):
+                parts = set(n.split("_"))
+                if "PC" in parts and (n == "MOV_A_PC" or n.split("_")[0] in COMPARE):
+                    return True
+                if parts & SFR_UNSAFE:
+                    return False
+                # SMH writes only through the guarded sequence (mode 3 = external SCK)
+                if "SMH" in parts and not (n == "MOV_A_SMH" or n.split("_")[0] in COMPARE):
+                    return False
+                return True
+            names = [n for n in names if ok(n)]
+            names += [n for n in ops if re.match(r"SKN?IT_", n)] * 1
         self.names = names
         self.fillers = [n for n in names if re.fullmatch(
             r"(MOV_[A-L]_[A-L]|MOV_(A|V)_(EAH|EAL|[A-L])|MOV_(EAH|EAL)_A|MVI_[BCDEHV]_xx|"
@@ -154,6 +171,23 @@ class Gen:
             return
         self.emit(enc + args)
 
+    def vectors(self):
+        """JMPs at the interrupt vectors to handlers that clear their flags and return."""
+        here = self.pc
+        handlers = {0x0004: [], 0x0008: ["FT0", "FT1"], 0x0010: ["F1", "F2"],
+                    0x0018: ["FE0", "FE1"], 0x0020: ["FEIN", "FAD"], 0x0028: ["FSR", "FST", "ER"]}
+        self.pc = 0x0400
+        for vec, flags in handlers.items():
+            h = self.pc
+            for fl in flags:
+                self.op("SKIT_" + fl)
+                self.op("NOP")
+            if vec != 0x0004:
+                self.op("EI")
+            self.op("RETI")
+            self.img[vec:vec + 3] = bytes([0x54, h & 0xFF, h >> 8])
+        self.pc = here
+
     def build(self):
         r = self.r
         # vectors and stubs
@@ -172,7 +206,25 @@ class Gen:
         self.setup_rp("SP", 0x8E80)
         for rp in ("BC", "DE", "HL", "EA"):
             self.setup_rp(rp, r.randrange(0x10000))
+        if self.sfr:
+            self.vectors()
         while self.pc < 0x7E00:
+            if self.sfr and r.random() < 0.02:
+                # serial mode without the external SCK (mode 3)
+                self.op("NOP")
+                self.op("MVI_SMH_xx", r.choice([0, 1, 2]) | (r.randrange(64) << 2))
+                self.op("NOP")
+                continue
+            if self.sfr and r.random() < 0.01:
+                # HLT, woken by timer 0
+                self.op("NOP")
+                self.op("MVI_A_xx", r.randrange(1, 40))
+                self.op("MOV_TM0_A")
+                self.op("MVI_TMM_xx", 0xE3)
+                self.op("ANI_MKL_xx", 0xFD)
+                self.op("HLT")
+                self.op("NOP")
+                continue
             if r.random() < 0.05:
                 self.setup_rp("SP", 0x8E80)
             if r.random() < 0.05:

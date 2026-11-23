@@ -52,10 +52,10 @@ int main(int argc, char **argv) {
         if (adv_pend) { c->adv_ack = 1; adv_pend = false; }
         tick();
         if (c->insn_done) {
-            fprintf(out, "%llu %04X %02X %02X %d %02X%02X%02X%02X%02X%02X%02X%02X %04X %04X %02X\n",
+            fprintf(out, "%llu %04X %02X %02X %d %02X%02X%02X%02X%02X%02X%02X%02X %04X %04X %02X %04X\n",
                     (unsigned long long)cyc, c->insn_pc, c->insn_op, c->insn_op2, c->insn_cc,
                     c->r_v, c->r_a, c->r_b, c->r_c, c->r_d, c->r_e, c->r_h, c->r_l, c->r_ea,
-                    c->r_sp, c->r_psw);
+                    c->r_sp, c->r_psw, 0);
             cyc += c->insn_cc;
             count++;
         }

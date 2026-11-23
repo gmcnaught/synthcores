@@ -105,6 +105,15 @@ construction.
 | C4 | System bench | CPU + uPD933 + LCD + keys + MIDI from power-on: every corpus hash identical; LCD text identical to MAME's |
 | C5 | MiSTer | Windows build meets timing; on the MiSTer: boots to the first patch, plays MIDI from MidiLink with no underrun, panel keys work, RAM and cartridge survive a reload |
 
+## Status (2026-11-23)
+
+| # | Result |
+|---|---|
+| C0 | Patched MAME builds (`../mame-cz101`); test-ROM harness works. Waiting for the ROMs for the corpus. |
+| C1 | Done: 120 random programs, 3 M instructions identical to MAME (`docs/upd7810.md`) |
+| C2 | Peripherals done for the random tests (160 programs, 310 k interrupts identical). Firmware boot lockstep waits for the ROMs. |
+| C3 | In progress (uPD933) |
+
 ## Open questions
 
 - **Licence.** MAME's sources are BSD-3-Clause. If the core reuses the Proteus `hd44780.sv`
