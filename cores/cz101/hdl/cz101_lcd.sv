@@ -27,6 +27,7 @@ module cz101_lcd (
     input  logic        r_line,
     input  logic [3:0]  r_pos,
     output logic [7:0]  r_code,
+    output logic        r_cursor,      // the cell's DDRAM address is the address counter
     input  logic [2:0]  r_cg_code,
     input  logic [2:0]  r_cg_row,
     output logic [4:0]  r_cg_bits,
@@ -195,6 +196,7 @@ module cz101_lcd (
         end
     end
     assign r_code = ddram[m];
+    assign r_cursor = {1'b0, m} == ac;
     assign r_cg_bits = cgram[{r_cg_code, r_cg_row}][4:0];
 
 endmodule

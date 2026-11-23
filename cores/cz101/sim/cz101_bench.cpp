@@ -3,6 +3,8 @@
 // RXLOG: MAME's CZ_RX_LOG (seconds attoseconds level per MIDI-in line change).
 // ROMDIR holds MAME's cz101 set (hn613256ps40.bin, init_ram.bin). Power switch on from time 0
 // (MAME: CZ_POWER_ON=1), no keys, pitch wheel centred, MIDI in idle.
+// CZ_MIDI_BYTES=FILE: live MIDI as the MiSTer core feeds it, lines "CYCLE BYTE" (decimal, hex):
+// each byte is offered to the board's serializer once vcyc reaches CYCLE.
 #include "Vcz101_board.h"
 #include "verilated.h"
 #include "Vcz101_board___024root.h"
@@ -43,6 +45,16 @@ int main(int argc, char **argv) {
         if (f) fclose(f);
     }
     size_t rxi = 0;
+    struct mb_t { uint32_t cycle; uint8_t b; };
+    std::vector<mb_t> mb;
+    if (const char *mf = getenv("CZ_MIDI_BYTES")) {
+        FILE *f = fopen(mf, "r");
+        if (!f) { perror(mf); exit(1); }
+        unsigned cy, b;
+        while (fscanf(f, "%u %x", &cy, &b) == 2) mb.push_back({cy, (uint8_t)b});
+        fclose(f);
+    }
+    size_t mbi = 0;
 
     Verilated::commandArgs(argc, argv);
     auto *c = new Vcz101_board;
@@ -63,8 +75,11 @@ int main(int argc, char **argv) {
         if (rxi < rx.size()) {
             c->rx_valid = 1; c->rx_cycle = rx[rxi].cycle; c->rx_edge = rx[rxi].edge; c->rx_level = rx[rxi].level;
         } else c->rx_valid = 0;
+        if (mbi < mb.size() && mb[mbi].cycle <= c->cycles) { c->midi_valid = 1; c->midi_byte = mb[mbi].b; }
+        else c->midi_valid = 0;
         tick();
         if (c->rx_pop) rxi++;
+        if (c->midi_pop) mbi++;
         if (getenv("CZ_DEBUG_TIMER")) {
             auto *r = c->rootp;
             if (r->cz101_board__DOT__t_arm) fprintf(stderr, "arm a=%u n=%u vcyc=%u\n", r->cz101_board__DOT__arm_time, r->cz101_board__DOT__t_n, r->cz101_board__DOT__vcyc);
@@ -93,9 +108,9 @@ int main(int argc, char **argv) {
             c->r_line = line; c->r_pos = p; c->eval();
             uint8_t ch = c->r_code; l[line] += (ch >= 0x20 && ch < 0x7F) ? (char)ch : '.';
         }
-    printf("%llu instructions, %llu cycles, %llu samples, %zu/%zu MIDI-in changes, late %d\nLCD [%s]\n    [%s]\n",
+    printf("%llu instructions, %llu cycles, %llu samples, %zu/%zu MIDI-in changes, %zu/%zu MIDI bytes, late %d\nLCD [%s]\n    [%s]\n",
            (unsigned long long)count, (unsigned long long)cyc, (unsigned long long)samples, rxi, rx.size(),
-           c->upd933_late, l[0].c_str(), l[1].c_str());
+           mbi, mb.size(), c->upd933_late, l[0].c_str(), l[1].c_str());
     delete c;
     return count == n ? 0 : 1;
 }

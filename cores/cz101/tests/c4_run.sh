@@ -4,6 +4,8 @@
 # Needs CZ101_ROM_DIR (MAME's cz101 set), HD44780_ROM (hd44780_a00.bin), the patched MAME
 # (../mame-cz101) and out/sim/cz101_bench. MAME's midiin starts playback 10 s after power-on.
 # Compares the CPU trace (registers, memory writes, interrupts) and the raw 40 kHz samples.
+# Then the MiSTer core's live-MIDI path: MAME's MIDI-in decoded to bytes (tools/rxlog_bytes.py)
+# and sent by the board's serializer (CZ_MIDI_BYTES) must give the same trace and samples.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT=$1; N=$2
@@ -29,4 +31,8 @@ if d is not None:
     print(f"samples: FAIL at {d} of {n // 4}: MAME {va[d]} HDL {vb[d]}"); sys.exit(1)
 print(f"samples: identical {n // 4} ({nz} non-zero), sha256 {hashlib.sha256(a[:n]).hexdigest()}")
 PY
+python3 "$HERE/tools/rxlog_bytes.py" "$W/mame.rx" > "$W/live.bytes"
+CZ_MIDI_BYTES="$W/live.bytes" "$HERE/out/sim/cz101_bench" "$W/rom/cz101" "$N" "$W/live.trace" "$W/live.s32" | tee "$W/live.txt"
+python3 "$HERE/tools/trace_cmp.py" "$W/mame.trace" "$W/live.trace" "$N"
+cmp -n "$(stat -f%z "$W/mame.s32" 2>/dev/null || stat -c%s "$W/mame.s32")" "$W/mame.s32" "$W/live.s32" && echo "live MIDI samples: identical"
 echo "C4 $NAME: PASS"
