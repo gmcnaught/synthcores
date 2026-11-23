@@ -32,15 +32,15 @@ MAME's set `cz101` [OBS, `ROM_START( cz101 )`]:
 | `upd7811g-120.bin` | 4 KB | uPD7811 internal ROM; disabled by the mode pins on the CZ-101 [OBS, comment] |
 | `init_ram.bin` | 4 KB | initial contents of the battery-backed RAM (8000–8FFF) |
 
-- Source: dbwbp.com lists `Casio CZ-101 EPROM Firmware.zip` (13.96 KB) [OBS]. Its contents and
-  version are not known until downloaded [UNK]. Version III (a uPD27C256 EPROM) is not in MAME's
-  table; an EPROM dump may be that version.
-- The internal ROM is never executed [INF from the mode-pin comment; to be confirmed by the C0
-  trace]. A zero-filled file lets MAME run.
-- Without `init_ram.bin`, the RAM starts as one whose battery ran down. The firmware's
-  "P (Reset RAM)" key path rebuilds it [UNK which presets it writes].
-- CPU and sound-chip work (C1, C3) does not wait for the ROMs: the test-ROM harness runs
-  generated programs on the same MAME machine.
+- **The user's set** (2026-11-23): `synth-projects/nuked-sc55/firmware/cz101-mame/` (gitignored),
+  all four files matching MAME's hashes; dbwbp.com's `Casio CZ-101 EPROM Firmware.zip` is the same
+  Version II program ROM (SHA-1 2aa5bfb7…). Tests find the set through `CZ101_ROM_DIR`.
+- **Internal ROM** [OBS]: `upd7811g-120.bin` is byte-identical to the first 4 KB of
+  `hn613256ps40.bin` (reset: JMP 00C0; MM = 0F; JMP 4000; vectors and the CALT table point into
+  4000+). MAME's mapping of the internal ROM over 0000-0FFF therefore changes nothing; the core reads
+  0000-0FFF from the program ROM and needs no internal-ROM file.
+- **Boot** [OBS]: MAME with `init_ram.bin` and Power switched on shows "*PRESET* NO.01 / BRASS ENS.1".
+  MAME draws the LCD only after the Power input changes (`m_power`); the firmware runs either way.
 
 ## Hardware, from the MAME driver [OBS]
 
