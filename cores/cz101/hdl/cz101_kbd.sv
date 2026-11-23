@@ -1,6 +1,7 @@
 // CZ-101 panel buttons from a PS/2 keyboard (MiSTer ps2_key), with the keys MAME's cz101
-// driver assigns (INPUT_PORTS cz101, kc9-kc15). The 49 music keys (kc0-kc8) are played over
-// MIDI and stay released here.
+// driver assigns (INPUT_PORTS cz101, kc9-kc15), plus, for keyboards without a keypad,
+// F1-F8 = Tone 1-8 and Enter = Select. The 49 music keys (kc0-kc8) are played over MIDI and
+// stay released here.
 //
 // keys[i] is the key-matrix row i as the firmware reads it, active low. Not from the keyboard:
 // kc10 bit 5 Memory Protect and kc15 bit 6 Auto Power Off (switches, from the OSD),
@@ -43,6 +44,12 @@ module cz101_kbd (
                 8'h7A: pressed[2][2] <= dn;  8'h6B: pressed[2][3] <= dn;
                 8'h73: pressed[2][4] <= dn;  8'h74: pressed[2][5] <= dn;
                 8'h6C: pressed[2][6] <= dn;  8'h75: pressed[2][7] <= dn;
+                // F1-F8: Tone 1-8; Enter: Select (not in MAME)
+                8'h05: pressed[2][0] <= dn;  8'h06: pressed[2][1] <= dn;
+                8'h04: pressed[2][2] <= dn;  8'h0C: pressed[2][3] <= dn;
+                8'h03: pressed[2][4] <= dn;  8'h0B: pressed[2][5] <= dn;
+                8'h83: pressed[2][6] <= dn;  8'h0A: pressed[2][7] <= dn;
+                8'h5A: pressed[1][6] <= dn;
                 // kc13: A S D F G H J
                 8'h1C: pressed[4][1] <= dn;  8'h1B: pressed[4][2] <= dn;
                 8'h23: pressed[4][3] <= dn;  8'h2B: pressed[4][4] <= dn;
