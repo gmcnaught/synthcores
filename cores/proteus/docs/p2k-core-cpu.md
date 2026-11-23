@@ -62,7 +62,7 @@ Accesses counted over boot + demo playback in MAME [O]:
 2. MAME's `P2K_TRACE` logs (G20/H/G05 writes with time and PC) are the reference for the sound-chip
    interface; `tools/p2k_diff.py` gives per-parameter expected writes.
 3. Sound chips (G20 voices, H filter, G05 effects) follow the MAME models (`emup2k.cpp`,
-   `emup2k_fx.h`); their approximations are listed in docs/p2k-findings.md.
+   `emup2k_fx.h`, replaced 2026-11-23 by the integer model `p2k/model/p2k_sound.h`); their approximations are listed in docs/p2k-findings.md.
 
 ## 6. Status (2026-11-21)
 - Tooling: TG68K.C vendored in `p2k/rtl/cpu/tg68k/` (LGPL-3, changes marked `-- P2K:`), converted

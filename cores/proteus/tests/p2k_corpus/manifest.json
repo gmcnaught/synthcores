@@ -4,6 +4,24 @@
    "lcd_last": "LCD 11.75 |C01A Vol127 Pan00  User |000..drm:Piatti         |",
    "midi_sha256": "006363982c3c5d36de6efd522a4101d7bec65b679c5379d5ba8b729fad7fd6ea",
    "seconds": 17.0,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 0,
+    "filter_words": 6,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 64,
+    "writes": {
+     "G": 41329,
+     "H": 6672,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "40c7a3b548bf6d99f9fc124577f7d7bfa5dc556829d1539ed2e72179f62c71ac",
+   "sndout_sha256": "19eabd44343c865361568a55155d1c7d26fc3e796144d38902e6e71c5a4ec2ea",
    "trace": {
     "by_kind": {
      "G": 41329,
@@ -16,7 +34,7 @@
     "voices_started": 0,
     "voices_started_64_127": 0
    },
-   "trace_sha256": "0fefaf8421f0d4fda6b91b3ac4463fe713025ee79f4914dc15d2bcd99cec5c8f",
+   "trace_sha256": "f5e783dd5769b2d1e6ec8168c6adb2a26d4b6d2ed0966f95a98be5fcb1300e9d",
    "wav": {
     "audible_100ms_blocks": 0,
     "channels": 2,
@@ -34,373 +52,1053 @@
    "lcd_last": "LCD 20.75 |C01A Vol127 Pan00 ......|071........ne           |",
    "midi_sha256": "0daea9ca8b03cf310c0385602bbbbeeb49cbc7966621a615667a37e74fd435eb",
    "seconds": 26.15,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 14,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 78,
+    "writes": {
+     "G": 42037,
+     "H": 8148,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "e2390754a6ce2dc21732cc5b9b9a299ee357ea6936a829b0e401d24ccff1f780",
+   "sndout_sha256": "e0a0e0bfa1c727dc1bd78ffdd9c11da29afb7f33b32ee9481c28d2bb95df59a9",
    "trace": {
     "by_kind": {
      "G": 42037,
      "H": 8148,
-     "HR": 135604,
+     "HR": 135692,
      "MIDI": 113,
      "X": 8196
     },
-    "lines": 194098,
+    "lines": 194186,
     "note_starts": 14,
     "voices_started": 14,
     "voices_started_64_127": 0
    },
-   "trace_sha256": "8f4b58184aefa60f7ffe5e0fba0e5416d670af749351559efdcfd5ea7c68e3e7",
+   "trace_sha256": "69ff8faaa4e0ed18e0fcd4d9d7a32380d05828946c0059fd8720356407cf5602",
    "wav": {
-    "audible_100ms_blocks": 73,
+    "audible_100ms_blocks": 83,
     "channels": 2,
     "frames": 1248001,
-    "peak": 3285,
+    "peak": 8467,
     "rate": 48000,
     "rms": [
-     387.9,
-     405.0
+     1024.0,
+     1062.0
     ]
    },
-   "wav_sha256": "cdec372d866cd90f8eadc2e4b728fe9f9b8aa24a2e5b99f387210f2b8a17f980"
+   "wav_sha256": "e9be07f2e27beaed58116ed4633bcf4cb02dc2b12b02d47fae5459ad22877bfd"
+  },
+  "filt0": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "29521c32f29b48523a61f56f45b95493a495026c1ee198fb01b1c6596de00766",
+   "seconds": 49.6,
+   "sndlog": {
+    "cutoff_live_values": 13,
+    "cutoff_values": 1,
+    "filter_words": 412,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     50,
+     63,
+     114,
+     178,
+     191,
+     242
+    ],
+    "voice_starts": 98,
+    "writes": {
+     "G": 42553,
+     "H": 10554,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "b6f7336c2ce5d5b18fe38a069cf0751faed29ce844f3ee4f1ea53a650cd54a41",
+   "sndout_sha256": "4fbc471bd7f260da2d767f8585c87e4d7ea87ef7dd86dfb32e4fe0abccdddbac",
+   "trace": {
+    "by_kind": {
+     "G": 42553,
+     "H": 10554,
+     "HR": 184884,
+     "MIDI": 581,
+     "X": 8196
+    },
+    "lines": 246768,
+    "note_starts": 34,
+    "voices_started": 34,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "83fd45522d9e7ae06c1c2f8c3ea88f47e6d393f60c508e0effc49ff11fdbc39b",
+   "wav": {
+    "audible_100ms_blocks": 306,
+    "channels": 2,
+    "frames": 2352001,
+    "peak": 11767,
+    "rate": 48000,
+    "rms": [
+     3554.6,
+     3646.1
+    ]
+   },
+   "wav_sha256": "a2a858e44dad0d5508d3d28450b231d5436608b1f1285cb77cb4fcdcd58f425a"
+  },
+  "filt1": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "cdc9d194dea37073e3a3ea8f8bbed013a72e7c4f6e46840071e3b88f2ba2f823",
+   "seconds": 49.6,
+   "sndlog": {
+    "cutoff_live_values": 13,
+    "cutoff_values": 1,
+    "filter_words": 351,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     50,
+     63,
+     114,
+     178,
+     191,
+     242
+    ],
+    "voice_starts": 98,
+    "writes": {
+     "G": 42553,
+     "H": 10368,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "c07f53c23c7f7adaac38a86786ac4ca45b501fef1c8e3f84a63f0f1922fc5816",
+   "sndout_sha256": "6e366fb81f77bd52176739de8ec89240e5aca7fc2cea3dcd901a1bc6789d3062",
+   "trace": {
+    "by_kind": {
+     "G": 42553,
+     "H": 10368,
+     "HR": 184824,
+     "MIDI": 581,
+     "X": 8196
+    },
+    "lines": 246522,
+    "note_starts": 34,
+    "voices_started": 34,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "75caccfd9bda1430aeebe88c76f48e0d5a7d04c4ad3b68c2db5e5612266908a4",
+   "wav": {
+    "audible_100ms_blocks": 314,
+    "channels": 2,
+    "frames": 2352001,
+    "peak": 11724,
+    "rate": 48000,
+    "rms": [
+     3584.8,
+     3677.7
+    ]
+   },
+   "wav_sha256": "f95e7800c0960b13361c9a72bb5dd26c1bda1b7767903208c44b92a931d15181"
+  },
+  "filt2": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "57d1075805ca44c807fb43b68cca9a58efd0a9ee6067ff01840683cc9ecff5ef",
+   "seconds": 49.6,
+   "sndlog": {
+    "cutoff_live_values": 13,
+    "cutoff_values": 1,
+    "filter_words": 519,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     50,
+     63,
+     114,
+     178,
+     191,
+     242
+    ],
+    "voice_starts": 98,
+    "writes": {
+     "G": 42553,
+     "H": 10828,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "8e7123e23283bbbb0915a09f3df12fe22eff07b6e7088ecf74b453a889db399f",
+   "sndout_sha256": "8e47e010e823ad18c144c67adc1000a47233addb29ab0217d8ed78c4f962e6e8",
+   "trace": {
+    "by_kind": {
+     "G": 42553,
+     "H": 10828,
+     "HR": 184784,
+     "MIDI": 581,
+     "X": 8196
+    },
+    "lines": 246942,
+    "note_starts": 34,
+    "voices_started": 34,
+    "voices_started_64_127": 2
+   },
+   "trace_sha256": "4912f3b9bb3960681cce8b80ac8f666504c86f1f27706798973aedaf127550ac",
+   "wav": {
+    "audible_100ms_blocks": 320,
+    "channels": 2,
+    "frames": 2352001,
+    "peak": 13161,
+    "rate": 48000,
+    "rms": [
+     4367.8,
+     4480.6
+    ]
+   },
+   "wav_sha256": "27168726160d42267e90b943f93ade0adfabbfbcfd69186bab61d07ca8547b9e"
+  },
+  "fxa0": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "7b9120545079eafb922177910fb866b58792d4b2b31aac7c89766905f69443d6",
+   "seconds": 66.0,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2924,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 92,
+    "writes": {
+     "G": 42337,
+     "H": 8788,
+     "X": 59196
+    }
+   },
+   "sndlog_sha256": "b8d133943eaf7f5e37cc311796a5bee9cee5e13027fb3529ebb4913b952b0dc4",
+   "sndout_sha256": "929055ea930608a2d4c56d63726bbbdef253d33afbe27961d9ecd8e1879efe54",
+   "trace": {
+    "by_kind": {
+     "G": 42337,
+     "H": 8788,
+     "HR": 222288,
+     "MIDI": 87,
+     "X": 59196
+    },
+    "lines": 332696,
+    "note_starts": 28,
+    "voices_started": 28,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "98ee0e1fa7a9d073c68018b4f10d64ae4de2a0648c6e2d06400391aabfe4003f",
+   "wav": {
+    "audible_100ms_blocks": 237,
+    "channels": 2,
+    "frames": 3168001,
+    "peak": 4757,
+    "rate": 48000,
+    "rms": [
+     483.7,
+     501.2
+    ]
+   },
+   "wav_sha256": "54a328659a627f1fc413a1b16dcbb61626021f1dcb6d06d720bb64c647f71e6c"
+  },
+  "fxa1": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "7bbfbd7e95a604dc741b11d929cc4c6142ecf56733ed6b5b2e0db47a29479b70",
+   "seconds": 55.2,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2791,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 86,
+    "writes": {
+     "G": 42121,
+     "H": 8338,
+     "X": 54978
+    }
+   },
+   "sndlog_sha256": "81bae846005c50c60d3281eba2d5384515a934517c2fe1383276d064dcf4f4e3",
+   "sndout_sha256": "7a6799c38ae2bac339e0c0fb0db5933d54a9a75e37df689fb35ba78742d557e6",
+   "trace": {
+    "by_kind": {
+     "G": 42121,
+     "H": 8338,
+     "HR": 198546,
+     "MIDI": 69,
+     "X": 54978
+    },
+    "lines": 304052,
+    "note_starts": 22,
+    "voices_started": 22,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "e8a39ea068530f82706b09abbb457bfa7a5b37eaccbf8e5c66e6e5c102df898e",
+   "wav": {
+    "audible_100ms_blocks": 149,
+    "channels": 2,
+    "frames": 2640001,
+    "peak": 4586,
+    "rate": 48000,
+    "rms": [
+     462.1,
+     479.2
+    ]
+   },
+   "wav_sha256": "19e718d92681148e1b5864406f8de82a697ae8aa1310a3632de92e05caaebbbe"
+  },
+  "fxb": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "af1801ca305a07e2ae839480ddcded49c2b27e493383308b2aba13e18512472e",
+   "seconds": 84.0,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 3098,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 102,
+    "writes": {
+     "G": 42697,
+     "H": 9808,
+     "X": 130485
+    }
+   },
+   "sndlog_sha256": "5e6f06a2f228be258acd729ef1d376199a15d76463d40cb85b2b123fb1103590",
+   "sndout_sha256": "e229af3852d30dd86dbcec001281f0c570c042b50e5f01f8d31dd05d12b58f91",
+   "trace": {
+    "by_kind": {
+     "G": 42697,
+     "H": 9808,
+     "HR": 260728,
+     "MIDI": 117,
+     "X": 130485
+    },
+    "lines": 443835,
+    "note_starts": 38,
+    "voices_started": 38,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "e4345a017c9896b2dccfd8a67ef7b2cffa834c58a7f38d2fe1a87bac6aa879a3",
+   "wav": {
+    "audible_100ms_blocks": 488,
+    "channels": 2,
+    "frames": 4032001,
+    "peak": 15848,
+    "rate": 48000,
+    "rms": [
+     1300.3,
+     1298.9
+    ]
+   },
+   "wav_sha256": "ff488ff10d006cce401016482c8c0c827c163ea52c1f6656c780475b7109e2a5"
+  },
+  "mod": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "d237148c2f9619cba275d571469458aadb61593c029c358d01ac99c628b4e779",
+   "seconds": 33.8,
+   "sndlog": {
+    "cutoff_live_values": 141,
+    "cutoff_values": 9,
+    "filter_words": 10,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 77,
+    "writes": {
+     "G": 45025,
+     "H": 8290,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "32540534819e81585708c36788d22a41760bd93a8f828a855c4d501e328be471",
+   "sndout_sha256": "a44979779acb9124e5275d87006f19246876cd0d5a2e3e3183811b6b48f7255d",
+   "trace": {
+    "by_kind": {
+     "G": 45025,
+     "H": 8290,
+     "HR": 150732,
+     "MIDI": 32,
+     "X": 8196
+    },
+    "lines": 212275,
+    "note_starts": 13,
+    "voices_started": 11,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "798bd8a857563a83bb9bd9424281f1ef953763c30093a182ab5ec969d6dad0e0",
+   "wav": {
+    "audible_100ms_blocks": 104,
+    "channels": 2,
+    "frames": 1584001,
+    "peak": 8416,
+    "rate": 48000,
+    "rms": [
+     2107.3,
+     2165.2
+    ]
+   },
+   "wav_sha256": "0becbd2333355fdfce1ced2a4f38f6b942eba772e7bafaaaac35aff5427e3264"
   },
   "multi": {
    "lcd_last": "LCD 12.50 |C01A Vol127 Pan00  P2Ksy|087..rom:Micro Moog     |",
    "midi_sha256": "2b27ea321bedf9a33498393df5a472050972bb119f6106ee7f2dc1b607985f61",
    "seconds": 20.3,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 31,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 208,
+    "writes": {
+     "G": 46513,
+     "H": 19486,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "8974e115a92e29eba246bc4ac6d03fc55a9dc8244ddb96d1dcdcbd5e00e03b33",
+   "sndout_sha256": "a9c08a612f76f57abaa7ef2d5711c77503754f093a6dff33a186aa1e59b19d98",
    "trace": {
     "by_kind": {
      "G": 46513,
      "H": 19486,
-     "HR": 120326,
+     "HR": 120802,
      "MIDI": 168,
      "X": 8196
     },
-    "lines": 194689,
+    "lines": 195165,
     "note_starts": 144,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "91ae607dc3aafb29c0781b19746987b5333e2339e9ca0a40d93021d5819ffde2",
+   "trace_sha256": "843f1a0ebe99c4917768500276933fd456b22366ddff59d2f37b6468e8da8664",
    "wav": {
-    "audible_100ms_blocks": 48,
+    "audible_100ms_blocks": 49,
     "channels": 2,
     "frames": 960001,
-    "peak": 17284,
+    "peak": 32767,
     "rate": 48000,
     "rms": [
-     1243.7,
-     1298.7
+     2648.4,
+     2765.8
     ]
    },
-   "wav_sha256": "986a034f961ee3373c3c5b2aa21f3770374d076d1e9d84b9ad58104faa658f44"
+   "wav_sha256": "26ead3ea595c4d89519cc6e7ad27cfb4af5c7fe70ffc0a5cd4696afeb680024d"
   },
   "poly": {
    "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
    "midi_sha256": "a2f1b5dd898265aab2bd5ff94be06b78cbb8ecc36942d85fd6dae006847eaf39",
    "seconds": 23.0,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 90,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 214,
+    "writes": {
+     "G": 46597,
+     "H": 31284,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "02dd06c0ce37130101f0c0f8fd610c416a0486586f7e17b289d98c2640882f7d",
+   "sndout_sha256": "f46c4d6154ab95585b7628c4873c4547986b70f49d79bb02c7c1a54218afc5ea",
    "trace": {
     "by_kind": {
      "G": 46597,
      "H": 31284,
-     "HR": 122714,
+     "HR": 123476,
      "MIDI": 153,
      "X": 8196
     },
-    "lines": 208944,
+    "lines": 209706,
     "note_starts": 150,
     "voices_started": 128,
     "voices_started_64_127": 64
    },
-   "trace_sha256": "4e33eb179ce57d8e140118095e937368cff181e2aa2cc0e09547f113af32692d",
+   "trace_sha256": "61ccc549933161d8f1cc00fb45f195a452c77fff4a1ac3556cb0a8b6e2ead159",
    "wav": {
     "audible_100ms_blocks": 68,
     "channels": 2,
     "frames": 1104001,
-    "peak": 17869,
+    "peak": 32767,
     "rate": 48000,
     "rms": [
-     1752.2,
-     1829.4
+     3746.7,
+     3886.6
     ]
    },
-   "wav_sha256": "b155f923687a584f44c909853017a8da7463405a58556877f203b007fda24c36"
+   "wav_sha256": "812573567d489d9bbf28fa9da64bb6153622ccf667be06d8697567068128d3d6"
   },
   "range": {
    "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|112........ganClassic   |",
    "midi_sha256": "fca1457049d3ea53f5e3b5e0fc9a4c0af7ac74969ffe3dc7f8102c509e6c5c52",
    "seconds": 25.75,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 11,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 96,
+    "writes": {
+     "G": 42417,
+     "H": 9102,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "6ac9c89733d61e0d19a4f34a8d1843a5b7dbd0d5bec4f70a0fcfb6d4d86bc736",
+   "sndout_sha256": "54aca1941394c656a5696fde65c8698b2698393f67484f0e17668036ec94ab9a",
    "trace": {
     "by_kind": {
      "G": 42417,
      "H": 9102,
-     "HR": 133198,
+     "HR": 133432,
      "MIDI": 84,
      "X": 8196
     },
-    "lines": 192997,
+    "lines": 193231,
     "note_starts": 32,
     "voices_started": 32,
     "voices_started_64_127": 0
    },
-   "trace_sha256": "b7bb8dda9f58874d9de32e3fb75861e7718ba6899eb7b9142e0c09cee18a7619",
+   "trace_sha256": "95ea0f339941de3bebf76171a067ff5c5f2bca94fd2fde81916a38fb4203a85a",
    "wav": {
     "audible_100ms_blocks": 76,
     "channels": 2,
     "frames": 1200001,
-    "peak": 1644,
+    "peak": 3370,
     "rate": 48000,
     "rms": [
-     199.0,
-     207.8
+     420.5,
+     444.0
     ]
    },
-   "wav_sha256": "824814538b0c8ff32a15ba4bb83385ae9a7f979c34b8cb74f1d172f340a90d83"
+   "wav_sha256": "2875f4d9abc64e447898211e57e89187793715b88d69558d26a2108feef4f6ce"
+  },
+  "route": {
+   "lcd_last": "LCD 12.25 |C01A Vol127 Pan00  P2Ksy|087..rom:B3 Lo Fast     |",
+   "midi_sha256": "e616ec3900034e7215e6ed2f7197101a7ffe424403de4dc94f8d421e05862740",
+   "seconds": 35.1,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2660,
+    "route_flag_bytes": [
+     1,
+     68,
+     114,
+     123
+    ],
+    "voice_starts": 77,
+    "writes": {
+     "G": 41797,
+     "H": 7853,
+     "X": 12047
+    }
+   },
+   "sndlog_sha256": "33ced46fbac7a79d0bfac7af91a9e0fab3114c616ba68aba40b4f5793ee08e64",
+   "sndout_sha256": "18c1f5d6ecf5c809f382a7beb294761859b874cd78135235b3358719c7e5fd37",
+   "trace": {
+    "by_kind": {
+     "G": 41797,
+     "H": 7853,
+     "HR": 155322,
+     "MIDI": 42,
+     "X": 12047
+    },
+    "lines": 217061,
+    "note_starts": 13,
+    "voices_started": 13,
+    "voices_started_64_127": 0
+   },
+   "trace_sha256": "a51b4808ae11e1a89620c6b252a84f9af9d92c9d2625bd99f3d19e5661b9ad2a",
+   "wav": {
+    "audible_100ms_blocks": 116,
+    "channels": 2,
+    "frames": 1680001,
+    "peak": 7025,
+    "rate": 48000,
+    "rms": [
+     753.7,
+     761.7
+    ]
+   },
+   "wav_sha256": "30600976d0956a935ff07c099e72cd750e04e218f59d2414448ac7405592be69"
+  },
+  "soak": {
+   "lcd_last": "LCD 611.00 |C01A Vol069 Pan44.......|072........ne Inv ^3    |",
+   "midi_sha256": "7e35d2643d24db710bcfd04f4060f21c8aba692ec1a3ce0723755f4ffe444959",
+   "seconds": 615.0,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 163,
+    "filter_words": 450,
+    "g05_distinct_writes": 3159,
+    "route_flag_bytes": [
+     1,
+     50,
+     63,
+     114,
+     129,
+     178,
+     191,
+     242
+    ],
+    "voice_starts": 4705,
+    "writes": {
+     "G": 253397,
+     "H": 2959222,
+     "X": 421156
+    }
+   },
+   "sndlog_sha256": "dbd2bc30123edafc9d86b5e32084ed91b9f51f3cfb17ac115a2f74c5a1c6942b",
+   "sndout_sha256": "458418b6236633a3e2ad013bfc7ddfeec73657bf7880ba01a8fe97ed6a728d84",
+   "trace": {
+    "by_kind": {
+     "G": 253397,
+     "H": 2959222,
+     "HR": 1262910,
+     "MIDI": 8921,
+     "X": 421156
+    },
+    "lines": 4905606,
+    "note_starts": 4641,
+    "voices_started": 120,
+    "voices_started_64_127": 60
+   },
+   "trace_sha256": "3af32eff64d3219c038ad6d550e61aa83e52d4853b770aa9a53c95557b5f8491",
+   "wav": {
+    "audible_100ms_blocks": 3942,
+    "channels": 2,
+    "frames": 29520001,
+    "peak": 32768,
+    "rate": 48000,
+    "rms": [
+     628.8,
+     994.0
+    ]
+   },
+   "wav_sha256": "7c92f0baa32dcef061e06ef72169d31d1944632f899b9f74f92c789ccde5c86a"
   },
   "sweep0": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..bas:Filt Bass      |",
    "midi_sha256": "8479e6a5d8afb49d6c3697a49d230a9a6eaf45096cfff7eaf8c9821d71b6e717",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 191,
+    "writes": {
+     "G": 45767,
+     "H": 18515,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "4a0b88d1b5ef21d4332ca882675b2e62bbd28d8457da64619838476b04f7ef61",
+   "sndout_sha256": "aba88d321858e7848380c23939c21aaa749843d2504b25d06cdfccd0deed6cde",
    "trace": {
     "by_kind": {
      "G": 45767,
-     "H": 18513,
-     "HR": 296310,
+     "H": 18515,
+     "HR": 300342,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 369298,
+    "lines": 373332,
     "note_starts": 127,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "65f51b0e03045f19f5a11f12404ae9cae6ccd54f6f6779c6fc29cec8b23317b8",
+   "trace_sha256": "b4162f86060ddf90b993646efc3d39cadf0000f58de0741ee84f3bd56a7ddcb4",
    "wav": {
-    "audible_100ms_blocks": 553,
+    "audible_100ms_blocks": 570,
     "channels": 2,
     "frames": 4992001,
-    "peak": 1872,
+    "peak": 4144,
     "rate": 48000,
     "rms": [
-     319.3,
-     333.4
+     709.8,
+     746.2
     ]
    },
-   "wav_sha256": "ae019ad520a470c53dd018b54587e850b72c54deebdb507c16e26be9747f828a"
+   "wav_sha256": "85e7efea8d13222d514dc0b618b4c3806b0f782e6a52b420366a5ccda38e2870"
   },
   "sweep1": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Bongo Fury     |",
    "midi_sha256": "d7e86bd19a5d2aa63fbc80e2b4ac0242f28e1b139d9eabf16d09dccdcf5891bb",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 193,
+    "writes": {
+     "G": 45869,
+     "H": 20239,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "892fd25a8b6f593cdef4e0a51ab9712aa5a4d8e037fdf156ffca2df9c8dd762e",
+   "sndout_sha256": "2a283419d27120029ad5bf6c51de3301653eb2211ee9f9bb4beb851dd79c889c",
    "trace": {
     "by_kind": {
      "G": 45869,
-     "H": 20243,
-     "HR": 296144,
+     "H": 20239,
+     "HR": 300068,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 370964,
+    "lines": 374884,
     "note_starts": 129,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "6cc9c32a0d38a3cc84d30d36ccfc6825cb22b23fc60f6ae028ebc69efec2559a",
+   "trace_sha256": "0fb1d6fe4b7dd5d7b8c5e7a42294c82aa39c5ea799d3d29f5440e0d3f992a56c",
    "wav": {
-    "audible_100ms_blocks": 650,
+    "audible_100ms_blocks": 662,
     "channels": 2,
     "frames": 4992001,
-    "peak": 2515,
+    "peak": 4662,
     "rate": 48000,
     "rms": [
-     327.3,
-     343.4
+     699.4,
+     737.1
     ]
    },
-   "wav_sha256": "ee51665db00c538f998019e4e9b965a405efd126e467147d2addd1bd080767f8"
+   "wav_sha256": "ea9abff6701504a205e2f26e6ca9d6f9f7cfd96c3eee95be16d016e207d8089b"
   },
   "sweep2": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:FullPinkNois   |",
    "midi_sha256": "7663930a7f51aece3bbdf58fbdb923416810ddc184ed7c7b263ecf2e02205b8e",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 192,
+    "writes": {
+     "G": 45707,
+     "H": 17616,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "54924cd32eec82d91bb8a01f016025ab912e6931bcca6c1f0e1f2015abaf14e0",
+   "sndout_sha256": "8588ce2e423747ac381543dcc1158df3d52b056916eba42dc7824d40e4137992",
    "trace": {
     "by_kind": {
      "G": 45707,
      "H": 17616,
-     "HR": 296202,
+     "HR": 300872,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 368233,
+    "lines": 372903,
     "note_starts": 128,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "76a0fa76180e4a05cff4c82ead61777b57816a201005359f96d977073dd4a497",
+   "trace_sha256": "034d372c6301d9fa5d935cd6bfef5707c6b0c8d21740c6d77d148089af8afa8b",
    "wav": {
-    "audible_100ms_blocks": 429,
+    "audible_100ms_blocks": 468,
     "channels": 2,
     "frames": 4992001,
-    "peak": 1820,
+    "peak": 4146,
     "rate": 48000,
     "rms": [
-     176.2,
-     184.0
+     418.7,
+     440.7
     ]
    },
-   "wav_sha256": "f6d78c23e30862f1b62ef3ce3980f8fc2b650d7c1a523877353d9b87e80b8c80"
+   "wav_sha256": "0122df0cd038dd915147fc1e1cee8470b4519af11d987b6f7e35a7d5020d5096"
   },
   "sweep3": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Percced        |",
    "midi_sha256": "0992000fed27d6805d7a2707cc4fbce8667eae119a8201215b10126310849820",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 192,
+    "writes": {
+     "G": 45711,
+     "H": 17542,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "67233c66c868fa6fd6f373bafbc191661963541d78f08bde528528961d03f28a",
+   "sndout_sha256": "3ef11bd2fd936e1730e93bf37fc831174f70c9c7c5821850f726e120347f968c",
    "trace": {
     "by_kind": {
      "G": 45711,
-     "H": 17546,
-     "HR": 296198,
+     "H": 17542,
+     "HR": 301298,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 368163,
+    "lines": 373259,
     "note_starts": 128,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "62402d092c973ba43b0b7f95a6790e6648283954c6936966e46caa370fd1dc63",
+   "trace_sha256": "460e410b9de680c9fc71c6a65b9d08e8d8cd700941eb75b82718506cc2d80678",
    "wav": {
-    "audible_100ms_blocks": 419,
+    "audible_100ms_blocks": 470,
     "channels": 2,
     "frames": 4992001,
-    "peak": 1903,
+    "peak": 4158,
     "rate": 48000,
     "rms": [
-     197.8,
-     206.5
+     460.7,
+     485.0
     ]
    },
-   "wav_sha256": "b0d5b0e24e2a924ce1f034dcec7d9e3e2206de116cb0534564b271829b580abb"
+   "wav_sha256": "f3540a4ad016c780d77186166465486d605a8c749f4b52fdc46785099c4a5754"
   },
   "sweep4": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..drm:Tambourin      |",
    "midi_sha256": "45da37d469a109c7afb6494ad7b3bc18b24bfbb488c7ce711fffd228b2898b82",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 192,
+    "writes": {
+     "G": 45703,
+     "H": 19364,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "d385f5c058bd7ee306f454f06cc3b97ca9e9122b1f206560f5eabe7b46730134",
+   "sndout_sha256": "c7fd99c15a962d66be39ca9875a3e449c093e9399ea02bd814f7415f4a773a9d",
    "trace": {
     "by_kind": {
      "G": 45703,
      "H": 19364,
-     "HR": 296182,
+     "HR": 300560,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 369957,
+    "lines": 374335,
     "note_starts": 128,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "c6a560dc693d522ac6ff37d796f85249237cfa55ec8a14bc273539db1eecfeca",
+   "trace_sha256": "9b25ea662f04b19769042a2d57c4f8cef883f7203ffe614eca5f17a1a5d672b7",
    "wav": {
-    "audible_100ms_blocks": 433,
+    "audible_100ms_blocks": 485,
     "channels": 2,
     "frames": 4992001,
-    "peak": 1904,
+    "peak": 4157,
     "rate": 48000,
     "rms": [
-     174.7,
-     182.4
+     408.0,
+     429.7
     ]
    },
-   "wav_sha256": "40d1d7726a204d15e640c66e9c08d83b1b299f67f0e42a904d9080eea1c0aaf6"
+   "wav_sha256": "0d8ae41f9b56f08490e5be4b7caca6bfa18c50e2ec9d2cd588f10378d0c1e644"
   },
   "sweep5": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..sfx:Boink          |",
    "midi_sha256": "6ab67e57d46b28ed15c8040b61a95e0149a67f0d031cdea83042f6ad51490af6",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 193,
+    "writes": {
+     "G": 45823,
+     "H": 20125,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "9409b3228f680ceaabe5863860f2f37ba018ca4fd21f1efd6a9ea4f3264c5c08",
+   "sndout_sha256": "3a9fa588bd2610a411ff1e23aa41f34d748bd7d74c53c4a651a4815ab3940713",
    "trace": {
     "by_kind": {
      "G": 45823,
      "H": 20125,
-     "HR": 296214,
+     "HR": 300290,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 370870,
+    "lines": 374946,
     "note_starts": 129,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "eed52789e445909b4a33fca34c65e370e7db42a5ffc5179aa5a03901f7c7d7f7",
+   "trace_sha256": "77a6ac77f7989598e13e03ecddd5805442423bcc39db0bd130b723b84fac0666",
    "wav": {
-    "audible_100ms_blocks": 586,
+    "audible_100ms_blocks": 610,
     "channels": 2,
     "frames": 4992001,
-    "peak": 3533,
+    "peak": 6354,
     "rate": 48000,
     "rms": [
-     265.6,
-     274.7
+     573.9,
+     598.2
     ]
    },
-   "wav_sha256": "9c3c9b26f581c8ae0e79d508840bd82b2622442fe6710cd7bda5c88acf32589f"
+   "wav_sha256": "738b0cf284c1ae609e6c68fa60913ddd5856f6ba05d39cc600ddad92ecf49f46"
   },
   "sweep6": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..pad:Under Pad FM   |",
    "midi_sha256": "3ba5ed66a28a6ab64e98380b2f2b3848c9e2487c79d05a8a4ea249b8fb6cd4ab",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 192,
+    "writes": {
+     "G": 45835,
+     "H": 23914,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "ebeea164c85ce6ae92a5dc46698c154afd04426c050137e401ce849491cbe742",
+   "sndout_sha256": "73c839796cfb4b8bc36ae2904a497c9d033bd2c541fc584397ae1ae78f2cdc1d",
    "trace": {
     "by_kind": {
      "G": 45835,
-     "H": 23912,
-     "HR": 296192,
+     "H": 23914,
+     "HR": 299178,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 374647,
+    "lines": 377635,
     "note_starts": 128,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "cd2cb31f4bfcd920bb73bf525674021777efe7519a57f8e19d1d773ddf3e29c6",
+   "trace_sha256": "091fc8ab2b9dae1e5c19060f961819f972ce7b9188a5f2ea750b6624e3f8d34b",
    "wav": {
-    "audible_100ms_blocks": 692,
+    "audible_100ms_blocks": 698,
     "channels": 2,
     "frames": 4992001,
-    "peak": 1815,
+    "peak": 3945,
     "rate": 48000,
     "rms": [
-     333.1,
-     347.8
+     706.9,
+     742.0
     ]
    },
-   "wav_sha256": "7190de78aa088b7377416418f2d7ed0abc46069bbe2bb1b544d8e0bb68b9ad67"
+   "wav_sha256": "efef1bca4b1196ff38b115041476353c6dad01bc63d3b75d6b68b9e7dd980f5f"
   },
   "sweep7": {
    "lcd_last": "LCD 101.00 |C01A Vol127 Pan00  P2Ksy|127..rom:Tine Piano     |",
    "midi_sha256": "5d2e31b2bef0d4ee4aefb021a872fcbd4a6c4c9c671601ff2db2a0a429310b35",
    "seconds": 104.6,
+   "sndlog": {
+    "cutoff_live_values": 1,
+    "cutoff_values": 1,
+    "filter_words": 7,
+    "g05_distinct_writes": 2520,
+    "route_flag_bytes": [
+     1,
+     114
+    ],
+    "voice_starts": 193,
+    "writes": {
+     "G": 45913,
+     "H": 20603,
+     "X": 8196
+    }
+   },
+   "sndlog_sha256": "da848856f86c1d4cbc85b5f8aae80710caca823be8ebf7beb63d5903cde19b5e",
+   "sndout_sha256": "166e051f7a30e96b1d3192e755ec36b46eda836896d2d782d8c8480ac01b9acc",
    "trace": {
     "by_kind": {
      "G": 45913,
-     "H": 20601,
-     "HR": 296106,
+     "H": 20603,
+     "HR": 299836,
      "MIDI": 512,
      "X": 8196
     },
-    "lines": 371328,
+    "lines": 375060,
     "note_starts": 129,
     "voices_started": 112,
     "voices_started_64_127": 56
    },
-   "trace_sha256": "296286aebecc69326699e55217277e0046df78126c0f12ccf26a16397dc3b632",
+   "trace_sha256": "8cd2137b8e4cbe2f02f7138036b7e93cb623131acee437954e126bd21e5fa429",
    "wav": {
-    "audible_100ms_blocks": 688,
+    "audible_100ms_blocks": 693,
     "channels": 2,
     "frames": 4992001,
-    "peak": 3869,
+    "peak": 7611,
     "rate": 48000,
     "rms": [
-     386.4,
-     402.8
+     823.8,
+     863.9
     ]
    },
-   "wav_sha256": "293c1053366812db95bdbfc395c0b1b44137fcbe6e8cdc61a4509d81b1c554f8"
+   "wav_sha256": "a094e73fe92ce28236e4fe0df158e5f2c5ef78e2dca2d81015a96f9da4d15bfe"
   }
  },
  "inputs": {
@@ -408,11 +1106,12 @@
   "mame_patches": {
    "0001-emu68k-proteusxr-sound.patch": "2282c20c8b33b89c5f2eb010a30d4203a721323386a766e4a9e6877f3dbfe6d1",
    "0002-emup2k-proteus2000-research.patch": "dbdc9aeae465df8e89c55106bcce7a1ae3b7bfa33c4f89dbac29b5f622c5bdd0",
-   "0003-p2k-bustrace-vector-reads.patch": "e60eab6b200096db2916416b17313e827f6c0041f151ab0bbae3ef44267e479e"
+   "0003-p2k-bustrace-vector-reads.patch": "e60eab6b200096db2916416b17313e827f6c0041f151ab0bbae3ef44267e479e",
+   "0004-p2k-integer-sound-model.patch": "3e9d387a8f610f20b2ec902827bbb4922baf078c1d8b969a132482d9e79947f6"
   },
   "simm": {
    "baby.bin": "fb5ac63dd5521d2307e3324bb4c252019c6063fa4cc4e4bafe7391df353cd882",
-   "big.bin": "c7d27b6729879b959b53930b1d22fb2bb953b6801ace2f0939771b87702ee097",
+   "big.bin": "b8aa9d8350b2db41b7197c6672d9232ab1aab0ef8c3ccc9cb44b4633c9eb00f8",
    "flash_clean.nv": "c0cf3eeb02bcded880388ff9c4b8efb201d003e61929080e044248f701a3c977"
   }
  }

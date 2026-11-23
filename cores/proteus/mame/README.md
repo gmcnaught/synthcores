@@ -1,6 +1,6 @@
 # MAME reference model
 
-Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch`, `patches/0002-emup2k-proteus2000-research.patch` and `patches/0003-p2k-bustrace-vector-reads.patch` (apply in order; base commit in `patches/BASE`).
+Our changes to upstream MAME live in `patches/0001-emu68k-proteusxr-sound.patch`, `patches/0002-emup2k-proteus2000-research.patch`, `patches/0003-p2k-bustrace-vector-reads.patch` and `patches/0004-p2k-integer-sound-model.patch` (apply in order; base commit in `patches/BASE`).
 
 ```sh
 git clone https://github.com/mamedev/mame.git third_party/mame
@@ -8,6 +8,7 @@ git -C third_party/mame checkout $(cut -d' ' -f3 mame/patches/BASE)
 git -C third_party/mame apply ../../mame/patches/0001-emu68k-proteusxr-sound.patch
 git -C third_party/mame apply ../../mame/patches/0002-emup2k-proteus2000-research.patch
 git -C third_party/mame apply ../../mame/patches/0003-p2k-bustrace-vector-reads.patch
+git -C third_party/mame apply ../../mame/patches/0004-p2k-integer-sound-model.patch
 make -C third_party/mame SUBTARGET=proteus SOURCES=src/mame/emusys/emu68k.cpp,src/mame/emusys/emup2k.cpp NOWERROR=1 REGENIE=1 -j8
 ```
 
@@ -32,6 +33,27 @@ Verified 2026-11-20 (`proteusxrpl`, firmware v2.30):
 - MIDI files given with `-midiin` start playing about 10 s after power-on.
 - MIDI notes 48/60/72 play at 131.1/262.3/521.7 Hz (expected 130.8/261.6/523.3).
 - Presets 0–23 all audible, no clipping (`build/demo_presets.wav`).
+
+## Proteus 2000 sound model (patch 0004)
+The `proteus2k` sound device runs `src/mame/emusys/p2k_sound.h`, a copy of
+`cores/proteus/p2k/model/p2k_sound.h`: the integer model of the G20 voices, the H filters and
+interpolators, the G05 effects and the mixer that a P2K sound core is checked against
+(`docs/p2k-mame-plan.md`, step 2). The patch replaces the floating-point models of patch 0002
+(`emup2k_fx.h` is removed). Register writes are forwarded after the stream is brought up to date,
+so each takes effect at a defined sample.
+- `P2K_SNDLOG=file`: every G20/H/G05 register write with its sample index. The standalone renderer
+  `p2k/model/p2k_render` replays it and reproduces the model output bit for bit, without MAME.
+- `P2K_SNDOUT=file`: the model output, 16-bit stereo little-endian at 44.1 kHz, before MAME's
+  mixer and resampler (`-wavwrite` records at MAME's output rate, 48 kHz by default).
+- `P2K_FLASHn=1`: slot n is a user flash SIMM (`p2k/model/p2k_flash.h`: Intel command subset on
+  the Big and Baby arrays through G20 port B); modified images are written back to the
+  `P2K_SIMMn` / `P2K_BABYn` files at exit. `tools/p2k_flash_test.py` is the test.
+- `P2K_KEYS=file`: scripted front panel for unattended menu operations, lines
+  `<seconds> key <panel bit 7-15> <hold seconds>` and `<seconds> enc <steps>` (data-entry knob).
+  Bit 8 = Home/Enter, 9 = Save/Copy, 12 = cursor right; example `tests/p2k_flash/rename_106_108.keys`.
+- After editing `p2k/model/p2k_sound.h` or `p2k_flash.h`, copy them to the MAME tree and run
+  `mame/scripts/mkpatch0004.sh MAME_TREE`; `tools/p2k_corpus.py model` checks that the copies in the
+  patch match.
 
 ## Proteus 2000 research machine (`proteus2k`, patch 0002)
 `src/mame/emusys/emup2k.cpp`: MCF5206e, 8 MB DRAM, the 2 MB flash, every device stubbed and logged
@@ -69,8 +91,9 @@ Verified 2026-11-21 (synthetic SIMM, OS 2.26):
 
 
 Front panel and storage (2026-11-21):
-- Keys: Q Master, E Edit, M Multi, S Save/Copy, Enter Home/Enter, Left/Right cursor, A Arp,
-  Space Audition, -/= data entry (also a MAME dial); knobs are MAME adjusters (master volume full).
+- Keys: Q Master, E Edit, M Multi, S Save/Copy, Enter Home/Enter (panel bit 8, corrected
+  2026-11-23), Left/Right cursor, A Arp, Space bit 11 (opens Bank MSB/LSB), -/= data entry (also a
+  MAME dial); knobs are MAME adjusters (master volume full).
 - The flash is a writable 28F160; user presets and settings persist in `nvram/proteus2k/flash`.
   `P2K_CLEAN=1` (first run, no NVRAM) erases the dump owner's user data so the OS builds defaults;
   let it run ~60 s emulated once.
@@ -80,7 +103,7 @@ Filters, effects, LEDs (2026-11-21), all approximations marked [I] in the driver
 - Filter: the H-chip voice as measured on the E4 (ten coefficient words, cutoff-interpolated codes,
   pole/zero/gain sections; `P2K_NOFILTER=1` bypasses). Voices reach effect buses by Mix Output.
 - SysEx editing works (word count in parameter edits, see docs/p2k-findings.md); MIDI Out replies
-  no longer hang the OS (68681 TxEMT fix in the patch). Effects: `emup2k_fx.h`, reverb and chorus driven by the
+  no longer hang the OS (68681 TxEMT fix in the patch). Effects (2026-11-21; now `p2k::fx_int` in `p2k/model/p2k_sound.h`): reverb and chorus driven by the
   EMU8000-style INIT arrays the OS writes to the G05 (reverb checked against 86Box's model with
   `tests/fx/p2k_fx_ir.cpp`; `P2K_NOFX=1` disables). Output −6 dB headroom.
 - LEDs: MAME outputs `led0`–`led15`.
