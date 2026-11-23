@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // CZ-101 LCD on an 800 x 600 / 60 Hz raster (40 MHz pixel clock), drawn as MAME's cz101
 // screen (97 x 19 pixels, cz101_palette, lcd_pixel_update; BSD-3-Clause) at 8 x 8 per pixel:
 // character `pos` of `line` occupies MAME pixels x = 1 + 6 pos .. + 4, y = 1 + 9 line .. + 7.

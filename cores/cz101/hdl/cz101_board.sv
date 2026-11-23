@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Casio CZ-101 main board, after MAME's cz101 driver (BSD-3-Clause, Dirk Best, Devin Acker):
 // uPD7811, program ROM, battery RAM, RA-3 slot (empty), LED latches, key matrix, HD44780,
 // uPD933 and the 2 MHz serial clock.

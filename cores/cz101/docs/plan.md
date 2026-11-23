@@ -152,9 +152,10 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
 
 ## Open questions
 
-- **Licence.** Every file so far is written from MAME's BSD-3-Clause sources; the LCD is
-  `hdl/cz101_lcd.sv`, transcribed from MAME's hd44780, not the Proteus core's GPL-3.0
-  `hd44780.sv`. Default: BSD-3-Clause, as the reference. The author decides before release.
+- **Licence (decided 2026-11-23):** MIT, as the rest of the repository (`LICENSE`). The core is
+  written from MAME's BSD-3-Clause sources, so `NOTICE` keeps MAME's notice and names the
+  authors; `ref/` and `mame/patches/` stay BSD-3-Clause. The LCD is `hdl/cz101_lcd.sv`,
+  transcribed from MAME's hd44780, not the Proteus core's GPL-3.0 `hd44780.sv`.
 - **ROM version** in the dbwbp archive [UNK].
 - **SIO timing:** MAME clocks the serial port from a 2 MHz clock device (4 M callbacks/s). The
   HDL needs the same bit timing to keep the MIDI corpus in lockstep [UNK how exact this must be;

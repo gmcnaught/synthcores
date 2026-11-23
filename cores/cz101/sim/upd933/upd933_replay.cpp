@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // license:BSD-3-Clause
 // Runs the C++ reference on an event list converted from a real MAME log
 // (cores/cz101/sim/upd933/upd933_log2ev.py) and checks it against what MAME logged:

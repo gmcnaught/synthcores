@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 # license:BSD-3-Clause
 # uPD933 gate (CZ-101 milestone C3): builds the C++ reference and the Verilator bench, then
 #   1. regenerates the ROM tables with MAME's device_start code and compares them with

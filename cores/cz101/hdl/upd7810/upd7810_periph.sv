@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // uPD7810/7811 on-chip peripherals: ports, timers 0/1, timer F/F, 16-bit event counter,
 // serial interface, A/D converter, interrupt request register and priority.
 //

@@ -84,3 +84,9 @@ board with the RAM kept), **RA-3 cartridge**, **Memory protect**, **Auto power o
 | `mame/patches/` | the MAME logging patch for the reference (`tools/mame-cz101.sh` runs it) |
 | `sim/`, `tests/` | Verilator benches and the C1-C4 lockstep tests |
 | `tools/` | `mkpack.py`, test-ROM and log tools |
+
+## Licence
+
+MIT (`LICENSE`). The core is written from MAME's BSD-3-Clause sources; `NOTICE` keeps MAME's
+notice, names the authors and lists the parts under other licences: `ref/` and `mame/patches/`
+are BSD-3-Clause, and a built RBF includes the MiSTer framework (GPL-2.0).
