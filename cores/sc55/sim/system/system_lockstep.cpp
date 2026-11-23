@@ -1,4 +1,4 @@
-// System lockstep (M4): hdl/sc55_core.sv (MCU system + PCM) against the whole
+// System lockstep (M4): modules/roland/hdl/core/sc55_core.sv (MCU system + PCM) against the whole
 // reference model. Both get the same MIDI bytes at the same steps; every
 // output sample and the CPU's PC/SR after every step must match.
 //
@@ -9,6 +9,8 @@
 //
 // Usage: system_lockstep --roms DIR (--smf FILE | --midi-demo S | --midi-loud S --steps N)
 //                        [--out FILE] [--reset-steps N] [--rom-latency N]
+//        JV-880 (--romset jv880-v1.0.1): [--nvram FILE] for both; --smf then reproduces the
+//        renderer's jv880 test (no reset message, still the 24 M reset steps).
 #include "Vsc55_core.h"
 #include "Vsc55_core___024root.h"
 #include "verilated.h"
@@ -40,6 +42,7 @@ int main(int argc, char** argv)
 {
     std::string rom_dir, smf_path, out_path, romset = "mk1-v1.21";
     uint64_t    steps = 0, reset_steps = 24'000'000;
+    std::string nvram_in;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
     bool        rom_backpressure = false;
@@ -57,6 +60,7 @@ int main(int argc, char** argv)
         else if (a == "--midi-loud" && i + 1 < argc) loud_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--rom-latency" && i + 1 < argc) rom_latency = std::atoi(argv[++i]);
         else if (a == "--rom-backpressure") rom_backpressure = true;
+        else if (a == "--nvram" && i + 1 < argc) nvram_in = argv[++i];
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -70,6 +74,12 @@ int main(int argc, char** argv)
     Emulator emu;
     emu.Init({.lcd_backend = nullptr});
     emu.LoadRoms(load.romset, load.romset_info);
+    if (!nvram_in.empty())
+    {
+        FILE* f = fopen(nvram_in.c_str(), "rb");
+        if (!f || fread(emu.GetMCU().nvram, 1, NVRAM_SIZE, f) != NVRAM_SIZE) { fprintf(stderr, "cannot read %s\n", nvram_in.c_str()); return 2; }
+        fclose(f);
+    }
     emu.Reset();
     emu.GetPCM().enable_oversampling = true;
     emu.SetSampleCallback(sample_cb, nullptr);
@@ -83,8 +93,10 @@ int main(int argc, char** argv)
     std::vector<Frame> hdl;
     std::deque<uint8_t> midi_q;
     std::deque<std::pair<uint64_t, uint32_t>> romq;
-    const bool mk2 = !emu.GetMCU().is_mk1;
+    const bool jv  = emu.GetMCU().is_jv880;
+    const bool mk2 = !emu.GetMCU().is_mk1 && !jv;
     auto rom_byte = [&](uint32_t a) -> uint8_t {
+        if (jv) return a < 0x200000 ? p.waverom1[a] : a < 0x400000 ? p.waverom2[a - 0x200000] : 0;
         if (mk2) return a < 0x200000 ? p.waverom1[a] : a < 0x300000 ? p.waverom2[a - 0x200000] : 0;
         uint32_t bank = a >> 20, off = a & 0xfffff;
         return bank == 0 ? p.waverom1[off] : bank == 1 ? p.waverom2[off] : p.waverom3[off];
@@ -135,7 +147,7 @@ int main(int argc, char** argv)
     t->rst = 0;
     for (int g = 0; g < 20000 && !t->ready; ++g) tick();
     auto load_mem = [&](int sel, const uint8_t* src, size_t n) {
-        t->mk2 = mk2; t->sc155 = m.is_sc155;
+        t->mk2 = mk2; t->sc155 = m.is_sc155; t->jv880 = jv; t->enc_we = 0; t->enc_dir = 0;
         t->ld_we = 1; t->ld_sel = sel;
         for (size_t i = 0; i < n; ++i) { t->ld_addr = (uint32_t)i; t->ld_data = src[i]; tick(); }
         t->ld_we = 0;
@@ -145,7 +157,8 @@ int main(int argc, char** argv)
     load_mem(2, m.sram, sizeof m.sram);
     load_mem(3, m.ram, sizeof m.ram);
     if (mk2) load_mem(4, m.sm->rom, 4096);
-    t->mk2 = mk2; t->sc155 = m.is_sc155;
+    if (jv) { load_mem(5, m.nvram, NVRAM_SIZE); load_mem(6, m.cardram, CARDRAM_SIZE); }
+    t->mk2 = mk2; t->sc155 = m.is_sc155; t->jv880 = jv; t->enc_we = 0; t->enc_dir = 0;
     t->reset_start = 1; tick(); t->reset_start = 0;
     for (int g = 0; g < 1000 && !t->reset_done; ++g) tick();
     if (!t->reset_done) { fprintf(stderr, "HDL reset did not finish\n"); return 1; }
@@ -218,7 +231,8 @@ int main(int argc, char** argv)
     if (!smf_path.empty())
     {
         // R_RunReset(GM): post the reset, 24 M steps, samples not output
-        for (uint8_t b : {0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7}) post(b);
+        if (!jv)                          // the renderer's jv880 test sends no reset message
+            for (uint8_t b : {0xF0, 0x7E, 0x7F, 0x09, 0x01, 0xF7}) post(b);
         for (uint64_t i = 0; i < reset_steps; ++i)
             if (!step()) return 1;
         // R_RenderOne for one instance: output starts with the first sample after the reset

@@ -1,4 +1,4 @@
-// CPU lockstep: hdl/cpu/h8_cpu.sv against the reference model's MCU, in one process.
+// CPU lockstep: modules/roland/hdl/cpu/h8_cpu.sv against the reference model's MCU, in one process.
 //
 // For every MCU_Step of the model the bench records the bytes the MCU reads
 // and writes (ref hook), then runs one HDL step: each HDL bus access must be

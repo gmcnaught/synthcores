@@ -15,13 +15,15 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "third_party" / "nuked-sc55" / "src" / "backend"
-OUT = ROOT / "hdl" / "board"
+OUT = ROOT / "hdl" / "board"                                              # lcd_back.hex (SC-55 only)
+FONT_OUT = ROOT.parent.parent / "modules" / "roland" / "hdl" / "board"   # lcd_font.svh (shared with the JV-880)
 W, H = 741, 268
 
 
 def main() -> int:
     src = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
     out = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else OUT
+    font_out = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else FONT_OUT
 
     font_txt = (src / "lcd_font.h").read_text()
     rows = re.findall(r"\{([^{}]*)\}", font_txt.split("=", 1)[1])
@@ -35,7 +37,7 @@ def main() -> int:
             if v:
                 lines.append(f"    {{8'd{c}, 4'd{i}}}: return 5'h{v & 0x1f:02x};")
     lines += ["    default: return 5'h00;", "endcase", ""]
-    (out / "lcd_font.svh").write_text("\n".join(lines))
+    (font_out / "lcd_font.svh").write_text("\n".join(lines))
 
     back_txt = (src / "lcd_back.h").read_text()
     pal = re.search(r"back_palette\[\]\s*=\s*\{([^}]*)\}", back_txt).group(1)
@@ -47,7 +49,7 @@ def main() -> int:
     data += [0] * (-len(data) % 8)
     packed = [sum(data[i + b] << b for b in range(8)) for i in range(0, len(data), 8)]
     (out / "lcd_back.hex").write_text("\n".join(f"{v:02x}" for v in packed) + "\n")
-    print(f"wrote {out / 'lcd_font.svh'} and {out / 'lcd_back.hex'} ({len(data)} pixels)")
+    print(f"wrote {font_out / 'lcd_font.svh'} and {out / 'lcd_back.hex'} ({len(data)} pixels)")
     return 0
 
 

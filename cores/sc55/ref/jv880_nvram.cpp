@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 {
     if (argc < 3)
     {
-        std::fprintf(stderr, "usage: jv880-nvram ROMDIR OUT.nvram [ROMSET]\n");
+        std::fprintf(stderr, "usage: jv880-nvram ROMDIR OUT.nvram [ROMSET [KEYS]]\n");
         return 2;
     }
     const std::filesystem::path out = argv[2];
@@ -116,5 +116,27 @@ int main(int argc, char** argv)
     f.write(reinterpret_cast<const char*>(emu.GetMCU().nvram), NVRAM_SIZE);
     f.close();
     std::printf("saved %s\n", out.string().c_str());
+
+    // optional KEYS: comma-separated panel buttons (MCU_BUTTON_* numbers) or encoder steps
+    // (+ / -) pressed after the factory preset, printing the LCD after each
+    if (argc > 4)
+    {
+        std::string keys = argv[4];
+        size_t at = 0;
+        while (at <= keys.size())
+        {
+            size_t end = keys.find(',', at);
+            std::string k = keys.substr(at, end == std::string::npos ? std::string::npos : end - at);
+            at = end == std::string::npos ? keys.size() + 1 : end + 1;
+            if (k == "+" || k == "-")
+            {
+                MCU_EncoderTrigger(emu.GetMCU(), k == "+" ? 1 : 0);
+                run_ms(emu, 300);
+            }
+            else if (!k.empty())
+                press(emu, std::stoi(k));
+            std::printf("key %-3s : %s\n", k.c_str(), lcd_text(emu).c_str());
+        }
+    }
     return 0;
 }

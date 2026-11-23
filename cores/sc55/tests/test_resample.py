@@ -16,7 +16,7 @@ SIM_BUILD = pathlib.Path(os.environ.get("SC55_SIM_BUILD", ROOT / "out" / "sim"))
 
 
 def test_coefficients_current():
-    lines = (ROOT / "hdl" / "board" / "resample_coef.hex").read_text().split()
+    lines = (ROOT.parent.parent / "modules" / "roland" / "hdl" / "board" / "resample_coef.hex").read_text().split()
     assert [int(w, 16) for w in lines] == gr.rom()
 
 

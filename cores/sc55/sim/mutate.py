@@ -14,11 +14,12 @@ import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CPU_SV = ROOT / "hdl" / "cpu" / "h8_cpu.sv"
-MCU_SV = ROOT / "hdl" / "mcu" / "sc55_mcu.sv"
-PCM_SV = ROOT / "hdl" / "pcm" / "sc55_pcm.sv"
-SUBMCU_SV = ROOT / "hdl" / "submcu" / "sc55_submcu.sv"
-SDP_SV = ROOT / "hdl" / "common" / "sdp_ram.sv"
+ROLAND = ROOT.parent.parent / "modules" / "roland" / "hdl"   # shared Roland HDL
+CPU_SV = ROLAND / "cpu" / "h8_cpu.sv"
+MCU_SV = ROLAND / "mcu" / "sc55_mcu.sv"
+PCM_SV = ROLAND / "pcm" / "sc55_pcm.sv"
+SUBMCU_SV = ROLAND / "submcu" / "sc55_submcu.sv"
+SDP_SV = ROLAND / "common" / "sdp_ram.sv"
 SIM_BUILD = ROOT / "out" / "sim"
 
 # (name, old, new): `old` must occur exactly once in the target file
@@ -164,7 +165,7 @@ def main() -> int:
     muts = {"cpu": CPU_MUTATIONS, "mcu": MCU_MUTATIONS, "pcm": PCM_MUTATIONS, "submcu": SUBMCU_MUTATIONS}[target]
     src = sv.read_text()
     missed = []
-    incs = {f.name: f.read_text() for f in (ROOT / "hdl" / "pcm").glob("*.svh")} if target == "pcm" else {}
+    incs = {f.name: f.read_text() for f in (ROLAND / "pcm").glob("*.svh")} if target == "pcm" else {}
     for i, (name, old, new) in enumerate(muts):
         if only and i not in only:
             continue

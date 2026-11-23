@@ -1,4 +1,4 @@
-# H8/532 CPU (`hdl/cpu/h8_cpu.sv`, M1)
+# H8/532 CPU (`modules/roland/hdl/cpu/h8_cpu.sv`, M1)
 
 A behavioural H8/500-family CPU that does what the reference model's MCU
 does, bus access for bus access: `mcu_opcodes.cpp` (instructions),

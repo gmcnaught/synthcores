@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate hdl/pcm/sc55_pcm_interp.svh from the reference model's interp_lut (pcm.cpp).
+"""Generate modules/roland/hdl/pcm/sc55_pcm_interp.svh from the reference model's interp_lut (pcm.cpp).
 
 Usage: gen_pcm_tables.py [PCM_CPP] [OUT_SVH]
 """
@@ -9,7 +9,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "third_party" / "nuked-sc55" / "src" / "backend" / "pcm.cpp"
-OUT = ROOT / "hdl" / "pcm" / "sc55_pcm_interp.svh"
+OUT = ROOT.parent.parent / "modules" / "roland" / "hdl" / "pcm" / "sc55_pcm_interp.svh"
 
 
 def main() -> int:

@@ -2,6 +2,34 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 12: JV-880 core, J1–J5 (2026-11-22, PR #8)
+
+- **J1:** the SC-55's CPU, MCU, PCM and board blocks moved to `modules/roland`. SC-55 suite
+  unchanged; Windows fit 33,215 ALMs, as in iteration 6.
+- **J2:** MCU lockstep from an empty NVRAM through the factory preset: 21.3 M steps
+  identical, NVRAM hash d5da7845…d207.
+    - A one-clock race on GA line 5 (PCM IRQ) showed at step 24,709,513 of the render. It is
+      fixed with a combinational IRQ0 term.
+- **J3:** the system render of `jv880.mid` gives 73feda3c…bbbc.
+- **J4:** the board bench from power-on (pack download, DDR3 wave ROM) gives the same hash in
+  42.2 M steps, at 18.1 clocks a step of 30.
+    - NVRAM loads are independent of the RAM clear.
+    - Card RAM is cleared at reset.
+- **Quartus:**
+    - The first JV-880 build missed timing by 90 ns: a 48-bit divide for the 25/29 frame length
+      fed the IRQ look-ahead. It is now a 64-entry table, and the render hash is unchanged.
+    - Seed 4 then missed by 0.3 ns in the HDMI clock domain on both cores. Seed 2 meets timing
+      for both (SC-55 33,160 ALMs, JV-880 28,180).
+    - Quartus Lite has no Rapid Recompile. `winbuild.sh` now runs every build as a full compile
+      in its own folder; 4 builds ran side by side in about 20 minutes.
+- **J5 on the MiSTer:**
+    - Boots to "Perf / I-01:Syn Lead [U001]".
+    - 60 s of `jv880.mid` over MidiLink with no underrun or lag.
+    - The panel keys and encoder respond as the reference's do. `jv880-nvram KEYS` showed that
+      PATCH/PERFORM doesn't leave Utility or System in the reference either; pressing the mode
+      key again does.
+    - NVRAM saving to the SD card is not done.
+
 ## Iteration 12 preparation: JV-880 (2026-11-22)
 
 - **ROMs:** the user's dumps are in `nuked-sc55/firmware/Roland JV880/`. All five files match

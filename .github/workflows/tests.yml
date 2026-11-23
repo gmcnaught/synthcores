@@ -26,6 +26,7 @@ jobs:
               - '.github/workflows/tests.yml'
             sc55:
               - 'cores/sc55/**'
+              - 'modules/roland/**'
               - 'modules/nuked-sc55'
             synclavier:
               - 'cores/synclavier/**'
