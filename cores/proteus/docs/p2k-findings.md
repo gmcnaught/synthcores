@@ -218,6 +218,12 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   0x0112069C indexed by increment >> 10 [I: interpolation/anti-alias selector, like the
   Proteus/1 "tone"]. Notes 60 and 72 on samples at 18000 and 20000 Hz (roots 61, 73) gave
   0x629 and 0x6D9 = rate / 44100 × 2^((note − root)/12) × 4096, so the output rate is 44.1 kHz [I].
+- **Voice allocation** [O, MAME with the stand-in SIMM, `tests/p2k_corpus` case `poly`]:
+    - Free voices are taken in blocks of 8 in the order 0, 1, 4, 5, 2, 3, 6, 7.
+    - The order across the chips is 0-55 (U15), then 64-119 (U24), then 56-63, then 120-127.
+      So the last 8 voices of each chip are used only when more than 112 notes sound at once.
+    - With all 128 voices busy, the 22 extra notes took voices 0-21 in order. Those held the 22
+      oldest notes; this case does not tell oldest-first from lowest-index-first.
 - Note-off: +0x14 = idle-loop start (0x2F, bit 26 clear), +0x08 low 26 bits = NOT(idle-loop
   end 0x43), +0x04 low 10 bits = 0x300, +0x10 = 0xA2 [O]; meaning of the last two [U].
 - Correction: "no CPU-driven envelope steps" was wrong; it came from the ADC stub returning 0 (master
