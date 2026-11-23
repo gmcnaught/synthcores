@@ -2,6 +2,49 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 8: panel as data (2026-11-23, branch `iter8-panel`)
+
+- **Modules** (`modules/synthframe/hdl/panel`, MIT; contract in its `README.md`):
+    - `synthframe_hd44780`: the Proteus/1's MAME-model HD44780, moved from
+      `cores/proteus/mister/rtl/hd44780.sv` (the author's own file, now MIT).
+    - `synthframe_charlcd`: character LCD renderer behind a read port (character, then dot row).
+      The JV-880 draws its LCD and its debug line with it.
+    - `synthframe_vtiming` and `synthframe_status_strip`: they replace the copies in the SC-55
+      and JV-880 renderers.
+- **What stays with the core:**
+    - Each core's LCD controller, because it must match that core's reference: Roland
+      `lcd_ctrl` (Nuked-SC55) and the HD44780 (MAME).
+    - The SC-55's 1:1 `LCD_Render` drawing.
+    - The Proteus/1's 320 x 240 `display.sv` with its voice bars.
+    - The CZ-101 moves to these modules after its PR merges.
+- **Gate passed:**
+    - Frame benches (`modules/synthframe/ver/panel`): SC-55, JV-880 and Proteus/1, 4 seeds each,
+      two frames hashed every pixel clock. All 12 hashes are identical to the ones recorded
+      before the change.
+    - The bench catches a mutation: one colour changed in the JV-880 debug line changed its
+      hash.
+    - SC-55 suite: all pass, including the board bench from power-on, whose LCD frame is
+      compared pixel by pixel with the reference, mk1 and mk2.
+    - JV-880 board bench on `jv880.mid`: 42,181,775 steps and 1,640,121 samples identical to
+      the reference; LCD RAM identical.
+    - Proteus/1 system simulation, 4 s with two panel presses, old build against new: CPU
+      writes, audio and LCD text identical (`PRESET NAME / 000 Stereo Piano`).
+    - Windows builds meet timing:
+
+      | Core | ALMs | main | Block memory, DSP |
+      |---|---|---|---|
+      | SC-55 | 32,655 | 32,863 | unchanged |
+      | JV-880 | 28,902 | 28,980 | unchanged |
+      | Proteus/1 | 24,710 | 24,710 | unchanged |
+
+    - MiSTer smoke tests pass for all three cores:
+        - SC-55: boot LCD `1137774a…`, the same as the main build of PR #11. The iteration 1
+          hash `67a34ac6…` changed on 2026-11-23, before this branch.
+        - JV-880: NVRAM kept after a reload.
+        - Proteus/1: 0 missed deadlines, ratio 1.008.
+- **CI:** the panel frame test runs in the SC-55 and Proteus jobs. A change under `cores/jv880`
+  now runs the SC-55 job.
+
 ## JV-880 clipping and OSD dropout (2026-11-23, branch `jv880-clip`)
 
 User report: clipping on the saw lead patch; underrun when the OSD opens; two notes drop one.

@@ -2,7 +2,7 @@
 // reference's LCD_Render draws it for the mk1 (lcd.cpp: 741 x 268, the
 // background bitmap, the eight text fields of 5 x 7 dots of 5 x 5 pixels on
 // a 6-pixel pitch, the L/R marks and the level bars), placed at (29, 40);
-// below it a status strip. Reads the LCD controller's state from the core
+// below it a status strip. Timing and status strip from synthframe's panel modules. Reads the LCD controller's state from the core
 // clock without synchronisation (display only).
 module lcd_video (
     input  logic       clk,              // pixel clock
@@ -65,18 +65,13 @@ module lcd_video (
     // ------------------------------------------------------------ timing
     logic [10:0] x;
     logic [9:0]  y;
-    always_ff @(posedge clk) begin
-        if (x == 11'd1055) begin
-            x <= 11'd0;
-            y <= (y == 10'd627) ? 10'd0 : y + 10'd1;
-        end else x <= x + 11'd1;
-    end
+    logic        hb, vb, hsy, vsy;
+    synthframe_vtiming timing (.clk, .x, .y, .hblank(hb), .vblank(vb), .hsync(hsy), .vsync(vsy));
 
     // ------------------------------------------------------------ stage 0: per-axis cells
     // x and y separately: position in the LCD, the text/bar cell and the offset
     // in it (one constant division each); stage 1 combines them
-    logic [10:0] x0;
-    logic [9:0]  y0;
+    logic        hb0, vb0, hs0, vs0;
     logic        in_area0;
     logic [9:0]  lx0, ly0;
     logic [1:0]  tx_in3, tx_in16;       // per side: inside 3 (side 1 also 16) cells
@@ -102,8 +97,7 @@ module lcd_video (
         lys = {1'b0, y} - 11'(Y0);
         lx = lxs[9:0];
         ly = lys[9:0];
-        x0 <= x;
-        y0 <= y;
+        hb0 <= hb; vb0 <= vb; hs0 <= hsy; vs0 <= vsy;
         in_area0 <= !lxs[10] && !lys[10] && lxs < 11'(LW) && lys < 11'(LH);
         lx0 <= lx;
         ly0 <= ly;
@@ -144,10 +138,7 @@ module lcd_video (
         logic [5:0] cm;
         logic [7:0] bm;
         logic       inn;
-        hb1 <= x0 >= 11'd800;
-        vb1 <= y0 >= 10'd600;
-        hs1 <= (x0 >= 11'd840 && x0 < 11'd968);
-        vs1 <= (y0 >= 10'd601 && y0 < 10'd605);
+        hb1 <= hb0; vb1 <= vb0; hs1 <= hs0; vs1 <= vs0;
         in_lcd1 <= in_area0;
         lx1 <= lx0;
         ly1 <= ly0[8:0];
@@ -235,7 +226,14 @@ module lcd_video (
 
     // ------------------------------------------------------------ stage 4: colour
     // color1 (dot on) 000000, color2 (dot off) 0050c8, background 0f6fff / 000000
-    logic [6:0] st;
+    logic [6:0]  st;
+    logic        st_hit;
+    logic [23:0] st_rgb;
+    // the status strip, 300 lines below the LCD's top left corner (coordinates relative to it)
+    synthframe_status_strip #(.X0(0), .Y0(300)) strip (
+        .x({1'b0, lx3}), .y({1'b0, ly3}), .rom_ok(st[0]), .loading(st[1]), .running(st[2]),
+        .midi_led(st[3]), .underrun_led(st[4]), .underrun_seen(st[5]), .lag_seen(st[6]),
+        .hit(st_hit), .rgb(st_rgb));
     always_ff @(posedge clk) begin : b_lcd_video_2
         logic on;
         st <= {lag_seen, underrun_seen, underrun_led, midi_led, running, loading, rom_ok};
@@ -248,15 +246,7 @@ module lcd_video (
             else {r, g, b} <= on ? 24'h000000 : 24'h0050c8;
         end else begin
             {r, g, b} <= 24'h101828;
-            // status strip under the LCD: state band, MIDI and underrun boxes
-            if (ly3 >= 9'd300 && ly3 < 9'd320 && lx3 < 10'd200)
-                {r, g, b} <= st[2] ? 24'h20c040 : st[1] ? 24'he0a020 : st[0] ? 24'h2060c0 : 24'hc02020;
-            if (ly3 >= 9'd300 && ly3 < 9'd320 && lx3 >= 10'd220 && lx3 < 10'd260)
-                {r, g, b} <= st[3] ? 24'hffffff : 24'h303848;
-            if (ly3 >= 9'd300 && ly3 < 9'd320 && lx3 >= 10'd280 && lx3 < 10'd320)
-                {r, g, b} <= st[4] ? 24'hff4040 : st[5] ? 24'h902020 : 24'h303848;
-            if (ly3 >= 9'd300 && ly3 < 9'd320 && lx3 >= 10'd340 && lx3 < 10'd380)
-                {r, g, b} <= st[6] ? 24'he0a020 : 24'h303848;
+            if (st_hit) {r, g, b} <= st_rgb;
         end
     end
 endmodule

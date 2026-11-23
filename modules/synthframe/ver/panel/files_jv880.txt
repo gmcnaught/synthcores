@@ -1,0 +1,4 @@
+modules/synthframe/hdl/panel/synthframe_vtiming.sv
+modules/synthframe/hdl/panel/synthframe_charlcd.sv
+modules/synthframe/hdl/panel/synthframe_status_strip.sv
+cores/jv880/hdl/jv880_lcd_video.sv

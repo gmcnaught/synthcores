@@ -5,7 +5,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/m
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/snd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/mfp68901.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/hd44780.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_hd44780.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/display.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/panel.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/proteus_sys.sv

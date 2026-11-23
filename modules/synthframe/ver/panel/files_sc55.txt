@@ -1,0 +1,3 @@
+modules/synthframe/hdl/panel/synthframe_vtiming.sv
+modules/synthframe/hdl/panel/synthframe_status_strip.sv
+cores/sc55/hdl/board/lcd_video.sv
