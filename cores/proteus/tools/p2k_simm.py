@@ -16,6 +16,8 @@ import struct
 MAGIC = 0x05551212
 CKSUM = 0x68E
 COMP = 0x6AC          # compensation word inside the 0x6AE-byte header (unused by the OS) [I]
+SUMW = 0x68A          # 16-bit sum of the block checksums, then its complement at +0x68C [I]
+CKSUM_NOT = 0x69E     # complement of the block-0 checksum [I]
 
 
 def blocks(size):
@@ -29,12 +31,19 @@ def word_sum(b):
 def finish(img: bytearray):
     """Fill the block checksums. Block 0 contains its own checksum word, so it is balanced with
     the compensation word: with comp = -(sum of block 0 with comp = 0 and checksum = 0), the block
-    sums to the stored checksum c for any c; c = 0 is stored."""
+    sums to the stored checksum c for any c; c = 0 is stored.
+    E-mu's header pairs [O: OS rename 0x100E6A6-0x100E842, which adjusts +0x68A and +0x68E by the ID
+    change and writes their complements to +0x68C and +0x69E]: +0x68A = 16-bit sum of the block
+    checksums, +0x68C = NOT +0x68A, +0x69E = NOT the block-0 checksum. With these in place the OS's
+    own header edit keeps block 0 consistent."""
     n, bs = blocks(len(img))
     for k in range(1, n):
         struct.pack_into(">H", img, CKSUM + 2 * k, word_sum(img[k * bs:(k + 1) * bs]))
-    struct.pack_into(">H", img, COMP, 0)
     struct.pack_into(">H", img, CKSUM, 0)
+    total = sum(struct.unpack_from(">H", img, CKSUM + 2 * k)[0] for k in range(n)) & 0xFFFF
+    struct.pack_into(">HH", img, SUMW, total, total ^ 0xFFFF)
+    struct.pack_into(">H", img, CKSUM_NOT, 0xFFFF)
+    struct.pack_into(">H", img, COMP, 0)
     struct.pack_into(">H", img, COMP, (-word_sum(img[:bs])) & 0xFFFF)
     assert word_sum(img[:bs]) == 0
     return img

@@ -142,13 +142,138 @@ Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMM
 and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave ROMs were.
 
 ## Next
-The plan for the MAME prerequisites of a MiSTer core is `docs/p2k-mame-plan.md` (2026-11-23).
-Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SIMM/Baby format,
-level/pan/envelope path.
-1. H filter: done (E4-measured voice model). G05 effects microcode: still a workalike.
-2. Sound memory flash writes (port B) for user flash SIMMs (the main user flash is done).
-3. Effects (G05 / FX RAM) and output routing (6 outputs).
-4. P1K vs P2K diff (one G chip, 2 H chips, 2 SIMM slots).
+The plan for the MAME prerequisites of a MiSTer core is `docs/p2k-mame-plan.md`; steps 1-5 are done
+(2026-11-23): the register contract (below), the integer sound model `p2k/model/p2k_sound.h` with its
+standalone renderer, the 22-case corpus and user flash SIMMs. Step 6 (hardware validation) waits for
+a unit. Out of scope for the first core: the Proteus 1000 (one G chip, 2 H chips, 2 SIMM slots),
+MIDI In B. The G05 effects stay a workalike of the EMU8000-style slots.
+
+## Register contract (step 1 of docs/p2k-mame-plan.md, 2026-11-23)
+Sources: the OS 2.26 listing and the sample-indexed register logs of the corpus (`P2K_SNDLOG`).
+Each item states the behaviour `p2k/model/p2k_sound.h` implements; [I] items are choices made
+without hardware (decision 1 of the plan: the integer MAME model is the definition for now).
+
+Corrections to earlier sections:
+- Correction: "+0x08 bits 31-26 from the table at 0x0112069C" was wrong because the address was
+  misread. Verified: the table is at **0x0112079C** (`0x10326DA moveal #0x112079C`), 48 words,
+  constant in the data image. Action: section below.
+- Correction: "+0x00 init 0x1000, +0x04/+0x10 init 0x80000" was unsupported because that code
+  (0x10320F8) is never called. Verified: the live chip init 0x10322DC (from 0x102C3B0) writes
+  +0x00 = +0x04 = +0x10 = 0 and clears +0x20-0x2E for all 128 voices.
+- Correction: "+0x3E: the OS writes the cutoff, filter modulation through +0x3E" was incomplete.
+  Verified: +0x3E holds the note-on value only; modulation (cords, filter envelope, LFO) writes the
+  byte at **+0x7C** (0x101C8AE), see below.
+- Correction: "ports A/B both read sound memory" was incomplete. Verified: port A (+0x30/+0x1C)
+  reads, port B (+0x34/+0x1E) writes (flash commands and data, 0x1031E50).
+
+### G20 voice registers
+| Field | Firmware [O] | Model / HDL |
+|---|---|---|
+| +0x00 bit 12 | Note-on writes 0x1800; the OS reads +0x00 back (`asrl #12; btst #0`, 0x103243C) and picks one of two loop/release write patterns | [I] live end select: 1 = +0x0C is the end, 0 = +0x08; set by the write, and at each end crossing the address jumps to +0x14[25:0] and bit 12 takes +0x14 bit 26 (loop = same end register, jump = the other). Readable. Bit 11: stored |
+| +0x04[9:0], +0x10 | 0x300 and 0xA2 are written when a voice is freed (release done or stolen, 0x1032290), not at note-off; constants from the data image | Stored, no effect: the H levels are already 0 |
+| +0x08[31:26] | `tone` = table 0x0112079C[inc >> 10] << 13: bits 28-26 = 0 below ratio 1.25, then 1-6 in steps of 0.5, 6 from 3.75 | Stored; the model interpolates linearly for every `tone` [I] (a Proteus/1-style kernel set is not justified without hardware) |
+| +0x10[15:0] | Filter-dependent value from the filter record (0xF87F for Off; high byte falls with Q) | Stored, no effect [U: probably an input attenuation; the law is unknown] |
+| +0x20-0x2E | Zeroed at note-on and init, never read | Stored |
+| +0x3E of voices 0/16/32/48 | Chip-global: voice 0 = port mode (57 normal, 51 SIMM compare), 16/32/48 config at init | Stored (10 bits) |
+
+### H filter chip
+| Field | Firmware [O] | Model / HDL |
+|---|---|---|
+| +0x00-0x27 | Coefficient words 0-9 (E4 layout); 2, 3, 6, 7 written 0 | Filter voice, below |
+| +0x34 / +0x36 / +0x3E | Note-on: c·0x0101 for right level, left level, cutoff; the voice allocator reads +0x34/+0x36 back and steals the voice with the lower value (0x1033044) | [I] the interpolator's current value x (written = jump, read = live x) |
+| +0x30 / +0x32 / +0x3C | Note-on: c << 8, same c | [I] destination (high byte) |
+| +0x71 / +0x73 | Level destinations every ~10 ms (0x1019978) | Destination; the interpolator moves x |
+| +0x7C | Cutoff destination when modulated (0x101C8AE) | Destination |
+| +0x44 / +0x46 | 4 at init (slot 0 of each 0x1000 page); +0x46 = 4 before each level clear when a voice is freed | [I] page-global approach-time index k of the cutoff / level interpolators: 32 << k samples (4 = 512 samples, 11.6 ms, the level update period) |
+| +0x40 / +0x42 | Page-global values at init (0x1033570) | Stored [U: output format] |
+| +0x7B (byte) | Built by 0x1033434: previous block bit 7 = unnormalised poles of this slot; own block bit 6 = gain-word mode, bits 5-3 / 2-0 = left / right H output channel (route pairs {6,2} Main, {7,3} Sub 1, {0,4} Sub 2, {1,5} bus 4; 0x3F = not output, first block of a 12th-order chain). The OS reads the byte back at +0x3B before changing it | Implemented as described; reads of +0x3A return the +0x7A word |
+| Cutoff and flags location | The cutoff interpolator and bit 7 of a slot's filter are in the **previous** slot's block | Implemented |
+
+- **Interpolators** [I]: the patent's (US 5,170,369 FIGs. 9-12; bit-level description in
+  github.com/ds10fan/emu-hchip-patent docs/INTERPOLATOR.md): x 16 bits, destination byte d standing
+  for d·0x0101, increment = (d·0x0101 − x) >> (5 + k) floored onto the Table I lattice when the
+  destination is written, x += increment (+1 for positive codes) each sample with clamp at the
+  destination. `p2k/model/test_model.cpp` reproduces the documented sweep times (0→255: 34 samples
+  at k = 0, 1041 at k = 5).
+- **Level law** [I]: gain = dec(code) / dec(255), the H code decode, with code = (x − (x >> 8)) / 256
+  (the level byte at rest). Evidence: E-mu's own level code (test tone, metronome) builds level bytes
+  with the inverse of that decode (table 0x010337FC); the MIDI volume curve (40·log10) lands on 16
+  units per byte = 0.375 dB, which the decode gives for codes 16-223. Only the pan table (0x0101D364,
+  0.156 dB a byte) disagrees. This replaces the uniform 0.375 dB law of the research model.
+- **Filter voice** [I]: three biquad sections in direct form II, pole word + zero word sharing one
+  delay line: (0, 1), (4, 5), (8, 9 as a zero word, or the gain word 9 when bit 6 is set) — the
+  patent datapath as described by the E4 project (docs/VOICE.md). Exact transfer function of the E4
+  measurement; the structure keeps unnormalised-pole types (high-pass, phaser, flanger) inside the
+  integer range.
+- **12th-order types over SysEx**: the OS stores the filter type as one byte (preset +0xC8, 0..255);
+  12th-order types are 0x80 | n. The editor value 259-291 stores its low byte, which is not a type, and
+  the OS writes the neutral words. Send 0x80 | (value − 256).
+
+### G05 effects chip
+| Field | Firmware [O] | Model / HDL |
+|---|---|---|
+| PTRX (0x14/0x16), PSST (0x64/0x66), CSL (0x74/0x76) of the two G05 channels of each bus | 0x102F320 computes from the bus's A/B send %: A = a ≥ 50 ? 224 − (100−a)/2 : 199a/50; B = b ≥ 50 ? 160 − (100−b)/2 : 135b/50; D = d ≤ 50 ? 255 − d/2 : 230(100−d)/50, d = (a+b)/2 (D forced 0 for Sub 1/2 when their jacks are separate). Left channel: PTRX = A << 8, PSST = D << 24; right: PTRX = A << 8 \| D; CSL = B << 24 | [I] A = reverb send, B = chorus send, D = dry level of the bus into the stereo output, all linear byte/255 (EMU8000 send convention). Sub 1 / Sub 2 dry reaches the mixdown at unity |
+| Voice → G05 channel | No per-voice G05 access; H output channel n → G05 channel 4·((n + 2) & 7) and +2 | Voices mix per H output channel into 4 buses |
+| INIT1[0x0D], INIT4[0x1F] | FX A decay (0xA400 \| v, 0x1500 \| v) | INIT4[0x1F] = tail return (workalike) |
+| INIT3[0x13]/[0x15] | FX B mode words for Distortion / negative-feedback types | Stored [U] |
+| INIT4[5]/[7] | FX B output fade during an algorithm change | Stored [U] |
+| Byte 1 → 0x60007C | After the G05 reset (latch 0xB00000 bit 4) | Stored |
+
+### Arpeggiator [U]
+Not exercised. Over SysEx, none of these produced arpeggiated notes in MAME (3 note starts for a
+held 3-note chord in each case): preset arp on (1025 = 1, mode Up, 1/16) alone; with the channel's
+multimode setting 134 = 0 (Preset arp) or −1 (On) after 129 = 0; master arp 641 = 1 with 134 = 1.
+[I] The front-panel Arp button (0x800000 bit 7, forced to 0 by the research driver at boot) may gate
+it. The arpeggiator generates notes on the CPU, so the sound core is not affected.
+
+## User flash SIMMs (step 5 of docs/p2k-mame-plan.md, 2026-11-23)
+**No sample import** [O]: no path in OS 2.26 or the 1.24 boot block brings new sample data into a
+SIMM (no MIDI, SysEx or E-Loader receive path writes sound memory; the E-Loader accepts only
+"EXE"/"ROMLIB"). User SIMMs are authored elsewhere (an EOS sampler writes the bank; public
+sources) and carry a ROM ID of 106-119 in the Big header +0x3E. The OS writes such a SIMM in four
+places, all from the Save/Copy menu or the demo save, and only when the ID is in 106-119:
+
+| Page | Handler | Writes |
+|---|---|---|
+| COPY USER BANK TO FLASH | 0x1071CF8 → 0x100E264 | Baby library: replaces the `yp_1` presets |
+| RENAME FLASH SIMM | 0x1071B98 → 0x100E544 | name; with a new ID also the Big header (+0x3E, checksum pairs) and the ROM-ID bytes of every Baby object |
+| DUPLICATE SLOT 0 FLASH | 0x1071C4C → 0x100EF64 | erases slot 1 Big and Baby, copies slot 0 into it |
+| (demo save) | 0x100DE74 | one `yd_1` object |
+
+**Access** [O]: through the G20 ports of voice 0: port B writes (+0x34/+0x36 word address, +0x1E
+data, one address write per word), port A reads (+0x30/+0x32, +0x1C, one discarded read). Intel
+command set, written doubled (0x4040): word program 0x40 on Baby (one x16 chip, maker 0xB0,
+device 0xD0, 64 KB blocks), buffered program 0xE8 on Big (four x16 chips in series, maker 0x89,
+device 0x14-0x17, 128 KB blocks), erase 0x20/0xD0, status 0x70 polled for bit 7 (60 M-loop
+timeouts), 0x50, 0x90 (after the JEDEC unlock writes), 0xFF. Latch 0xB00000 bit 6 selects Baby.
+The OS identifies only chip 0 of Big. It never formats a library or builds a header itself.
+
+**Header checksum pairs** [O: rename 0x100E6A6-0x100E842]: the rename adjusts +0x68A and +0x68E
+(block-0 checksum) by the ID change and writes their complements to +0x68C and +0x69E. The SIMM
+builder now writes +0x68A = sum of the block checksums, +0x68C / +0x69E = the complements, so the
+OS's edit leaves block 0 consistent.
+
+**MAME** (`P2K_FLASHn=1`, `p2k/model/p2k_flash.h`): slot n's Big and Baby arrays answer the commands
+above, unwritten flash reads 0xFFFF, program completes at once (status 0x0080), and modified images
+are written back to the `P2K_SIMMn` / `P2K_BABYn` files at exit.
+
+**Gate** (`tools/p2k_flash_test.py`, keys `tests/p2k_flash/rename_106_108.keys`), passed
+2026-11-23 with the demo stand-in built as ID 106:
+- the OS lists the SIMM ("COPY USER BANK TO FLASH → UsrFl", "RENAME FLASH SIMM UsrFl ... ID: 106");
+- RENAME to ID 108: "CHANGING NAME and/or ID", "Done. Please reboot now!"; 77,869 Big and 5,881
+  Baby port-B writes;
+- on disk: header ID 108, block checksums valid, a new Baby `yh_1` object with ID 108 appended
+  after the old one;
+- restart from the written images: bank MSB 108 shows "UsrFl" and preset 0 plays a note; two runs
+  are identical and `p2k_render` reproduces the run from the written image.
+- Not exercised: COPY USER BANK TO FLASH and DUPLICATE SLOT 0 FLASH (5-10 minutes on hardware;
+  needs a second flash slot).
+
+**Front-panel correction**: Correction: "bit 8 = Audition, bit 11 = Home/Enter [I]" was wrong because
+it was inferred from the main screen only. Verified: bit 8 confirms "Press ENTER to ..." prompts
+(Home/Enter); bit 11 opens the Bank MSB/LSB screen from the main screen. Bit 12 moves the cursor
+right through the fields of a page and onto the next page; the data-entry knob (G05 index 0x1B)
+turns pages when the cursor is on the title. MAME's port names are updated.
 
 ## Boot block (v1.24 flash dump) [O]
 Source: `e-mu-proteus-2k-flash-analysis.zip` (dbwbp.com via the Wayback Machine): a 2 MB
@@ -247,7 +372,7 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
 - Measured byte changes (note 60, piano, velocity 100): layer volume 0 / −20 / −40 dB → 210 / 162
   / 122; velocity 40 → 148; centre pan 210 vs hard pan 230 / 0; factory envelope 210 → 183 over 2 s;
   a time-based attack of 60 ramps from 0.
-- **Level law [I]**: 0.375 dB a step (255 = 0 dB): it gives −18 dB for the −20 dB volume edit and a
+- **Level law [I]** (superseded 2026-11-23 by the H code decode, "Register contract" above): 0.375 dB a step (255 = 0 dB): it gives −18 dB for the −20 dB volume edit and a
   54 dB volume-knob range, and is the EMU8000 attenuation step. It conflicts with the pan table,
   which is built for 102.4 units/dB (0.156 dB a step: centre −3 dB); under 0.375 dB the centre is
   −7.5 dB. Hardware needed.
@@ -255,9 +380,8 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   u16 offset in the 980-byte preset, s8 min, s8 max, u16 flags}; layer n adds n·0xCC
   (`tools/p2k_params.py` reads it from the local OS image). SysEx parameter edits sent with
   device IDs 0x7F and 0x00 had no effect in MAME [U why].
-- MAME `p2k_g20_device`: address/loop/pitch with linear interpolation, per-voice L/R gain from
-  the level bytes (smoothed ~5 ms). Filters (block +0x00–+0x2F, written at note-on), effects and
-  output routing are not modelled.
+- MAME `p2k_g20_device` (2026-11-21, replaced 2026-11-23 by `p2k/model/p2k_sound.h`): address/loop/
+  pitch with linear interpolation, per-voice L/R gain from the level bytes (smoothed ~5 ms).
 
 
 ## Front panel, flash, MIDI Out (MAME, 2026-11-21) [O unless marked]
@@ -288,7 +412,7 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   F0 7E 00 06 02 18 04 04 03 00 "2.26" F7 (device ID 0). E-mu parameter requests
   (F0 18 0F 00 55 02 …) answer with command 0x70 (error) [U: the edit-buffer protocol].
 
-## Filters and effects (MAME, 2026-11-21)
+## Filters and effects (MAME, 2026-11-21; the MAME models described here were replaced on 2026-11-23 by the integer model, see "Register contract")
 - **Filter registers** [O]: per voice, three 16-byte sections at H block +0x00/+0x10/+0x20 (four
   coefficient words, four zero words). Classic 4-pole LP = `8408 ffcf ffcf ffcf` twice; Smooth 2-pole
   = one such section and one `ffcf ffcf ffcf ffcf` (pass); Deeper HPF puts `8004` in words 2-3; the
