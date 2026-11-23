@@ -2,8 +2,10 @@ name: tests
 
 # Runs each core's test suite (Verilator benches, lockstep against the reference models,
 # repo hygiene) for the cores a change touches. A change to synthframe's HDL or to this file runs
-# every core. ROM-dependent tests skip without ROMs. Proteus runs the P2K sound/flash model unit
-# tests (no ROMs needed); its MAME corpus and RTL replay need ROMs and run locally.
+# every core. The JV-880 has no suite of its own yet; a change to it runs the SC-55 job (shared
+# modules) and the panel frame test. ROM-dependent tests skip without ROMs. Proteus runs the P2K
+# sound/flash model unit tests (no ROMs needed); its MAME corpus and RTL replay need ROMs and run
+# locally.
 
 on:
   push:
@@ -27,12 +29,15 @@ jobs:
               - '.github/workflows/tests.yml'
             sc55:
               - 'cores/sc55/**'
+              - 'cores/jv880/**'
               - 'modules/roland/**'
               - 'modules/nuked-sc55'
+              - 'modules/synthframe/ver/**'
             synclavier:
               - 'cores/synclavier/**'
             proteus:
               - 'cores/proteus/**'
+              - 'modules/synthframe/ver/**'
       - id: pick
         shell: bash
         run: |
@@ -95,6 +100,10 @@ jobs:
       - name: P2K sound and flash model unit tests (Proteus)
         if: matrix.core == 'proteus'
         run: CXX=g++-14 p2k/model/build.sh
+
+      - name: Panel renderer frame hashes (SC-55, JV-880, Proteus/1)
+        if: matrix.core == 'sc55' || matrix.core == 'proteus'
+        run: python ../../modules/synthframe/ver/panel/test_panel.py
 
       - name: Run tests
         env:
