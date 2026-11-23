@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
     auto *c = new Vupd7810_core;
     uint16_t sfr[64] = {0};
-    c->reset = 1; c->cyc_ce = 1;
+    c->reset = 1; c->cyc_ce = 1; c->ev_done = 1;
     c->irq_vec = 0; c->irq_nmi = 0;
     auto tick = [&] { c->clk = 0; c->eval(); c->clk = 1; c->eval(); };
     for (int i = 0; i < 4; i++) tick();

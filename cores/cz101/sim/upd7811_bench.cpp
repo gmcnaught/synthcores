@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
     auto *c = new Vupd7811;
     auto tick = [&] { c->clk = 0; c->eval(); c->clk = 1; c->eval(); };
-    c->reset = 1; c->cyc_ce = 1;
+    c->reset = 1; c->cyc_ce = 1; c->ev_done = 1;
     c->pa_in = 0; c->pb_in = 0x10; c->pc_in = 0; c->pd_in = 0; c->pf_in = 0;
     for (int i = 0; i < 8; i++) c->an[i] = 0;
     c->an[1] = 0x7F; c->an[2] = 0xFF;

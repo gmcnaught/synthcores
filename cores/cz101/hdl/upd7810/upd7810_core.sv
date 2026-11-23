@@ -55,6 +55,18 @@ module upd7810_core #(
 
     output logic        iff_o,
 
+    // virtual time, in machine cycles since reset (MAME's CPU local time):
+    //   vcyc      cycles completed (instruction starts at vcyc)
+    //   acc_time  local time of the current memory access: the instruction's start, or its
+    //             end for a prefixed opcode (PRE_xx charges its cycles before executing)
+    // Before every instruction (and every halted cycle) the core raises at_boundary and waits
+    // for ev_done: the board applies the events MAME's scheduler would have run first
+    // (time < (vcyc + 1) cycles).
+    output logic [31:0] vcyc,
+    output logic [31:0] acc_time,
+    output logic        at_boundary,
+    input  logic        ev_done,
+
     // trace: one pulse per instruction, after it executes, before an interrupt is taken
     output logic        insn_done,
     output logic [6:0]  insn_cc,
@@ -370,6 +382,8 @@ module upd7810_core #(
     logic        skit_q;
     logic        halt_irq;  // ST_IRQ entered from the halt loop: MAME skips m_iff = m_iff_pending
     logic [6:0]  owed_add;
+    assign acc_time = vcyc + ((prefixed && st == ST_EXEC) ? {25'h0, cc} : 32'h0);
+    assign at_boundary = (st == ST_PACE) && owed == 0 && !wait_bus;
 
     always_ff @(posedge clk) begin
         insn_done <= 1'b0;
@@ -394,13 +408,16 @@ module upd7810_core #(
             step <= 0;
             op2 <= 8'h0;
             halt_irq <= 1'b0;
+            vcyc <= 32'h0;
+            prefixed <= 1'b0;
         end else if (!wait_bus) begin
             case (st)
                 ST_RESET: st <= ST_PACE;
 
                 ST_PACE: begin
                     // the next instruction starts once the previous ones' cycles are paid
-                    if (owed == 0) begin
+                    // and the board has applied the events due before it
+                    if (owed == 0 && ev_done) begin
                         if (halt) begin
                             adv_cycles <= 7'd1; adv_req <= 1'b1; wait_bus <= 1'b1;
                             st <= ST_HALT_ADV;
@@ -414,6 +431,7 @@ module upd7810_core #(
 
                 ST_HALT_ADV: begin
                     owed_add = 7'd1;
+                    vcyc <= vcyc + 32'd1;
                     halt_cycle <= 1'b1;
                     halt_irq <= 1'b1;
                     step <= 0;
@@ -506,6 +524,7 @@ module upd7810_core #(
                 ST_EXEC: exec_step();
 
                 ST_END: begin
+                    vcyc <= vcyc + {25'h0, cc};
                     insn_done <= 1'b1;
                     insn_cc <= cc;
                     insn_pc <= ppc;
