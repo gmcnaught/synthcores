@@ -8,7 +8,7 @@
 // The internal ROM is loaded through rom_wr (e.g. from the ROM pack at start-up).
 
 module upd7811 #(
-    parameter string DECODE_HEX = "upd7810_decode.hex"
+    parameter DECODE_HEX = "upd7810_decode.hex"
 ) (
     input  logic        clk,
     input  logic        reset,

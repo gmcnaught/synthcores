@@ -15,8 +15,8 @@
 // = 3a - ceil(3a / 5,000,000).
 
 module cz101_board #(
-    parameter string DECODE_HEX = "upd7810_decode.hex",
-    parameter string TABLE_DIR = "./"
+    parameter DECODE_HEX = "upd7810_decode.hex",
+    parameter TABLE_DIR = "./"
 ) (
     input  logic        clk,
     input  logic        reset,          // power-on reset of the whole board
@@ -132,19 +132,26 @@ module cz101_board #(
 
     // ------------------------------------------------------------------ memory
     logic [7:0] prog [0:32767];
-    logic [7:0] ram  [0:8191];      // 0000-0FFF battery RAM, 1000-17FF RA-3 cartridge
-    logic [7:0] prog_q, ram_q;
-    initial for (int i = 0; i < 8192; i++) ram[i] = 8'hFF;   // a new cartridge reads FF
+    logic [7:0] prog_q;
     always_ff @(posedge clk) begin
         if (load_wr && !load_addr[15]) prog[load_addr[14:0]] <= load_data;
         prog_q <= prog[ext_addr[14:0]];
     end
+    // true dual port: A = ROM pack load / CPU, B = save file (no read-during-write is relied on)
+    (* ramstyle = "no_rw_check" *) logic [7:0] ram [0:8191];   // 0000-0FFF battery RAM, 1000-17FF RA-3
+    logic [7:0] ram_q;
+    // synthesis translate_off
+    initial for (int i = 0; i < 8192; i++) ram[i] = 8'hFF;   // (FPGA: M10K powers up as 00)
+    // synthesis translate_on
     wire        in_cart = ext_addr[15:11] == 5'b10010 && cart_present;   // 9000-97FF
-    wire [12:0] ram_a = in_cart ? {2'b10, ext_addr[10:0]} : {1'b0, ext_addr[11:0]};
+    wire        ld_ram  = load_wr && load_addr[15:12] == 4'h8;
+    wire [12:0] ram_a   = ld_ram ? {1'b0, load_addr[11:0]}
+                        : in_cart ? {2'b10, ext_addr[10:0]} : {1'b0, ext_addr[11:0]};
+    wire        ram_we  = ld_ram || (bus_st == B_IDLE && ext_req && ext_we
+                                     && (ext_addr[15:12] == 4'h8 || in_cart));
+    wire [7:0]  ram_d   = ld_ram ? load_data : ext_wdata;
     always_ff @(posedge clk) begin
-        if (load_wr && load_addr[15:12] == 4'h8) ram[{1'b0, load_addr[11:0]}] <= load_data;
-        else if (bus_st == B_IDLE && ext_req && ext_we && (ext_addr[15:12] == 4'h8 || in_cart))
-            ram[ram_a] <= ext_wdata;
+        if (ram_we) ram[ram_a] <= ram_d;
         ram_q <= ram[ram_a];
     end
     always_ff @(posedge clk) begin
@@ -279,12 +286,12 @@ module cz101_board #(
         return t3 + 40'(3 * e) - q - ((r != 24'h0) ? 40'd1 : 40'd0);
     endfunction
     always_comb now_tick = tick_at(vcyc);
-`ifndef SYNTHESIS
+    // synthesis translate_off
     always_ff @(posedge clk) if (!reset && !cpu_reset) begin
         if (now_tick != ticks(vcyc)) $fatal(1, "now_tick %0d != ticks(%0d)", now_tick, vcyc);
         if (32'(acc_time - tv) >= 32'd512 || tdv >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
     end
-`endif
+    // synthesis translate_on
 
     // port B input: bit 4 = uPD933 /RQ (active low), bit 7 = Power
     assign pb_in = {power_on, 2'b00, !s_irq, 4'h0};

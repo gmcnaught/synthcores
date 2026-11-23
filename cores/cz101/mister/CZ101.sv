@@ -25,7 +25,9 @@ assign USER_OUT = '1;
 assign {UART_RTS, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
+// DDR3 unused; its port still needs a running clock (the scaler shares the controller)
+assign DDRAM_CLK = clk_sys;
+assign {DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
 assign VGA_SL = 0;
 assign VGA_F1 = 0;
@@ -308,7 +310,7 @@ reg signed [15:0] audio;
 always @(posedge clk_sys) begin : gain
 	reg signed [18:0] v;
 	v = 19'(fifo_out) <<< status[3:2];
-	audio <= (v > 19'sd32767) ? 16'sd32767 : (v < -19'sd32768) ? -16'sd32768 : 16'(v);
+	audio <= (v > 19'sd32767) ? 16'sd32767 : (v < -19'sd32768) ? 16'sh8000 : 16'(v);
 end
 
 assign AUDIO_S   = 1;
