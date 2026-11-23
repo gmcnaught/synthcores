@@ -13,7 +13,7 @@ against [Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) (`modules/nuked-sc55
 | MCU (memory map, gate array, panel, encoder, NVRAM, timers) | `mcu_lockstep --romset jv880-v1.0.1 --jv880-factory`: from an empty NVRAM through the factory preset | 21,324,800 steps identical; the NVRAM's SHA-256 is d5da7845…d207, the reference's documented factory preset |
 | PCM (wave ROM banks, 25/29 clock, filter) | `system_lockstep --smf jv880.mid` from the factory NVRAM | SHA-256 73feda3c…bbbc, the reference's integration-test hash |
 | Board (pack, DDR3, pacing, MIDI, LCD) | `sim/jv880_board_bench --smf jv880.mid` from power-on, wave ROM through a DDR3 model | 42,181,775 steps and 1,640,121 samples identical to the reference; SHA-256 73feda3c…bbbc; 18.1 clocks a step of 30 |
-| Quartus (Windows build host) | `winbuild.sh jv880`, seed 5 | 28,944 ALMs (69 %); timing met (core setup slack +0.527 ns) |
+| Quartus (Windows build host) | `winbuild.sh jv880`, seed 4 | 28,980 ALMs (69 %); timing met (core setup slack +0.948 ns) |
 | MiSTer | `scripts/mister/smoke.sh` with the factory-preset pack | boots to "I-01:Syn Lead"; 60 s of `jv880.mid` over MidiLink and the autosave on OSD open with no underrun or lag; panel keys and the encoder respond as the reference's |
 
 The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](docs/plan.md).
@@ -36,6 +36,13 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
       so its NVRAM edits are not kept. Don't keep a `boot.rom` next to a pack you load from
       the OSD.
 3. **MIDI:** set the UART to MidiLink and send MIDI.
+    - In Patch mode the unit receives on channel 1 (`RxCH`). In Perf mode each part has its
+      own channel.
+    - MIDI that arrives while the firmware's receiver is still off (the first ~4 s of boot) is
+      dropped, as on the real unit. The reference keeps those bytes, and a controller's MIDI
+      clock during boot then leaves the firmware deaf to notes.
+    - OSD **Diagnostics** shows a hex line under the status strip: MIDI bytes received, the
+      last 4 bytes, the PCM's peak, the output's peak, and the underrun count.
 4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full
    scale, so the 16-bit conversion never clamps. +6 dB is the reference renderer's level (`>> 15`), which
    clamps the top 6 dB: 48 of the 64 factory patches reach it with one note or a 4-note chord at

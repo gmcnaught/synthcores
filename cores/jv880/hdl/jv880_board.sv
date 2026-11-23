@@ -58,6 +58,7 @@ module jv880_board #(
     input  logic        pace_enable,
     input  logic [1:0]  gain,             // output gain: 0, +6, +12, +18 dB (0 dB: 20-bit PCM full scale = s16 full scale)
     input  logic        step_gate,        // 1 on hardware; the bench opens it one step at a time
+    input  logic        diag,             // the diagnostics line under the status strip
 
     output logic signed [15:0] audio_l,
     output logic signed [15:0] audio_r,
@@ -228,10 +229,36 @@ module jv880_board #(
             lag_base <= lag_us;
         end else if (lag_us != lag_base) lag_seen <= 1'b1;
     end
+    // diagnostics line (OSD; hex): MIDI bytes received, the last 4 bytes, the PCM's peak |left|
+    // (bits 31:16) and the output's peak |left| over the last 2**24 clocks (0.34 s), underruns
+    logic [15:0] dbg_n, dbg_pcm_pk, dbg_out_pk, pcm_pk_run, out_pk_run;
+    logic [31:0] dbg_last;
+    logic [23:0] dbg_win;
+    always_ff @(posedge clk) begin : dbg
+        logic [15:0] a, o;
+        a = sample_l[31] ? 16'(~sample_l[31:16]) : sample_l[31:16];
+        o = audio_l[15] ? ~audio_l : audio_l;
+        if (m_valid && running) begin dbg_n <= dbg_n + 16'd1; dbg_last <= {dbg_last[23:0], m_data}; end
+        dbg_win <= dbg_win + 24'd1;
+        if (dbg_win == '1) begin
+            dbg_pcm_pk <= pcm_pk_run; dbg_out_pk <= out_pk_run; pcm_pk_run <= '0; out_pk_run <= '0;
+        end else begin
+            if (sample_valid && a > pcm_pk_run) pcm_pk_run <= a;
+            if (o > out_pk_run) out_pk_run <= o;
+        end
+    end
+    function automatic logic [7:0] hexc(input logic [3:0] n);
+        return n < 4'd10 ? 8'h30 + 8'(n) : 8'h37 + 8'(n);
+    endfunction
+    logic [95:0] dbg_bits;
+    logic [7:0]  dbg_ch [24];
+    assign dbg_bits = {dbg_n, dbg_last, dbg_pcm_pk, dbg_out_pk, underruns};
+    always_comb for (int k = 0; k < 24; k++) dbg_ch[k] = hexc(dbg_bits[95 - 4 * k -: 4]);
+
     jv880_lcd_video video (
         .clk(clk_vid), .dd(lcd_dd), .cg, .dd_ram, .cursor_on(c_flag),
         .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
-        .underrun_seen(underruns != 16'd0), .lag_seen,
+        .underrun_seen(underruns != 16'd0), .lag_seen, .dbg_ch, .dbg_on(diag),
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b)
     );
 

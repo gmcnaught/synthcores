@@ -14,6 +14,9 @@
 //   download; an empty or missing file mounts with size 0); the model starts from its NVRAM when
 //   it holds 32 KB. --save-at N raises "Save NVRAM" in the middle of step N; the file written
 //   through the SD model must equal the model's NVRAM after that step. --sav-out keeps the file.
+//   --clock-hz F [--clock-steps A B] [--clock-when-re] adds MIDI clock (F8) as a controller sends it,
+//   from power-on (bytes while the firmware has its receiver off are lost, as on the H8/532).
+//   --uart sends MIDI through uart_rxd at 31250 baud (the HDL alone, no model).
 //   --smf reproduces the renderer's jv880 test (no reset message, reset steps, then the file's
 //   events at 600 ns a step); --out writes the HDL's samples after the reset steps as the
 //   renderer's s16 stream (its SHA-256 compares with `sc55-render --stdout`).
@@ -59,6 +62,10 @@ int main(int argc, char** argv)
     int64_t     midi_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     std::string sav_path, sav_out;
+    bool        uart = false;             // MIDI through uart_rxd at 31250 baud (no lockstep)
+    uint64_t    clock_from = 0, clock_until = ~0ull;   // --clock-steps FROM UNTIL: when the clock runs
+    double      clock_hz = 0;
+    bool        clock_when_re = false;   // clock only while the firmware has the UART receiver on (SCR.RE)             // MIDI clock (F8) bytes a second during --smf, as a controller sends
     std::vector<uint64_t> save_at;
     for (int i = 1; i < argc; ++i)
     {
@@ -74,6 +81,10 @@ int main(int argc, char** argv)
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
+        else if (a == "--uart") uart = true;
+        else if (a == "--clock-hz" && i + 1 < argc) clock_hz = std::atof(argv[++i]);
+        else if (a == "--clock-when-re") clock_when_re = true;
+        else if (a == "--clock-steps" && i + 2 < argc) { clock_from = std::strtoull(argv[++i], nullptr, 0); clock_until = std::strtoull(argv[++i], nullptr, 0); }
         else if (a == "--sav" && i + 1 < argc) sav_path = argv[++i];
         else if (a == "--save-at" && i + 1 < argc) save_at.push_back(std::strtoull(argv[++i], nullptr, 0));
         else if (a == "--sav-out" && i + 1 < argc) sav_out = argv[++i];
@@ -143,6 +154,7 @@ int main(int argc, char** argv)
     const uint32_t base_w = 0x30000000u >> 3;
     std::deque<std::pair<uint64_t, uint32_t>> rdq;
     std::deque<Frame> hdl;
+    uint32_t dbg_pcm_max = 0, dbg_out_max = 0;
     // hps_io's SD side (slot 0): a request (sd_rd / sd_wr) is answered after a delay with sd_ack
     // over the whole transfer of (sd_blk_cnt + 1) x 512 bytes. Reads: sd_buff_dout with a
     // one-clock sd_buff_wr, the address 2 clocks later. Writes: sd_buff_din sampled every few
@@ -195,8 +207,24 @@ int main(int argc, char** argv)
             break;
         }
     };
+    // MIDI on the UART pin: 8N1 at 31250 baud, CLK_HZ 50 MHz = 1600 clocks a bit
+    std::deque<uint8_t> uq;
+    int u_bit = -1, u_cnt = 0;
+    uint16_t u_frame = 0;
+    auto uart_clock = [&]() {
+        if (u_bit < 0)
+        {
+            if (uq.empty()) { t->uart_rxd = 1; return; }
+            u_frame = (uint16_t)(0x200 | (uq.front() << 1));      // start 0, data LSB first, stop 1
+            uq.pop_front();
+            u_bit = 0; u_cnt = 0;
+        }
+        t->uart_rxd = (u_frame >> u_bit) & 1;
+        if (++u_cnt == 1600) { u_cnt = 0; if (++u_bit == 10) u_bit = -1; }
+    };
     auto tick = [&]() {
         sd_clock();
+        uart_clock();
         t->DDRAM_BUSY = busy_mod > 0 && (rng() % busy_mod) == 0;
         t->DDRAM_DOUT_READY = 0;
         if (!rdq.empty() && rdq.front().first <= clocks)
@@ -224,11 +252,13 @@ int main(int argc, char** argv)
         }
         t->clk = 1; t->clk_vid = 1; t->eval();
         ++clocks;
+        dbg_pcm_max = std::max<uint32_t>(dbg_pcm_max, R->jv880_board__DOT__dbg_pcm_pk);
+        dbg_out_max = std::max<uint32_t>(dbg_out_max, R->jv880_board__DOT__dbg_out_pk);
         if (t->sample_valid) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
     };
 
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
-    t->midi_inject = 0; t->buttons = 0; t->enc_we = 0; t->enc_dir = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0;
+    t->midi_inject = 0; t->buttons = 0; t->enc_we = 0; t->enc_dir = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0; t->diag = 1;
     t->img_mounted = 0; t->img_readonly = 0; t->img_size = 0; t->sd_ack = 0; t->sd_buff_wr = 0; t->sd_buff_addr = 0;
     t->save_req = 0; t->osd_open = 0; t->autosave = 0;
     for (int i = 0; i < 8; ++i) tick();
@@ -301,13 +331,34 @@ int main(int argc, char** argv)
         return true;
     };
     auto post = [&](uint8_t b) {
-        emu.PostMIDI(b);
+        if (uart) { uq.push_back(b); return; }
+        // the H8/532 loses a byte while its receiver is off (SCR.RE); the HDL drops it itself, the
+        // model would keep it, so it gets the byte only while the receiver is on
+        if (m.dev_register[DEV_SCR] & 0x10) emu.PostMIDI(b);
         t->midi_inject = 1; t->midi_inject_data = b;
         tick();
         t->midi_inject = 0;
     };
     size_t saves = 0;
     auto step = [&]() {
+        if (uart)
+        {
+            // no model: the HDL alone, its samples kept from out_from
+            t->step_gate = 1;
+            tick();
+            t->step_gate = 0;
+            for (int g = 0; g < 50'000'000 && !t->step_done; ++g) tick();
+            ++step_no;
+            while (!hdl.empty())
+            {
+                const Frame a = hdl.front();
+                hdl.pop_front();
+                if (step_no > reset_steps) { out.push_back(s16(a.l)); out.push_back(s16(a.r)); }
+                peak = std::max<int64_t>(peak, std::max(std::abs((int64_t)a.l), std::abs((int64_t)a.r)));
+                ++compared;
+            }
+            return (bool)t->step_done;
+        }
         emu.Step();
         uint64_t c0 = clocks;
         const bool save_now = std::find(save_at.begin(), save_at.end(), step_no + 1) != save_at.end();
@@ -346,16 +397,24 @@ int main(int argc, char** argv)
     };
 
     size_t midi_bytes = 0;
+    bool   re_seen = false;
     if (!smf_path.empty())
     {
         // R_RunReset(NONE) then R_RenderOne: reset steps, then the file's events (600 ns a step)
         for (uint64_t i = 0; i < reset_steps; ++i)
+        {
             if (!step()) return 1;
+            // --clock-hz: the clock runs from power-on, as a controller's does
+            const bool re = (m.dev_register[DEV_SCR] & 0x10) != 0;
+            if (re && !re_seen) { re_seen = true; printf("UART receiver first enabled at step %" PRIu64 "\n", step_no); }
+            if (clock_hz > 0 && i >= clock_from && i < clock_until && i % (uint64_t)(1e9 / clock_hz / 600) == 0 && (!clock_when_re || re))
+            { post(0xf8); ++midi_bytes; }
+        }
         out_from = g_model.size();
         SMF_Data  data   = SMF_LoadEvents(smf_path.c_str());
         SMF_Track merged = SMF_MergeTracks(data);
         SMF_SetDeltasFromTimestamps(merged);
-        uint64_t division = data.header.division, us_per_qn = 500000, ns_sim = 0;
+        uint64_t division = data.header.division, us_per_qn = 500000, ns_sim = 0, next_clock = 0;
         for (const SMF_Event& ev : merged.events)
         {
             const uint64_t when = ns_sim + 1000 * SMF_TicksToUS(ev.delta_time, us_per_qn, division);
@@ -363,6 +422,8 @@ int main(int argc, char** argv)
             {
                 if (!step()) return 1;
                 ns_sim += 600;
+                if (clock_hz > 0 && ns_sim >= next_clock && step_no >= clock_from && step_no < clock_until) { post(0xf8); ++midi_bytes; }
+                if (clock_hz > 0 && ns_sim >= next_clock) next_clock += (uint64_t)(1e9 / clock_hz);
             }
             if (ev.IsTempo(data.bytes)) us_per_qn = ev.GetTempoUS(data.bytes);
             if (!ev.IsMetaEvent())
@@ -381,6 +442,18 @@ int main(int argc, char** argv)
             if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && midi_bytes < midi.size()) post(midi[midi_bytes++]);
             if (!step()) return 1;
         }
+    }
+    if (uart)
+    {
+        if (!out_path.empty())
+        {
+            std::ofstream f(out_path, std::ios::binary);
+            f.write((const char*)out.data(), (std::streamsize)(out.size() * 2));
+        }
+        printf("debug line: PCM peak max %04x, output peak max %04x\n", dbg_pcm_max, dbg_out_max);
+        printf("UART MIDI: %zu bytes (%zu still queued), %" PRIu64 " steps, %" PRIu64 " HDL samples, peak %.1f dBFS\n", midi_bytes, uq.size(),
+               step_no, compared, peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0);
+        return 0;
     }
     for (int g = 0; g < 2'000'000 && compared + hdl.size() < g_model.size(); ++g) tick();
     if (!drain()) return 1;
