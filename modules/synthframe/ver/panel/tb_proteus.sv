@@ -68,7 +68,7 @@ module tb_proteus (
     logic [7:0]  font_data, font2_data;
     always_ff @(posedge clk) begin font_data <= font[font_addr]; font2_data <= font[font2_addr]; end
 
-    hd44780 lcd (
+    synthframe_hd44780 lcd (
         .clk, .reset(load), .cs(1'b1), .wr, .rd(1'b0), .rs, .din, .dout(lcd_dout),
         .r_line(lcd_line), .r_pos(lcd_pos), .r_row(lcd_row), .r_code(lcd_code), .r_cgbits(lcd_cgbits),
         .r_is_cg(lcd_is_cg), .r_cursor(lcd_cursor), .display_on(lcd_on));

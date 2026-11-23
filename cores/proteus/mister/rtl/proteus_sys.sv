@@ -287,7 +287,7 @@ mfp68901 mfp
 );
 
 // ---------------------------------------------------------------- LCD
-hd44780 lcd
+synthframe_hd44780 lcd
 (
 	.clk(clk), .reset(reset),
 	.cs(1'b1), .wr(lcd_wr), .rd(lcd_rd), .rs(addr[1]), .din(oEdb[7:0]), .dout(lcd_dout),

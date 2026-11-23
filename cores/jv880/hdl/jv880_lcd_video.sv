@@ -7,6 +7,9 @@
 // strip of the SC-55 core (state band, MIDI, underrun, lag), same colours, so the MiSTer smoke
 // tests read both alike. Reads the LCD controller's state from the core clock without
 // synchronisation (display only).
+//
+// Built from synthframe's panel modules: synthframe_vtiming, synthframe_charlcd (the LCD and
+// the debug line, sharing one glyph lookup) and synthframe_status_strip.
 module jv880_lcd_video (
     input  logic       clk,              // pixel clock
     input  logic [7:0] dd [80],
@@ -40,100 +43,72 @@ module jv880_lcd_video (
         `include "lcd_font.svh"
     endfunction
 
-    // ------------------------------------------------------------ timing (as the SC-55's lcd_video)
+    // ------------------------------------------------------------ timing
     logic [10:0] x;
     logic [9:0]  y;
-    always_ff @(posedge clk) begin
-        if (x == 11'd1055) begin
-            x <= 11'd0;
-            y <= (y == 10'd627) ? 10'd0 : y + 10'd1;
-        end else x <= x + 11'd1;
-    end
+    logic        hb, vb, hsy, vsy;
+    synthframe_vtiming timing (.clk, .x, .y, .hblank(hb), .vblank(vb), .hsync(hsy), .vsync(vsy));
 
-    // ------------------------------------------------------------ stage 0: cell and dot
-    // x: character j = (x - X0) / 32, dot column (offset / 5, on when offset % 5 < 4 and < 25)
-    // y: row i = (y - Y0 - 4) / 50, dot row (offset / 5, on when offset % 5 < 4 and < 40)
-    logic        in_panel0, dot_x0, dot_y0, hs0, vs0, hb0, vb0, in_dbg0, ddot_y0;
-    logic [2:0]  ddr0;
-    logic [4:0]  j0;
-    logic        i0;
-    logic [2:0]  dc0;
-    logic [2:0]  dr0;
-    logic [10:0] x0;
-    logic [9:0]  y0;
-    always_ff @(posedge clk) begin : stage0
-        logic [10:0] lx;
-        logic [9:0]  ly, oy, dly;
-        logic [4:0]  ox;
-        lx = x - 11'(X0);
-        ly = y - 10'(Y0 + 4);
-        ox = lx[4:0];
-        oy = (ly >= 10'd50) ? ly - 10'd50 : ly;
-        x0 <= x; y0 <= y;
-        in_panel0 <= x >= 11'(X0) && x < 11'(X0 + PW) && y >= 10'(Y0) && y < 10'(Y0 + PH);
-        j0 <= lx[9:5];
-        i0 <= ly >= 10'd50;
-        dc0 <= 3'(ox / 5'd5);
-        dot_x0 <= x >= 11'(X0) && ox < 5'd25 && (ox % 5'd5) < 5'd4;
-        dr0 <= 3'(oy / 10'd5);
-        dot_y0 <= y >= 10'(Y0 + 4) && ly < 10'd100 && oy < 10'd40 && (oy % 10'd5) < 10'd4;
-        dly = y - 10'(DY);
-        in_dbg0 <= dbg_on && x >= 11'(X0) && x < 11'(X0 + PW) && y >= 10'(DY) && y < 10'(DY + 40);
-        ddr0 <= 3'(dly / 10'd5);
-        ddot_y0 <= y >= 10'(DY) && dly < 10'd40 && (dly % 10'd5) < 10'd4;
-        hb0 <= x >= 11'd800;
-        vb0 <= y >= 10'd600;
-        hs0 <= (x >= 11'd840 && x < 11'd968);
-        vs0 <= (y >= 10'd601 && y < 10'd605);
-    end
+    // ------------------------------------------------------------ the LCD and the debug line
+    logic [1:0] l_line, d_line;
+    logic [5:0] l_col, d_col;
+    logic [7:0] l_code, d_code, l_gcode, d_gcode, gcode;
+    logic [2:0] l_grow, d_grow, grow;
+    logic [4:0] gbits;
+    logic       l_fetch, d_fetch, l_panel, l_dot, l_lit, d_panel, d_dot, d_lit;
 
-    // ------------------------------------------------------------ stage 1: character code
-    logic [7:0]  ch1;
-    logic        cur1, in_panel1, dot1, hs1, vs1, hb1, vb1, in_dbg1;
-    logic [2:0]  dc1, dr1;
-    logic [10:0] x1;
-    logic [9:0]  y1;
-    always_ff @(posedge clk) begin
-        ch1 <= in_dbg0 ? dbg_ch[j0 < 5'd24 ? j0 : 5'd0] : dd[7'(i0) * 7'd40 + 7'(j0)];
-        cur1 <= !in_dbg0 && cursor_on && dd_ram[6] == i0 && dd_ram[5:0] == 6'(j0) && dr0 == 3'd7;
-        in_panel1 <= in_panel0; in_dbg1 <= in_dbg0;
-        dot1 <= (in_panel0 && dot_x0 && dot_y0 || in_dbg0 && dot_x0 && ddot_y0) && j0 < 5'd24;
-        dc1 <= dc0; dr1 <= in_dbg0 ? ddr0 : dr0;
-        hs1 <= hs0; vs1 <= vs0; hb1 <= hb0; vb1 <= vb0; x1 <= x0; y1 <= y0;
-    end
+    assign l_code = dd[7'(l_line[0]) * 7'd40 + 7'(l_col)];
+    synthframe_charlcd #(.X0(X0), .Y0(Y0), .COLS(24), .LINES(2), .PW(PW), .PH(PH), .TOP(4),
+                         .CHAR_P(32), .LINE_P(50), .DOT_W(4), .DOT_H(4), .DOT_PX(5), .DOT_PY(5)) lcd (
+        .clk, .x, .y,
+        .cell_line(l_line), .cell_col(l_col), .cell_code(l_code),
+        .cell_cursor(cursor_on && dd_ram[6] == l_line[0] && dd_ram[5:0] == l_col),
+        .glyph_code(l_gcode), .glyph_row(l_grow), .glyph_bits(gbits), .fetch(l_fetch),
+        .panel(l_panel), .dot(l_dot), .lit(l_lit));
 
-    // ------------------------------------------------------------ stage 2: font row
-    logic [4:0]  row2;
-    logic        cur2, in_panel2, dot2, hs2, vs2, hb2, vb2, in_dbg2;
-    logic [2:0]  dc2;
-    logic [10:0] x2;
-    logic [9:0]  y2;
+    logic [2:0] dbg_q;                   // dbg_on as the pipeline saw it at stage 0
+    always_ff @(posedge clk) dbg_q <= {dbg_q[1:0], dbg_on};
+    assign d_code = dbg_ch[d_col < 6'd24 ? 5'(d_col) : 5'd0];
+    synthframe_charlcd #(.X0(X0), .Y0(DY), .COLS(24), .LINES(1), .PW(PW), .PH(40), .TOP(0),
+                         .CHAR_P(32), .LINE_P(40), .DOT_W(4), .DOT_H(4), .DOT_PX(5), .DOT_PY(5)) dbg (
+        .clk, .x, .y,
+        .cell_line(d_line), .cell_col(d_col), .cell_code(d_code), .cell_cursor(1'b0),
+        .glyph_code(d_gcode), .glyph_row(d_grow), .glyph_bits(gbits), .fetch(d_fetch),
+        .panel(d_panel), .dot(d_dot), .lit(d_lit));
+
+    assign gcode = d_fetch ? d_gcode : l_gcode;
+    assign grow  = d_fetch ? d_grow : l_grow;
+    assign gbits = (gcode >= 8'd16) ? font_row(gcode - 8'd16, {1'b0, grow}) : cg[{gcode[2:0], grow}];
+
+    // ------------------------------------------------------------ the strip, syncs: stages 0-2
+    logic [10:0] x0, x1, x2;
+    logic [9:0]  y0, y1, y2;
+    logic [2:0]  hs_q, vs_q, hb_q, vb_q;
     always_ff @(posedge clk) begin
-        row2 <= (dr1 == 3'd7) ? 5'h00 : (ch1 >= 8'd16) ? font_row(ch1 - 8'd16, {1'b0, dr1}) : cg[{ch1[2:0], dr1}];
-        cur2 <= cur1; in_panel2 <= in_panel1; in_dbg2 <= in_dbg1; dot2 <= dot1; dc2 <= dc1;
-        hs2 <= hs1; vs2 <= vs1; hb2 <= hb1; vb2 <= vb1; x2 <= x1; y2 <= y1;
+        x0 <= x; x1 <= x0; x2 <= x1;
+        y0 <= y; y1 <= y0; y2 <= y1;
+        hs_q <= {hs_q[1:0], hsy}; vs_q <= {vs_q[1:0], vsy};
+        hb_q <= {hb_q[1:0], hb};  vb_q <= {vb_q[1:0], vb};
     end
+    logic [6:0]  st;
+    logic        st_hit;
+    logic [23:0] st_rgb;
+    synthframe_status_strip #(.X0(X0), .Y0(SY)) strip (
+        .x(x2), .y(y2), .rom_ok(st[0]), .loading(st[1]), .running(st[2]), .midi_led(st[3]),
+        .underrun_led(st[4]), .underrun_seen(st[5]), .lag_seen(st[6]), .hit(st_hit), .rgb(st_rgb));
 
     // ------------------------------------------------------------ stage 3: colour
-    logic [6:0] st;
     always_ff @(posedge clk) begin
         st <= {lag_seen, underrun_seen, underrun_led, midi_led, running, loading, rom_ok};
-        hs <= !hs2; vs <= !vs2; hblank <= hb2; vblank <= vb2;
-        if (in_panel2) begin
-            if (dot2 && (row2[3'd4 - dc2] || cur2)) {r, g, b} <= 24'h0a1404;   // dot on
-            else if (dot2) {r, g, b} <= 24'h6aa500;                           // dot off
-            else {r, g, b} <= 24'h78b500;                                      // panel (lcd.cpp color2)
+        hs <= !hs_q[2]; vs <= !vs_q[2]; hblank <= hb_q[2]; vblank <= vb_q[2];
+        if (l_panel) begin
+            if (l_lit) {r, g, b} <= 24'h0a1404;                    // dot on
+            else if (l_dot) {r, g, b} <= 24'h6aa500;               // dot off
+            else {r, g, b} <= 24'h78b500;                          // panel (lcd.cpp color2)
         end else begin
             {r, g, b} <= 24'h101828;
-            if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0) && x2 < 11'(X0 + 200))
-                {r, g, b} <= st[2] ? 24'h20c040 : st[1] ? 24'he0a020 : st[0] ? 24'h2060c0 : 24'hc02020;
-            if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 220) && x2 < 11'(X0 + 260))
-                {r, g, b} <= st[3] ? 24'hffffff : 24'h303848;
-            if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 280) && x2 < 11'(X0 + 320))
-                {r, g, b} <= st[4] ? 24'hff4040 : st[5] ? 24'h902020 : 24'h303848;
-            if (y2 >= 10'(SY) && y2 < 10'(SY + 20) && x2 >= 11'(X0 + 340) && x2 < 11'(X0 + 380))
-                {r, g, b} <= st[6] ? 24'he0a020 : 24'h303848;
-            if (in_dbg2 && dot2 && row2[3'd4 - dc2]) {r, g, b} <= 24'he0e0e0;
+            if (st_hit) {r, g, b} <= st_rgb;
+            if (dbg_q[2] && d_lit) {r, g, b} <= 24'he0e0e0;
         end
     end
 endmodule

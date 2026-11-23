@@ -16,6 +16,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/a
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/save/synthframe_nvsave.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/resample.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/lcd_ctrl.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/jv880_lcd_video.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/jv880_kbd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/jv880_board.sv
