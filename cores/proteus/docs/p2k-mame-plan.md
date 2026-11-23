@@ -109,15 +109,16 @@ Add cases for what the current 13 do not cover:
     - `--update` recorded;
     - every case's register log exercises the feature it names (checked by its stats).
 
-### 5. Variant and storage features (only if the core needs them)
+### 5. User flash SIMMs
 
-- Sound-memory flash writes (G20 port B) for user flash SIMMs.
-- MIDI In B (UART2): 32 channels.
-- Proteus 1000 (one G chip, two H chips, two SIMM slots).
-- A real SIMM image instead of the stand-in, if a dump becomes available. The format checks
-  (header, block checksums, ROM ID) are already in the findings.
+- Sound-memory flash writes (G20 port B): the command sequence the OS sends, the erase and
+  program timing it polls for, and the flash SIMM ID it expects.
+- **Gate:** in MAME, the OS loads a user sample set into a flash SIMM image, the image survives a
+  restart, and a corpus case plays from it deterministically.
+- Out of scope for the first core (decision 4): MIDI In B (UART2), the Proteus 1000, a real SIMM
+  image.
 
-### 6. Hardware validation (needs a real unit or recordings)
+### 6. Hardware validation (deferred: no unit available)
 
 The level law, the H interpolator timing, and the G05 effects' sound cannot be decided from
 firmware. With a unit or recordings, these settle them:
@@ -129,13 +130,14 @@ firmware. With a unit or recordings, these settle them:
 
 Without them, the step 2 integer models are the definition and are labelled as such.
 
-## Decisions needed from the user
+## Decisions (user, 2026-11-23)
 
-1. **Hardware:** is a Proteus 2000/1000 unit, or recordings from one, available? This decides
-   whether step 6 runs or the MAME models stay the definition.
-2. **Reference strategy for H and G05:** accept "the integer MAME model is the definition" for
-   the filter and effects (exact HDL lockstep, sound verified only by ear)?
-3. **Outputs on the MiSTer:** mix Main + Sub 1 + Sub 2 down to the one stereo pair, or select
-   one from the OSD?
-4. **Scope of step 5:** which of user flash SIMMs, MIDI In B and the Proteus 1000 the first core
-   needs.
+1. **Hardware:** no Proteus 2000/1000 is available. Step 6 is deferred. Step 1 items that need
+   a real unit (the level law, the +0x3C timing) get a recorded choice instead of an [O] finding.
+2. **Reference strategy:** the step 2 integer MAME models are the definition for G20, H, G05 and
+   the mixer, for now. The HDL is checked against them bit-exactly; their sound is checked by ear.
+3. **Outputs on the MiSTer:** Main + Sub 1 + Sub 2 are mixed down to the one stereo pair. The
+   integer mixer in step 2 defines that sum (gains, headroom, saturation). The routing cases in
+   step 4 still run, to check each bus reaches the sum.
+4. **Scope of step 5:** user flash SIMMs (sound-memory flash writes through G20 port B) only.
+   MIDI In B, the Proteus 1000 and a real SIMM image are out of scope for the first core.
