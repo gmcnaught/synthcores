@@ -153,7 +153,7 @@ end
 
 ///////////////////////   BATTERY RAM FILE   /////////////////////
 
-wire        nv_we, nv_hold, nv_pause, saving;
+wire        nv_we, nv_hold, nv_pause, saving, nv_written;
 wire [12:0] nv_addr;
 wire  [7:0] nv_wdata, nv_rdata;
 reg   [9:0] pause_cnt;
@@ -168,7 +168,7 @@ synthframe_nvsave #(.AW(13)) nvsave
 	.sd_lba(sd_lba), .sd_blk_cnt(sd_blk_cnt), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr),
 	.sd_buff_din(sd_buff_din),
-	.save_req(status[4]), .osd_open(OSD_STATUS), .autosave(~status[5]),
+	.save_req(status[4]), .osd_open(OSD_STATUS), .autosave(~status[5]), .mem_written(nv_written),
 	.mem_we(nv_we), .mem_addr(nv_addr), .mem_wdata(nv_wdata), .mem_rdata(nv_rdata),
 	.core_idle(core_idle), .boot_hold(nv_hold), .pause(nv_pause), .saving(saving), .restored()
 );
@@ -270,7 +270,7 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.rx_valid(1'b0), .rx_cycle(32'd0), .rx_edge(32'd0), .rx_level(1'b1), .rx_pop(),
 	.midi_valid(!mq_empty), .midi_byte(mq[mq_rp]), .midi_pop(midi_pop),
 	.midi_tx(midi_tx),
-	.nv_addr(nv_addr), .nv_we(nv_we), .nv_wdata(nv_wdata), .nv_rdata(nv_rdata),
+	.nv_addr(nv_addr), .nv_we(nv_we), .nv_wdata(nv_wdata), .nv_rdata(nv_rdata), .nv_written(nv_written),
 	.powered_down(powered_down),
 	.cycles(cycles),
 

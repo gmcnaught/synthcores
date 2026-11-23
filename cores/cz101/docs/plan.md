@@ -114,7 +114,7 @@ construction.
 | C2 | Done: peripherals on 160 random programs (310 k interrupts); firmware boot identical (below) |
 | C3 | Done: uPD933 identical to a standalone copy of MAME's model on synthetic stimuli; identical to MAME itself inside C4 |
 | C4 | `tests/c4_run.sh tests/midi/basic.txt 6500000`: 6.5 M instructions (17.9 s, boot and MIDI playback) identical to MAME, 716,728 samples identical |
-| C5 | Build meets timing (14,555 ALMs, 127 M10K, 36 DSP; core clock +3.65 ns at 50 MHz). MiSTer smoke test (`scripts/mister/smoke.sh`) passes: boots to the first patch, MIDI over the UART changes the patch, a panel key works, no underrun, the 8 KB save file is written. Open: restore after reload not shown by the LCD (the firmware boots to preset 1); audio not yet checked by ear |
+| C5 | Done. Build meets timing (14,577 ALMs, 37 DSP; core clock +4.13 ns at 50 MHz). MiSTer smoke test (`scripts/mister/smoke.sh`) passes: boots to the first patch, MIDI over the UART changes the patch, a panel key works, no underrun, the 8 KB save file is written and differs from `init_ram`. Audio heard on the MiSTer over MidiLink. Not shown by the smoke test: an edited patch surviving a reload (the firmware boots to preset 1) |
 
 Timing rules the board implements (all from MAME's source, confirmed by the lockstep):
 - CPU cycle P = 299,999,940,000 as (attoseconds per cycle for 3,333,334 cycles/s).
@@ -139,7 +139,8 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   are wrap-safe, so the core runs past the 32-bit `vcyc` wrap (21 minutes).
 - **RAM:** one 8 KB block: 0000-0FFF battery RAM, 1000-17FF RA-3 cartridge (OSD; MAME's RA-3
   is 4 KB behind a 2 KB window). `synthframe_nvsave` saves all 8 KB to
-  `saves/CZ-101/<pack>.sav`.
+  `saves/CZ-101/<pack>.sav` with the CPU running; the board's `nv_written` makes it write the
+  file again, paused, when the firmware wrote the RAM during the first pass.
 - **Power:** the OSD Power switch asserts /NMI when off (the firmware powers down); switching
   it on after a power-down resets the board (RAM kept), as a power cycle.
 - **Keys:** MAME's PC-key assignments for the panel (`hdl/cz101_kbd.sv`); notes come from MIDI.
