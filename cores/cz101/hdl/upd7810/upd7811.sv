@@ -40,6 +40,12 @@ module upd7811 #(
     input  logic        int1_line,
     input  logic        int2_line,
 
+    // virtual time and the event handshake (upd7810_core)
+    output logic [31:0] vcyc,
+    output logic [31:0] acc_time,
+    output logic        at_boundary,
+    input  logic        ev_done,
+
     // trace
     output logic        insn_done,
     output logic [6:0]  insn_cc,
@@ -82,7 +88,7 @@ module upd7811 #(
         .skit_id, .skit_req, .skit_flag, .skit_ack,
         .adv_cycles, .adv_req, .adv_ack,
         .irq_vec, .irq_nmi, .irq_ack,
-        .iff_o(iff_w),
+        .iff_o(iff_w), .vcyc, .acc_time, .at_boundary, .ev_done,
         .insn_done, .insn_cc, .insn_pc, .insn_op, .insn_op2, .halt_cycle, .irq_taken,
         .irq_taken_vec, .r_v, .r_a, .r_b, .r_c, .r_d, .r_e, .r_h, .r_l, .r_ea, .r_sp, .r_pc,
         .r_psw
