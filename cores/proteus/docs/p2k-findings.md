@@ -142,6 +142,7 @@ Simm1(16Mb)<->Simm2(16Mb)", "SIMM with 2 ROM IDs", "2 SIMMs w/Same ID" [O]: SIMM
 and a 16-bit checksum, so a SIMM dump can be checked the way the Proteus/1 wave ROMs were.
 
 ## Next
+The plan for the MAME prerequisites of a MiSTer core is `docs/p2k-mame-plan.md` (2026-11-23).
 Done: MAME machine, voice start path, output rate (44.1 kHz [I]), boot block, SIMM/Baby format,
 level/pan/envelope path.
 1. H filter: done (E4-measured voice model). G05 effects microcode: still a workalike.
