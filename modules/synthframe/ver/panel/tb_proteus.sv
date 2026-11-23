@@ -39,7 +39,7 @@ module tb_proteus (
             seq[n] <= seed[7] ? 9'h01c : 9'h018; n++;                 // display shift right/left
         end
         s = xs(s);
-        seq[n] <= {2'b01, s[0], 1'b0, s[11:8] < 4'd10 ? 2'(s[9:8]) : 2'd0, s[3:0]}; n++;   // cursor address
+        seq[n] <= {2'b01, s[0], 2'b00, s[3:0]}; n++;                    // cursor address, columns 0-15
         seq_n <= 9'(n);
         s = xs(s);
         leds <= s[7:0];

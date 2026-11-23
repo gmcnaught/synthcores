@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Panel renderers: every bench frame hash equals expected.txt (recorded from the renderers as
-# they were before iteration 8 moved them onto modules/synthframe/hdl/panel).
+# they were before they moved onto modules/synthframe/hdl/panel; run.sh says when).
 import pathlib, subprocess, sys, tempfile
 
 here = pathlib.Path(__file__).resolve().parent

@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MIT
 # Builds the panel frame benches with Verilator and prints one hash per bench and seed.
 # Usage: run.sh [OUT_DIR]   (default: out/ next to this script)
-# expected.txt holds the hashes of the renderers as they were before iteration 8; test_panel.py
-# compares against it.
+# expected.txt holds the hashes of the renderers as they were before they moved onto
+# modules/synthframe/hdl/panel (SC-55, JV-880: before iteration 8; Proteus/1 and CZ-101: main at
+# c1d83cd, before the CZ-101 move); test_panel.py compares against it.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
@@ -29,8 +30,13 @@ build jv880 tb_jv880 "$HERE/tb_jv880.sv" \
     $(cat "$HERE/files_jv880.txt" | sed "s|^|$ROOT/|")
 build proteus tb_proteus "$HERE/tb_proteus.sv" \
     $(cat "$HERE/files_proteus.txt" | sed "s|^|$ROOT/|")
+build cz101 tb_cz101 "$HERE/tb_cz101.sv" \
+    $(cat "$HERE/files_cz101.txt" | sed "s|^|$ROOT/|")
 
-# one frame is 1056 x 628 clocks (SC-55, JV-880) or 424 x 262 x 12 (Proteus); two frames each
+# one frame is 1056 x 628 clocks (SC-55, JV-880, CZ-101) or 424 x 262 x 12 (Proteus); two frames
+# each. The CZ-101 bench loads its font (4096 clocks) and runs its pin sequence (about 35,000)
+# first.
 "$OUT/sc55/bench_sc55" 0 1326336 $SEEDS
 "$OUT/jv880/bench_jv880" 0 1326336 $SEEDS
 "$OUT/proteus/bench_proteus" 20000 2666112 $SEEDS
+"$OUT/cz101/bench_cz101" 60000 1326336 $SEEDS
