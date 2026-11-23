@@ -1,0 +1,2 @@
+cores/cz101/hdl/cz101_lcd.sv
+cores/cz101/hdl/cz101_lcd_video.sv
