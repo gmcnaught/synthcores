@@ -432,7 +432,12 @@ module sc55_mcu #(
             assign nv_wrote = 1'b0;
         end
     endgenerate
-    sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(midi_valid && !midi_full), .wa(rx_wp), .wd(midi_data),
+    // JV-880: a byte that arrives while the firmware has the serial receiver off (SCR.RE, dev
+    // 0x5a bit 4) is lost, as on the H8/532. The reference keeps it and delivers it later; a
+    // controller's MIDI clock during boot then leaves the JV-880 deaf to notes (the SC-55 keeps the
+    // reference's behaviour).
+    wire rx_take = midi_valid && !midi_full && (!jv880 || dev[7'h5a][4]);
+    sdp_ram #(.AW(RXBUF_BITS), .DW(8)) u_rxbuf (.clk, .we(rx_take), .wa(rx_wp), .wd(midi_data),
                                       .ra(rx_rp), .rd(rx_rd));
 
     always_ff @(posedge clk) begin : b_sc55_mcu_1
@@ -453,7 +458,7 @@ module sc55_mcu #(
         sm_reset <= 1'b0;
         sm_dly_we <= 1'b0;
 
-        if (midi_valid && !midi_full) rx_wp <= rx_wp + 1'b1;
+        if (rx_take) rx_wp <= rx_wp + 1'b1;
         if (sm_rx_pop) rx_rp <= rx_rp + 1'b1;
         // the block RAMs read `bram_a` this clock
         if (stream) begin spec_a <= c_next2; spec_v <= 1'b1; end
