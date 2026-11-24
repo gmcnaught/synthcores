@@ -57,8 +57,10 @@ Assumptions:
 | 11 | P2K CPU against MAME | 0 | — | bus trace matches MAME up to the main screen |
 | 12 | JV-880 core on the MiSTer | 4, 8 | yes | H8/532 firmware lockstep and `jv880.mid` render hash `73feda3c…bbbc` against Nuked-SC55 (`jv880-v1.0.1`); plays MIDI on the MiSTer with no underrun |
 | 13 | CZ-101 core on the MiSTer (`cores/cz101/docs/plan.md`, C0–C5) | 1, 2 | yes | uPD7811 trace and uPD933 samples identical to MAME (`cz101`) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
+| 14 | P2K sound HDL against `p2k_render` (simulation) | 11 | — | `snd.raw` bit-identical to `p2k_render` on all 22 corpus cases: 14a with `--nofilter --nofx`, 14b with `--nofx`, 14c in full |
+| 15 | CZ-101 and JV-880 follow-ups | 12, 13 | yes | listed per item below; reference tests unchanged |
 
-Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
+Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
 ### 0. Publish and root CI
 
@@ -166,6 +168,60 @@ Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-10
 - ROMs: dbwbp.com `Casio CZ-101 EPROM Firmware.zip`, downloaded by the user. C1 and C3 run on
   generated test ROMs and do not wait for it.
 - **Gate:** C4's corpus hashes identical to MAME's, and C5 on the MiSTer.
+
+### 14. P2K sound HDL (overnight 2026-11-23)
+
+Definition: `cores/proteus/p2k/model/p2k_sound.h` (integer; decisions in `docs/p2k-mame-plan.md`).
+The HDL replays a corpus case's `snd.log` and must give `p2k_render`'s `snd.raw` bit for bit.
+No MiSTer top and no Quartus build in this iteration; the CPU (iteration 11) is not connected.
+
+- **0. Inputs.** The corpus outputs and SIMM images are not on disk. Rebuild them:
+    - `big.bin`, `baby.bin` with `tools/p2k_spec_from_dir.py` + `tools/p2k_build_simm.py`;
+      check their SHA-256 against `manifest.json` `inputs.simm`.
+    - `flash_clean.nv`: one `P2K_CLEAN=1` boot.
+    - MAME from `mame/patches/BASE` + 0001-0004. The `proteus` binary in the old repo is from
+      07:14, before today's patch 0001 updates: rebuild it if `inputs.mame_*` differs.
+    - `tools/p2k_corpus.py run --jobs 10` must match the manifest, and `p2k_corpus.py model`
+      must report `p2k_render` identical on all 22 cases.
+    - Gate: all 22 cases match. If they don't after two attempts, stop iteration 14 and log the
+      difference.
+- **1. Bench.** `p2k/sim/p2k_snd_tb.cpp` (Verilator): reads `snd.log`, applies each write
+  before its sample index with the `COMBINE_DATA` mask, serves sample memory from the SIMM images
+  through a memory model with a configurable latency, writes `snd.raw`, and on a difference prints
+  the first sample and, with `--taps`, per-voice values. `p2k_render` gains a matching
+  `--taps` dump (debug only; its audio must not change: the 22 hashes are rechecked).
+- **14a. G20 voices + H level interpolators + mixer** (`p2k/rtl/snd/`): 128 voices
+  time-multiplexed, 4.12 phase, end select and loop jumps, linear interpolation Q8, the level
+  interpolators (32 << k samples), level gain decode, per-bus mix by H output channel, output
+  `rsh(sum, 9)` clamped. Gate: identical to `p2k_render --nofilter --nofx` on all 22 cases.
+- **14b. H filter:** three DF-II biquads per voice, Q8 signal and state saturated to 48 bits,
+  Q28 coefficients from the cutoff interpolator, 12th-order chains through the previous slot's
+  block, route byte +0x7B. Gate: identical to `--nofx` on all 22 cases.
+- **14c. G05 effects** (`fx_int`), if time is left: identical in full on all 22 cases.
+- **Run time:** about 66 M samples for the 21 short cases and 26 M for `soak`. The cases run
+  as parallel jobs; `soak` runs last and its result can come in after the PR is opened.
+- **Recorded as measurements, not gates:** clocks per sample against the 44.1 kHz budget at
+  the planned core clock, sample-memory reads per sample (DDR3 sizing for the MiSTer top),
+  multipliers and block RAM per stage.
+- **Merge:** with 14a or 14b complete, CI green and the evidence in the PR (self-merge, user
+  2026-11-23). 14c can follow as its own PR.
+
+### 15. CZ-101 and JV-880 follow-ups (overnight 2026-11-23)
+
+Fills iteration 14's wait time. One branch and PR per item. MiSTer rules as above, through
+`synth-mister`'s lock.
+
+- **CZ-101 edited patch survives a reload:** edit a patch from the panel keys, let the save
+  write, reload the core, check the LCD and the `.sav` hash. A fix needs C4 lockstep unchanged,
+  the Windows build meeting timing and the smoke test passing.
+- **CZ-101 pitch wheel:** `cz101_board.pitch_wheel` (AN1, 0x7F centre) is driven from a MiSTer
+  analog axis. Gate: the firmware's pitch changes in simulation; smoke test passes.
+- **CZ-101 MIDI out:** the uPD7811 serial TX goes to the UART TX (MidiLink). Gate: the TX bytes
+  in simulation equal MAME's MIDI out for the C4 case; on the MiSTer, the bytes are seen on
+  `/dev/ttyS1`.
+- **JV-880 card RAM (pages 14/15):** check whether the firmware reads it without a card (J2
+  trace). Remove the 32 KB only if the `jv880.mid` render hash stays 73feda3c…bbbc and the
+  board bench is identical.
 
 ## Not in this session
 
