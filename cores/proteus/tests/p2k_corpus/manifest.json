@@ -1104,7 +1104,7 @@
  "inputs": {
   "mame_base": "4a92d534267335170f70f977a4d2485c2625d30d",
   "mame_patches": {
-   "0001-emu68k-proteusxr-sound.patch": "2282c20c8b33b89c5f2eb010a30d4203a721323386a766e4a9e6877f3dbfe6d1",
+   "0001-emu68k-proteusxr-sound.patch": "477eedb37d23dfd3f97512137d88fbf0eb2942389953e6dede9c9461caa0b4f1",
    "0002-emup2k-proteus2000-research.patch": "dbdc9aeae465df8e89c55106bcce7a1ae3b7bfa33c4f89dbac29b5f622c5bdd0",
    "0003-p2k-bustrace-vector-reads.patch": "e60eab6b200096db2916416b17313e827f6c0041f151ab0bbae3ef44267e479e",
    "0004-p2k-integer-sound-model.patch": "3e9d387a8f610f20b2ec902827bbb4922baf078c1d8b969a132482d9e79947f6"
