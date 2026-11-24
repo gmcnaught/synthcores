@@ -71,6 +71,26 @@ EDITS = [
      "            mt32h_out(acc, reverb, vol, (int16_t)s_l, (int16_t)s_r, la32_cycles);\n"
      "        }\n"
      "        mt32->samples[sample_dst][0] = s_l;\n", 1),
+    # LA32 interrupt set (slot start cycle, status) and clear (CPU write); per-slot debug state.
+    ("la32.cpp", "                    int_status = 0x80 | i | (tv << 5);\n",
+     "                    int_status = 0x80 | i | (tv << 5);\n"
+     "                    if (mt32h_la32irq) mt32h_la32irq(1, int_status, la32_cycles);\n", 1),
+    ("la32.cpp", "                        int_status = (i + 1) & 31;\n",
+     "                        int_status = (i + 1) & 31;\n"
+     "                        if (mt32h_la32irq) mt32h_la32irq(1, int_status, la32_cycles);\n", 1),
+    ("la32.cpp", "                        int_status = ((i + 1) & 31) | 32;\n",
+     "                        int_status = ((i + 1) & 31) | 32;\n"
+     "                        if (mt32h_la32irq) mt32h_la32irq(1, int_status, la32_cycles);\n", 1),
+    ("la32.cpp", "                mt32->mcu->execute_set_input(i8x9x_device::EXTINT_LINE, 0);\n",
+     "                mt32->mcu->execute_set_input(i8x9x_device::EXTINT_LINE, 0);\n"
+     "                if (mt32h_la32irq) mt32h_la32irq(0, int_status, la32_cycles);\n", 1),
+    ("la32.cpp", "                if (!(ring && (i & 1) == 0))\n",
+     "                if (mt32h_slot) mt32h_slot(0, i, oo, prev, w46, ram2[0][i], ram2[1][i], ram2[2][i], la32_cycles);\n"
+     "                if (!(ring && (i & 1) == 0))\n", 1),
+    ("la32.cpp", "            la32_cycles += 8;\n",
+     "            if (mt32h_slot) mt32h_slot(1, i, accum[oddeven][2], accum[oddeven][3], accum[oddeven][6],\n"
+     "                                       accum[oddeven][7], (w186 << 16) | w187, w188, la32_cycles);\n"
+     "            la32_cycles += 8;\n", 1),
 ]
 
 
