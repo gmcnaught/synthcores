@@ -2,6 +2,22 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 15: CZ-101 pitch wheel (2026-11-23, branch `cz101-pitch-wheel`)
+
+- **`mister/CZ101.sv`:** `cz101_board.pitch_wheel` (AN1) was tied to 0x7F. It now follows the
+  first joystick: Y axis as 127 - Y (-127 = full up = 0xFF), or the up/down directions for 0xFF /
+  0x00, as MAME's paddle on the joystick's Y switches. OSD help line added.
+- **Checks:**
+    - `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/wheel.txt` (five wheel moves
+      during a held note, from 12.9 s): 7,923,263 trace lines and 716,620 samples identical to
+      MAME (SHA-256 `4fd2c703…9035`), on the bench and live MIDI paths; 57 MIDI-out bytes
+      identical (the firmware's pitch bends `E0 40 51 …`), within 19 cycles. MAME's uPD933 writes
+      first differ from the plain run at 12.904 s: the firmware retunes the voice.
+    - Windows build (seed 2): 14,611 ALMs (`main` 14,553), worst setup slack +0.774 ns, core
+      clock +4.178 ns.
+    - MiSTer smoke (`scripts/mister/smoke.sh` of `main`): pass; MIDI out `c0 0a`, no underrun,
+      save file 8 KB. The joystick itself was not moved on the hardware (no automated gamepad).
+
 ## Iteration 15: CZ-101 written tone survives a reload (2026-11-23, branch `cz101-reload`)
 
 - **Finding (bench, `CZ_KEYS`/`CZ_LCD_LOG`/`CZ_NV_OUT`):** the firmware writes a tone only while
