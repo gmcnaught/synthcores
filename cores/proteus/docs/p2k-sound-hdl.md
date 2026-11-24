@@ -83,7 +83,33 @@ Memory (64-bit words): sample word `a` (`a < 2^26`) is bits `[16 (a mod 4) +: 16
 
 ## Results (iteration 16)
 
-RESULTS_PLACEHOLDER
+Corpus (`tools/p2k_snd_check.py`, bench at the default DDR3 model: BUSY 1 clock in 4, latency
+8-24): 22 cases × 3 modes, 87,245,389 frames per mode, all 66 identical to `p2k_render`, and the
+full-mode runs to MAME's `snd.raw`.
+
+| Mode | Worst case mean clocks/sample | Max clocks/sample | Max with register writes | DDR3 reads/sample (worst case mean) | DDR3 writes/sample | Chained voice-samples |
+|---|---|---|---|---|---|---|
+| voices | 830.8 (soak) | 948 (poly) | 1226 (soak) | 131.5 | 0 | 0 |
+| filter | 1021.0 (soak) | 1251 (soak) | 1545 (soak) | 131.5 | 0 | 1,850,724,286 |
+| full | 1021.6 (soak) | 1251 (soak) | 1547 (soak) | 147.5 | 13.0 | 1,850,724,286 |
+
+At 100 MHz a 44.1 kHz sample has 2267 clocks; the worst sample takes 1251, 1547 counting the
+register writes applied before it. The loop-modulo divider never ran (0 clocks).
+
+Random register logs (CI test and about 20 further seeds, 48-128 voices, DDR3 latency 1-60, BUSY
+up to every other clock): identical in all three modes; worst sample 1413 clocks.
+
+Quartus 17.0 Lite, 5CSEBA6U23I7, top `p2k_snd_bench` (the engine plus `synthframe_mem_ddr3`), 10 ns
+clock:
+
+| | |
+|---|---|
+| ALMs | 7,043 / 41,910 (17 %) |
+| Registers | 9,363 |
+| Block memory | 303,977 bits, 73 / 553 M10K |
+| DSP blocks | 53 / 112 (47 %) |
+| Setup slack | +0.053 ns slow -40 °C (Fmax 100.53 MHz), +0.452 ns slow 100 °C (104.73 MHz), +4.744 / +5.663 ns fast |
+| Hold slack | +0.116 ns (fast -40 °C) |
 
 ## Towards the MiSTer core
 
@@ -93,7 +119,7 @@ RESULTS_PLACEHOLDER
 - **CPU writes:** the write path takes 4-6 clocks a write and the sample loop does not run while
   writes are applied. The firmware's write bursts at note-on are listed in the results; the top
   will need a write FIFO from the CPU and to schedule samples against it.
-- **Sample memory:** the corpus reads up to about 130 words a sample; a P2K SIMM image (32 MB per
-  slot) goes to DDR3 at `SMP_BASE`.
+- **Sample memory:** the voices make up to 131.5 DDR3 reads a sample (case mean; 147.5 with the
+  effects' 16); a P2K SIMM image (32 MB per slot) goes to DDR3 at `SMP_BASE`.
 - **Not done:** the MiSTer top (TG68K/ColdFire CPU from iteration 11, MIDI, SIMM and flash
   loading, audio FIFO), a full-core Quartus build and hardware tests.
