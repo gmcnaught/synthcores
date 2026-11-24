@@ -14,12 +14,12 @@
 // Models: mk1 (default), mk2 (`mk2`), SC-155 (`sc155`) and JV-880 (`jv880`; cores/jv880/docs/plan.md).
 // The JV-880 is a non-mk1 map with the gate array at F000 (PCM F000-F3FF, gate array F400-F7FF),
 // its interrupt on IRQ0 with the PCM's request on gate-array line 5 and the encoder on lines 3/4,
-// the panel on P7DR, NVRAM (pages 12/13) and card RAM (pages 14/15; JV880_RAMS), generic timers.
+// the panel on P7DR, NVRAM (pages 12/13; JV880_RAMS), card RAM (pages 14/15: no card, reads 0), generic timers.
 
 module sc55_mcu #(
     parameter int RXBUF_BITS = 11,         // MIDI receive buffer: 2^RXBUF_BITS bytes
     parameter int ROM2_AW = 18,            // ROM2 block RAM: 18 = 256 KB (mk1), 19 = 512 KB (mk2)
-    parameter bit JV880_RAMS = 1'b0        // the JV-880's NVRAM and card RAM (2 x 32 KB block RAM)
+    parameter bit JV880_RAMS = 1'b0        // the JV-880's NVRAM (32 KB block RAM and its dump copy)
 ) (
     input  logic        clk,
     input  logic        rst,
@@ -423,8 +423,11 @@ module sc55_mcu #(
             sdp_ram #(.AW(15), .DW(8)) u_nvram_dump (.clk, .we(nvram_we), .wa(nvram_wa), .wd(nvram_wd),
                                                     .ra(nv_dump_a), .rd(nv_dump_d));
             assign nv_wrote = nvram_we;
-            sdp_ram #(.AW(15), .DW(8)) u_card  (.clk, .we(card_we), .wa(card_wa), .wd(card_wd),
-                                               .ra(bram_a[14:0]), .rd(card_rd));
+            // Card RAM (pages 14/15): no card is fitted. The reference keeps 32 KB that reads 0
+            // until written; its firmware only reads it (power-on, factory preset and jv880.mid:
+            // 6,311 reads, all 0, no writes; cores/jv880/docs/plan.md), so the core reads 0 and
+            // its writes (card_we) go nowhere, without the 32 KB of block RAM.
+            assign card_rd = 8'h00;
         end else begin : g_no_jv880_rams
             assign nvram_rd = 8'hff;
             assign card_rd = 8'hff;

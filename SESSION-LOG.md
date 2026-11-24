@@ -2,6 +2,38 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 15: JV-880 card RAM (2026-11-23, branch `jv880-card-ram`)
+
+- **Question (`cores/jv880/docs/plan.md`):** does the firmware need the card RAM (pages 14/15)
+  without a card? The reference keeps 32 KB there.
+- **Measured** with a copy of the reference that counts page 14/15 accesses (not committed):
+  power-on to the factory preset (`jv880-nvram`) 3,683 reads, no writes; rendering `jv880.mid`
+  6,311 reads, no writes; every read returned 0. Hashes unchanged in that copy: factory NVRAM
+  `d5da7845…d207`, render `73feda3c…bbbc`.
+- **Change (`modules/roland/hdl/mcu/sc55_mcu.sv`):** with `JV880_RAMS` the card RAM's read data is
+  0 and its block RAM is gone; writes go nowhere. The SC-55's branch of the generate is untouched.
+  An earlier version that also removed the card write-port logic changed the SC-55's netlist
+  (32,840 ALMs, setup slack -0.018 ns at seed 2), so it was narrowed to the JV-880 branch.
+- **Checks:**
+    - `mcu_lockstep --romset jv880-v1.0.1 --jv880-factory`: 21,324,800 steps identical, NVRAM
+      `d5da7845…d207`.
+    - `jv880_board_bench --smf jv880.mid` (factory pack): 42,181,775 steps and 1,640,121 samples
+      identical, SHA-256 `73feda3c…bbbc`.
+    - SC-55 `test_mcu_lockstep.py` (mk1, mk2, SC-155), `test_system_lockstep.py` (mk1, mk2),
+      `test_board_units.py`, `test_repo_hygiene.py`: pass (long hash runs skipped).
+    - Windows builds (seed from `cfg/core.yaml`):
+
+      | Core | ALMs | main | Block memory bits | main | M10K | main | Worst setup slack |
+      |---|---|---|---|---|---|---|---|
+      | SC-55 | 32,655 | 32,655 (PR #23) | 3,696,465 | — | 472 | — | +0.372 ns |
+      | JV-880 | 28,769 | 28,902 | 3,904,561 | 4,166,705 | 495 | 527 | +0.365 ns |
+
+      JV-880 `main` is a build of `origin/main` (7320e58) on the same host: 262,144 bits (32 KB)
+      and 32 M10K fewer.
+
+    - MiSTer smoke (`cores/jv880/scripts/mister/smoke.sh`, factory pack, the JV-880 build above): pass. Running, no underrun or lag, 60 s of `jv880.mid`, save file 32 KB, NVRAM kept after the reload.
+- **Difference from the reference:** Util:Data card writes are not kept (no card fitted).
+
 ## Iteration 15: CZ-101 pitch wheel (2026-11-23, branch `cz101-pitch-wheel`)
 
 - **`mister/CZ101.sv`:** `cz101_board.pitch_wheel` (AN1) was tied to 0x7F. It now follows the
