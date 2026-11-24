@@ -17,6 +17,9 @@
 //   --rv-log   W la32cycle reg value | I la32cycle which value
 //   --out-log  one line a sample: acc2 acc3 acc6 acc7 rv0 rv1 vol l r (signed decimal)
 //   --lcd-log  cycle "20 characters" (only when the text changes)
+//   --irq-log  S la32cycle status (LA32 interrupt set, slot start) | C la32cycle status (cleared by a write)
+//   --slot-log debug, per slot: G la32cycle i oo prev w46 ram2_0 ram2_1 ram2_2 (after the wave generator)
+//              and E la32cycle i acc2 acc3 acc6 acc7 w186<<16|w187 w188 (slot end; decimal)
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -35,8 +38,10 @@ void (*mt32h_la32w)(uint16_t, uint8_t, uint64_t);
 void (*mt32h_rvw)(int, uint32_t, uint64_t);
 void (*mt32h_rvin)(int, int16_t, uint64_t);
 void (*mt32h_out)(const int16_t*, const int16_t*, int32_t, int16_t, int16_t, uint64_t);
+void (*mt32h_la32irq)(int, uint8_t, uint64_t);
+void (*mt32h_slot)(int, uint32_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, uint64_t);
 
-static FILE *f_trace, *f_la32, *f_rv, *f_out, *f_lcd;
+static FILE *f_trace, *f_la32, *f_rv, *f_out, *f_lcd, *f_irq, *f_slot;
 static char lcd_last[21];
 
 static mt32_t* mt;
@@ -97,6 +102,8 @@ int main(int argc, char** argv)
         else if (a == "--rv-log") open_log(&f_rv);
         else if (a == "--out-log") open_log(&f_out);
         else if (a == "--lcd-log") open_log(&f_lcd);
+        else if (a == "--irq-log") open_log(&f_irq);
+        else if (a == "--slot-log") open_log(&f_slot);
         else { fprintf(stderr, "mt32_ref: unknown option %s\n", a.c_str()); return 1; }
     }
     if (roms.empty()) { fprintf(stderr, "mt32_ref: --roms DIR is required\n"); return 1; }
@@ -118,6 +125,13 @@ int main(int argc, char** argv)
     if (f_out)
         mt32h_out = [](const int16_t* a, const int16_t* rv, int32_t vol, int16_t l, int16_t r, uint64_t) {
             fprintf(f_out, "%d %d %d %d %d %d %d %d %d\n", a[0], a[1], a[2], a[3], rv[0], rv[1], vol, l, r);
+        };
+    if (f_irq)
+        mt32h_la32irq = [](int set, uint8_t st, uint64_t c) { fprintf(f_irq, "%c %llx %02x\n", set ? 'S' : 'C', (unsigned long long)c, st); };
+    if (f_slot)
+        mt32h_slot = [](int k, uint32_t i, int64_t a, int64_t b, int64_t c, int64_t d, int64_t e, int64_t f, uint64_t cy) {
+            fprintf(f_slot, "%c %llx %u %lld %lld %lld %lld %lld %lld\n", k ? 'E' : 'G', (unsigned long long)cy, i,
+                    (long long)a, (long long)b, (long long)c, (long long)d, (long long)e, (long long)f);
         };
     if (f_lcd)
         mt32h_lcd = [](const uint8_t* t, uint64_t c) {
@@ -162,7 +176,7 @@ int main(int argc, char** argv)
         s += n;
     }
     if (out) fclose(out);
-    for (FILE* f : { f_trace, f_la32, f_rv, f_out, f_lcd })
+    for (FILE* f : { f_trace, f_la32, f_rv, f_out, f_lcd, f_irq, f_slot })
         if (f) fclose(f);
     return 0;
 }

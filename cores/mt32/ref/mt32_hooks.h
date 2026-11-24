@@ -18,3 +18,8 @@ extern void (*mt32h_rvw)(int reg, uint32_t value, uint64_t la32_cycle);        /
 extern void (*mt32h_rvin)(int which, int16_t value, uint64_t la32_cycle);
 extern void (*mt32h_out)(const int16_t* acc4, const int16_t* reverb2, int32_t vol,
                          int16_t l, int16_t r, uint64_t la32_cycle);
+extern void (*mt32h_la32irq)(int set, uint8_t status, uint64_t la32_cycle);     // set at slot start, clear at write
+// Debug, per slot: kind 0 after the wave generator (i, oo, prev, w46, ram2[0..2][i]),
+// kind 1 at the slot end (i, accum[cur][2], [3], [6], [7], w186<<16|w187, w188).
+extern void (*mt32h_slot)(int kind, uint32_t i, int64_t a, int64_t b, int64_t c, int64_t d, int64_t e,
+                          int64_t f, uint64_t la32_cycle);
