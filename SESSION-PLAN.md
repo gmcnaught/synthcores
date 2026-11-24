@@ -59,6 +59,7 @@ Assumptions:
 | 13 | CZ-101 core on the MiSTer (`cores/cz101/docs/plan.md`, C0–C5) | 1, 2 | yes | uPD7811 trace and uPD933 samples identical to MAME (`cz101`) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 | 14 | P2K sound HDL against `p2k_render` (simulation) | 11 | — | `snd.raw` bit-identical to `p2k_render` on all 22 corpus cases: 14a with `--nofilter --nofx`, 14b with `--nofx`, 14c in full |
 | 15 | CZ-101 and JV-880 follow-ups | 12, 13 | yes | listed per item below; reference tests unchanged |
+| 16 | P2K sound HDL for the Cyclone V | 14 | — | `snd.raw` still bit-identical on all 22 cases × 3 modes through a DDR3 model; standalone Quartus 17 build meets timing at 100 MHz; worst sample within the 100 MHz budget (2267 clocks) |
 | 17 | MT-32 core on the MiSTer (`cores/mt32/docs/plan.md`, M0–M6) | 1, 2 | yes | MCS-96 trace, LA32 and reverb samples identical to Nuked-MT32 (`5b4e239`, firmware 2.07) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
@@ -223,6 +224,30 @@ Fills iteration 14's wait time. One branch and PR per item. MiSTer rules as abov
 - **JV-880 card RAM (pages 14/15):** check whether the firmware reads it without a card (J2
   trace). Remove the 32 KB only if the `jv880.mid` render hash stays 73feda3c…bbbc and the
   board bench is identical.
+
+### 16. P2K sound HDL for the Cyclone V (2026-11-24, user)
+
+Iteration 14's datapath does not synthesize: Quartus 17 stops on the effects delay lines (4.4 Mbit
+cleared in one clock), and the H RAM is read 4–6 times a clock with 128-bit filter products. This
+iteration restructures it for the DE10-Nano without changing a single output sample.
+
+- **Sample and effects memory through the synthframe memory port** (`synthframe_mem_ddr3`
+  contract): one 64-bit read per voice (two when the pair straddles a word); the effects delay
+  lines live in DDR3 and read as zero until written after a reset or a resize.
+- **Block RAM with registered reads** for every register file, with shadow copies where more
+  than one unit reads.
+- **Filter as a pipelined unit** shared by up to 8 voices in flight; the products split over
+  27×27 DSP blocks.
+- **Bench:** the Verilator bench drives a DDR3 model (random BUSY, in-order latency 8–24
+  clocks). Sample-memory words are served from the SIMM images, the effects region starts with
+  random data.
+- **Gates:**
+    - `tests/p2k_snd` (CI, random logs) identical in the three modes, also at other DDR3 timings.
+    - Corpus: all 22 cases identical in the three modes (`tools/p2k_snd_check.py`).
+    - Standalone Quartus 17 compile of the sound engine with `synthframe_mem_ddr3` on the
+      5CSEBA6U23I7: timing met at 100 MHz; ALMs, M10K and DSP recorded.
+    - Worst clocks per sample on the corpus and the 128-voice random log at most 2267 (100 MHz).
+- **Not in this iteration:** the MiSTer top (CPU, MIDI, sample loading) and hardware tests.
 
 ### 17. MT-32 (2026-11-24, user)
 

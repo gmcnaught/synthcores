@@ -1,0 +1,20 @@
+# Standalone Quartus check of the P2K sound engine (p2k_snd on synthframe_mem_ddr3, the bench top)
+# on the DE10-Nano's Cyclone V: fit, resources and timing only; all pins virtual. winbuild_snd.sh.
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name TOP_LEVEL_ENTITY p2k_snd_bench
+set_global_assignment -name SEARCH_PATH ../rtl/snd
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_ram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_mul.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_snd_filt.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_fx_sine_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_fx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../rtl/snd/p2k_snd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../sim/p2k_snd_bench.sv
+set_global_assignment -name SDC_FILE p2k_snd.sdc
+set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_instance_assignment -name VIRTUAL_PIN ON -to *
+set_instance_assignment -name VIRTUAL_PIN OFF -to clk

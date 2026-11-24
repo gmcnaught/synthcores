@@ -19,6 +19,37 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
 - **Open:** audio not heard; panel buttons unverified; real-time margin about 6 % in dense passages
   (2,828 of 3,000 clocks a sample at PCM latency 1-24); reverb delay RAM not cleared by a core reset.
 
+## Iteration 16: P2K sound HDL for the Cyclone V (2026-11-24, branch `iter16-p2k-snd-synth`, PR #32)
+
+- **Why:** the iteration 14 RTL did not build in Quartus 17 (a typed net declaration; a loop over
+  the register files beyond the 5000-iteration limit) and needed 113 MHz.
+- **What:** `cores/proteus/p2k/rtl/snd` restructured without changing an output sample:
+  - register files in M10K;
+  - H filter as an 8-context, 14-stage pipeline (`p2k_snd_filt.sv`);
+  - 32 × 48 and 48 × 17 products split into 27 × 27 partials (`p2k_mul.sv`);
+  - samples and effect delay lines through the synthframe memory port (`synthframe_mem_arb` →
+    `synthframe_mem_ddr3`), the delay lines never cleared (per-line zero-read counts);
+  - effects `process` on one shared multiply-add, the sine table in a ROM.
+
+  Design note: `cores/proteus/docs/p2k-sound-hdl.md`.
+- **Gate (`tools/p2k_snd_check.py`, bench at DDR3 BUSY 1/4, latency 8-24):** 66/66 identical
+  (22 cases × voices/filter/full), full mode also to MAME's `snd.raw`.
+- **Speed:** worst sample 1251 clocks (soak, filter and full), 1547 with the register writes before
+  it; budget at 100 MHz is 2267. Random logs at DDR3 latency 1-60: worst 1413.
+- **CI (`tests/p2k_snd/test_p2k_snd.py`):** three modes plus two DDR3 timing runs (128 voices,
+  latency 30-60 BUSY 1/2, and latency 1 no BUSY), 43 s locally.
+- **Quartus 17.0 (winbuild, `p2k/syn/winbuild_snd.sh`, 5CSEBA6U23I7, 100 MHz, engine plus
+  `synthframe_mem_ddr3`):** 7,043 ALMs, 9,363 registers, 73 M10K (303,977 bits), 53 DSP; setup
+  slack +0.053 ns (slow -40 °C), hold +0.116 ns.
+- **Bugs found on the way:** a part-select made the effects-send product unsigned (wrong rounding,
+  full mode only); a block-RAM read of the filter state collided with its write (caught by the
+  bench's same-word assertion, the read is now gated).
+- **Open:**
+  - no MiSTer top yet (CPU, MIDI, SIMM loading, audio FIFO), no hardware test;
+  - register writes cost 4-6 clocks each and stall the sample loop: the top needs a write FIFO;
+  - 0.05 ns setup margin standalone; a full core may need a lower clock (the corpus's worst
+    sample, 1547 clocks with writes, needs 68.2 MHz).
+
 ## Iteration 14: P2K sound HDL (2026-11-23/24, branch `iter14-p2k-sound`)
 
 - **What:** `cores/proteus/p2k/rtl/snd/p2k_snd.sv` (G20 voices, H interpolators and filter with
