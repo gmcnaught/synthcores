@@ -26,7 +26,7 @@ PTRS = list(range(0x20, 0x30, 2))
 HANDLER = 0x7F00
 SUBS = 0x7000
 
-BANNED = {"xch", "xchb", "rst", "br", "trap"}     # br/trap get their own templates below
+BANNED = {"xch", "xchb", "rst", "br", "trap", "ret"}   # trap and ret (in calls) are placed by the generator
 WRITES_OP1_MEM = {"st", "stb", "pop"}
 BYTE_MN = {"andb", "addb", "subb", "orb", "xorb", "addcb", "subcb", "cmpb", "ldb", "stb", "mulub",
            "mulb", "divub", "divb", "clrb", "notb", "negb", "decb", "incb", "extb", "shrb", "shlb",

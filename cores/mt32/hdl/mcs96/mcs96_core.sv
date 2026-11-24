@@ -33,8 +33,9 @@ module mcs96_core (
     output logic        bad_op,        // level: an opcode the reference has no handler for
 
     // byte accesses in MAME's order; space 0 = register file / SFRs (reg_r8 / reg_w8),
-    // 1 = external bus (mt32_t::cpu_read / cpu_write). Hold req until ack (a one-clock pulse),
-    // then drop it for at least one clock.
+    // 1 = external bus (mt32_t::cpu_read / cpu_write). req is held until ack (a one-clock
+    // pulse); it may stay high for the next access, so a responder takes a request only
+    // while its ack is low.
     output logic        m_req,
     output logic        m_space,
     output logic        m_we,
@@ -313,6 +314,7 @@ module mcs96_core (
         else      aa = sp ? a : {8'h00, a[7:0]};
         mk <= k; ma <= aa; mwd <= wd; msp <= sp; mbyte <= 1'b0;
         ret_st <= ret; ret_ph <= rph;
+        m_go <= 1'b1;
         st <= S_MEM;
     endtask
 
@@ -821,10 +823,8 @@ module mcs96_core (
             end
 
             // ------------------------------------------------ one access (two for 16 bits)
-            S_MEM: if (!m_go) m_go <= 1'b1;
-                   else if (m_ack) begin
+            S_MEM: if (m_ack) begin
                        logic [7:0] b;
-                       m_go <= 1'b0;
                        b = m_rdata;
                        if (m_sfr) begin
                            if (m_we) begin
@@ -834,8 +834,8 @@ module mcs96_core (
                                b = m_addr[0] ? pending : PSW[7:0];
                        end
                        if (!mbyte) md <= {8'h00, b}; else md[15:8] <= b;
-                       if (m16 && !mbyte) mbyte <= 1'b1;
-                       else begin st <= ret_st; ph <= ret_ph; end
+                       if (m16 && !mbyte) mbyte <= 1'b1;          // the request stays up for byte 1
+                       else begin m_go <= 1'b0; st <= ret_st; ph <= ret_ph; end
                    end
 
             S_FIN: begin

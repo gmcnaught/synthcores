@@ -41,8 +41,8 @@ void mcs96_device::tick()
     if (top->dbg_fetch && mt32h_fetch) mt32h_fetch(top->dbg_fpc, top->dbg_psw, top->total_cycles);
     if (top->dbg_regw && mt32h_regw) mt32h_regw(top->dbg_addr, top->dbg_data, top->total_cycles);
     if (top->bad_op) { fprintf(stderr, "mcs96: opcode without a handler at %04x\n", top->dbg_pc); exit(3); }
-    // one external access per request, acknowledged for one clock
-    if (top->ext_req && !ack_given) {
+    // one external access per request (taken only while ack is low), acknowledged for one clock
+    if (top->ext_req && !top->ext_ack) {
         if (top->ext_we) {
             mt32->cpu_write(top->ext_addr, top->ext_wdata);
             top->ext_rdata = 0;
@@ -50,10 +50,8 @@ void mcs96_device::tick()
             top->ext_rdata = mt32->cpu_read(top->ext_addr);
         }
         top->ext_ack = 1;
-        ack_given = true;
     } else {
         top->ext_ack = 0;
-        if (!top->ext_req) ack_given = false;
     }
     top->clk = 0;
     top->eval();
