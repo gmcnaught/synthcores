@@ -4,7 +4,8 @@
 # Installs the RBF (synth-mister, with its lock and backup), loads the ROM pack, checks:
 # boot LCD lit; MIDI over the UART (master volume 60 by SysEx, then notes on part 1, which make
 # the firmware redraw: "vol: 60", as Nuked-MT32 shows for the same bytes) changes the LCD;
-# no audio underrun; status band "running". A panel key (G) is recorded, not checked.
+# no audio underrun; status band "running". The Part 1 key (Q) changes the LCD
+# (Nuked-MT32 with mt32_ref --button shows "1|Slap Bass1|vol> 80" for the same input).
 # The core's UART must be in MIDI mode (config/uartmode.MT-32, set once from the OSD).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -37,9 +38,9 @@ scp -q "$OUT/midi.txt" "$MISTER:/tmp/mt32_midi.txt"
 $M sh "python3 /tmp/play_tty.py /tmp/mt32_midi.txt $SECS"
 sleep 1
 $M shot mt32 "$OUT/midi.png" >/dev/null
-keys down:g sleep:1
+keys down:q sleep:1
 $M shot mt32 "$OUT/key.png" >/dev/null
-keys up:g sleep:1
+keys up:q sleep:1
 python3 -I - "$OUT" <<'PY' | tee "$OUT/result.txt"
 import sys
 from PIL import Image
@@ -68,6 +69,7 @@ print(f"underrun: {und_s}")
 print(f"lcd_dots_boot: {dots(ims['boot'])}")
 print(f"midi_changed_lcd: {lcd(ims['midi']) != lcd(ims['boot'])}")
 print(f"key_changed_lcd: {lcd(ims['key']) != lcd(ims['midi'])}")
-ok = s[2] == "running" and und_s == "never" and dots(ims["boot"]) > 200 and lcd(ims["midi"]) != lcd(ims["boot"])
+ok = s[2] == "running" and und_s == "never" and dots(ims["boot"]) > 200 and lcd(ims["midi"]) != lcd(ims["boot"]) \
+     and lcd(ims["key"]) != lcd(ims["midi"])
 sys.exit(0 if ok else 1)
 PY

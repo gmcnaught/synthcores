@@ -17,6 +17,7 @@
 //   --rv-log   W la32cycle reg value | I la32cycle which value
 //   --out-log  one line a sample: acc2 acc3 acc6 acc7 rv0 rv1 vol l r (signed decimal)
 //   --lcd-log  cycle "20 characters" (only when the text changes)
+// --button SAMPLE:MASK (repeatable) sets the panel buttons (bit = MT32_BUTTTON_*) from SAMPLE on
 //   --irq-log  S la32cycle status (LA32 interrupt set, slot start) | C la32cycle status (cleared by a write)
 //   --slot-log debug, per slot: G la32cycle i oo prev w46 ram2_0 ram2_1 ram2_2 (after the wave generator)
 //              and E la32cycle i acc2 acc3 acc6 acc7 w186<<16|w187 w188 (slot end; decimal)
@@ -83,6 +84,8 @@ static std::vector<MidiEvent> read_schedule(const char* path)
 
 int main(int argc, char** argv)
 {
+    std::vector<std::pair<uint64_t, uint32_t>> buttons;
+    size_t next_button = 0;
     std::string roms, cpu_rom, midi, out_path;
     uint64_t samples = 96000;
     for (int i = 1; i < argc; i++) {
@@ -104,6 +107,11 @@ int main(int argc, char** argv)
         else if (a == "--lcd-log") open_log(&f_lcd);
         else if (a == "--irq-log") open_log(&f_irq);
         else if (a == "--slot-log") open_log(&f_slot);
+        else if (a == "--button") {
+            char* e; uint64_t at = strtoull(val(), &e, 0);
+            if (*e != ':') { fprintf(stderr, "mt32_ref: --button SAMPLE:MASK\n"); return 1; }
+            buttons.push_back({ at, (uint32_t)strtoul(e + 1, nullptr, 0) });
+        }
         else { fprintf(stderr, "mt32_ref: unknown option %s\n", a.c_str()); return 1; }
     }
     if (roms.empty()) { fprintf(stderr, "mt32_ref: --roms DIR is required\n"); return 1; }
@@ -167,8 +175,11 @@ int main(int argc, char** argv)
             for (uint8_t b : sched[next].bytes) mt->post_midi(b);
             next++;
         }
+        while (next_button < buttons.size() && buttons[next_button].first <= s)
+            mt->button = buttons[next_button++].second;
         uint64_t end = samples;
         if (next < sched.size() && sched[next].sample < end) end = sched[next].sample;
+        if (next_button < buttons.size() && buttons[next_button].first < end) end = buttons[next_button].first;
         uint64_t n = end - s;
         if (n > 4096) n = 4096;
         mt->clock(n);
