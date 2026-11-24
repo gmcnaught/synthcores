@@ -4,7 +4,7 @@
 #   tools/mister_system.sh RBF SYSTEM.bin MIDI_SCRIPT [BOOT_SECONDS]
 #
 # MISTER=root@<address> (SSH key login) is required. Installs
-#   /media/fat/_Other/Proteus_<date>.rbf, /media/fat/games/Proteus/proteus_system.bin,
+#   /media/fat/_Devices/Proteus_<date>.rbf, /media/fat/games/Proteus/proteus_system.bin,
 #   /media/fat/Proteus.mgl (loads the core and the system image)
 # loads it, waits BOOT_SECONDS (default 15), screenshots (build/mister_boot.png), plays
 # MIDI_SCRIPT ("<seconds> <hex bytes>" lines) into /dev/ttyS1 with tools/mister_midi.py,
@@ -32,12 +32,12 @@ shot() {
 
 cat > "$OUT/Proteus.mgl" <<EOF
 <mistergamedescription>
-    <rbf>_Other/Proteus</rbf>
+    <rbf>_Devices/Proteus</rbf>
     <file delay="1" type="f" index="1" path="proteus_system.bin"/>
 </mistergamedescription>
 EOF
-ssh "$DEV" "mkdir -p /media/fat/games/Proteus /media/fat/_Other; rm -f /media/fat/_Other/Proteus_*.rbf"
-scp -q "$RBF" "$DEV:/media/fat/_Other/Proteus_$DATE.rbf"
+ssh "$DEV" "mkdir -p /media/fat/games/Proteus /media/fat/_Devices; rm -f /media/fat/_Other/Proteus_*.rbf /media/fat/_Devices/Proteus_*.rbf"
+scp -q "$RBF" "$DEV:/media/fat/_Devices/Proteus_$DATE.rbf"
 scp -q "$IMG" "$DEV:/media/fat/games/Proteus/proteus_system.bin"
 scp -q "$OUT/Proteus.mgl" "$DEV:/media/fat/Proteus.mgl"
 scp -q tools/mister_midi.py "$MIDI" "$DEV:/tmp/"

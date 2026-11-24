@@ -3,7 +3,7 @@
 #
 #   scripts/mister/mister_run.sh RBF [KEYS...]
 #
-# Installs RBF as /media/fat/_Computer/Synclavier_<date>.rbf, the floppy
+# Installs RBF as /media/fat/_Devices/Synclavier_<date>.rbf, the floppy
 # images (made from $SYNCLAVIER_RELEASE_L with tools/ned_disk.py --floppy:
 # F0=03-SYSTD, F1=18-UTILS unless F0= / F1= say otherwise) in
 # /media/fat/games/Synclavier, and an MGL that mounts them; loads it, waits
@@ -38,15 +38,15 @@ if [ "$STATE" = 1 ]; then
 fi
 cat > "$OUT/Synclavier-test.mgl" <<EOF
 <mistergamedescription>
-    <rbf>_Computer/Synclavier</rbf>
+    <rbf>_Devices/Synclavier</rbf>
 $S2
     <file delay="2" type="s" index="0" path="$F0.IMG"/>
     <file delay="1" type="s" index="1" path="$F1.IMG"/>
 </mistergamedescription>
 EOF
 
-ssh "$DEV" "mkdir -p /media/fat/games/Synclavier; rm -f /media/fat/_Computer/Synclavier_*.rbf /media/fat/screenshots/Synclavier/*.png"
-scp -q "$RBF" "$DEV:/media/fat/_Computer/Synclavier_$DATE.rbf"
+ssh "$DEV" "mkdir -p /media/fat/games/Synclavier; rm -f /media/fat/_Computer/Synclavier_*.rbf /media/fat/_Devices/Synclavier_*.rbf /media/fat/screenshots/Synclavier/*.png"
+scp -q "$RBF" "$DEV:/media/fat/_Devices/Synclavier_$DATE.rbf"
 scp -q "$OUT/$F0.IMG" "$OUT/$F1.IMG" "$DEV:/media/fat/games/Synclavier/"
 if [ "$STATE" = 1 ]; then scp -q "$OUT/ORK-LM.SST" "$DEV:/media/fat/games/Synclavier/"; fi
 scp -q "$OUT/Synclavier-test.mgl" "$DEV:/media/fat/"

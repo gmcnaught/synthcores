@@ -19,8 +19,9 @@
 #                                starts MidiLink again on the next core load
 #   sh CMD...                    run a command on the MiSTer
 #
-# Cores: sc55 (_Devices/SC55), proteus (_Other/Proteus), synclavier (_Computer/Synclavier),
-# jv880 (_Devices/JV880), cz101 (_Devices/CZ101).
+# Cores: sc55 (_Devices/SC55), proteus (_Devices/Proteus), synclavier (_Devices/Synclavier),
+# jv880 (_Devices/JV880), cz101 (_Devices/CZ101). Every core installs under _Devices; restore
+# moves files from backups made when Proteus was in _Other and Synclavier in _Computer.
 set -euo pipefail
 
 DEV=${MISTER:?set MISTER to root@<address of the MiSTer>}
@@ -31,8 +32,8 @@ SSH=(ssh -o BatchMode=yes -o ConnectTimeout=10 "$DEV")
 core_path() {   # CORE -> <dir>/<prefix> on the SD card
     case "$1" in
         sc55) echo _Devices/SC55 ;;
-        proteus) echo _Other/Proteus ;;
-        synclavier) echo _Computer/Synclavier ;;
+        proteus) echo _Devices/Proteus ;;
+        synclavier) echo _Devices/Synclavier ;;
         jv880) echo _Devices/JV880 ;;
         cz101) echo _Devices/CZ101 ;;
         *) echo "unknown core: $1" >&2; exit 2 ;;
@@ -55,13 +56,17 @@ unlock)
 backup)
     "${SSH[@]}" "set -e; d=$BK/\$(date +%Y%m%d); [ -e \$d/MANIFEST ] && { echo \"backup exists: \$d\"; exit 0; }
         mkdir -p \$d; cd $FAT
-        for f in _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Other/Proteus_*.rbf _Computer/Synclavier*_*.rbf Proteus*.mgl Synclavier*.mgl; do
+        for f in _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier*_*.rbf Proteus*.mgl Synclavier*.mgl; do
             [ -e \"\$f\" ] || continue; mkdir -p \"\$d/\$(dirname \$f)\"; cp -p \"\$f\" \"\$d/\$f\"; echo \"\$f\" >> \$d/MANIFEST
         done; echo \"backup: \$d (\$(wc -l < \$d/MANIFEST) files)\"" ;;
 restore)
     "${SSH[@]}" "set -e; d=\$(ls -d $BK/2* 2>/dev/null | sort | head -1); [ -n \"\$d\" ] || { echo 'no backup' >&2; exit 1; }
-        cd $FAT; rm -f _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Other/Proteus_*.rbf _Computer/Synclavier_*.rbf
-        while read -r f; do cp -p \"\$d/\$f\" \"\$f\"; done < \$d/MANIFEST; echo \"restored from \$d\""
+        cd $FAT; rm -f _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier_*.rbf
+        rm -f _Other/Proteus_*.rbf _Computer/Synclavier*_*.rbf
+        while read -r f; do
+            t=\$(echo \"\$f\" | sed 's#^_Other/#_Devices/#; s#^_Computer/#_Devices/#'); cp -p \"\$d/\$f\" \"\$t\"
+            case \"\$t\" in *.mgl) sed -i 's#<rbf>_Other/#<rbf>_Devices/#; s#<rbf>_Computer/#<rbf>_Devices/#' \"\$t\" ;; esac
+        done < \$d/MANIFEST; echo \"restored from \$d\""
     mcmd "load_core $FAT/menu.rbf" ;;
 install)
     core=${1:?install CORE RBF}; rbf=${2:?install CORE RBF}; p=$(core_path "$core")

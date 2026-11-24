@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The MGLs shipped with the core (releases/*.mgl, which Distribution_MiSTer
-copies to _Computer/ next to the RBF) load the released core and mount each image
+copies to _Devices/ next to the RBF) load the released core and mount each image
 in an S slot of CONF_STR whose extension matches.
 
 Run:  python3 tests/test_mgl.py
@@ -49,7 +49,7 @@ def test_mgls():
     for p in mgls():
         root = ET.parse(p).getroot()
         assert root.tag == "mistergamedescription", p
-        assert root.findtext("rbf") == "_Computer/" + name, p
+        assert root.findtext("rbf") == "_Devices/" + name, p
         files = root.findall("file")
         assert files, p
         for f in files:

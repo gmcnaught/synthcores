@@ -13,7 +13,7 @@ MiSTer UART (MidiLink). No ROM, firmware or sample data is part of the core.
    ```
    Contents: 8 MB sample ROM (rebuilt Proteus/1 + ProtoLogic), 128 KB firmware, 64 KB preset RAM
    (a MAME NVRAM file after the firmware's Initialize; see `mame/README.md`), 4 KB LCD font.
-2. Copy `Proteus_<date>.rbf` to `_Other/` and the image to `games/Proteus/proteus_system.bin`.
+2. Copy `Proteus_<date>.rbf` to `_Devices/` and the image to `games/Proteus/proteus_system.bin`.
 3. Load the core, OSD → **Load System**. The firmware boots (about 2.3 s) to `C01 Vol127 Pan=P` /
    `000 Stereo Piano`.
 4. MIDI: set the MiSTer UART mode to MIDI (MidiLink) and play a USB MIDI keyboard, or send bytes to

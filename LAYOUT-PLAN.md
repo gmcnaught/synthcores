@@ -76,7 +76,7 @@ not needed.
 
 ## Binaries repo (synthbin, like jtbin)
 
-- Laid out as a MiSTer SD card: `_Devices/`, `_Computer/`, `games/<core>/` READMEs, MGLs.
+- Laid out as a MiSTer SD card: `_Devices/`, `games/<core>/` READMEs, MGLs.
 - Adds `xcau15p/` for the `.bit` files.
 - Holds the downloader database. The SC-55 is installed today from its own repo's database, so
   existing users need a pointer to the new one.
