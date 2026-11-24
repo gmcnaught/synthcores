@@ -56,7 +56,7 @@ M0–M15, with acceptance criteria and results, are in
 Download the newest `Synclavier_YYYYMMDD.rbf` from
 [`releases/`](releases/) (the version is the build date; the OSD shows
 `vYYMMDD`) and the MGLs beside it (`Synclavier-5.3.mgl`,
-`Synclavier-ReleaseL.mgl`), and copy them all to `_Computer/` on the SD
+`Synclavier-ReleaseL.mgl`), and copy them all to `_Devices/` on the SD
 card. The disk images the MGLs mount are not included; you build them from
 your own NED images.
 

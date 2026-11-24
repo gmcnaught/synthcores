@@ -21,8 +21,7 @@ Assumptions:
 - **Tests stay bit-identical.** Lockstep tests, output hashes and the LCD pixel tests must not
   change. A refactor that changes any of them is wrong until proven otherwise.
 - **The MiSTer is shared hardware. Touch only:**
-    - this project's cores (`SC55_*`, `Proteus_*`, `Synclavier*` in `_Devices`, `_Other`,
-      `_Computer`);
+    - this project's cores (`SC55_*`, `Proteus_*`, `Synclavier*` in `_Devices`);
     - `games/{SC-55,Proteus,Synclavier}`;
     - `/tmp`.
   Before replacing anything, copy it to `/media/fat/_synth_backup/<date>/`, and restore the

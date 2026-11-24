@@ -3,7 +3,7 @@ name: Release
 # Releases the core the MiSTer-devel way: commits Synclavier_YYYYMMDD.rbf
 # (the build date, which the OSD shows as vYYMMDD) to releases/ on main, in
 # a commit named "Release YYYYMMDD." Distribution_MiSTer installs the newest
-# releases/Synclavier_*.rbf and releases/*.mgl into _Computer/; older RBFs
+# releases/Synclavier_*.rbf and releases/*.mgl into _Devices/; older RBFs
 # stay in releases/ as the version history. There are no GitHub Releases
 # or tags.
 #

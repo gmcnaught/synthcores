@@ -28,12 +28,12 @@ python3 tools/build_image.py \
 The script checks every input by SHA-1 and needs only Python 3.
 
 ## Install
-- `Proteus_<date>.rbf` → `/media/fat/_Other/`
+- `Proteus_<date>.rbf` → `/media/fat/_Devices/`
 - `proteus_system.bin` → `/media/fat/games/Proteus/`
 - optional `Proteus.mgl` (`release/Proteus.mgl`; loads the core and the image in one step):
   ```xml
   <mistergamedescription>
-      <rbf>_Other/Proteus</rbf>
+      <rbf>_Devices/Proteus</rbf>
       <file delay="1" type="f" index="1" path="proteus_system.bin"/>
   </mistergamedescription>
   ```

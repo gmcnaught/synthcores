@@ -5,7 +5,7 @@
 #   tools/mister_demo.sh RBF DEMO.bin [SECONDS]
 #
 # MISTER=root@<address> (SSH key login) is required. Installs:
-#   /media/fat/_Other/Proteus_<date>.rbf
+#   /media/fat/_Devices/Proteus_<date>.rbf
 #   /media/fat/games/Proteus/proteus_demo.bin
 #   /media/fat/Proteus-demo.mgl (loads the core and the demo image)
 # loads the MGL, waits SECONDS (default 20), copies SECONDS of capture from
@@ -26,12 +26,12 @@ trap 'ssh "$DEV" "rm -rf /tmp/claude-device.lock"' EXIT
 
 cat > "$OUT/Proteus-demo.mgl" <<EOF
 <mistergamedescription>
-    <rbf>_Other/Proteus</rbf>
+    <rbf>_Devices/Proteus</rbf>
     <file delay="1" type="f" index="1" path="proteus_demo.bin"/>
 </mistergamedescription>
 EOF
-ssh "$DEV" "mkdir -p /media/fat/games/Proteus /media/fat/_Other; rm -f /media/fat/_Other/Proteus_*.rbf"
-scp -q "$RBF" "$DEV:/media/fat/_Other/Proteus_$DATE.rbf"
+ssh "$DEV" "mkdir -p /media/fat/games/Proteus /media/fat/_Devices; rm -f /media/fat/_Other/Proteus_*.rbf /media/fat/_Devices/Proteus_*.rbf"
+scp -q "$RBF" "$DEV:/media/fat/_Devices/Proteus_$DATE.rbf"
 scp -q "$DEMO" "$DEV:/media/fat/games/Proteus/proteus_demo.bin"
 scp -q "$OUT/Proteus-demo.mgl" "$DEV:/media/fat/Proteus-demo.mgl"
 # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it

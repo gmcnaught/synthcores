@@ -3,7 +3,7 @@
 #
 #   MISTER=root@<address> scripts/mister/smoke.sh RBF OUTDIR
 #
-# Installs RBF as _Computer/Synclavier_<date>.rbf (synth-mister install; run 'synth-mister
+# Installs RBF as _Devices/Synclavier_<date>.rbf (synth-mister install; run 'synth-mister
 # backup' once first), loads /media/fat/Synclavier-5.3.mgl (W0-53.IMG + W0-53.SST, already on
 # the card), waits WAIT seconds (default 20), screenshots and reads the screen text with
 # tools/screen_text.py, then reads the status line again PWAIT seconds later (default 30).

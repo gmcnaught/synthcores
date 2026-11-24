@@ -40,7 +40,7 @@ Releases follow the MiSTer-devel layout, which Distribution_MiSTer reads:
 [`releases/`](../releases/) at the top of the repository holds every
 released `Synclavier_YYYYMMDD.rbf` (the newest is installed; older ones are
 the history) and the MGLs (`Synclavier-5.3.mgl`, `Synclavier-ReleaseL.mgl`),
-which go to `_Computer/` next to the RBF. A release is one commit on `main`
+which go to `_Devices/` next to the RBF. A release is one commit on `main`
 named `Release YYYYMMDD.` that adds the RBF. There are no GitHub Releases
 or tags.
 
@@ -127,7 +127,7 @@ image (S2): MONITOR 5.3 boots from W0, runs its PROFILE and starts SYN-5.3
 
 ```xml
 <mistergamedescription>
-    <rbf>_Computer/Synclavier</rbf>
+    <rbf>_Devices/Synclavier</rbf>
     <file delay="2" type="s" index="3" path="W0-53.IMG"/>
     <file delay="1" type="s" index="2" path="W0-53.SST"/>
 </mistergamedescription>
@@ -338,7 +338,7 @@ every channel when STOP is pressed twice.
 
 ```xml
 <mistergamedescription>
-    <rbf>_Computer/Synclavier</rbf>
+    <rbf>_Devices/Synclavier</rbf>
     <file delay="2" type="s" index="3" path="W0-53.IMG"/>
     <file delay="1" type="s" index="2" path="W0-53-MIDI.SST"/>
 </mistergamedescription>
