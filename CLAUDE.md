@@ -54,6 +54,9 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
   outside it.
 - **Tests:** every core is checked against a reference model, as bit-exact lockstep or output
   hashes. A refactor must keep those tests bit-identical.
+- **Quartus file lists:** `mister/files.qip` and `mister/<core>.qsf` are generated. Edit
+  `cores/<core>/cfg/` (`files.yaml`, `macros.def`, `core.yaml`) and run
+  `modules/synthframe/bin/synthcore`; CI checks them (`modules/synthframe/target/mister/README.md`).
 - **Vendor code:** keep vendor-specific code out of core HDL. Today it is limited to `pll.v` and
   `mister/sys`, plus one RAM hint in `cores/synclavier/hdl/dev/pcm_reverb.sv`.
 - **ROMs:** no ROMs, firmware or disk images are committed. The tests find them through

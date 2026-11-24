@@ -1,0 +1,30 @@
+# HDL and constraint files, in Quartus order. synthcore writes them to mister/files.qip.
+# Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - modules/roland/hdl/pcm
+  - modules/roland/hdl/board
+files:
+  - modules/roland/hdl/common/sdp_ram.sv
+  - modules/roland/hdl/cpu/h8_cpu.sv
+  - modules/roland/hdl/submcu/sc55_submcu.sv
+  - modules/roland/hdl/mcu/sc55_mcu.sv
+  - modules/roland/hdl/pcm/sc55_pcm.sv
+  - modules/roland/hdl/core/sc55_core.sv
+  - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+  - modules/roland/hdl/board/wave_ddr.sv
+  - modules/roland/hdl/board/step_pacer.sv
+  - modules/roland/hdl/board/rom_loader.sv
+  - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
+  - modules/synthframe/hdl/save/synthframe_nvsave.sv
+  - modules/roland/hdl/board/resample.sv
+  - modules/roland/hdl/board/lcd_ctrl.sv
+  - modules/synthframe/hdl/panel/synthframe_vtiming.sv
+  - modules/synthframe/hdl/panel/synthframe_charlcd.sv
+  - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - hdl/jv880_lcd_video.sv
+  - hdl/jv880_kbd.sv
+  - hdl/jv880_board.sv
+  - mister/JV880.sdc
+  - mister/JV880.sv

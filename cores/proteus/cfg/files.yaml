@@ -1,0 +1,22 @@
+# HDL and constraint files, in Quartus order. synthcore writes them to mister/files.qip.
+# Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+files:
+  - mister/rtl/bram.sv
+  - mister/rtl/interp_rom.sv
+  - mister/rtl/proteus_snd.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+  - mister/rtl/snd_ctrl.sv
+  - mister/rtl/mfp68901.sv
+  - modules/synthframe/hdl/panel/synthframe_hd44780.sv
+  - mister/rtl/display.sv
+  - mister/rtl/panel.sv
+  - mister/rtl/proteus_sys.sv
+  - mister/rtl/nv_ctrl.sv
+  - mister/rtl/init_macro.sv
+  - mister/rtl/proteus_core.sv
+  - mister/rtl/fx68k/fx68k.sv
+  - mister/rtl/fx68k/fx68kAlu.sv
+  - mister/rtl/fx68k/uaddrPla.sv
+  - mister/Proteus.sdc
+  - mister/Proteus.sv

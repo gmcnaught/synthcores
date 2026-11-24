@@ -15,6 +15,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Every core's mister/files.qip and mister/<core>.qsf must match what synthcore writes from
+  # its cfg/ files. Runs on every change (a few seconds).
+  synthcore:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PyYAML
+        run: python3 -m pip install pyyaml
+      - name: Generated Quartus files match cfg/
+        run: python3 modules/synthframe/bin/synthcore check
+      - name: synthcore unit tests
+        run: python3 modules/synthframe/tests/synthcore/test_synthcore.py
+
   changes:
     runs-on: ubuntu-24.04
     outputs:

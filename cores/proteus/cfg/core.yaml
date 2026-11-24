@@ -1,0 +1,5 @@
+# Read by modules/synthframe/bin/synthcore, which writes mister/Proteus.qsf and mister/files.qip.
+name: Proteus
+mister:
+  seed: 1
+  qsf_eol: crlf

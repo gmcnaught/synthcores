@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: MIT
+"""synthcore unit tests: YAML errors, macros.def, qip and qsf output, and the committed
+cores' generated files matching what is checked in.
+
+    python3 modules/synthframe/tests/synthcore/test_synthcore.py
+"""
+import importlib.machinery
+import importlib.util
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[4]
+_loader = importlib.machinery.SourceFileLoader("synthcore", str(ROOT / "modules/synthframe/bin/synthcore"))
+_spec = importlib.util.spec_from_loader("synthcore", _loader)
+sc = importlib.util.module_from_spec(_spec)
+_loader.exec_module(sc)
+
+MIDI_RX = "modules/synthframe/hdl/midi/synthframe_midi_rx.sv"
+
+
+class Tmp(unittest.TestCase):
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.dir = Path(self._td.name)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def write(self, rel, text):
+        p = self.dir / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+        return p
+
+
+class Yaml(Tmp):
+    def test_errors(self):
+        for text in ("a: [1\n", "- x\n"):
+            with self.subTest(text=text), self.assertRaises(sc.CfgError):
+                sc.load_yaml(self.write("a.yaml", text))
+
+
+class Macros(Tmp):
+    def test_sections(self):
+        p = self.write("m.def", "[all]\nA\nB=2 # c\n[xcau15p]\nC\n[mister]\nB=5\nD\n")
+        self.assertEqual(sc.load_macros(p, "mister"), {"A": "1", "B": "5", "D": "1"})
+        self.assertEqual(sc.load_macros(p, "xcau15p"), {"A": "1", "B": "2", "C": "1"})
+
+    def test_rejects(self):
+        for text in ("A\n", "[nope]\nA\n", "[mister]\nlower\n"):
+            with self.subTest(text=text), self.assertRaises(sc.CfgError):
+                sc.load_macros(self.write("m.def", text), "mister")
+
+
+class Generate(Tmp):
+    def core(self, files, macros="[mister]\n", extra=""):
+        self.write("core/cfg/core.yaml", f"name: T\nmister:\n  seed: 7\n{extra}")
+        self.write("core/cfg/files.yaml", files)
+        self.write("core/cfg/macros.def", macros)
+        self.write("core/hdl/a.sv", "")
+        self.write("core/hdl/b.v", "")
+        self.write("core/mister/T.sdc", "")
+        return sc.Core(self.dir / "core/cfg")
+
+    def test_qip_order_and_paths(self):
+        c = self.core(f"search:\n  - hdl\nfiles:\n  - hdl/b.v\n  - {MIDI_RX}\n  - hdl/a.sv\n  - mister/T.sdc\n")
+        rel = Path(__import__("os").path.relpath(ROOT / MIDI_RX, self.dir / "core/mister")).as_posix()
+        self.assertEqual(c.qip(), (
+            "set_global_assignment -name SEARCH_PATH ../hdl\n"
+            "set_global_assignment -name VERILOG_FILE ../hdl/b.v\n"
+            f"set_global_assignment -name SYSTEMVERILOG_FILE {rel}\n"
+            "set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/a.sv\n"
+            "set_global_assignment -name SDC_FILE T.sdc\n"))
+
+    def test_qip_errors(self):
+        for files in ("files:\n  - hdl/missing.sv\n", "files:\n  - hdl/a.txt\n", "other:\n  - x\n", "files:\n  - /abs.sv\n"):
+            self.write("core/hdl/a.txt", "")
+            with self.subTest(files=files), self.assertRaises(sc.CfgError):
+                self.core(files).qip()
+
+    def test_qsf_macros(self):
+        q = self.core("files:\n  - hdl/a.sv\n", "[mister]\nMISTER_DISABLE_ALSA\nMY_CORE=3\n").qsf()
+        self.assertIn("set_global_assignment -name SEED 7\n", q)
+        self.assertIn('\nset_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"\n', q)
+        self.assertIn('\n#set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_YC=1"\n', q)
+        self.assertIn('# Core macros (cfg/macros.def)\nset_global_assignment -name VERILOG_MACRO "MY_CORE=3"\n\nsource sys/sys.tcl', q)
+        self.assertNotIn("@", q)
+        self.assertFalse(q.endswith("\n"))
+
+    def test_qsf_plain_and_crlf(self):
+        q = self.core("files:\n  - hdl/a.sv\n").qsf()
+        self.assertIn('#set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"\n\nsource sys/sys.tcl', q)
+        q = self.core("files:\n  - hdl/a.sv\n", extra="  qsf_eol: crlf\n").qsf()
+        self.assertEqual(q.count("\n"), q.count("\r\n"))
+
+
+class Committed(unittest.TestCase):
+    def test_cores_match(self):
+        cores = sc.find_cores([])
+        self.assertGreaterEqual(len(cores), 5)
+        for d in cores:
+            for path, text in sc.Core(d).outputs().items():
+                with self.subTest(path=str(path.relative_to(ROOT))):
+                    self.assertEqual(path.read_bytes(), text.encode())
+
+
+if __name__ == "__main__":
+    unittest.main()

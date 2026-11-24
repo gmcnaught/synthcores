@@ -1,0 +1,4 @@
+# Read by modules/synthframe/bin/synthcore, which writes mister/CZ101.qsf and mister/files.qip.
+name: CZ101
+mister:
+  seed: 2

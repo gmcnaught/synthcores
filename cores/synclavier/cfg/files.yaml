@@ -1,0 +1,50 @@
+# HDL and constraint files, in Quartus order. synthcore writes them to mister/files.qip.
+# Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - hdl/dev
+  - hdl/core
+files:
+  - hdl/able_cpu.sv
+  - hdl/code_cache.sv
+  - hdl/throttle.sv
+  - hdl/voice_clock.sv
+  - hdl/able_system.sv
+  - hdl/dev/dev_rtc.sv
+  - hdl/dev/dev_muldiv.sv
+  - hdl/dev/dev_extmem.sv
+  - hdl/dev/dev_terminal.sv
+  - hdl/dev/dev_floppy.sv
+  - hdl/dev/dev_keyboard.sv
+  - hdl/dev/dev_vpk.sv
+  - hdl/dev/dev_fm.sv
+  - hdl/dev/poly_box.sv
+  - hdl/dev/pcm_out.sv
+  - hdl/dev/pcm_limit.sv
+  - hdl/dev/pcm_reverb.sv
+  - hdl/core/sd_floppy.sv
+  - hdl/dev/dev_scsi.sv
+  - hdl/dev/dev_poly.sv
+  - hdl/dev/dev_midi.sv
+  - hdl/dev/dev_smpte.sv
+  - hdl/dev/dev_mouse.sv
+  - hdl/dev/dev_multi.sv
+  - hdl/dev/dev_printer.sv
+  - hdl/core/print_capture.sv
+  - hdl/core/boot_loader.sv
+  - hdl/core/term_display.sv
+  - hdl/core/crt_adjust.sv
+  - hdl/core/tek_plane.sv
+  - hdl/core/ps2_ascii.sv
+  - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+  - hdl/core/midi_in.sv
+  - hdl/core/midi_vpk.sv
+  - hdl/core/midi_card_feed.sv
+  - hdl/core/panel_mouse.sv
+  - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
+  - hdl/core/dig_stm.sv
+  - hdl/core/synclavier_core.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+  - hdl/board/ddram_word.sv
+  - mister/Synclavier.sdc
+  - mister/Synclavier.sv
