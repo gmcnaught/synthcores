@@ -1,0 +1,8 @@
+# CZ-101: write preset 3 into internal tone 2 (tests/reload_run.sh). The Write button is held
+# while the bank (Internal) and the tone are pressed; the LCD shows WRITE / OK!. Seconds from
+# power-on; the same key timing as scripts/mister/smoke.sh.
+3.0  key Preset 0.08
+4.0  key Tone 3 0.08
+5.0  key Write 1.2
+5.4  key Internal 0.08
+5.8  key Tone 2 0.08

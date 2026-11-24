@@ -2,6 +2,29 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 15: CZ-101 written tone survives a reload (2026-11-23, branch `cz101-reload`)
+
+- **Finding (bench, `CZ_KEYS`/`CZ_LCD_LOG`/`CZ_NV_OUT`):** the firmware writes a tone only while
+  Write is held: Write down, Internal, a tone button, Write up. Pressed and released first, Write
+  shows "WRITE / SELECT MEMORY!" and leaves write mode. Internal tones are 128 bytes each at
+  0800-0FFF; 0300-03FF hold the selected tone.
+- **`tests/reload_run.sh`** (bench only; panel keys match MAME, PR #27): `tests/panel/write.txt`
+  stores preset 3 in internal tone 2; the bench restarts from that battery RAM (as the core does
+  after a reload with its save file) and `tests/panel/recall.txt` selects internal tone 2. Pass:
+  internal tone 2 written and kept; tone buffers 0300-03FF equal those of a run that selects
+  preset 3 (`tests/panel/preset3.txt`).
+- **Smoke test:** the "4" key step is replaced by write (Write held via the new
+  `down:`/`up:` actions of `mister_keys.py`), save 1, reload, recall internal tone 2, save 2; save 2
+  must keep internal tone 2 (0880-08FF) and the tone buffers of save 1.
+- **Checks:**
+    - `tests/reload_run.sh`: PASS.
+    - No HDL change: C4 and the Windows build are those of `main` (PR #27: C4 unchanged; 14,553
+      ALMs, +0.650 ns); the smoke test ran on that RBF.
+    - MiSTer smoke: pass. internal tone 2 written, kept after the reload, recalled (tone buffers
+      equal); LCD after the reload equals the one before; `c0 0a` on MIDI out; no underrun.
+    - `mister_keys.py` only gains `down:`/`up:` and F5-F8; the Synclavier smoke test was not
+      rerun.
+
 ## Iteration 15: CZ-101 MIDI out, panel scripts (2026-11-23, branch `cz101-midi-out`)
 
 - **MIDI out was already wired** (`midi_tx` to `UART_TXD` in `mister/CZ101.sv`) but untested.

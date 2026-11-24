@@ -1,0 +1,3 @@
+# CZ-101: select preset 3 (tests/reload_run.sh).
+3.0  key Preset 0.08
+3.6  key Tone 3 0.08

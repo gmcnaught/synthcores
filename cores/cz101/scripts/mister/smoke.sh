@@ -12,13 +12,19 @@
 # program change selects preset 15). MIDI out: keys "3" (Preset) and F3 (Tone 3) while
 # scripts/mister/tty_midi_read.py reads /dev/ttyS1 at 31,250 baud; Tone 3 in the bank half
 # that holds preset 15 selects preset 11, and the firmware sends its program change, C0 0A
-# (the C4 panel case, tests/panel/basic.txt, checks the MIDI-out bytes against MAME). Then the panel and the save file: key "4" (Internal),
-# screenshot; the OSD opens (autosave) and closes; the save file must be 8 KB and its battery RAM
-# must differ from the pack's init_ram; the core and pack load again and the LCD is compared
-# with the one before the reload (information only: the firmware boots to preset 1).
-# Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, midi_out.txt, cz101_smoke.sav and result.txt.
-# Exit 1 if the core is not running (band not green), an underrun was seen, the LCD is blank at boot,
-# MIDI did not change the LCD, the program change did not come out, or the save file is wrong.
+# (the C4 panel case, tests/panel/basic.txt, checks the MIDI-out bytes against MAME).
+# An edited tone survives a reload: with Write ("y") held, Internal ("4") and Tone 2 (F2) store
+# preset 11 in internal tone 2 (as tests/panel/write.txt; tests/reload_run.sh checks it on the
+# bench); screenshot; the OSD opens (autosave) and closes: save 1. The core and pack load again
+# (the save file is mounted and restored), "4" and F2 select internal tone 2, screenshot, the OSD
+# opens and closes: save 2. Both saves must be 8 KB; save 1's battery RAM must differ from the
+# pack's init_ram, including internal tone 2 (0880-08FF); save 2 must hold the same internal
+# tone 2, and the same tone buffers (0300-03FF) as save 1, where internal tone 2 was selected
+# too: the firmware recalled the written tone after the reload.
+# Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, midi_out.txt, save1.sav, save2.sav and
+# result.txt. Exit 1 if the core is not running (band not green), an underrun was seen, the LCD is
+# blank at boot, MIDI did not change the LCD, the program change did not come out, or a save
+# file is wrong.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
@@ -55,13 +61,17 @@ keys text:3 sleep:1 F3 sleep:1
 sleep 2
 $M sh "cat /tmp/cz101_midi_out.txt" > "$OUT/midi_out.txt"
 
-# panel key and the save file
-keys text:4 sleep:1
+# write a tone, save, reload, recall it, save again
+rm -f "$OUT/save1.sav" "$OUT/save2.sav"
+keys down:y sleep:0.4 text:4 sleep:0.3 F2 sleep:0.5 up:y sleep:1
 $M shot cz101 "$OUT/nv_changed.png" >/dev/null
 keys F12 sleep:3 ESC sleep:1
-scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/" 2>/dev/null || true
+scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/save1.sav" 2>/dev/null || true
 $M load /tmp/cz101_smoke.mgl; sleep "${BOOT:-8}"
+keys text:4 sleep:1 F2 sleep:1
 $M shot cz101 "$OUT/nv_reloaded.png" >/dev/null
+keys F12 sleep:3 ESC sleep:1
+scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/save2.sav" 2>/dev/null || true
 python3 -I - "$OUT" "$PACK" <<'EOF' | tee "$OUT/result.txt"
 # cz101_lcd_video.sv, 800 x 600 frame: the LCD (MAME's 97 x 19 pixels at 8x) at (12, 160),
 # 776 x 152, background 8a9294, dot on 3f3b3e; synthframe_status_strip at (12, 412): band at
@@ -96,9 +106,12 @@ und = end.getpixel((s[0] + int(300 * k), s[1] + int(10 * k)))[:3]
 und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(und, "?%02x%02x%02x" % und)
 boot, endp = panel("boot", s), panel("end", s)
 changed, reloaded = panel("nv_changed", s), panel("nv_reloaded", s)
-sav = f"{out}/cz101_smoke.sav"
-sz = os.path.getsize(sav) if os.path.exists(sav) else 0
-ram = open(sav, "rb").read()[:4096] if sz else b""
+def load(name):
+    p = f"{out}/{name}"
+    return open(p, "rb").read() if os.path.exists(p) else b""
+s1, s2 = load("save1.sav"), load("save2.sav")
+sz = len(s1)
+ram = s1[:4096]
 init = open(pack, "rb").read()[0x8000:0x9000]
 print(f"band: {s[2]}")
 print(f"underrun: {und_s}")
@@ -110,9 +123,16 @@ pc = "c0 0a" in " ".join(midi_out)
 print(f"midi_out: {' '.join(midi_out)[:60]}")
 print(f"midi_out_program_change: {pc}")
 print(f"save_file_bytes: {sz}")
+written = len(s1) == 8192 and s1[0x880:0x900] != init[0x880:0x900]
+kept = len(s2) == 8192 and s2[0x880:0x900] == s1[0x880:0x900]
+recalled = len(s2) == 8192 and s2[0x300:0x400] == s1[0x300:0x400]
 print(f"save_ram_differs_from_init_ram: {bool(ram) and ram != init}")
+print(f"internal_tone_2_written: {written}")
+print(f"save2_bytes: {len(s2)}")
+print(f"internal_tone_2_kept_after_reload: {kept}")
+print(f"tone_recalled_after_reload: {recalled}")
 print(f"lcd_after_reload_same_as_before: {reloaded.tobytes() == changed.tobytes()}")
 ok = (s[2] == "running" and und_s == "never" and lit(boot) > 500 and endp.tobytes() != boot.tobytes()
-      and pc and sz == 8192 and ram != init)
+      and pc and sz == 8192 and ram != init and written and kept and recalled)
 sys.exit(0 if ok else 1)
 EOF

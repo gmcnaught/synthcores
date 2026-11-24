@@ -14,8 +14,9 @@ MAME in lockstep, instruction for instruction and sample for sample. No ROMs are
 | uPD933 | standalone copy of MAME's model on synthetic stimuli | identical |
 | Board | `tests/c4_run.sh tests/midi/basic.txt 6500000`: real firmware, boot and MIDI playback | 6.5 M instructions (17.9 s) and 716,728 samples identical to MAME, SHA-256 08745dc2…0eb7; the same through the MiSTer's live-MIDI path |
 | Panel keys, pitch wheel, MIDI out | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/basic.txt`: the same, plus tone selection and pitch-wheel moves at the same CPU cycles in MAME and the HDL | trace and 717,228 samples identical, SHA-256 472320fd…08a9; the 63 MIDI-out bytes (program changes, the wheel's pitch bends) identical, each within 19 CPU cycles of MAME's |
+| Battery RAM across a reload | `tests/reload_run.sh`: write preset 3 into internal tone 2 (`tests/panel/write.txt`), restart from that RAM, select internal tone 2 | the tone is kept; the firmware's tone buffers (0300-03FF) equal those with preset 3 selected |
 | Quartus (Windows build host) | `winbuild.sh cz101` | 14,577 ALMs (35 %), 37 DSP; timing met (core clock setup slack +4.13 ns at 50 MHz) |
-| MiSTer | `scripts/mister/smoke.sh` | boots to PRESET NO.01; MIDI over the UART changes the patch; a panel key works; selecting a tone sends its program change out of the UART (read on `/dev/ttyS1` at 31,250 baud); no underrun; the 8 KB save file is written and differs from the initial RAM |
+| MiSTer | `scripts/mister/smoke.sh` | boots to PRESET NO.01; MIDI over the UART changes the patch; a panel key works; selecting a tone sends its program change out of the UART (read on `/dev/ttyS1` at 31,250 baud); no underrun; a tone written to internal memory (Write held, Internal, Tone 2) is in the 8 KB save file, survives a reload of the core and plays again when selected |
 
 The plan, the timing rules and the open items are in [`docs/plan.md`](docs/plan.md); the CPU
 notes and the MAME flag bugs found on the way are in [`docs/upd7810.md`](docs/upd7810.md).

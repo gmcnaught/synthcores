@@ -1,0 +1,3 @@
+# CZ-101: after a power cycle with the battery RAM kept, select internal tone 2 (tests/reload_run.sh).
+3.0  key Internal 0.08
+3.6  key Tone 2 0.08
