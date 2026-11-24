@@ -2,6 +2,29 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 9: `cfg/` files and the `synthcore` generator (2026-11-23, branch `iter9-synthcore`)
+
+- **Generator:** `modules/synthframe/bin/synthcore` (Python, MIT, PyYAML) writes each core's
+  `mister/files.qip` and `mister/<core>.qsf` from `cores/<core>/cfg/`:
+    - `core.yaml`: project name, seed, qsf line ending (the Proteus/1 qsf is CRLF);
+    - `files.yaml`: search paths and files in Quartus order;
+    - `macros.def`: JTFRAME-syntax macros per target.
+- **qsf template:** `modules/synthframe/target/mister/project.qsf.in`. The five qsf files
+  differed only in SEED, `MISTER_DISABLE_ALSA` (off for the Proteus/1) and line endings.
+- **Gate passed:** all 10 files (5 `files.qip`, 5 qsf) deleted and regenerated are
+  byte-identical to `main` (SHA-256 and `git diff`), under python3 and pypy3. Quartus input is
+  unchanged, so no Windows build or MiSTer smoke test was run.
+- **CI:** a `synthcore` job in `tests.yml` runs `synthcore check` and the unit tests on every
+  change.
+- **Proteus `.gitignore`:** `cfg/` (MAME run output) now ignores subfolders only; `/cfg/*.cfg`
+  stays ignored.
+- **Open:**
+    - The qsf header still says "Add the files manually to files.qip". Changing it changes the
+      qsf bytes, so it waits for a later PR.
+    - `.qpf` files, Verilator `.f` lists and the Vivado list (M64 deferred) are not generated.
+    - `core.yaml` holds only the fields synthcore reads; LAYOUT-PLAN's clock, memory-port and
+      panel fields wait for a consumer.
+
 ## Iteration 8, CZ-101: the panel modules (2026-11-23, branch `iter8b-cz101-panel`)
 
 - **`synthframe_hd44780`** now carries the CZ-101 controller's MAME details:

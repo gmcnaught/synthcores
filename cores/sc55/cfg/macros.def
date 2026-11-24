@@ -1,0 +1,5 @@
+# Verilog macros per target (JTFRAME macros.def syntax). synthcore puts the [all] and
+# [mister] ones in mister/SC55.qsf.
+
+[mister]
+MISTER_DISABLE_ALSA

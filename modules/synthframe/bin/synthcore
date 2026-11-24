@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""synthcore: write each core's Quartus files from its cfg/ files.
+
+    synthcore [gen] [CORE...]     write mister/files.qip and mister/<name>.qsf
+    synthcore check [CORE...]     exit 1 if a written file would differ from the committed one
+
+With no CORE, every core with a cores/<core>/cfg/core.yaml.
+
+Inputs, in cores/<core>/cfg/:
+  core.yaml    name (the Quartus project name) and mister: seed, qsf_eol (lf or crlf)
+  files.yaml   search: and files: lists in Quartus order. A path starting with modules/ is
+               from the repo root; any other path is from the core's directory.
+  macros.def   Verilog macros per target, JTFRAME syntax: [all], [mister], [xcau15p] sections,
+               one NAME or NAME=VALUE a line (NAME alone means NAME=1), # comments.
+
+The qsf comes from modules/synthframe/target/mister/project.qsf.in. Its commented-out
+VERILOG_MACRO lines are switched on when macros.def defines the macro; macros it doesn't list
+go where @CORE_MACROS@ is. @SEED@ takes core.yaml's mister.seed.
+
+Needs PyYAML (pip install pyyaml).
+"""
+import os
+import re
+import sys
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[3]
+QSF_TEMPLATE = ROOT / "modules/synthframe/target/mister/project.qsf.in"
+TARGETS = ("mister", "xcau15p")
+QIP_TYPES = {
+    ".sv": "SYSTEMVERILOG_FILE",
+    ".v": "VERILOG_FILE",
+    ".vhd": "VHDL_FILE",
+    ".vhdl": "VHDL_FILE",
+    ".sdc": "SDC_FILE",
+    ".qip": "QIP_FILE",
+}
+
+
+class CfgError(Exception):
+    pass
+
+
+def load_yaml(path):
+    try:
+        data = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as e:
+        raise CfgError(f"{path}: {e}")
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise CfgError(f"{path}: expected a mapping at the top level")
+    return data
+
+
+# --- macros.def --------------------------------------------------------------------------------
+
+def load_macros(path, target):
+    """Macros for target, in file order: [all] and [target] sections, later definitions win."""
+    found, section = {}, None
+    for n, raw in enumerate(path.read_text().splitlines(), 1):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        m = re.fullmatch(r"\[([a-z0-9_]+)\]", line)
+        if m:
+            section = m.group(1)
+            if section != "all" and section not in TARGETS:
+                raise CfgError(f"{path}:{n}: unknown section [{section}]")
+            continue
+        m = re.fullmatch(r"([A-Z_][A-Z0-9_]*)(?:\s*=\s*(\S.*))?", line)
+        if not m:
+            raise CfgError(f"{path}:{n}: expected NAME or NAME=VALUE, got '{line}'")
+        if section is None:
+            raise CfgError(f"{path}:{n}: macro before the first [section]")
+        if section in ("all", target):
+            found[m.group(1)] = m.group(2) if m.group(2) is not None else "1"
+    return found
+
+
+# --- generators --------------------------------------------------------------------------------
+
+class Core:
+    def __init__(self, cfg_dir):
+        self.dir = cfg_dir.parent
+        self.cfg = load_yaml(cfg_dir / "core.yaml")
+        self.files = load_yaml(cfg_dir / "files.yaml")
+        self.macros_def = cfg_dir / "macros.def"
+        self.name = self.cfg.get("name")
+        if not isinstance(self.name, str):
+            raise CfgError(f"{cfg_dir}/core.yaml: needs name")
+        self.mister = self.cfg.get("mister") or {}
+        self.mister_dir = self.dir / "mister"
+
+    def _resolve(self, p):
+        if not isinstance(p, str) or p.startswith("/") or "\\" in p:
+            raise CfgError(f"{self.dir}/cfg/files.yaml: bad path {p!r}")
+        full = ROOT / p if p.startswith("modules/") else self.dir / p
+        if not full.exists():
+            raise CfgError(f"{self.dir}/cfg/files.yaml: {p} does not exist")
+        return Path(os.path.relpath(full, self.mister_dir)).as_posix()
+
+    def qip(self):
+        unknown = set(self.files) - {"search", "files"}
+        if unknown:
+            raise CfgError(f"{self.dir}/cfg/files.yaml: unknown keys {sorted(unknown)}")
+        out = []
+        for p in self.files.get("search") or []:
+            out.append(f"set_global_assignment -name SEARCH_PATH {self._resolve(p)}")
+        for p in self.files.get("files") or []:
+            kind = QIP_TYPES.get(Path(str(p)).suffix.lower())
+            if kind is None:
+                raise CfgError(f"{self.dir}/cfg/files.yaml: no Quartus file type for {p}")
+            out.append(f"set_global_assignment -name {kind} {self._resolve(p)}")
+        return "".join(line + "\n" for line in out)
+
+    def qsf(self):
+        macros = load_macros(self.macros_def, "mister")
+        seed = self.mister.get("seed")
+        if not isinstance(seed, int):
+            raise CfgError(f"{self.dir}/cfg/core.yaml: needs mister.seed (integer)")
+        eol = self.mister.get("qsf_eol", "lf")
+        if eol not in ("lf", "crlf"):
+            raise CfgError(f"{self.dir}/cfg/core.yaml: mister.qsf_eol is lf or crlf")
+        known = re.compile(r'#set_global_assignment -name VERILOG_MACRO "([A-Z0-9_]+)=1"')
+        template = QSF_TEMPLATE.read_text()
+        in_template = set(known.findall(template))
+        out = []
+        for line in template.split("\n"):
+            m = known.fullmatch(line)
+            if m and m.group(1) in macros:
+                out.append(f'set_global_assignment -name VERILOG_MACRO "{m.group(1)}={macros[m.group(1)]}"')
+            elif line == "@CORE_MACROS@":
+                extra = [k for k in macros if k not in in_template]
+                if extra:
+                    out.append("# Core macros (cfg/macros.def)")
+                    out += [f'set_global_assignment -name VERILOG_MACRO "{k}={macros[k]}"' for k in extra]
+                    out.append("")
+            else:
+                out.append(line.replace("@SEED@", str(seed)))
+        # The template ends in a newline (for editors); the qsf files have none after the last line.
+        text = "\n".join(out).rstrip("\n")
+        return text.replace("\n", "\r\n") if eol == "crlf" else text
+
+    def outputs(self):
+        return {
+            self.mister_dir / "files.qip": self.qip(),
+            self.mister_dir / f"{self.name}.qsf": self.qsf(),
+        }
+
+
+def find_cores(names):
+    found = {p.parent.parent.name: p.parent for p in sorted(ROOT.glob("cores/*/cfg/core.yaml"))}
+    if not names:
+        return list(found.values())
+    missing = [n for n in names if n not in found]
+    if missing:
+        raise CfgError(f"no cores/<core>/cfg/core.yaml for {', '.join(missing)}")
+    return [found[n] for n in names]
+
+
+def main(argv):
+    cmd = "gen"
+    if argv and argv[0] in ("gen", "check"):
+        cmd, argv = argv[0], argv[1:]
+    if any(a.startswith("-") for a in argv):
+        print(__doc__.strip().split("\n\n")[1], file=sys.stderr)
+        return 2
+    try:
+        cores = [Core(d) for d in find_cores(argv)]
+        bad = 0
+        for core in cores:
+            for path, text in core.outputs().items():
+                data = text.encode()
+                rel = path.relative_to(ROOT)
+                old = path.read_bytes() if path.exists() else None
+                if cmd == "check":
+                    if old != data:
+                        print(f"differs: {rel} (edit cores/{core.dir.name}/cfg/, then run synthcore)")
+                        bad += 1
+                    else:
+                        print(f"ok: {rel}")
+                elif old != data:
+                    path.write_bytes(data)
+                    print(f"wrote: {rel}")
+        return 1 if bad else 0
+    except CfgError as e:
+        print(f"synthcore: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

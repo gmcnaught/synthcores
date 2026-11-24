@@ -1,0 +1,4 @@
+# Read by modules/synthframe/bin/synthcore, which writes mister/JV880.qsf and mister/files.qip.
+name: JV880
+mister:
+  seed: 4

@@ -9,8 +9,10 @@ third_party/mame/
 build/
 __pycache__/
 third_party/Template_MiSTer/
-# MAME run artefacts
+# MAME run artefacts (the core's own /cfg/ holds synthcore's inputs)
 cfg/
+!/cfg/
+/cfg/*.cfg
 snap/
 nvram/
 error.log
