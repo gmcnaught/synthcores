@@ -46,6 +46,26 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   - start time on the MiSTer;
   - the CI job needs Verilator only; the system bench needs the user's files and GHDL.
 
+## Iteration 17: MT-32 (2026-11-24, branch `iter17-mt32-plan`)
+
+- **Plan:** `cores/mt32/docs/plan.md`; reference Nuked-MT32 `5b4e239` (submodule `modules/nuked-mt32`),
+  ROMs from the user's archives (2.07, R15449121, R15179857; SHA-1 equal to MAME's).
+- **M0-M5 bit-exact against Nuked-MT32:** CPU random programs (60+ seeds), co-simulation and the
+  whole-HDL system bench give identical traces and audio on all 6 corpus cases (65 s). M3/M4 (LA32,
+  reverb, mix) by a forked session, `docs/sound.md`.
+- **Corrections on the way:** MAME's `mcs96ops.lst` is stale against the compiled `mcs96.hxx`
+  (norml, mulub indexed_3e, div dividend); FE 4A shares 4A's no-auto-increment quirk; the random
+  generator emitted bare `ret`s.
+- **Windows build:** 18,683 ALMs, 62 DSP, 96 MHz with +0.263 ns setup slack. Standalone core
+  builds (`sim/core_syn/`) drove the timing work (divide-by-24 pipeline, event tree, ALU decode).
+- **MiSTer smoke:** pass (boots, MIDI changes the LCD, no underrun). The core's UART mode had to be
+  set to MIDI (`config/uartmode.MT-32`, copied from the CZ-101's).
+- **Release checks (2026-11-24):** CI container build +0.570 ns; Part 1 key matches Nuked-MT32; dense case and
+  Monkey Island tracks 1-2 on the MiSTer without underrun; audio checked by ear (the dense case's two right-channel
+  clicks are in Nuked-MT32's render too).
+- **Open:** the reverb delay RAM is not cleared by a core reset.
+  (2,828 of 3,000 clocks a sample at PCM latency 1-24); reverb delay RAM not cleared by a core reset.
+
 ## Iteration 16: P2K sound HDL for the Cyclone V (2026-11-24, branch `iter16-p2k-snd-synth`, PR #32)
 
 - **Why:** the iteration 14 RTL did not build in Quartus 17 (a typed net declaration; a loop over

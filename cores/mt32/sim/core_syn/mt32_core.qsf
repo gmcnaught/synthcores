@@ -1,0 +1,23 @@
+# Standalone Quartus 17 build of mt32_core (all pins virtual): resources and Fmax.
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name TOP_LEVEL_ENTITY mt32_core
+set_global_assignment -name SEARCH_PATH ../../hdl/mcs96
+set_global_assignment -name VERILOG_MACRO "MCS96_DECODE_HEX=\"../../hdl/mcs96/mcs96_decode.hex\""
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mcs96/mcs96_core.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mcs96/mcs96_periph.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mcs96/mcs96.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/la32/mt32_la32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/rv2/mt32_rv2.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mt32_mix.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mt32_sound.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mt32_lcd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mt32_board.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../hdl/mt32_core.sv
+set_parameter -name POW_HEX "../../hdl/la32/mt32_la32_pow.hex"
+set_parameter -name LOGSIN_HEX "../../hdl/la32/mt32_la32_logsin.hex"
+set_global_assignment -name SDC_FILE mt32_core.sdc
+set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_instance_assignment -name VIRTUAL_PIN ON -to *
+set_instance_assignment -name VIRTUAL_PIN OFF -to clk

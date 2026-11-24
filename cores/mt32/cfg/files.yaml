@@ -1,0 +1,27 @@
+# The core's files, in Quartus order. synthcore writes mister/files.qip (search:, files:,
+# mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
+# Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - hdl/mcs96
+files:
+  - hdl/mcs96/mcs96_core.sv
+  - hdl/mcs96/mcs96_periph.sv
+  - hdl/mcs96/mcs96.sv
+  - hdl/la32/mt32_la32.sv
+  - hdl/rv2/mt32_rv2.sv
+  - hdl/mt32_mix.sv
+  - hdl/mt32_sound.sv
+  - hdl/mt32_lcd.sv
+  - hdl/mt32_board.sv
+  - hdl/mt32_core.sv
+  - modules/synthframe/hdl/panel/synthframe_vtiming.sv
+  - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - hdl/mt32_lcd_video.sv
+  - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+  - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
+  - modules/synthframe/hdl/audio/synthframe_resample.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+mister:
+  - mister/MT32.sdc
+  - mister/MT32.sv

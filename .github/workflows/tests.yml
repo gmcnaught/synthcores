@@ -53,6 +53,9 @@ jobs:
               - 'cores/proteus/**'
               - 'cores/cz101/hdl/**'
               - 'modules/synthframe/ver/**'
+            mt32:
+              - 'cores/mt32/**'
+              - 'modules/nuked-mt32'
             p2k:
               - 'cores/p2k/**'
               - 'cores/proteus/p2k/rtl/**'
@@ -60,7 +63,7 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = workflow_dispatch ] || [ "${{ steps.filter.outputs.shared }}" = true ]; then
-            echo 'cores=["sc55","synclavier","proteus","p2k"]' >> "$GITHUB_OUTPUT"
+            echo 'cores=["sc55","synclavier","proteus","mt32","p2k"]' >> "$GITHUB_OUTPUT"
           else
             echo "cores=$(echo '${{ steps.filter.outputs.changes }}' | jq -c 'map(select(. != "shared"))')" >> "$GITHUB_OUTPUT"
           fi

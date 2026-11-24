@@ -36,7 +36,7 @@ SSH=(ssh -o BatchMode=yes -o ControlPath=none "$HOST")
 # (the P2K core also takes the CPU and sound RTL from cores/proteus/p2k/rtl)
 EXTRA=()
 [ "$CORE" = p2k ] && EXTRA=(cores/proteus/p2k/rtl)
-(cd "$ROOT" && git ls-files -z -- "cores/$CORE" "${EXTRA[@]}" modules ':!modules/nuked-sc55' |
+(cd "$ROOT" && git ls-files -z -- "cores/$CORE" "${EXTRA[@]}" modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
     COPYFILE_DISABLE=1 tar --null -T - -czhf "$TMP/src.tgz" --exclude "cores/$CORE/third_party/nuked-sc55")
 
 case "$CORE" in
