@@ -5,25 +5,38 @@ original CPU, with the custom sound chips reproduced exactly and checked against
 model. Today they run on the MiSTer (DE10-Nano). An AMD Artix UltraScale+ target (`xcau15p`) is
 planned. The layout follows jotego's jtcores and JTFRAME.
 
-| Core | Folder | Status | Licence |
-|---|---|---|---|
-| Roland SC-55 / SC-55mk2 / SC-155 | [`cores/sc55`](cores/sc55) | released; sample-exact against Nuked-SC55 | GPL-2.0-or-later |
-| E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | runs on MiSTer; Proteus 2000 CPU in progress under `p2k/` | GPL-3.0-or-later |
-| New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on MiSTer | MIT |
-| Casio CZ-101 | [`cores/cz101`](cores/cz101) | runs on MiSTer; instruction- and sample-exact against MAME | MIT (MAME's BSD-3-Clause notice in its `NOTICE`) |
+| Core | Folder | Status | Release | Licence |
+|---|---|---|---|---|
+| Roland SC-55 / SC-55mk2 / SC-155 | [`cores/sc55`](cores/sc55) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55 | [sc55-MiSTer](https://github.com/gmcnaught/sc55-MiSTer/releases) v20261120 | GPL-2.0-or-later |
+| Roland JV-880 | [`cores/jv880`](cores/jv880) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55's `jv880` model | not yet released | GPL-2.0-or-later |
+| Roland MT-32 (second generation) | [`cores/mt32`](cores/mt32) | plays MIDI on the MiSTer; instruction- and sample-exact against Nuked-MT32 | [MT-32-MiSTer](https://github.com/gmcnaught/MT-32-MiSTer/releases) v20261124 | GPL-2.0-or-later (8098 CPU MIT) |
+| Casio CZ-101 | [`cores/cz101`](cores/cz101) | plays MIDI on the MiSTer; instruction- and sample-exact against MAME | not yet released | MIT (MAME's BSD-3-Clause notice in its `NOTICE`) |
+| E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | plays MIDI on the MiSTer | [emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer/releases) v0.2.0 | GPL-3.0-or-later |
+| E-mu Proteus 2000 | [`cores/proteus/p2k`](cores/proteus/p2k) | in progress: CPU and sound HDL bit-exact against a MAME-based renderer in simulation; MiSTer top not done | — | GPL-3.0-or-later |
+| New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on the MiSTer | [synclavierii](https://github.com/gmcnaught/synclavierii/releases) Synclavier_20261118 | MIT |
 
-- **`modules/`:** shared code. `synthframe`, the shared MIT framework, is to come. The
-  reference models are submodules (`modules/nuked-sc55`).
-- **History:** each core's history was imported from its original repository by
-  [`scripts/import-cores.sh`](scripts/import-cores.sh):
-  [sc55-MiSTer](https://github.com/gmcnaught/sc55-MiSTer),
-  [emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer) and
-  [synclavierii](https://github.com/gmcnaught/synclavierii).
-- **Plans:** [`LAYOUT-PLAN.md`](LAYOUT-PLAN.md) and [`HARDWARE-PLAN.md`](HARDWARE-PLAN.md).
+Each core's README gives its checks, the ROM dumps it needs and how to install it.
+
+- **`modules/`:** shared code.
+    - `synthframe`: the shared framework (MIT): MIDI, audio, memory ports, status strip and save
+      HDL, the MiSTer target (`target/mister`) and `bin/synthcore`, which writes each core's
+      Quartus and Verilator file lists from `cores/<core>/cfg/`.
+    - `roland`: the H8/532 and Roland PCM chip HDL that the SC-55 and JV-880 share
+      (GPL-2.0-or-later).
+    - Reference models, as submodules: `nuked-sc55` (jcmoyer's Nuked-SC55) and `nuked-mt32`
+      (Nuked-MT32).
+- **Releases:** each released core has its own repository, which holds the RBFs, the
+  instructions and any ROM-pack tool. The SC-55, Proteus/1 XR and Synclavier repositories are
+  also the cores' original source repositories; their history was imported here by
+  [`scripts/import-cores.sh`](scripts/import-cores.sh), and new work happens in this one.
+- **Plans:** [`SESSION-PLAN.md`](SESSION-PLAN.md) and [`SESSION-LOG.md`](SESSION-LOG.md) (work by
+  iteration), [`LAYOUT-PLAN.md`](LAYOUT-PLAN.md) and [`HARDWARE-PLAN.md`](HARDWARE-PLAN.md).
 - **ROMs:** no ROMs, firmware or disk images are included. Each core's README says which dumps
   it needs.
 
-Clone with `git clone --recursive`. CI (`.github/workflows/`) runs the tests and the Quartus
-build only for the cores a change touches.
+Clone with `git clone --recursive`. CI (`.github/workflows/`): `tests.yml` runs on every pull
+request, for the cores a change touches. `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
+one core on demand (the "Build RBF" workflow with `cores` set, which is how releases are built), for
+every core on a `v*` tag.
 
 Each folder carries its own licence. A file's SPDX header, where it has one, takes precedence.
