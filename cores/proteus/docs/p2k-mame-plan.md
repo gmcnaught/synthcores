@@ -4,7 +4,7 @@ As of 2026-11-23. The aim: everything a P2K MiSTer core is checked against comes
 for the Proteus/1. There, the sound HDL matches a line-by-line port of the MAME model
 (`tools/proteus_model.py`) sample for sample.
 
-## Where it stands (updated 2026-11-23, steps 1-5 done)
+## Where it stands (updated 2026-11-24, steps 1-5 done, sound HDL in simulation)
 
 | Part | State | Usable as a core reference? |
 |---|---|---|
@@ -16,6 +16,7 @@ for the Proteus/1. There, the sound HDL matches a line-by-line port of the MAME 
 | Standalone model | `p2k/model/p2k_render`: replays `snd.log`, reproduces MAME's output bit for bit on all 22 cases | Yes |
 | Reference corpus | 22 cases (filters, effects, routing, modulation, 10-minute soak), deterministic, feature-checked | Yes |
 | User flash SIMMs | `p2k/model/p2k_flash.h`; the OS's rename writes a flash SIMM, it persists and plays (`tools/p2k_flash_test.py`) | Yes |
+| Sound HDL | `p2k/rtl/snd` (Verilator only): equals `p2k_render` on all 22 cases in three modes and MAME in full mode (`docs/p2k-sound-hdl.md`) | Reference datapath; not yet a MiSTer design |
 | Hardware validation | Deferred: no unit (decision 1) | No |
 
 A sound core is checked against `p2k_render` fed the corpus logs: same `snd.raw`, bit for bit.

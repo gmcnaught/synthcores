@@ -2,6 +2,25 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 14: P2K sound HDL (2026-11-23/24, branch `iter14-p2k-sound`)
+
+- **What:** `cores/proteus/p2k/rtl/snd/p2k_snd.sv` (G20 voices, H interpolators and filter with
+  12th-order chaining, mixer) and `p2k_fx.sv` (G05 effects), checked in Verilator against the
+  integer model `p2k/model/p2k_sound.h`. Design note: `cores/proteus/docs/p2k-sound-hdl.md`.
+- **Step 0:** the stand-in SIMM, `flash_clean.nv` and all 22 corpus cases rebuilt to the manifest
+  hashes; `p2k_render` equals MAME's `snd.raw` on every case.
+- **Gate (`tools/p2k_snd_check.py`):** 66/66 identical, 22 cases in three modes (voices, + filter,
+  + effects). Full mode also equals the manifest `sndout_sha256`. 1.85 G chained voice-samples.
+- **CI (`tests/p2k_snd/test_p2k_snd.py`, no ROMs):** random register logs over a random SIMM,
+  three modes, two seeds each, 54 s locally.
+- **Bugs found on the way:** unsigned fraction in the interpolation product; unsigned difference
+  in the interpolator increment; the mixer read the effects configuration in the cycle it was
+  rewritten (differences at multiples of 256 samples, fixed with a wait state).
+- **Measured for the MiSTer design:** worst 2569 clocks a sample at memory latency 3 (needs
+  ≥ 113.3 MHz as built); up to 256 sample reads a sample; 137,872 32-bit words of effect delay
+  lines (4.4 Mbit, too much for M10K). Not measured: Quartus resources and Fmax.
+- **Also:** removed a stray merge-conflict marker from this log.
+
 ## Iteration 15: JV-880 card RAM (2026-11-23, branch `jv880-card-ram`)
 
 - **Question (`cores/jv880/docs/plan.md`):** does the firmware need the card RAM (pages 14/15)
@@ -471,7 +490,6 @@ definition, stereo mixdown, user flash SIMMs only).
       key again does.
     - NVRAM saving to the SD card is not done.
 
-||||||| parent of 1c62c0f (P2K CPU matches MAME from reset to the OS 2.26 main screen (iteration 11))
 ## Iteration 12 preparation: JV-880 (2026-11-22)
 
 - **ROMs:** the user's dumps are in `nuked-sc55/firmware/Roland JV880/`. All five files match
