@@ -50,19 +50,55 @@ The CPU must only write between `cpu_turn` and `cpu_done`, as the reference does
 3. after slot 31's turn: the mix of the sample before. The LA32 clamps this sample's
    accumulators after slot 31; the next sample's slot 0 clears the other bank.
 
-`mt32_la32` stages (one clock each; the pow and logsin tables are dual-port ROMs with
-registered reads):
+`mt32_la32` stages (one clock each). The pow and logsin tables are dual-port ROMs; a lookup whose
+address is presented in stage X is used in stage X + 3 (ROM output register, then the pow add,
+then the pow shift), hence the wait stages W:
 
 | Stage | Work |
 |---|---|
-| IDLE | `slot_go`: the `w46` envelope-run shift, register file and `ram2` reads, pow lookups for both envelopes |
-| TV | envelope sums, `ram2[0..1]` written, interrupt (envelope done); pow lookup for the pitch |
-| WG | phase, `ram2[2]`; PCM: wave addresses, end interrupts; synthesis: the filter cutoff and resonance chain, pow and logsin lookups |
+| IDLE | `slot_go`: the `w46` envelope-run shift, register file and `ram2` reads; pow lookups for both envelopes |
+| TVW, TVW2, TV | envelope sums, `ram2[0..1]`, envelope interrupt; pow lookup for the pitch |
+| WGW, WGW2, WG1 | phase, `ram2[2]` |
+| WG2 | PCM: wave addresses, end interrupts. Synthesis: cutoff/resonance chain |
 | PREQ1, PREQ2, PWAIT | PCM: up to two 64-bit reads (none for an address at or above 0x80000) |
-| W3, W4 | PCM: sample decode, pow lookups, interpolation or the square/saw combine, ring modulation |
-| N3-N6 | synthesis: products `m2`-`m5`, logsin lookups, the resonance and wave-shape sums, pow lookups, combine, ring modulation |
-| ACC | pan, accumulators, `reg_file[5]` counter update, `w186`-`w188` latch; `slot_done` |
+| W3, W3W, W3W2 | PCM: sample decode, pow lookups |
+| WG3, N2W, N2W2 | synthesis: pow and logsin lookups |
+| N3A, N3A2, N3B, N3C, N3D | synthesis: products `m2`-`m5`, the `w4xx` flags, logsin lookups, `t45 * t44` |
+| N4, N5, N5W, N5W2 | synthesis: resonance and wave-shape sums, pow lookups |
+| G0, G1, G2 | signs of w1/w2; interpolation or square/saw combine; ring modulation |
+| ACC1, ACC1B, ACC2 | pan product, accumulators, `reg_file[5]` counters, `w186`-`w188` latch; `slot_done` |
 
-## Results
+From `slot_go` to `slot_done` a synthesis slot takes 26 clocks and a PCM slot 20 plus the
+memory wait beyond one clock. The reverb chip's 7 clocks for a slot run alongside.
 
-See the end of this file (filled in from the gate run).
+## Results (2026-11-24)
+
+**Gate (`SLOT=1 tests/sound_check.sh`):** every case identical for both seeds (random PCM latency
+1-40 clocks, random `req_ready`). That covers every sample's nine `--out-log` fields, every
+LA32 interrupt set and clear, and every slot's state (`--slot-log`: oo, prev, w46, ram2,
+accumulators, w186-w188).
+
+| Case | Samples | IRQ events | PCM reads/sample | Clocks/slot mean (max) |
+|---|---|---|---|---|
+| boot | 96,000 | 0 | 0.00 | 26.5 (41) |
+| controllers | 224,000 | 86 | 4.20 | 27.9 (83) |
+| dense | 771,519 | 146,466 | 16.30 | 32.0 (82) |
+| parts | 294,400 | 7,728 | 6.31 | 28.6 (85) |
+| programs | 313,600 | 14,844 | 8.01 | 29.2 (82) |
+| sysex | 374,400 | 4,164 | 4.38 | 28.0 (83) |
+
+- **Clocks/slot:** measured in the bench from `cpu_done` to `slot_done`, with the bench's
+  memory latency of 1-40 clocks (mean about 20) per read. Real time allows
+  `f_clk / 1,024,000` clocks a slot for the LA32 and the CPU turn together: 97.7 at 100 MHz,
+  48.8 at 50 MHz.
+- **Bench check:** changing one logsin table entry makes the bench stop at the first slot that
+  uses it.
+
+**Standalone Quartus 17 build** (`sim/sound/syn/winbuild_sound.sh`, 5CSEBA6U23I7, all pins
+virtual):
+- Resources: 5,202 ALMs, 7,134 registers, 64 M10K (522,752 bits: reverb ROM and RAM, LA32
+  tables) and 20 DSP blocks.
+- Timing at 100 MHz: setup slack +0.111 ns (slow 100C) and -0.554 ns (slow -40C), so about
+  95 MHz at the worst corner; hold met.
+- The remaining paths are spread out: the mix's 64-bit reciprocal products, the interpolation
+  product, and the envelope sums.
