@@ -18,7 +18,12 @@
 //   8000-BFFF  bank window: ROM bank 0-7, or RAM bank 0-1 when bit 4 is set (writable only then)
 //   C000-FFFF  RAM bank 0
 //   other reads FF, other writes ignored.
-module mt32_board (
+`ifndef MCS96_DECODE_HEX
+`define MCS96_DECODE_HEX "mcs96_decode.hex"
+`endif
+module mt32_board #(
+    parameter DECODE_HEX = `MCS96_DECODE_HEX
+) (
     input  logic        clk,
     input  logic        rst,
     output logic        ready,
@@ -105,7 +110,7 @@ module mt32_board (
     logic [7:0]  ext_wdata, ext_rdata, serial_byte;
     logic        unsupported;
 
-    mcs96 cpu (
+    mcs96 #(.DECODE_HEX(DECODE_HEX)) cpu (
         .clk, .rst, .ready(c_ready),
         .run(c_run), .target(c_target), .busy(c_busy), .total_cycles(cpu_cycles),
         .ext_req, .ext_we, .ext_addr, .ext_wdata, .ext_rdata, .ext_ack,
@@ -181,10 +186,10 @@ module mt32_board (
             T_IDLE: if (cpu_turn) begin
                 slot <= turn_slot;
                 la32c <= la32_cycle[47:0];
+                c_target <= (la32_cycle[47:0] * 48'd375) >> 8;
                 ts <= T_HOLD;
             end
             T_HOLD: if (!(hold && slot == 5'd0)) begin
-                c_target <= (la32c * 48'd375) >> 8;
                 c_run <= 1'b1;
                 ts <= T_RUN;
             end
@@ -200,9 +205,9 @@ module mt32_board (
                     uart_cycles <= cpu_cycles + 48'd3840;
                 end
                 if (slot == 5'd15 || slot == 5'd31) sh3 <= (slot == 5'd31);
-                ts <= T_DONE;
+                cpu_done <= 1'b1;
+                ts <= T_IDLE;
             end
-            T_DONE: begin cpu_done <= 1'b1; ts <= T_IDLE; end
             default: ts <= T_IDLE;
             endcase
 

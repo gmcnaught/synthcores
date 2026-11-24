@@ -2,7 +2,11 @@
 // MT-32 (second generation): board (8098, memories, LCD, MIDI) and sound (LA32, reverb, mix),
 // after Nuked-MT32. The PCM ROM is a synthframe memory-port client; ROMs load through the
 // two load ports before `rst` is released (the control ROM may also load during reset).
+`ifndef MCS96_DECODE_HEX
+`define MCS96_DECODE_HEX "mcs96_decode.hex"
+`endif
 module mt32_core #(
+    parameter DECODE_HEX = `MCS96_DECODE_HEX,
     parameter logic [28:0] PCM_BASE = 29'd0,
     parameter POW_HEX = "mt32_la32_pow.hex",
     parameter LOGSIN_HEX = "mt32_la32_logsin.hex"
@@ -65,7 +69,7 @@ module mt32_core #(
 
     assign ready = b_ready;
 
-    mt32_board board (
+    mt32_board #(.DECODE_HEX(DECODE_HEX)) board (
         .clk, .rst, .ready(b_ready),
         .rom_we, .rom_addr, .rom_data,
         .hold, .at_hold, .midi_valid, .midi_byte, .midi_full, .buttons, .knob,

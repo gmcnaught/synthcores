@@ -31,6 +31,8 @@ module mcs96_periph (
     // internal_update from the scheduler
     input  logic        upd_req,
     input  logic [47:0] upd_time,
+    input  logic        upd_fast,      // upd_time = totalcycles, upd_q = upd_time / 24
+    input  logic [44:0] upd_q,
     output logic        upd_ack,
     output logic        ev_valid,      // pulse after every internal_update
     output logic [47:0] ev_time,
@@ -69,30 +71,41 @@ module mcs96_periph (
 
     // ---------------------------------------------------------------- divide by 24
     // q = floor(x / 24) = floor((x >> 3) / 3) = ((x >> 3) * M) >> 47, M = (2**47 + 1) / 3,
-    // exact for x < 2**48. Two clocks.
+    // exact for x < 2**48. dv_q holds the quotient of dv_x three clocks after dv_x is set.
     localparam logic [45:0] M3 = 46'd46912496118443;
     logic [47:0] dv_x;
-    logic [91:0] dv_p;
+    logic [72:0] dv_pl;
+    logic [63:0] dv_ph;
+    logic [91:0] dv_s;
     logic [44:0] dv_q;
     always_ff @(posedge clk) begin
-        dv_p <= {47'h0, dv_x[47:3]} * {46'h0, M3};
+        dv_pl <= {46'h0, dv_x[29:3]} * {27'h0, M3};
+        dv_ph <= {46'h0, dv_x[47:30]} * {18'h0, M3};
+        dv_s  <= {19'h0, dv_pl} + {dv_ph[64-1:0], 27'h0} + 92'h0;
+        dv_q  <= dv_s[91:47];
     end
-    assign dv_q = dv_p[91:47];
 
     // ---------------------------------------------------------------- update FSM
     typedef enum logic [4:0] {
-        U_IDLE, U_D1, U_D2, U_D3, U_TIMERS, U_D5, U_D6, U_D7, U_EV1, U_EV2, U_DONE
+        U_IDLE, U_D1, U_D2, U_D3, U_D4, U_D5, U_TIMERS, U_TIM2, U_R1, U_R2, U_R3, U_R4,
+        U_EV1, U_EV1B, U_EVA, U_EVB, U_EVC, U_EVC2, U_EVD, U_DONE
     } u_t;
     u_t us;
     logic [47:0] ut;               // current_time
     logic [44:0] q1, q2;           // full quotients for timer 1 and timer 2
     logic [15:0] ct1, ct2;         // current_timer1 / 2
     logic [47:0] nt [8];          // next time of each CAM entry
-    logic [7:0]  nt_v;
+    logic [47:0] nk [8];          // its delta + tdelta
+    logic [7:0]  nt_v, nb;
+    logic [47:0] m4 [4], m2 [2], t1r, t2r, uev;
+    logic [3:0]  m4v;
+    logic [1:0]  m2v;
+    logic        uev_set, b2_changed, m1v, ufast;
+    logic [47:0] m1, tmin;
     logic        u_from_reg;       // the update was called from an SFR write
 
     // register-access FSM
-    typedef enum logic [2:0] { A_IDLE, A_RAM, A_DIV, A_DIVW, A_UPD, A_ACK } a_t;
+    typedef enum logic [2:0] { A_IDLE, A_RAM, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD, A_ACK } a_t;
     a_t as;
     logic [7:0] a_q;
 
@@ -152,19 +165,25 @@ module mcs96_periph (
             // MAME's sequential loops run as unrolled loops over the 8 CAM entries.
             case (us)
             U_IDLE: if (upd_req && as == A_IDLE) begin
-                ut <= upd_time; u_from_reg <= 1'b0; us <= U_D1;
+                ut <= upd_time; u_from_reg <= 1'b0;
+                // timer 2 never reset (base2 = 0): both quotients are the scheduler's running one
+                ufast <= upd_fast && base2 == 48'h0;
+                if (upd_fast && base2 == 48'h0) begin q1 <= upd_q; us <= U_TIMERS; end
+                else us <= U_D1;
             end
-            U_D1: begin dv_x <= ut; us <= U_D2; end
+            U_D1: begin dv_x <= ut; ufast <= 1'b0; us <= U_D2; end
             U_D2: begin dv_x <= ut - base2; us <= U_D3; end
-            U_D3: begin q1 <= dv_q; us <= U_TIMERS; end
+            U_D3: us <= U_D4;
+            U_D4: us <= U_D5;
+            U_D5: begin q1 <= dv_q; us <= U_TIMERS; end
             U_TIMERS: begin
                 logic [15:0] c1, c2;
                 logic [7:0]  act, io0, io1, c;
                 logic [47:0] b2, add;
                 logic [15:0] adr;
                 c1 = q1[15:0];
-                c2 = dv_q[15:0];
-                q2 <= dv_q;
+                c2 = ufast ? q1[15:0] : dv_q[15:0];
+                q2 <= ufast ? q1 : dv_q;
                 ct1 <= c1;
                 io1 = ios1;
                 if (c1 == 16'h0 && !io1[5]) begin io1[5] = 1'b1; if (ioc1[2]) irq = irq | IRQ_TIMER; end
@@ -194,25 +213,34 @@ module mcs96_periph (
                         if (c[4]) irq = irq | (c[3] ? IRQ_SOFT : IRQ_HSO);
                     end
                 end
-                // A/D done, serial transmit done
-                if (add != 48'h0 && ut >= add) begin add = 48'h0; adr[3] = 1'b0; irq = irq | IRQ_AD; end
+                hso_active <= act; ios0 <= io0; ios1 <= io1; base2 <= b2; ad_done <= add; ad_result <= adr;
+                b2_changed <= (b2 != base2);
+                us <= U_TIM2;
+            end
+            // A/D done, serial transmit done
+            U_TIM2: begin
+                if (ad_done != 48'h0 && ut >= ad_done) begin
+                    ad_done <= 48'h0; ad_result[3] <= 1'b0; irq = irq | IRQ_AD;
+                end
                 if (ut == serial_timer) begin
                     serial_timer <= 48'h0;
                     irq = irq | IRQ_SERIAL;
                     sp_stat <= sp_stat | 8'h20;
                 end
-                hso_active <= act; ios0 <= io0; ios1 <= io1; base2 <= b2; ad_done <= add; ad_result <= adr;
                 // current_timer2 again (MAME line 603): only differs if the CAM reset timer 2
-                if (b2 != base2) begin dv_x <= ut - b2; us <= U_D5; end
+                if (b2_changed) begin dv_x <= ut - base2; us <= U_R1; end
                 else us <= U_EV1;
             end
-            U_D5: us <= U_D6;
-            U_D6: us <= U_D7;
-            U_D7: begin q2 <= dv_q; us <= U_EV1; end
-            // refill a free entry from the hold register; next time of every active entry
+            U_R1: us <= U_R2;
+            U_R2: us <= U_R3;
+            U_R3: us <= U_R4;
+            U_R4: begin q2 <= dv_q; us <= U_EV1; end
+            // refill a free entry from the hold register; next time of every active entry:
+            // timer_time_until() = base + (delta + tdelta) * 24
             U_EV1: begin
                 logic [7:0] act, io0, cmd;
                 logic [15:0] tm;
+                logic [16:0] td;
                 act = hso_active; io0 = ios0;
                 for (int i = 0; i < 8; i++) begin
                     cmd = cam_cmd[i]; tm = cam_time[i];
@@ -223,25 +251,55 @@ module mcs96_periph (
                         io0 = io0 & 8'h7f;
                         if (act == 8'hff) io0 = io0 | 8'h40;
                     end
-                    nt[i] <= cmd[6] ? time_until(base2, q2, tm) : time_until(48'h0, q1, tm);
+                    td = {1'b0, tm - (cmd[6] ? q2[15:0] : q1[15:0])};
+                    if (td == 17'h0) td = 17'h10000;
+                    nk[i] <= (cmd[6] ? {3'h0, q2} : {3'h0, q1}) + {31'h0, td};
+                    nb[i] <= cmd[6];
                 end
                 nt_v <= act;
                 hso_active <= act; ios0 <= io0;
-                us <= U_EV2;
+                t1r <= now + ({32'h0, 17'h10000 - {1'b0, ct1}} * 48'd24);
+                t2r <= now + ({32'h0, 17'h10000 - {1'b0, q2[15:0]}} * 48'd24);
+                us <= U_EV1B;
             end
-            U_EV2: begin
-                logic [47:0] e, t1, t2;
-                logic        es;
-                e = 48'h0; es = 1'b0;
+            U_EV1B: begin
                 for (int i = 0; i < 8; i++)
-                    if (nt_v[i] && (!es || nt[i] < e)) begin e = nt[i]; es = 1'b1; end
+                    nt[i] <= (nb[i] ? base2 : 48'h0) + (nk[i] << 4) + (nk[i] << 3);
+                tmin <= (t2r < t1r) ? t2r : t1r;
+                us <= U_EVA;
+            end
+            // earliest of the active entries: a tree of minima (ties keep the lower entry)
+            U_EVA: begin
+                for (int j = 0; j < 4; j++) begin
+                    if (nt_v[2*j] && (!nt_v[2*j+1] || nt[2*j] <= nt[2*j+1])) begin m4[j] <= nt[2*j]; m4v[j] <= 1'b1; end
+                    else begin m4[j] <= nt[2*j+1]; m4v[j] <= nt_v[2*j+1]; end
+                end
+                us <= U_EVB;
+            end
+            U_EVB: begin
+                for (int j = 0; j < 2; j++) begin
+                    if (m4v[2*j] && (!m4v[2*j+1] || m4[2*j] <= m4[2*j+1])) begin m2[j] <= m4[2*j]; m2v[j] <= 1'b1; end
+                    else begin m2[j] <= m4[2*j+1]; m2v[j] <= m4v[2*j+1]; end
+                end
+                us <= U_EVC;
+            end
+            U_EVC: begin
+                if (m2v[0] && (!m2v[1] || m2[0] <= m2[1])) begin m1 <= m2[0]; m1v <= 1'b1; end
+                else begin m1 <= m2[1]; m1v <= m2v[1]; end
+                us <= U_EVC2;
+            end
+            U_EVC2: begin
+                logic [47:0] e;
+                logic        es;
+                e = m1; es = m1v;
                 if (ad_done != 48'h0 && (!es || ad_done < e)) begin e = ad_done; es = 1'b1; end
                 if (serial_timer != 48'h0 && (!es || serial_timer < e)) begin e = serial_timer; es = 1'b1; end
-                t1 = now + ({32'h0, 17'h10000 - {1'b0, ct1}} * 48'd24);
-                t2 = now + ({32'h0, 17'h10000 - {1'b0, q2[15:0]}} * 48'd24);
-                if (!es || e > t1) e = t1;
-                if (e > t2) e = t2;
-                ev_time <= e;
+                uev <= e; uev_set <= es;
+                us <= U_EVD;
+            end
+            // event_time = min(that, t1, t2)
+            U_EVD: begin
+                ev_time <= (!uev_set || uev > tmin) ? tmin : uev;
                 ev_valid <= 1'b1;
                 us <= U_DONE;
             end
@@ -257,7 +315,7 @@ module mcs96_periph (
             A_IDLE: if (r_req && !r_ack && ready && us == U_IDLE && !upd_req) begin
                 if (r_addr >= 8'h18) begin
                     if (r_we) begin wr_en <= 1'b1; wr_a <= r_addr; wr_d <= r_wdata; r_ack <= 1'b1; end
-                    else as <= A_RAM;
+                    else begin a_q <= ram_rd; r_ack <= 1'b1; end
                 end else if (!r_we) begin
                     case (r_addr)
                         8'h02: begin a_q <= ad_result[7:0]; r_ack <= 1'b1; end
@@ -325,7 +383,9 @@ module mcs96_periph (
                 end
             end
             A_RAM:  begin a_q <= ram_q; r_ack <= 1'b1; as <= A_IDLE; end
-            A_DIV:  as <= A_DIVW;
+            A_DIV:  as <= A_DIV2;
+            A_DIV2: as <= A_DIV3;
+            A_DIV3: as <= A_DIVW;
             A_DIVW: begin
                 // timer_value(): reading the low byte or the high byte of the quotient
                 a_q <= r_addr[0] ? dv_q[15:8] : dv_q[7:0];
@@ -340,9 +400,9 @@ module mcs96_periph (
         irq_set <= rst ? 8'h0 : irq;
     end
 
-    always_ff @(posedge clk) begin
-        if (wr_en) ram[wr_a] <= wr_d;
-        ram_q <= ram[r_addr];
-    end
+    // internal RAM in MLABs, read without a clock; a write lands the clock after its request,
+    // before the core's next access can be taken
+    always_ff @(posedge clk) if (wr_en) ram[wr_a] <= wr_d;
+    wire [7:0] ram_rd = ram[r_addr];
     assign r_rdata = a_q;
 endmodule

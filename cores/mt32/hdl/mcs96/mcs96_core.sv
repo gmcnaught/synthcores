@@ -23,13 +23,19 @@
 // SFRs 08 (INT_MASK = PSW low byte) and 09 (INT_PENDING) live here, as in MAME's mcs96_device;
 // their accesses still go out on the port (the peripheral block acks them without effect) so
 // the trace sees every register write.
-module mcs96_core (
+`ifndef MCS96_DECODE_HEX
+`define MCS96_DECODE_HEX "mcs96_decode.hex"
+`endif
+module mcs96_core #(
+    parameter DECODE_HEX = `MCS96_DECODE_HEX
+) (
     input  logic        clk,
     input  logic        rst,
 
     input  logic        exec,          // run one state
     output logic        done,          // pulse: the state is finished
     output logic [6:0]  ncyc,          // its next() count (0 for a fetch)
+    output logic        was_fetch,     // with done: the state was a fetch
     output logic        bad_op,        // level: an opcode the reference has no handler for
 
     // byte accesses in MAME's order; space 0 = register file / SFRs (reg_r8 / reg_w8),
@@ -57,11 +63,8 @@ module mcs96_core (
 
     localparam int F_ST = 8, F_I = 9, F_C = 11, F_VT = 12, F_V = 13, F_N = 14, F_Z = 15;
 
-`ifndef MCS96_DECODE_HEX
-`define MCS96_DECODE_HEX "mcs96_decode.hex"
-`endif
     logic [31:0] dec_rom [512];
-    initial $readmemh(`MCS96_DECODE_HEX, dec_rom);
+    initial $readmemh(DECODE_HEX, dec_rom);
 
     // ---------------------------------------------------------------- state
     logic [15:0] PC, PSW, OP1;
@@ -89,7 +92,7 @@ module mcs96_core (
     localparam logic [1:0] K_R8 = 2'd0, K_R16 = 2'd1, K_W8 = 2'd2, K_W16 = 2'd3;
     localparam logic [1:0] SP_REG = 2'd0, SP_EXT = 2'd1, SP_ANY = 2'd2;
 
-    typedef enum logic [3:0] { S_IDLE, S_FETCH, S_DEC, S_EA, S_EAT, S_EX, S_POST, S_DIV, S_MEM,
+    typedef enum logic [3:0] { S_IDLE, S_FETCH, S_DEC, S_DEC2, S_EA, S_EAT, S_EX, S_POST, S_DIV, S_MEM,
                                S_FIN } st_t;
     st_t st, ret_st;
     logic [3:0]  ph, ret_ph;
@@ -253,34 +256,34 @@ module mcs96_core (
     endfunction
 
     // ---------------------------------------------------------------- groups
-    wire mn_byte = (d_mn == MN_ANDB || d_mn == MN_ADDB || d_mn == MN_SUBB || d_mn == MN_ORB ||
+    logic mn_byte;
+    always_ff @(posedge clk) mn_byte <= (d_mn == MN_ANDB || d_mn == MN_ADDB || d_mn == MN_SUBB || d_mn == MN_ORB ||
                     d_mn == MN_XORB || d_mn == MN_ADDCB || d_mn == MN_SUBCB || d_mn == MN_CMPB ||
                     d_mn == MN_LDB || d_mn == MN_STB || d_mn == MN_LDBZE || d_mn == MN_LDBSE ||
-                    d_mn == MN_MULUB || d_mn == MN_MULB || d_mn == MN_DIVUB || d_mn == MN_DIVB);
-    wire g_alu = (d_mn == MN_AND || d_mn == MN_ANDB || d_mn == MN_ADD || d_mn == MN_ADDB ||
+                    d_mn == MN_MULUB || d_mn == MN_MULB || d_mn == MN_DIVUB || d_mn == MN_DIVB);    logic g_alu;
+    always_ff @(posedge clk) g_alu <= (d_mn == MN_AND || d_mn == MN_ANDB || d_mn == MN_ADD || d_mn == MN_ADDB ||
                   d_mn == MN_SUB || d_mn == MN_SUBB || d_mn == MN_OR || d_mn == MN_ORB ||
                   d_mn == MN_XOR || d_mn == MN_XORB || d_mn == MN_ADDC || d_mn == MN_ADDCB ||
-                  d_mn == MN_SUBC || d_mn == MN_SUBCB || d_mn == MN_CMP || d_mn == MN_CMPB);
-    wire g_cmp = (d_mn == MN_CMP || d_mn == MN_CMPB);
-    wire g_mul = (d_mn == MN_MULU || d_mn == MN_MUL || d_mn == MN_MULUB || d_mn == MN_MULB);
-    wire g_mulw = (d_mn == MN_MULU || d_mn == MN_MUL);
-    wire g_muls = (d_mn == MN_MUL || d_mn == MN_MULB);
-    wire g_divw = (d_mn == MN_DIVU || d_mn == MN_DIV);
-    wire g_divb = (d_mn == MN_DIVUB || d_mn == MN_DIVB);
-    wire g_ld  = (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);
+                  d_mn == MN_SUBC || d_mn == MN_SUBCB || d_mn == MN_CMP || d_mn == MN_CMPB);    logic g_cmp;
+    always_ff @(posedge clk) g_cmp <= (d_mn == MN_CMP || d_mn == MN_CMPB);    logic g_mul;
+    always_ff @(posedge clk) g_mul <= (d_mn == MN_MULU || d_mn == MN_MUL || d_mn == MN_MULUB || d_mn == MN_MULB);    logic g_mulw;
+    always_ff @(posedge clk) g_mulw <= (d_mn == MN_MULU || d_mn == MN_MUL);    logic g_muls;
+    always_ff @(posedge clk) g_muls <= (d_mn == MN_MUL || d_mn == MN_MULB);    logic g_divw;
+    always_ff @(posedge clk) g_divw <= (d_mn == MN_DIVU || d_mn == MN_DIV);    logic g_divb;
+    always_ff @(posedge clk) g_divb <= (d_mn == MN_DIVUB || d_mn == MN_DIVB);    wire g_ld  = (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);
     wire g_st  = (d_mn == MN_ST || d_mn == MN_STB);
     wire g_un  = (d_mn == MN_NOT || d_mn == MN_NOTB || d_mn == MN_NEG || d_mn == MN_NEGB ||
                   d_mn == MN_DEC || d_mn == MN_DECB || d_mn == MN_INC || d_mn == MN_INCB);
-    wire g_unw = (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);
-    wire g_sh  = (d_mn == MN_SHR || d_mn == MN_SHRA || d_mn == MN_SHL || d_mn == MN_SHRB ||
+    logic g_unw;
+    always_ff @(posedge clk) g_unw <= (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);    wire g_sh  = (d_mn == MN_SHR || d_mn == MN_SHRA || d_mn == MN_SHL || d_mn == MN_SHRB ||
                   d_mn == MN_SHRAB || d_mn == MN_SHLB);
-    wire g_shb = (d_mn == MN_SHRB || d_mn == MN_SHRAB || d_mn == MN_SHLB);
-    wire g_shl = (d_mn == MN_SHRL || d_mn == MN_SHRAL || d_mn == MN_SHLL);
-    wire g_jcc = (d_mn == MN_JNST || d_mn == MN_JNH || d_mn == MN_JGT || d_mn == MN_JNC ||
+    logic g_shb;
+    always_ff @(posedge clk) g_shb <= (d_mn == MN_SHRB || d_mn == MN_SHRAB || d_mn == MN_SHLB);    logic g_shl;
+    always_ff @(posedge clk) g_shl <= (d_mn == MN_SHRL || d_mn == MN_SHRAL || d_mn == MN_SHLL);    logic g_jcc;
+    always_ff @(posedge clk) g_jcc <= (d_mn == MN_JNST || d_mn == MN_JNH || d_mn == MN_JGT || d_mn == MN_JNC ||
                   d_mn == MN_JNVT || d_mn == MN_JNV || d_mn == MN_JGE || d_mn == MN_JNE ||
                   d_mn == MN_JST || d_mn == MN_JH || d_mn == MN_JLE || d_mn == MN_JC ||
                   d_mn == MN_JVT || d_mn == MN_JV || d_mn == MN_JLT || d_mn == MN_JE);
-
     wire am_d  = (d_am == AM_DIRECT);
     wire am_i  = (d_am == AM_IMMED);
     wire am_m  = (d_am == AM_INDIRECT || d_am == AM_INDEXED);
@@ -389,7 +392,8 @@ module mcs96_core (
                 default: ;
             endcase
 
-            S_DEC: begin dw <= dec_rom[ist]; st <= S_EA; end
+            S_DEC: begin dw <= dec_rom[ist]; st <= S_DEC2; end
+            S_DEC2: st <= S_EA;                       // group flags are registered from dw
 
             // ------------------------------------------------ operand fetch (eadr)
             S_EA: if (!d_valid) begin
@@ -840,6 +844,7 @@ module mcs96_core (
 
             S_FIN: begin
                 done <= 1'b1;
+                was_fetch <= !in_handler;
                 st <= S_IDLE;
                 if (in_handler) begin
                     need_fetch <= 1'b1;
