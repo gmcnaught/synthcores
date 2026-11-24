@@ -33,7 +33,7 @@ SSH=(ssh -o BatchMode=yes -o ControlPath=none "$HOST")
 
 # tracked files of the core and of modules/ (shared HDL: synthframe, roland, ...), without the
 # reference-model submodules; -h stores what the symlinks point to
-(cd "$ROOT" && git ls-files -z -- "cores/$CORE" modules ':!modules/nuked-sc55' |
+(cd "$ROOT" && git ls-files -z -- "cores/$CORE" modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
     COPYFILE_DISABLE=1 tar --null -T - -czhf "$TMP/src.tgz" --exclude "cores/$CORE/third_party/nuked-sc55")
 
 case "$CORE" in

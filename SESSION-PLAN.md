@@ -60,6 +60,7 @@ Assumptions:
 | 14 | P2K sound HDL against `p2k_render` (simulation) | 11 | — | `snd.raw` bit-identical to `p2k_render` on all 22 corpus cases: 14a with `--nofilter --nofx`, 14b with `--nofx`, 14c in full |
 | 15 | CZ-101 and JV-880 follow-ups | 12, 13 | yes | listed per item below; reference tests unchanged |
 | 16 | P2K sound HDL for the Cyclone V | 14 | — | `snd.raw` still bit-identical on all 22 cases × 3 modes through a DDR3 model; standalone Quartus 17 build meets timing at 100 MHz; worst sample within the 100 MHz budget (2267 clocks) |
+| 17 | MT-32 core on the MiSTer (`cores/mt32/docs/plan.md`, M0–M6) | 1, 2 | yes | MCS-96 trace, LA32 and reverb samples identical to Nuked-MT32 (`5b4e239`, firmware 2.07) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -247,6 +248,16 @@ iteration restructures it for the DE10-Nano without changing a single output sam
       5CSEBA6U23I7: timing met at 100 MHz; ALMs, M10K and DSP recorded.
     - Worst clocks per sample on the corpus and the 128-voice random log at most 2267 (100 MHz).
 - **Not in this iteration:** the MiSTer top (CPU, MIDI, sample loading) and hardware tests.
+
+### 17. MT-32 (2026-11-24, user)
+
+- Scope, hardware map and milestones M0–M6: `cores/mt32/docs/plan.md`.
+- Reference: Nuked-MT32 (GPL-2.0-or-later; MCS-96 code from MAME, BSD-3-Clause), submodule
+  `modules/nuked-mt32` at `5b4e239`. MAME's `mt32` driver has no sound.
+- ROMs: the user's archives (2026-11-24), checked against MAME; tests use `MT32_ROM_DIR`.
+- Runs alongside iteration 16: M0, M1, M3 and M4 need no hardware. The Mac's CPUs are shared
+  with the P2K corpus gate; the MiSTer only through `synth-mister`'s lock.
+- **Gate:** M5's corpus hashes identical to Nuked-MT32's, and M6 on the MiSTer.
 
 ## Not in this session
 

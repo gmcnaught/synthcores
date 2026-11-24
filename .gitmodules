@@ -1,3 +1,6 @@
 [submodule "modules/nuked-sc55"]
 	path = modules/nuked-sc55
 	url = https://github.com/jcmoyer/Nuked-SC55
+[submodule "modules/nuked-mt32"]
+	path = modules/nuked-mt32
+	url = https://github.com/nukeykt/Nuked-MT32

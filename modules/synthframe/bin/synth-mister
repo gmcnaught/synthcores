@@ -20,7 +20,7 @@
 #   sh CMD...                    run a command on the MiSTer
 #
 # Cores: sc55 (_Devices/SC55), proteus (_Devices/Proteus), synclavier (_Devices/Synclavier),
-# jv880 (_Devices/JV880), cz101 (_Devices/CZ101). Every core installs under _Devices; restore
+# jv880 (_Devices/JV880), cz101 (_Devices/CZ101), mt32 (_Devices/MT32). Every core installs under _Devices; restore
 # moves files from backups made when Proteus was in _Other and Synclavier in _Computer.
 set -euo pipefail
 
@@ -36,11 +36,12 @@ core_path() {   # CORE -> <dir>/<prefix> on the SD card
         synclavier) echo _Devices/Synclavier ;;
         jv880) echo _Devices/JV880 ;;
         cz101) echo _Devices/CZ101 ;;
+        mt32) echo _Devices/MT32 ;;
         *) echo "unknown core: $1" >&2; exit 2 ;;
     esac
 }
 shot_dir() {
-    case "$1" in sc55) echo SC-55 ;; proteus) echo Proteus ;; synclavier) echo Synclavier ;; jv880) echo JV-880 ;; cz101) echo CZ-101 ;; esac
+    case "$1" in sc55) echo SC-55 ;; proteus) echo Proteus ;; synclavier) echo Synclavier ;; jv880) echo JV-880 ;; cz101) echo CZ-101 ;; mt32) echo MT-32 ;; esac
 }
 mcmd() {        # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
     "${SSH[@]}" "timeout 10 sh -c 'echo $1 > /dev/MiSTer_cmd'"
@@ -56,12 +57,12 @@ unlock)
 backup)
     "${SSH[@]}" "set -e; d=$BK/\$(date +%Y%m%d); [ -e \$d/MANIFEST ] && { echo \"backup exists: \$d\"; exit 0; }
         mkdir -p \$d; cd $FAT
-        for f in _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier*_*.rbf Proteus*.mgl Synclavier*.mgl; do
+        for f in _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/MT32_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier*_*.rbf Proteus*.mgl Synclavier*.mgl; do
             [ -e \"\$f\" ] || continue; mkdir -p \"\$d/\$(dirname \$f)\"; cp -p \"\$f\" \"\$d/\$f\"; echo \"\$f\" >> \$d/MANIFEST
         done; echo \"backup: \$d (\$(wc -l < \$d/MANIFEST) files)\"" ;;
 restore)
     "${SSH[@]}" "set -e; d=\$(ls -d $BK/2* 2>/dev/null | sort | head -1); [ -n \"\$d\" ] || { echo 'no backup' >&2; exit 1; }
-        cd $FAT; rm -f _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier_*.rbf
+        cd $FAT; rm -f _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/MT32_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier_*.rbf
         rm -f _Other/Proteus_*.rbf _Computer/Synclavier*_*.rbf
         while read -r f; do
             t=\$(echo \"\$f\" | sed 's#^_Other/#_Devices/#; s#^_Computer/#_Devices/#'); cp -p \"\$d/\$f\" \"\$t\"
