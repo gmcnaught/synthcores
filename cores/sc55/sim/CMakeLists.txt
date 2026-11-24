@@ -9,9 +9,10 @@ add_subdirectory(../ref ref)
 find_package(verilator REQUIRED HINTS $ENV{VERILATOR_ROOT})
 
 set(HDL "${CMAKE_CURRENT_SOURCE_DIR}/../hdl")
-set(SYNTHFRAME "${CMAKE_CURRENT_SOURCE_DIR}/../../../modules/synthframe/hdl")
 set(ROLAND "${CMAKE_CURRENT_SOURCE_DIR}/../../../modules/roland/hdl")   # H8/532 CPU, MCU, PCM chip (shared with the JV-880)
 set(VFLAGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -O3 --x-assign unique --x-initial unique)
+include(../../../modules/synthframe/cmake/synthframe_files.cmake)
+synthframe_files("${CMAKE_CURRENT_SOURCE_DIR}/.." SC55_SV SC55_INC)   # the core's HDL, from cfg/files.yaml
 
 add_executable(cpu_lockstep cpu/cpu_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(cpu_lockstep PRIVATE sc55_common_traced)
@@ -38,14 +39,10 @@ target_link_libraries(system_lockstep PRIVATE sc55_common_traced)
 verilate(system_lockstep SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${ROLAND}/core/sc55_core.sv"
          TOP_MODULE sc55_core PREFIX Vsc55_core INCLUDE_DIRS "${ROLAND}/pcm" VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw -GROM2_AW=19 -GJV880_RAMS=1)
 
-file(GLOB BOARD_SV "${HDL}/board/*.sv" "${ROLAND}/board/*.sv")
-list(APPEND BOARD_SV "${SYNTHFRAME}/midi/synthframe_midi_rx.sv" "${SYNTHFRAME}/audio/synthframe_audio_fifo.sv"
-     "${SYNTHFRAME}/mem/synthframe_mem_ddr3.sv" "${SYNTHFRAME}/mem/synthframe_mem_arb.sv"
-     "${SYNTHFRAME}/panel/synthframe_vtiming.sv" "${SYNTHFRAME}/panel/synthframe_status_strip.sv")
 add_executable(board_lockstep board/board_lockstep.cpp common/midi_demo.cpp)
 target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
-verilate(board_lockstep SOURCES ${BOARD_SV} "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/cpu/h8_cpu.sv" "${ROLAND}/submcu/sc55_submcu.sv" "${ROLAND}/mcu/sc55_mcu.sv" "${ROLAND}/pcm/sc55_pcm.sv" "${ROLAND}/core/sc55_core.sv"
-         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS "${ROLAND}/pcm" "${HDL}/board" "${ROLAND}/board"
+verilate(board_lockstep SOURCES ${SC55_SV}
+         TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS ${SC55_INC}
          VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
          "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
 

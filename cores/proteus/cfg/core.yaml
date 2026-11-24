@@ -1,5 +1,4 @@
-# Read by modules/synthframe/bin/synthcore, which writes mister/Proteus.qsf and mister/files.qip.
+# Read by modules/synthframe/bin/synthcore, which writes the Quartus project in mister/.
 name: Proteus
 mister:
   seed: 1
-  qsf_eol: crlf

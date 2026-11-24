@@ -8,23 +8,33 @@ to it, so the Quartus projects keep their `source sys/sys.tcl` lines.
 To update: copy upstream `sys/` over this one in a single commit naming the upstream commit, and
 run every core's Build RBF (CI does: this folder is in the shared path filter).
 
-## Quartus project files
+## Quartus project and Verilator file list
 
-`project.qsf.in` is the template for every core's `mister/<core>.qsf`. `bin/synthcore` writes
-the qsf and `mister/files.qip` from the core's `cfg/` files:
+`bin/synthcore` writes each core's `mister/<core>.qpf`, `mister/<core>.qsf`, `mister/files.qip`
+and `sim/files.f` from the core's `cfg/` files. `project.qsf.in` is the qsf template.
 
 | File | Contents |
 |---|---|
-| `cfg/core.yaml` | `name` (the Quartus project), `mister.seed`, `mister.qsf_eol` (`crlf` for the Proteus/1, whose qsf has always had CRLF) |
-| `cfg/files.yaml` | `search:` and `files:` in Quartus order. Paths starting with `modules/` are from the repo root, the rest from the core's directory. The file type comes from the extension. |
+| `cfg/core.yaml` | `name` (the Quartus project), `mister.seed` |
+| `cfg/files.yaml` | `search:` (search and include directories), `files:` (the core's HDL, for Quartus and Verilator), `mister:` (MiSTer-only: top level, `.sdc`). In Quartus order. Paths starting with `modules/` are from the repo root, the rest from the core's directory. The file type comes from the extension. |
 | `cfg/macros.def` | Verilog macros, JTFRAME syntax: `[all]`, `[mister]`, `[xcau15p]` sections, `NAME` or `NAME=VALUE` |
 
 A macro that the template lists as a commented-out line is switched on in place; any other
 macro goes in a `# Core macros` block before `source sys/sys.tcl`.
 
+`sim/files.f` is for `verilator -F` (paths from the `.f` file's directory): `+incdir+` per
+search directory, then `files:`. A bench adds its own top level and options. CMake benches read
+it with `modules/synthframe/cmake/synthframe_files.cmake`:
+
+    include(../../../modules/synthframe/cmake/synthframe_files.cmake)
+    synthframe_files("${CMAKE_CURRENT_SOURCE_DIR}/.." CORE_SV CORE_INC)
+    verilate(bench SOURCES ${CORE_SV} INCLUDE_DIRS ${CORE_INC} TOP_MODULE ...)
+
+The SC-55, JV-880 and CZ-101 board benches and the Synclavier `board` lockstep top use it.
+
     modules/synthframe/bin/synthcore            # write the files for every core
     modules/synthframe/bin/synthcore sc55       # one core
     modules/synthframe/bin/synthcore check      # exit 1 if a committed file differs (CI)
 
-Don't edit `files.qip` or the qsf by hand: CI's `synthcore` job fails when they differ from
-`cfg/`. The `.qpf` files stay hand-written. `synthcore` needs PyYAML (`pip install pyyaml`).
+Don't edit the generated files by hand: CI's `synthcore` job fails when they differ from `cfg/`.
+`synthcore` needs PyYAML (`pip install pyyaml`).

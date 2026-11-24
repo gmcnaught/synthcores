@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: MIT
+# synthframe_files(<core dir> <sources var> <include dirs var>)
+# The core's HDL and include directories from <core dir>/sim/files.f, which synthcore writes from
+# cfg/files.yaml. Pass them to verilate() as SOURCES and INCLUDE_DIRS. CMake re-runs when the
+# .f changes.
+function(synthframe_files core_dir src_var inc_var)
+    set(f "${core_dir}/sim/files.f")
+    get_filename_component(dir "${f}" DIRECTORY)
+    file(STRINGS "${f}" lines)
+    set(src "")
+    set(inc "")
+    foreach(line IN LISTS lines)
+        if(line MATCHES "^//" OR line STREQUAL "")
+            continue()
+        elseif(line MATCHES "^\\+incdir\\+(.+)$")
+            get_filename_component(p "${dir}/${CMAKE_MATCH_1}" ABSOLUTE)
+            list(APPEND inc "${p}")
+        else()
+            get_filename_component(p "${dir}/${line}" ABSOLUTE)
+            list(APPEND src "${p}")
+        endif()
+    endforeach()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${f}")
+    set(${src_var} "${src}" PARENT_SCOPE)
+    set(${inc_var} "${inc}" PARENT_SCOPE)
+endfunction()
