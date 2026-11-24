@@ -1743,13 +1743,13 @@ XX FF JR               len=1 cyc=10/ 4 L=3 JR      aop= 0 s1=  0 s2=  0 mode= 0 
 70 CE ONAX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
 70 CF ONAX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=14 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
 70 D0 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
-70 D1 ADCX_B           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
-70 D2 ADCX_D           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
-70 D3 ADCX_H           len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
-70 D4 ADCX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
-70 D5 ADCX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
-70 D6 ADCX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
-70 D7 ADCX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop=16 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
+70 D1 ADCX_B           len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
+70 D2 ADCX_D           len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 1 lskip=0 nargs=0
+70 D3 ADCX_H           len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 2 lskip=0 nargs=0
+70 D4 ADCX_Dp          len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 3 lskip=0 nargs=0
+70 D5 ADCX_Hp          len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 4 lskip=0 nargs=0
+70 D6 ADCX_Dm          len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 5 lskip=0 nargs=0
+70 D7 ADCX_Hm          len=2 cyc=11/ 8 L=3 ALU8    aop= 2 s1=  1 s2=127 mode= 6 lskip=0 nargs=0
 70 D8 illegal2         len=2 cyc= 8/ 8 L=3 NOP     aop= 0 s1=  0 s2=  0 mode= 0 lskip=0 nargs=0
 70 D9 OFFAX_B          len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 0 lskip=0 nargs=0
 70 DA OFFAX_D          len=2 cyc=11/ 8 L=3 ALU8    aop=15 s1=  1 s2=127 mode= 1 lskip=0 nargs=0

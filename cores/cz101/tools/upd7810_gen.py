@@ -140,8 +140,7 @@ def classify(name):
     # memory forms: OPX_rpa (A op (rpa)), OPW_wa (A op (V:wa))
     m = re.fullmatch(r"(ADD|ADC|SUB|SBB|ANA|ORA|XRA|ADDNC|SUBNB|GTA|LTA|NEA|EQA|ONA|OFFA)X_(\w+)", name)
     if m:
-        # MAME's ADCX handlers pass carry 0 to ZHC_ADD (ADC/ADCW/ACI pass CY): aop 16
-        return r(cls=C["ALU8"], aop=16 if m[1] == "ADC" else A[m[1]], s1=R8["A"], s2=0x7F,
+        return r(cls=C["ALU8"], aop=A[m[1]], s1=R8["A"], s2=0x7F,
                  mode=MODE[m[2]])
     m = re.fullmatch(r"(ADD|ADC|SUB|SBB|ANA|ORA|XRA|ADDNC|SUBNB|GTA|LTA|NEA|EQA|ONA|OFFA)W_wa", name)
     if m:
