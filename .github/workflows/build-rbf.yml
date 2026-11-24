@@ -55,10 +55,13 @@ jobs:
             mt32:
               - 'cores/mt32/hdl/**'
               - 'cores/mt32/mister/**'
+            cz101:
+              - 'cores/cz101/hdl/**'
+              - 'cores/cz101/mister/**'
       - id: pick
         shell: bash
         run: |
-          all='["sc55","synclavier","proteus","jv880","mt32"]'
+          all='["sc55","synclavier","proteus","jv880","mt32","cz101"]'
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             req='${{ github.event.inputs.cores }}'
             echo "cores=${req:-$all}" >> "$GITHUB_OUTPUT"
