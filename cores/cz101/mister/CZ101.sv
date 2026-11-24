@@ -56,6 +56,7 @@ localparam CONF_STR = {
 	"-,Tone 1-8: F1-F8 or keypad 1-8;",
 	"-,Select: Enter or keypad 0;",
 	"-,A-J Z-M K L . / - = , Home End;",
+	"-,Pitch wheel: joystick Y or up/down;",
 	"-;",
 	"O[6],Power,On,Off;",
 	"O[9],RA-3 cartridge,None,Inserted;",
@@ -74,6 +75,8 @@ localparam CONF_STR = {
 wire   [1:0] buttons;
 wire [127:0] status;
 wire  [10:0] ps2_key;
+wire  [31:0] joy;
+wire  [15:0] joy_a;
 wire         ioctl_download, ioctl_wr;
 wire  [26:0] ioctl_addr;
 wire   [7:0] ioctl_dout;
@@ -97,6 +100,8 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.status(status),
 	.status_menumask(16'd0),
 	.ps2_key(ps2_key),
+	.joystick_0(joy),
+	.joystick_l_analog_0(joy_a),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_index(ioctl_index),
@@ -235,6 +240,18 @@ end
 
 ///////////////////////   CORE   /////////////////////////////////
 
+// Pitch wheel (AN1, MAME's paddle "Pitch Wheel": 0x7F centre, up raises it): the first joystick's
+// Y axis (-127 up .. +127 down) or its up/down directions (full up 0xFF, full down 0x00)
+reg [7:0] pitch_wheel = 8'h7F;
+always @(posedge clk_sys) begin : wheel
+	reg signed [8:0] y;
+	y = 9'($signed(joy_a[15:8]));
+	if (joy[3])       pitch_wheel <= 8'hFF;
+	else if (joy[2])  pitch_wheel <= 8'h00;
+	else if (y <= -9'sd127) pitch_wheel <= 8'hFF;
+	else              pitch_wheel <= 8'(9'sd127 - y);
+end
+
 wire [7:0] keys [16];
 cz101_kbd kbd
 (
@@ -267,7 +284,7 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.power_on(power_on),
 	.cart_present(status[9]),
 	.keys(keys),
-	.pitch_wheel(8'h7F),
+	.pitch_wheel(pitch_wheel),
 	.rx_valid(1'b0), .rx_cycle(32'd0), .rx_edge(32'd0), .rx_level(1'b1), .rx_pop(),
 	.midi_valid(!mq_empty), .midi_byte(mq[mq_rp]), .midi_pop(midi_pop),
 	.midi_tx(midi_tx),

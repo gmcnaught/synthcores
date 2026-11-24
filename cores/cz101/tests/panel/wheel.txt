@@ -1,0 +1,8 @@
+# CZ-101 pitch wheel only, for tests/c4_run.sh (tools/panel_sched.py): five wheel moves while
+# note 48 of tests/midi/basic.txt is held (12.0-13.7 s from power-on). Up to 12.9 s the run is the
+# plain C4 run; from there the firmware sends pitch bends and retunes the uPD933.
+12.90 wheel 255
+13.05 wheel 200
+13.20 wheel 0
+13.35 wheel 60
+13.50 wheel 127

@@ -152,6 +152,8 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
 - **Power:** the OSD Power switch asserts /NMI when off (the firmware powers down); switching
   it on after a power-down resets the board (RAM kept), as a power cycle.
 - **Keys:** MAME's PC-key assignments for the panel (`hdl/cz101_kbd.sv`); notes come from MIDI.
+- **Pitch wheel (AN1):** the first joystick's Y axis, 127 - Y (-127 up = 0xFF, centre 0x7F),
+  or its up/down directions (0xFF / 0x00), as MAME's paddle on the joystick's Y switches.
 - **Video:** `hdl/cz101_lcd_video.sv`, MAME's 97 x 19 LCD at 8x on 800 x 600, plus the 16 LEDs.
 - **Audio:** mono; `synthframe_resample` converts 40 kHz to 96 kHz (L = 12, M = 5, 960-tap
   Kaiser FIR, cutoff 20 kHz, passband flat to 18 kHz, images at or below -92 dB from 22 kHz),
