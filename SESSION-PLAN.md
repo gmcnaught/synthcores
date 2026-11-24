@@ -59,6 +59,7 @@ Assumptions:
 | 13 | CZ-101 core on the MiSTer (`cores/cz101/docs/plan.md`, C0–C5) | 1, 2 | yes | uPD7811 trace and uPD933 samples identical to MAME (`cz101`) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 | 14 | P2K sound HDL against `p2k_render` (simulation) | 11 | — | `snd.raw` bit-identical to `p2k_render` on all 22 corpus cases: 14a with `--nofilter --nofx`, 14b with `--nofx`, 14c in full |
 | 15 | CZ-101 and JV-880 follow-ups | 12, 13 | yes | listed per item below; reference tests unchanged |
+| 17 | MT-32 core on the MiSTer (`cores/mt32/docs/plan.md`, M0–M6) | 1, 2 | yes | MCS-96 trace, LA32 and reverb samples identical to Nuked-MT32 (`5b4e239`, firmware 2.07) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -222,6 +223,16 @@ Fills iteration 14's wait time. One branch and PR per item. MiSTer rules as abov
 - **JV-880 card RAM (pages 14/15):** check whether the firmware reads it without a card (J2
   trace). Remove the 32 KB only if the `jv880.mid` render hash stays 73feda3c…bbbc and the
   board bench is identical.
+
+### 17. MT-32 (2026-11-24, user)
+
+- Scope, hardware map and milestones M0–M6: `cores/mt32/docs/plan.md`.
+- Reference: Nuked-MT32 (GPL-2.0-or-later; MCS-96 code from MAME, BSD-3-Clause), submodule
+  `modules/nuked-mt32` at `5b4e239`. MAME's `mt32` driver has no sound.
+- ROMs: the user's archives (2026-11-24), checked against MAME; tests use `MT32_ROM_DIR`.
+- Runs alongside iteration 16: M0, M1, M3 and M4 need no hardware. The Mac's CPUs are shared
+  with the P2K corpus gate; the MiSTer only through `synth-mister`'s lock.
+- **Gate:** M5's corpus hashes identical to Nuked-MT32's, and M6 on the MiSTer.
 
 ## Not in this session
 
