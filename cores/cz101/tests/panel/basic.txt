@@ -1,0 +1,14 @@
+# CZ-101 panel test for tests/c4_run.sh (tools/panel_sched.py): tone selection (the firmware
+# sends program changes on MIDI out) and the pitch wheel during a held note. Seconds from
+# power-on; tests/midi/basic.txt starts at 10 s (note 48 is held from 12.0 to 13.7 s).
+3.0  key Preset
+3.6  key Tone 3
+4.2  key Internal
+4.8  key Tone 2
+5.4  key Preset
+6.0  key Tone 1
+12.90 wheel 255
+13.05 wheel 200
+13.20 wheel 0
+13.35 wheel 60
+13.50 wheel 127

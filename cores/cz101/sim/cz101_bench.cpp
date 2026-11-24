@@ -6,6 +6,12 @@
 // (MAME: CZ_POWER_ON=1), no keys, pitch wheel centred, MIDI in idle.
 // CZ_MIDI_BYTES=FILE: live MIDI as the MiSTer core feeds it, lines "CYCLE BYTE" (decimal, hex):
 // each byte is offered to the board's serializer once vcyc reaches CYCLE.
+// CZ_KEYS=FILE: panel and music keys, lines "CYCLE ROW BIT DOWN" (decimal): from vcyc CYCLE, key
+// matrix row ROW (kc0-kc15) bit BIT is pressed (DOWN 1) or released (0).
+// CZ_NV_OUT=FILE: the battery RAM and cartridge (8 KB, as the MiSTer save file) at the end.
+// CZ_LCD_LOG=FILE: "CYCLE [line 1] [line 2]" each time the LCD text changes.
+// CZ_WHEEL=FILE: pitch wheel (AN1) changes, lines "CYCLE VALUE" (decimal; 127 = centre).
+// CZ_TX_LOG=FILE: MIDI out (the uPD7811's TxD), "CYCLE LEVEL" per line change.
 #include "Vcz101_board.h"
 #include "verilated.h"
 #include "Vcz101_board___024root.h"
@@ -56,6 +62,30 @@ int main(int argc, char **argv) {
         fclose(f);
     }
     size_t mbi = 0;
+    struct key_t { uint32_t cycle; int row, bit, down; };
+    std::vector<key_t> keys;
+    if (const char *kf = getenv("CZ_KEYS")) {
+        FILE *f = fopen(kf, "r");
+        if (!f) { perror(kf); exit(1); }
+        key_t k;
+        while (fscanf(f, "%u %d %d %d", &k.cycle, &k.row, &k.bit, &k.down) == 4) keys.push_back(k);
+        fclose(f);
+    }
+    size_t ki = 0;
+    struct wheel_t { uint32_t cycle; int v; };
+    std::vector<wheel_t> wheel;
+    if (const char *wf = getenv("CZ_WHEEL")) {
+        FILE *f = fopen(wf, "r");
+        if (!f) { perror(wf); exit(1); }
+        wheel_t w;
+        while (fscanf(f, "%u %d", &w.cycle, &w.v) == 2) wheel.push_back(w);
+        fclose(f);
+    }
+    size_t wi = 0;
+    FILE *txlog = getenv("CZ_TX_LOG") ? fopen(getenv("CZ_TX_LOG"), "w") : nullptr;
+    int tx_last = 1;
+    FILE *lcdlog = getenv("CZ_LCD_LOG") ? fopen(getenv("CZ_LCD_LOG"), "w") : nullptr;
+    std::string lcd_last;
 
     Verilated::commandArgs(argc, argv);
     auto *c = new Vcz101_board;
@@ -71,6 +101,18 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 300; i++) tick();   // LCD clear loop
     c->reset = 0;
 
+    auto lcd_text = [&] {
+        std::string t;
+        for (int line = 0; line < 2; line++) {
+            t += '[';
+            for (int p = 0; p < 16; p++) {
+                c->r_line = line; c->r_pos = p; c->eval();
+                uint8_t ch = c->r_code; t += (ch >= 0x20 && ch < 0x7F) ? (char)ch : '.';
+            }
+            t += ']';
+        }
+        return t;
+    };
     uint64_t cyc = 0, count = 0, samples = 0;
     for (uint64_t clk = 0; count < n && clk < n * 2000 + 100000; clk++) {
         if (rxi < rx.size()) {
@@ -78,7 +120,18 @@ int main(int argc, char **argv) {
         } else c->rx_valid = 0;
         if (mbi < mb.size() && mb[mbi].cycle <= c->cycles) { c->midi_valid = 1; c->midi_byte = mb[mbi].b; }
         else c->midi_valid = 0;
+        while (ki < keys.size() && keys[ki].cycle <= c->cycles) {
+            if (keys[ki].down) c->keys[keys[ki].row] &= ~(1u << keys[ki].bit);
+            else c->keys[keys[ki].row] |= 1u << keys[ki].bit;
+            ki++;
+        }
+        while (wi < wheel.size() && wheel[wi].cycle <= c->cycles) c->pitch_wheel = wheel[wi++].v;
         tick();
+        if (txlog && c->midi_tx != tx_last) { tx_last = c->midi_tx; fprintf(txlog, "%u %d\n", c->cycles, tx_last); }
+        if (lcdlog && (clk & 4095) == 0) {
+            std::string t = lcd_text();
+            if (t != lcd_last) { fprintf(lcdlog, "%u %s\n", c->cycles, t.c_str()); lcd_last = t; }
+        }
         if (c->rx_pop) rxi++;
         if (c->midi_pop) mbi++;
         if (getenv("CZ_DEBUG_TIMER")) {
@@ -102,6 +155,15 @@ int main(int argc, char **argv) {
     }
     fclose(out);
     if (smp) fclose(smp);
+    if (lcdlog) fclose(lcdlog);
+    if (txlog) fclose(txlog);
+    if (const char *nf = getenv("CZ_NV_OUT")) {
+        FILE *f = fopen(nf, "wb");
+        if (!f) { perror(nf); exit(1); }
+        c->nv_we = 0;
+        for (int a = 0; a < 0x2000; a++) { c->nv_addr = a; tick(); fputc(c->nv_rdata, f); }
+        fclose(f);
+    }
     // LCD text
     std::string l[2];
     for (int line = 0; line < 2; line++)

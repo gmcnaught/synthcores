@@ -136,6 +136,13 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   The SIO samples once a bit, at a phase that is fixed within a byte, so the decode does not
   depend on where the edges fall. Sim check: MAME's MIDI log decoded to bytes
   (`tools/rxlog_bytes.py`) and fed through this path (`CZ_MIDI_BYTES`).
+- **MIDI out:** the uPD7811's TxD drives the UART TX. The serial port moves TxD at the instruction
+  boundary after each of MAME's 2 MHz serial clock edges, so a byte starts within an instruction
+  of MAME's (19 CPU cycles at most in the C4 panel case, a fifth of a bit); the bytes are the
+  same (`tools/txlog_bytes.py`, `tests/c4_run.sh` with a panel script).
+- **Panel scripts:** `tests/panel/*.txt` (`tools/panel_sched.py`) press panel buttons and move the
+  pitch wheel at given CPU cycles, in the bench (`CZ_KEYS`, `CZ_WHEEL`) and in MAME (patch 0001,
+  same variables); MAME also logs its TxD line (`CZ_TX_LOG`).
 - **Time:** the tick counter for the uPD933 is incremental, and the board's cycle comparisons
   are wrap-safe, so the core runs past the 32-bit `vcyc` wrap (21 minutes).
 - **RAM:** one 8 KB block: 0000-0FFF battery RAM, 1000-17FF RA-3 cartridge (OSD; MAME's RA-3

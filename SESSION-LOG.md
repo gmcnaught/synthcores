@@ -2,6 +2,30 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 15: CZ-101 MIDI out, panel scripts (2026-11-23, branch `cz101-midi-out`)
+
+- **MIDI out was already wired** (`midi_tx` to `UART_TXD` in `mister/CZ101.sv`) but untested.
+- **New test inputs, the same in MAME and the HDL:**
+    - `tests/panel/*.txt` (`tools/panel_sched.py`): panel buttons and the pitch wheel at given
+      CPU cycles. The bench reads them as `CZ_KEYS` and `CZ_WHEEL`; MAME's patch 0001 gains the
+      same two variables (in `keys_r` and AN1) and `CZ_TX_LOG` (its TxD line changes).
+    - `cz101_bench`: also `CZ_TX_LOG`, `CZ_LCD_LOG` (LCD text on each change) and `CZ_NV_OUT`
+      (the 8 KB battery RAM and cartridge at the end).
+    - `tests/c4_run.sh MIDI N [PANEL]` applies a panel script and compares the MIDI-out bytes
+      (`tools/txlog_bytes.py`): same bytes, each starting within 32 CPU cycles of MAME's. MAME
+      moves TxD on its 2 MHz serial clock edges, the board at the next instruction boundary.
+- **Checks (`../mame-cz101` rebuilt with the new patch 0001):**
+    - `tests/c4_run.sh tests/midi/basic.txt 6500000`: unchanged, 7,922,583 trace lines and
+      716,728 samples identical, SHA-256 `08745dc2…0eb7`; no MIDI out.
+    - With `tests/panel/basic.txt` (tone selection, five pitch-wheel moves during a held note):
+      7,922,248 trace lines and 717,228 samples identical (SHA-256 `472320fd…08a9`), on both the
+      bench's MIDI path and the live path; 63 MIDI-out bytes identical (program changes `C0 02`,
+      `22`, `21`, `01`, `00`, then the wheel's pitch bends `E0 40 51 …`), within 19 cycles.
+    - Windows build: 14,553 ALMs (= `main`), worst setup slack +0.650 ns.
+    - MiSTer smoke (`scripts/mister/smoke.sh`, now also reading `/dev/ttyS1` at 31,250 baud with
+      `scripts/mister/tty_midi_read.py`): pass. Keys "3" and F3 after the MIDI test (preset 15)
+      select preset 11, and `c0 0a` came out of the UART. No underrun; save file 8 KB.
+
 ## Iteration 9b: qpf, qip header and Verilator file lists (2026-11-23, branch `iter9b-filelists`)
 
 - **synthcore now also writes:**
