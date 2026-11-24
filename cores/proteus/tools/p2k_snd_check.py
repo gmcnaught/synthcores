@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Iteration 14 gate: the P2K sound HDL (p2k/rtl/snd, Verilator bench p2k/sim/p2k_snd_tb) against the
-integer model on the reference corpus (tests/p2k_corpus).
+"""Corpus gate (iterations 14 and 16): the P2K sound HDL (p2k/rtl/snd, Verilator bench p2k/sim/p2k_snd_tb
+on a DDR3 model) against the integer model on the reference corpus (tests/p2k_corpus).
 
 For each case and mode the bench replays build/p2k/corpus/<case>.0/snd.log and must produce exactly
 what p2k/model/p2k_render produces with the same options:
@@ -8,7 +8,7 @@ what p2k/model/p2k_render produces with the same options:
   filter  --nofx              (14b: + H filter)
   full                        (14c: + G05 effects; also equal to MAME's snd.raw, the manifest hash)
 
-  P2K_SIMMDIR=... tools/p2k_snd_check.py [--modes voices,filter,full] [--cases a,b] [--jobs N]
+  P2K_SIMMDIR=... tools/p2k_snd_check.py [--modes voices,filter,full] [--cases a,b] [--jobs N] [--tb-args "..."]
 Results go to build/p2k/snd_check/<case>.<mode>/ (hdl.raw, ref.raw, bench output) and a summary line
 per case and mode. Exit 1 on any difference.
 """
@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--simm", default=os.environ.get("P2K_SIMMDIR"))
     ap.add_argument("--tb", default=os.path.join(CORE, "build", "p2k", "snd", "p2k_snd_tb"))
     ap.add_argument("--render", default=os.path.join(CORE, "build", "p2k", "model", "p2k_render"))
+    ap.add_argument("--tb-args", default="", help="extra bench options (DDR3 timing: --ddr-busy N --ddr-lat MIN MAX)")
     a = ap.parse_args()
     if not a.simm:
         raise SystemExit("set P2K_SIMMDIR (or --simm)")
@@ -64,7 +65,7 @@ def main():
         n = frames(c)
         opts = MODES[m] + ["--simm", "1=" + big, "--frames", str(n)]
         t0 = time.time()
-        tb = subprocess.run([a.tb] + opts + [log, os.path.join(d, "hdl.raw")], check=True,
+        tb = subprocess.run([a.tb] + opts + a.tb_args.split() + [log, os.path.join(d, "hdl.raw")], check=True,
                             stdout=subprocess.PIPE, text=True).stdout.strip()
         t1 = time.time()
         if m == "full":
