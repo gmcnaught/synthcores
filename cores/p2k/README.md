@@ -68,6 +68,8 @@ flash, or with "Save flash".
   Names follow MAME's driver; Arp and Audition are its guesses.
 - **OSD:** master volume (the volume knob), filter and effects on/off (for comparison), save flash,
   autosave, reset.
+- **Diagnostics** (OSD): a hex line under the screen with the CPU's PC, its last bus address and
+  the load/hold flags.
 - **Screen:** the 2 × 24 LCD, the 16 panel LEDs, an output level meter, and the status strip
   (green while running; the underrun box marks a sample the engine started late).
 
@@ -81,4 +83,7 @@ flash, or with "Save flash".
 - **Not modelled:** MIDI In B, the Proteus 1000 and the sub outputs. Main + Sub 1 + Sub 2 are mixed
   to the one stereo output.
 - **CPU speed:** the CPU runs at 44.1 MHz as fast as its cache allows; it is not cycle-matched to
-  the MCF5206e. The OS reaches its main screen about as quickly as in MAME.
+  the MCF5206e. In simulation the OS reaches its main screen within a second of MAME (12.25 s
+  against 11.5 s).
+- **Start time on the MiSTer:** about 110 s from loading the MGL to the main screen. Most of it is
+  the 36 MB SIMM download, after which the CPU restarts.

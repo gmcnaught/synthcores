@@ -1,5 +1,8 @@
 # Proteus 2000 MiSTer core: plan (iteration 18)
 
+**Status (2026-11-24):** P0-P5 done; P6 (user flash SIMMs) not started. Results are in
+"Results" at the end.
+
 As of 2026-11-24. The parts exist and have been checked separately:
 
 - **CPU:** TG68K with the ColdFire changes and the MCF5206e peripherals (`cores/proteus/p2k/rtl/cpu`).
@@ -100,3 +103,63 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
   the CPU alone. The system bench reports clocks/s; the boot gate runs in the background.
 - **First boot with the user area erased:** the OS rebuilds the factory defaults (about 45 s in
   MAME) and writes them to flash, which then goes to the save file.
+
+## Results (2026-11-24)
+
+**P1, units (CI, no ROMs):**
+- `tests/test_p2k_mem.py`: the cache and flash model against a flat model, 3 seeds of
+  150,000 random accesses with random memory-port timing.
+- `tests/test_p2k_sndbus.py`: the sound bus against MAME's `emup2k.cpp` handlers, 3 seeds of
+  100,000 accesses.
+- Both identical. A mutation of the cache's byte-lane update is caught.
+- The sound-bus bench found two bugs: the port address was read from the wrong shadow words, and
+  an unloaded slot's constant read raised a stray memory request.
+
+**P2, system bench** (`sim/p2k_board_tb`, the user's flash and the Composer stand-in):
+- OS 2.26 reaches the main screen at 12.25 s; MAME at 11.5 s. The screen equals MAME's rendered
+  screenshot: `C01A Vol127 Pan00  User` / `000` + CGRAM glyph + ` drm:Piatti`. MAME's text log
+  differs in one character because it shadows data writes only.
+- Corpus case `poly`, with its MIDI offset to 11.5 s so it arrives after the main screen as in
+  MAME: all 214 note starts (voice and sample address, in order) equal MAME's `snd.log`.
+- The bench's audio equals `p2k_render` replaying the bench's own write log, bit for bit
+  (1,058,399 frames). No sample started late.
+
+**P3, Quartus 17.0** (winbuild, seed 1):
+
+| | |
+|---|---|
+| ALMs | 26,184 (62 %) |
+| Registers | 37,235 |
+| Block memory | 1,623,687 bits, 243 M10K |
+| DSP blocks | 92 (82 %) |
+| Setup slack | clk_sys +1.320 ns, clk_cpu +1.586 ns, video +6.370 ns, HDMI +0.298 ns |
+| Hold slack | all positive |
+
+**P5, MiSTer** (`scripts/mister/smoke.sh`, build of 2026-11-24 17:42):
+- Main screen as above, about 110 s after the MGL load. Most of that is the 36 MB SIMM download;
+  the CPU restarts after it.
+- MIDI over the UART: the poly case's program changes show (`P2Ksy 070 rom:Click 909`) and the
+  level meter moves.
+- The Master key opens MASTER TRANSPOSE. No late sample.
+- A pack with an erased user area: the OS writes its factory defaults, the save file is 2 MB
+  with them, and the reload restores them.
+
+**Hardware bugs found on the way:**
+- Quartus built the response FIFO of the CPU's clock crossing (`p2k_x21`) as an MLAB read
+  combinationally from the other clock. On hardware the CPU read the reset vector with one bit
+  wrong and ran away. The FIFO (and the cache's write queue) are registers now
+  (`ramstyle "logic"`).
+- The CPU could leave reset while an access from before the reset was still in flight. It now
+  waits until the cache and the sound bus are quiet.
+- The flash returns to read-array mode on a CPU reset.
+
+**Debug aids kept in the core:**
+- The OSD "Diagnostics" line: PC, last bus address, load and hold flags.
+- A trace (`TRACE`): the last 1,024 CPU bus accesses, written to DDR3 at byte 0x3A000000 when
+  the PC leaves flash and DRAM. Read it with `synth-mister peek`.
+
+**Open:**
+- P6, user flash SIMMs.
+- A cache hit takes 3 CPU clocks; it was 2 before the hardware debugging. Going back is a speed
+  option to retest on hardware.
+- Boot time is dominated by the SIMM download.

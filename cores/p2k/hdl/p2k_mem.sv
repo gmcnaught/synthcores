@@ -24,6 +24,8 @@ module p2k_mem #(
     output logic        busy_flush,
     output logic        quiet,            // idle, flushed, nothing outstanding: the CPU may leave reset
     output logic        rsp_extra,        // a response arrived with no read outstanding (sticky; diagnostics)
+    output logic [63:0] dbg_rsp0,         // diagnostics: the first response after a flush
+    output logic [63:0] dbg_dq,           // and the data word looked up by the third access
 
     // CPU access: go (level) while the CPU presents an access here; ack (combinational) completes
     // it in that clock with rdata. A hit is acknowledged in the clock after go; the access must
@@ -74,9 +76,10 @@ module p2k_mem #(
 
     // ------------------------------------------------------------------ write queue (posted)
     localparam int WQ = 8;
-    logic [28:0] wq_a  [0:WQ-1];
-    logic [63:0] wq_d  [0:WQ-1];
-    logic [7:0]  wq_be [0:WQ-1];
+    // registers, not MLAB: the outputs go straight into the clock crossing (hdl/p2k_x21.sv)
+    (* ramstyle = "logic" *) logic [28:0] wq_a  [0:WQ-1];
+    (* ramstyle = "logic" *) logic [63:0] wq_d  [0:WQ-1];
+    (* ramstyle = "logic" *) logic [7:0]  wq_be [0:WQ-1];
     logic [2:0]  wq_rd, wq_wr;
     logic [3:0]  wq_n;
     logic        wq_push;
@@ -156,13 +159,23 @@ module p2k_mem #(
             if (rsp_valid && outst == 0) rsp_extra <= 1'b1;
         end
     end
+    logic [1:0] dbg_n;
+    logic       dbg_got;
+    always_ff @(posedge clk) begin
+        if (flush) begin dbg_got <= 1'b0; dbg_n <= '0; end
+        if (rsp_valid && !dbg_got && !flush) begin dbg_rsp0 <= rsp_data; dbg_got <= 1'b1; end
+        if (st == M_LOOK && dbg_n != 2'd3) begin
+            dbg_n <= dbg_n + 2'd1;
+            if (dbg_n == 2'd1) dbg_dq <= d_q;
+        end
+    end
 
     logic        done;                  // registered completion (fill, flash, erase)
     logic [15:0] rdata_r;
-    wire         look_ack = st == M_LOOK && hit && !l_prog;
+    wire         look_ack = 1'b0;           // hits complete through done (registered data)
     wire         wr_ack = st == M_WLOOK && !wq_full;
     assign ack = done || look_ack || wr_ack;
-    assign rdata = (st == M_LOOK) ? d_lane : rdata_r;
+    assign rdata = rdata_r;
 
     // the read addresses: the incoming access while idle, else the latched one
     always_comb begin
@@ -269,8 +282,11 @@ module p2k_mem #(
                     if (l_prog) begin
                         l_old <= d_lane;
                         st <= M_PROG;
-                    end else
-                        st <= M_IDLE;                // look_ack
+                    end else begin
+                        rdata_r <= d_lane;
+                        done <= 1'b1;
+                        st <= M_IDLE;
+                    end
                 end else
                     st <= M_MISS;
             M_MISS:

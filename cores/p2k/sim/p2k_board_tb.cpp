@@ -21,6 +21,9 @@
 // clk_sys 88.2 MHz, clk_cpu 44.1 MHz (rising edges aligned).
 #include "Vp2k_board.h"
 #include "verilated.h"
+#ifdef P2K_TB_PUBLIC
+#include "Vp2k_board___024root.h"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -258,6 +261,16 @@ int main(int argc, char **argv)
 				std::fwrite(s, 2, 2, raw);
 			}
 		}
+#ifdef P2K_TB_PUBLIC
+		if (even && getenv("P2K_TB_FIRST") && top->rootp->p2k_board__DOT__ext_sel && top->rootp->p2k_board__DOT__ext_ack)
+		{
+			static int nfirst = 0;
+			if (nfirst++ < atoi(getenv("P2K_TB_FIRST")))
+				std::fprintf(stderr, "%04x pc %08x a %08x bs %u data %04x\n", nfirst - 1, top->rootp->p2k_board__DOT__pc,
+				             top->rootp->p2k_board__DOT__a, top->rootp->p2k_board__DOT__bs,
+				             top->rootp->p2k_board__DOT__bs == 3 ? top->rootp->p2k_board__DOT__cpu_dout : top->rootp->p2k_board__DOT__ext_din);
+		}
+#endif
 		top->clk_sys = 1;
 		top->clk_cpu = even ? 1 : 0;
 		top->eval();

@@ -4,6 +4,8 @@
 # GHDL synth (hdlc/ghdl:yosys container, e.g. via colima) converts it to Verilog first, as
 # cores/proteus/p2k/sim/build_cpu.sh does.
 #   sim/build.sh [OUTDIR]
+# VFLAGS="--public-flat-rw -CFLAGS -DP2K_TB_PUBLIC" adds P2K_TB_FIRST=N (the first N CPU accesses) at
+# a large speed cost.
 set -euo pipefail
 CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT="$(cd "$CORE/../.." && pwd)"

@@ -2,6 +2,50 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 18: P2K MiSTer core (2026-11-24, branch `iter18-p2k-mister`)
+
+- **What:** a new core folder, `cores/p2k`. Design note and results: `cores/p2k/docs/plan.md`.
+  - **Board** (`hdl/p2k_board.sv`): the TG68K/MCF5206e CPU, its flash and DRAM in DDR3 behind
+    a block-RAM cache (`p2k_mem`), MAME's `emup2k.cpp` glue (LCD, panel, LEDs, latch, knob ADC,
+    board ID), the sound-chip bus (`p2k_sndbus`) and the iteration 16 engine.
+  - **MiSTer top** `mister/P2K.sv`: system pack and SIMM downloads, the flash as the save file,
+    keyboard panel, MIDI through MidiLink, 800 × 600 LCD screen with LEDs and a level meter.
+  - **Tools:** `tools/p2k_pack.py` builds the files from the user's own dumps.
+    `scripts/mister/smoke.sh` is the hardware test.
+- **Clocks:** TG68K needs 21.4 ns (standalone build, `cores/proteus/p2k/syn/p2k_cpu.qsf`). The
+  CPU side runs at 44.1 MHz; the sound engine and DDR3 at 88.2 MHz, from one VCO.
+  `hdl/p2k_x21.sv` carries requests between the two clocks.
+- **Engine change:** `p2k_snd` gained a read port for the live values (voice address, end select,
+  interpolators). `tests/p2k_snd` is still identical.
+- **Gate, simulation** (system bench, the user's flash and the Composer stand-in):
+  - main screen at 12.25 s, equal to MAME's rendered screen;
+  - corpus case `poly`: all 214 note starts equal MAME's, in order (voice and sample address);
+  - the bench's audio equals `p2k_render` replaying the bench's own write log, bit for bit;
+  - unit benches (CI): the cache and the sound bus against flat/MAME models, identical.
+- **Gate, Quartus** (seed 1): 26,184 ALMs, 243 M10K, 92 DSP. Timing met on every clock
+  (clk_sys +1.320 ns, clk_cpu +1.586 ns).
+- **Gate, MiSTer** (smoke.sh, pass):
+  - main screen about 110 s after the MGL load (mostly the 36 MB SIMM download);
+  - MIDI program changes and notes (level meter);
+  - the Master key works; no late sample;
+  - factory defaults written to a 2 MB save file and restored on reload.
+- **Bugs found:**
+  - In the sound-bus bench: the port address came from the wrong shadow words, and an unloaded
+    slot's read raised a stray memory request.
+  - On hardware:
+    - Quartus built the crossing's response FIFO as an MLAB read from the other clock, which
+      corrupted one bit of the reset vector. It is registers now.
+    - The CPU could leave reset with an access still in flight.
+  - In the full build: the shadow RAMs did not infer (697 % ALMs), and a combinational divide
+    sat in the CPU data path.
+- **Debug aids:** the OSD diagnostics line, and a CPU bus trace dumped to DDR3 when the PC runs
+  away. These found the hardware bugs.
+- **Open:**
+  - user flash SIMMs (P6);
+  - 2-clock cache hits (3 now, to be retested);
+  - start time on the MiSTer;
+  - the CI job needs Verilator only; the system bench needs the user's files and GHDL.
+
 ## Iteration 16: P2K sound HDL for the Cyclone V (2026-11-24, branch `iter16-p2k-snd-synth`, PR #32)
 
 - **Why:** the iteration 14 RTL did not build in Quartus 17 (a typed net declaration; a loop over

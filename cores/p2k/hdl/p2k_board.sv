@@ -190,6 +190,7 @@ module p2k_board #(
 
     // ------------------------------------------------------------------ memory (cache)
     logic        mem_ack;
+    logic [63:0] dbg_rsp0, dbg_dq;
     logic [15:0] mem_rdata;
     logic        flash_lock_c, mem_flash_changed;
     logic        m_req_valid, m_req_ready, m_req_we, m_rsp_valid;
@@ -198,7 +199,7 @@ module p2k_board #(
     logic [7:0]  m_req_be, m_req_len;
     always_ff @(posedge clk_cpu) flash_lock_c <= flash_lock;
     p2k_mem #(.BASE(CPU_BASE)) mem (
-        .clk(clk_cpu), .rst(rst_c), .flush(hold_c), .busy_flush(), .quiet(mem_quiet), .rsp_extra(mem_rsp_extra),
+        .clk(clk_cpu), .rst(rst_c), .flush(hold_c), .busy_flush(), .quiet(mem_quiet), .rsp_extra(mem_rsp_extra), .dbg_rsp0(dbg_rsp0), .dbg_dq(dbg_dq),
         .go(ext_sel && (d_flash || d_dram)), .we(wr), .flash(d_flash), .pa(p_byte[23:1]),
         .wdata(cpu_dout), .uds, .lds, .ack(mem_ack), .rdata(mem_rdata),
         .flash_lock(flash_lock_c), .flash_changed(mem_flash_changed),
@@ -430,12 +431,13 @@ module p2k_board #(
                 else if (!tr_valid) begin
                     tr_valid <= 1'b1;
                     tr_addr <= TRACE_BASE + 29'(n);
-                    tr_wdata <= n[11] ? 64'h5452414345000000 | 64'(cnt) : (n[0] ? e[63:0] : e[127:64]);
+                    tr_wdata <= n[11] ? (n[1:0] == 2'd0 ? 64'h5452414345000000 | 64'(cnt) : n[1:0] == 2'd1 ? dbg_rsp0 : dbg_dq)
+                                      : (n[0] ? e[63:0] : e[127:64]);
                 end else if (tr_ready) begin
                     tr_valid <= 1'b0;
                     n <= n + 12'd1;
                     settle <= 2'd2;
-                    if (n[11]) done <= 1'b1;
+                    if (n[11] && n[1:0] == 2'd2) done <= 1'b1;
                 end
             end
         end

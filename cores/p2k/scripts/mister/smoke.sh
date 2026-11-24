@@ -8,14 +8,14 @@
 # image); EVENTS: "seconds hexbytes" MIDI lines (cores/sc55/scripts/mister/smf2events.py).
 # Installs RBF (synth-mister install; run 'synth-mister backup' once first), copies PACK and SIMM
 # to games/P2K/ as p2k_smoke.p2k / p2k_smoke.sim, removes the pack's save file, loads both
-# through an MGL, waits BOOT seconds (default 60: the 36 MB download and the OS start) and:
+# through an MGL, waits for the main screen (up to 240 s: the 36 MB download and the OS start) and:
 #   boot.png    the main screen;
 #   play.png    during EVENTS (repeated for SECONDS, default 30) sent at 9600 baud (the core's
 #               MIDI input takes 9600 as well as MidiLink's 31250): the level meter must move;
 #   end.png     after it;
 #   master.png  after the Master key (Q): the LCD must change.
 # With PACK_ERASED (a pack whose user area is erased: the OS writes factory defaults on its
-# first start), the flash save: load it, wait ERASED_BOOT seconds (default 120), open and close
+# first start), the flash save: load it, wait for its main screen and ERASED_SETTLE seconds (default 60), open and close
 # the OSD (autosave), the save file must be 2 MB with user data at 0x0A0000; load again
 # (restored from the file): reload.png must show the main screen.
 # OUTDIR/result.txt: the status strip (band, late), LCD dots lit, the peak level seen, the
@@ -41,9 +41,30 @@ mgl() {
 mgl p2k_smoke.p2k p2k_smoke
 scp -q ../synclavier/scripts/mister/mister_keys.py ../sc55/scripts/mister/play_tty.py "$EV" "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
+# wait (up to LIMIT seconds) until the LCD shows text and the band is green, then screenshot to $1
+lit() {
+    python3 -I - "$1" <<'PY'
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert("RGB"); k = im.size[0] / 800
+band = im.getpixel((int(40 * k), int(430 * k)))
+box = im.crop((int(30 * k), int(200 * k), int(770 * k), int(300 * k)))
+n = sum(1 for x in range(box.size[0]) for y in range(box.size[1]) if box.getpixel((x, y))[0] < 0x70 and box.getpixel((x, y))[1] < 0x70)
+print(n if band[1] > 0xa0 and band[0] < 0x60 else 0)
+PY
+}
+wait_main() {
+    local t0=$(date +%s)
+    while [ $(( $(date +%s) - t0 )) -lt "${2:-240}" ]; do
+        sleep 10
+        $M shot p2k "$1" >/dev/null 2>&1 || continue
+        [ "$(lit "$1")" -gt 3000 ] && { sleep "${SETTLE:-15}"; $M shot p2k "$1" >/dev/null; echo "$(( $(date +%s) - t0 ))" > "$1.secs"; return 0; }
+    done
+    return 1
+}
 $M midi-stop
-$M load /tmp/p2k_smoke.mgl; sleep "${BOOT:-60}"
-$M shot p2k "$OUT/boot.png" >/dev/null
+$M load /tmp/p2k_smoke.mgl
+wait_main "$OUT/boot.png" || true
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # a few zero bytes (framing errors at 31250) switch the input to 9600 (synthframe_midi_rx)
 printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
@@ -61,20 +82,22 @@ SAV=0; USER=no
 if [ -n "$ERASED" ]; then
     scp -q "$ERASED" "$MISTER:/media/fat/games/P2K/p2k_erased.p2k"
     mgl p2k_erased.p2k p2k_erased
-    $M load /tmp/p2k_erased.mgl; sleep "${ERASED_BOOT:-120}"
-    $M shot p2k "$OUT/erased_boot.png" >/dev/null
+    $M load /tmp/p2k_erased.mgl
+    wait_main "$OUT/erased_boot.png" 400 || true
+    sleep "${ERASED_SETTLE:-60}"             # the OS writing its factory defaults
     keys F12 sleep:5 ESC sleep:1
     SAV=$($M sh "stat -c %s /media/fat/saves/P2K/p2k_erased.sav 2>/dev/null || echo 0")
     USER=$($M sh "dd if=/media/fat/saves/P2K/p2k_erased.sav bs=4096 skip=160 count=16 2>/dev/null | tr -d '\377' | wc -c")
-    $M load /tmp/p2k_erased.mgl; sleep "${BOOT:-60}"
-    $M shot p2k "$OUT/reload.png" >/dev/null
+    $M load /tmp/p2k_erased.mgl
+    wait_main "$OUT/reload.png" || true
 fi
 echo "$SAV $USER" > "$OUT/sav"
 
 python3 -I - "$OUT" "${ERASED:+1}" <<'EOF' | tee "$OUT/result.txt"
 # p2k_lcd_video.sv, 800 x 600: LCD panel at (30, 200), 740 x 100, dots 5C5358 on / 83888B off;
 # level meter at (30, 380), 512 x 12, lit 40E060; status strip at (30, 420): state band x 0-199,
-# underrun box (here: a late sample) at x 280-319. Screenshots come scaled: offsets scale by
+# underrun box (here: a late sample) at x 280-319. Lit dots and meter: by darkness / green
+# (screenshots are scaled and filtered). Screenshots come scaled: offsets scale by
 # width / 800; the strip is found by the state band's colour.
 import sys
 from PIL import Image
@@ -93,10 +116,11 @@ def near(c, ref, tol=24): return all(abs(a - b) <= tol for a, b in zip(c, ref))
 def lcd(im, s):
     k = im.size[0] / 800; x0, y0 = s[0], s[1] - int(220 * k)
     box = im.crop((x0, y0, x0 + int(740 * k), y0 + int(100 * k)))
-    return sum(near(p, (0x5c, 0x53, 0x58)) for p in box.getdata()), box.tobytes()
+    return sum(1 for x in range(box.size[0]) for y in range(box.size[1])
+               if box.getpixel((x, y))[0] < 0x70 and box.getpixel((x, y))[1] < 0x70), box.tobytes()
 def meter(im, s):
     k = im.size[0] / 800; x0, y = s[0], s[1] - int(34 * k)
-    return sum(near(im.getpixel((x, y)), (0x40, 0xe0, 0x60)) for x in range(x0, x0 + int(512 * k)))
+    return sum(1 for x in range(x0, x0 + int(512 * k)) if im.getpixel((x, y))[1] > 0xa0 and im.getpixel((x, y))[0] < 0x80)
 ok = True
 end = load("end"); s = strip(end)
 if not s:
