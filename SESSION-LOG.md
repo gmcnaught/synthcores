@@ -16,7 +16,10 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   builds (`sim/core_syn/`) drove the timing work (divide-by-24 pipeline, event tree, ALU decode).
 - **MiSTer smoke:** pass (boots, MIDI changes the LCD, no underrun). The core's UART mode had to be
   set to MIDI (`config/uartmode.MT-32`, copied from the CZ-101's).
-- **Open:** audio not heard; panel buttons unverified; real-time margin about 6 % in dense passages
+- **Release checks (2026-11-24):** CI container build +0.570 ns; Part 1 key matches Nuked-MT32; dense case and
+  Monkey Island tracks 1-2 on the MiSTer without underrun; audio checked by ear (the dense case's two right-channel
+  clicks are in Nuked-MT32's render too).
+- **Open:** the reverb delay RAM is not cleared by a core reset.
   (2,828 of 3,000 clocks a sample at PCM latency 1-24); reverb delay RAM not cleared by a core reset.
 
 ## Iteration 16: P2K sound HDL for the Cyclone V (2026-11-24, branch `iter16-p2k-snd-synth`, PR #32)

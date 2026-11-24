@@ -129,7 +129,7 @@ only on M0's logs, so they can run in parallel with M1–M2.
 | M2 | Done. Co-simulation (`sim/cpu/`: the HDL CPU inside Nuked-MT32's board): boot trace and all 6 corpus cases identical |
 | M3, M4 | Done (`docs/sound.md`): every out-log field, LA32 interrupt and slot state identical on all 6 cases |
 | M5 | Done. `sim/system/` (whole HDL, PCM latency 1-24 random): all 6 corpus hashes identical; 2,658-2,828 mean clocks a sample (budget 3,000 at 96 MHz) |
-| M6 | Windows build: 18,683 ALMs (45 %), 62 DSP, 40 % block memory; core clock 96 MHz, setup slack +0.263 ns, hold met. MiSTer smoke (`scripts/mister/smoke.sh`): boots to "1 2 3 4 5 R vol:100", MIDI over the UART changes the LCD ("vol: 60" after master volume 60, as Nuked-MT32 shows), no underrun. Not checked: audio by ear; panel buttons (the G key changed nothing on the LCD; the reference's response to it is not checked) |
+| M6 | Windows build: 18,683 ALMs (45 %), 62 DSP, 40 % block memory; core clock 96 MHz, setup slack +0.263 ns, hold met. MiSTer smoke (`scripts/mister/smoke.sh`): boots to "1 2 3 4 5 R vol:100", MIDI over the UART changes the LCD ("vol: 60" after master volume 60, as Nuked-MT32 shows), no underrun. CI container build (Linux, release path): setup slack +0.570 ns. Part 1 key (Q) shows "1|Slap Bass1|vol> 80", as Nuked-MT32 (`mt32_ref --button`); Master Volume changes no LCD text in either. Dense corpus case and The Secret of Monkey Island tracks 1-2 played on the MiSTer: no underrun; audio checked by ear. The dense case's two clicks in the right channel are in Nuked-MT32's render too (the mix passes full scale) |
 
 Timing rules the HDL keeps (from the reference, confirmed by the lockstep):
 - `mcs96_device::clock()` slices of 4-33 cycles; the overshoot of a slice is dropped;

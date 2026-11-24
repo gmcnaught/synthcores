@@ -16,7 +16,7 @@ No ROMs are included.
 | 8098 peripherals (M2) | co-simulation: the HDL CPU inside Nuked-MT32's board, LA32 and reverb (`sim/cpu/`) | boot trace and all six corpus cases identical |
 | LA32, reverb chip, mix (M3, M4) | replay of the reference's logs (`sim/sound/`, `tests/sound_check.sh`) | all six cases identical, every output field, interrupt and slot state; design note `docs/sound.md` |
 | System (M5) | `sim/system/`: the whole HDL from power-on, PCM ROM behind a random-latency memory model | all six corpus hashes identical; CPU trace identical |
-| MiSTer (M6) | Windows build; `scripts/mister/smoke.sh` | 96 MHz: +0.263 ns (Windows), +0.570 ns (CI container); boots; MIDI and the Part 1 key change the LCD as in Nuked-MT32; no underrun (audio not yet heard) |
+| MiSTer (M6) | Windows build; `scripts/mister/smoke.sh` | 96 MHz: +0.263 ns (Windows), +0.570 ns (CI container); boots; MIDI and the Part 1 key change the LCD as in Nuked-MT32; no underrun on the dense corpus case or a game soundtrack; audio checked by ear (2026-11-24) |
 
 The plan, the hardware map and the timing rules are in [`docs/plan.md`](docs/plan.md).
 
