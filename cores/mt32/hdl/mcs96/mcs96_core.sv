@@ -150,6 +150,33 @@ module mcs96_core #(
         return {r, w ? d[15:0] : {8'h00, d[7:0]}};
     endfunction
 
+    // ALU operation, registered from dw one clock after decode (S_DEC2)
+    logic [2:0] alu_op;        // 0 and, 1 or, 2 xor, 3 add, 4 sub
+    logic       alu_w, alu_c;  // word; with carry (addc/subc)
+    always_ff @(posedge clk) begin
+        case (d_mn)
+            MN_AND, MN_ANDB: alu_op <= 3'd0;
+            MN_OR, MN_ORB:   alu_op <= 3'd1;
+            MN_XOR, MN_XORB: alu_op <= 3'd2;
+            MN_ADD, MN_ADDB, MN_ADDC, MN_ADDCB: alu_op <= 3'd3;
+            default:         alu_op <= 3'd4;
+        endcase
+        alu_w <= (d_mn == MN_AND || d_mn == MN_OR || d_mn == MN_XOR || d_mn == MN_ADD || d_mn == MN_ADDC ||
+                  d_mn == MN_SUB || d_mn == MN_SUBC || d_mn == MN_CMP);
+        alu_c <= (d_mn == MN_ADDC || d_mn == MN_ADDCB || d_mn == MN_SUBC || d_mn == MN_SUBCB);
+    end
+    function automatic logic [31:0] alu_r(input logic [2:0] op, input logic w, input logic c,
+                                          input logic [15:0] p, input logic [15:0] a, input logic [15:0] b);
+        logic [15:0] r;
+        case (op)
+            3'd0: begin r = a & b; return {nz(p, r, w), w ? r : {8'h00, r[7:0]}}; end
+            3'd1: begin r = a | b; return {nz(p, r, w), w ? r : {8'h00, r[7:0]}}; end
+            3'd2: begin r = a ^ b; return {nz(p, r, w), w ? r : {8'h00, r[7:0]}}; end
+            3'd3: return f_add(p, a, b, c && p[F_C], w);
+            default: return f_sub(p, a, b, c && !p[F_C], w);
+        endcase
+    endfunction
+
     function automatic logic [31:0] alu(input logic [6:0] mn, input logic [15:0] p,
                                         input logic [15:0] a, input logic [15:0] b);
         logic [15:0] r;
@@ -270,14 +297,14 @@ module mcs96_core #(
     always_ff @(posedge clk) g_mulw <= (d_mn == MN_MULU || d_mn == MN_MUL);    logic g_muls;
     always_ff @(posedge clk) g_muls <= (d_mn == MN_MUL || d_mn == MN_MULB);    logic g_divw;
     always_ff @(posedge clk) g_divw <= (d_mn == MN_DIVU || d_mn == MN_DIV);    logic g_divb;
-    always_ff @(posedge clk) g_divb <= (d_mn == MN_DIVUB || d_mn == MN_DIVB);    wire g_ld  = (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);
-    wire g_st  = (d_mn == MN_ST || d_mn == MN_STB);
-    wire g_un  = (d_mn == MN_NOT || d_mn == MN_NOTB || d_mn == MN_NEG || d_mn == MN_NEGB ||
-                  d_mn == MN_DEC || d_mn == MN_DECB || d_mn == MN_INC || d_mn == MN_INCB);
-    logic g_unw;
-    always_ff @(posedge clk) g_unw <= (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);    wire g_sh  = (d_mn == MN_SHR || d_mn == MN_SHRA || d_mn == MN_SHL || d_mn == MN_SHRB ||
-                  d_mn == MN_SHRAB || d_mn == MN_SHLB);
-    logic g_shb;
+    always_ff @(posedge clk) g_divb <= (d_mn == MN_DIVUB || d_mn == MN_DIVB);    logic g_ld;
+    always_ff @(posedge clk) g_ld <= (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);    logic g_st;
+    always_ff @(posedge clk) g_st <= (d_mn == MN_ST || d_mn == MN_STB);    logic g_un;
+    always_ff @(posedge clk) g_un <= (d_mn == MN_NOT || d_mn == MN_NOTB || d_mn == MN_NEG || d_mn == MN_NEGB ||
+                  d_mn == MN_DEC || d_mn == MN_DECB || d_mn == MN_INC || d_mn == MN_INCB);    logic g_unw;
+    always_ff @(posedge clk) g_unw <= (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);    logic g_sh;
+    always_ff @(posedge clk) g_sh <= (d_mn == MN_SHR || d_mn == MN_SHRA || d_mn == MN_SHL || d_mn == MN_SHRB ||
+                  d_mn == MN_SHRAB || d_mn == MN_SHLB);    logic g_shb;
     always_ff @(posedge clk) g_shb <= (d_mn == MN_SHRB || d_mn == MN_SHRAB || d_mn == MN_SHLB);    logic g_shl;
     always_ff @(posedge clk) g_shl <= (d_mn == MN_SHRL || d_mn == MN_SHRAL || d_mn == MN_SHLL);    logic g_jcc;
     always_ff @(posedge clk) g_jcc <= (d_mn == MN_JNST || d_mn == MN_JNH || d_mn == MN_JGT || d_mn == MN_JNC ||
@@ -491,7 +518,7 @@ module mcs96_core #(
                 4'd1: begin src <= md; ph <= 4'd2; end
                 4'd2: mem(mn_byte ? K_R8 : K_R16, SP_REG, {8'h00, OP2}, 16'h0, S_EX, 4'd3);
                 4'd3: begin
-                    ar = alu(d_mn, PSW, md, src);
+                    ar = alu_r(alu_op, alu_w, alu_c, PSW, md, src);
                     PSW <= ar[31:16];
                     if (g_cmp) begin st <= S_POST; ph <= 4'd0; end
                     else mem(mn_byte ? K_W8 : K_W16, SP_REG, {8'h00, dst}, ar[15:0], S_POST, 4'd0);

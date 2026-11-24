@@ -101,7 +101,8 @@ module mcs96_periph (
     logic [3:0]  m4v;
     logic [1:0]  m2v;
     logic        uev_set, b2_changed, m1v, ufast;
-    logic [47:0] m1, tmin;
+    logic [47:0] m1, tmin, as_t;
+    logic        as_v;
     logic        u_from_reg;       // the update was called from an SFR write
 
     // register-access FSM
@@ -266,6 +267,9 @@ module mcs96_periph (
                 for (int i = 0; i < 8; i++)
                     nt[i] <= (nb[i] ? base2 : 48'h0) + (nk[i] << 4) + (nk[i] << 3);
                 tmin <= (t2r < t1r) ? t2r : t1r;
+                // earlier of the A/D and serial-transmit times (0 = none)
+                if (ad_done != 48'h0 && (serial_timer == 48'h0 || ad_done <= serial_timer)) begin as_t <= ad_done; as_v <= 1'b1; end
+                else begin as_t <= serial_timer; as_v <= serial_timer != 48'h0; end
                 us <= U_EVA;
             end
             // earliest of the active entries: a tree of minima (ties keep the lower entry)
@@ -289,12 +293,8 @@ module mcs96_periph (
                 us <= U_EVC2;
             end
             U_EVC2: begin
-                logic [47:0] e;
-                logic        es;
-                e = m1; es = m1v;
-                if (ad_done != 48'h0 && (!es || ad_done < e)) begin e = ad_done; es = 1'b1; end
-                if (serial_timer != 48'h0 && (!es || serial_timer < e)) begin e = serial_timer; es = 1'b1; end
-                uev <= e; uev_set <= es;
+                if (as_v && (!m1v || as_t < m1)) begin uev <= as_t; uev_set <= 1'b1; end
+                else begin uev <= m1; uev_set <= m1v; end
                 us <= U_EVD;
             end
             // event_time = min(that, t1, t2)
