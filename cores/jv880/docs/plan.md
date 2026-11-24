@@ -29,7 +29,7 @@ inferences.
 | Encoder | — | gate-array lines 3/4 (one pulse a detent) | `mcu.cpp` `MCU_EncoderTrigger` |
 | Panel buttons | P1 matrix | P7DR, rows selected by `io_sd` (F401 writes): 14 buttons | `mcu.cpp` `DEV_P7DR` |
 | A/D | battery, sliders | pin 1 battery, others 0x3FF | `mcu.cpp` `MCU_AnalogReadPin` |
-| Memory pages | SRAM page 5 | SRAM page 10 (32 KB), NVRAM pages 12/13 (32 KB, battery-backed), card RAM pages 14/15 (32 KB); pages 8/9 read FF | `mcu.cpp` |
+| Memory pages | SRAM page 5 | SRAM page 10 (32 KB), NVRAM pages 12/13 (32 KB, battery-backed), card RAM pages 14/15 (32 KB in the reference; the core reads 0, no card); pages 8/9 read FF | `mcu.cpp` |
 | ROM writes | — | writes to 6196–6199 ignored (the firmware writes into ROM at 002E77–002E7D) | `mcu.cpp` |
 | Timers | mk1 step tables | generic tables | `mcu_timer.cpp` |
 | Sub-MCU | none (mk1) | none | `mcu.cpp` |
@@ -86,5 +86,10 @@ out at first: no PCM card is emulated.
   user's dumps don't include them.
 - **Real-time margin:** the SC-55 mk1 averages 19.3 clocks a step against 25 available. The
   JV-880's PCM runs 25/29 as many cycles a step, so it should fit [INF].
-- **Card RAM (pages 14/15):** does the firmware need it to boot without a card? [UNK] The
-  reference keeps 32 KB; check reads in the J2 trace.
+- **Card RAM (pages 14/15), answered 2026-11-23:** the firmware only reads it. A copy of the
+  reference that counts page 14/15 accesses saw 3,683 reads and no writes from power-on through
+  the factory preset (`jv880-nvram`), and 6,311 reads and no writes rendering `jv880.mid`; every
+  read returned 0. The MCU now reads 0 there and drops writes, without the 32 KB block RAM
+  (`modules/roland/hdl/mcu/sc55_mcu.sv`). Difference from the reference, which keeps 32 KB that
+  reads 0 until written: saving to a card (Util:Data card) finds nothing kept, as on a unit with
+  no card fitted.
