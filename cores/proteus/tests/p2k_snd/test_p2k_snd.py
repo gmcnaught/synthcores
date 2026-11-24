@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """P2K sound HDL against the integer model on random stimuli (no ROMs needed).
 
-Builds p2k/model/p2k_render and the Verilator bench p2k/sim/p2k_snd_tb, makes a random-data SIMM and
-random register logs (tools/p2k_snd_randlog.py: voices, loops, interpolators, routing, filter
-coefficients, 12th-order chains, G05 effect registers) and checks that the bench output equals the
-renderer's bit for bit in the three modes of iteration 14 (voices, + filter, + effects).
+Builds p2k/model/p2k_render and the Verilator bench p2k/sim/p2k_snd_tb (p2k_snd on synthframe_mem_ddr3
+and a DDR3 model), makes a random-data SIMM and random register logs (tools/p2k_snd_randlog.py: voices,
+loops, interpolators, routing, filter coefficients, 12th-order chains, G05 effect registers) and checks
+that the bench output equals the renderer's bit for bit in the three modes (voices, + filter, + effects),
+also with all 128 voices and at other DDR3 timings.
 The corpus gate with the real SIMM and firmware logs is tools/p2k_snd_check.py.
 """
 import hashlib
@@ -51,14 +52,16 @@ class P2kSnd(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def check(self, seed, mode, extra):
+    def check(self, seed, mode, extra, voices=48, ddr=()):
         log = os.path.join(self.tmp, f"r{seed}.log")
         subprocess.run([sys.executable, os.path.join(CORE, "tools", "p2k_snd_randlog.py"), str(seed), log,
-                        "--samples", str(FRAMES - 1000), "--voices", "48", "--words", str(WORDS)] + extra, check=True)
+                        "--samples", str(FRAMES - 1000), "--voices", str(voices), "--words", str(WORDS)] + extra,
+                       check=True)
         opts = MODES[mode] + ["--simm", "1=" + self.simm, "--frames", str(FRAMES)]
         ref, hdl = os.path.join(self.tmp, f"r{seed}.{mode}.ref.raw"), os.path.join(self.tmp, f"r{seed}.{mode}.hdl.raw")
         subprocess.run([self.render] + opts + [log, ref], check=True, stdout=subprocess.DEVNULL)
-        subprocess.run([self.tb] + opts + [log, hdl], check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([self.tb] + opts + list(ddr) + ["--seed", str(seed), log, hdl], check=True,
+                       stdout=subprocess.DEVNULL)
         cmp = subprocess.run([self.render, "--compare", ref, hdl], stdout=subprocess.PIPE, text=True).stdout.strip()
         self.assertEqual(sha(ref), sha(hdl), f"seed {seed} {mode}: {cmp}")
         with open(ref, "rb") as f:
@@ -75,6 +78,11 @@ class P2kSnd(unittest.TestCase):
     def test_full(self):
         for seed in (5, 6):
             self.check(seed, "full", ["--fx"])
+
+    def test_ddr_timing(self):
+        """All 128 voices; DDR3 with no wait and with long latency and frequent BUSY."""
+        self.check(7, "full", ["--fx"], voices=128, ddr=["--ddr-busy", "2", "--ddr-lat", "30", "60"])
+        self.check(8, "filter", [], voices=128, ddr=["--ddr-busy", "0", "--ddr-lat", "1", "1"])
 
 
 if __name__ == "__main__":
