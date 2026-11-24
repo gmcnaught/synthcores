@@ -408,6 +408,7 @@ int main(int argc, char **argv)
 	cpu->u2_rxd = 1;
 	cpu->pp_in = 0xff;
 	cpu->cpu_ena = 1;
+	cpu->ext_ack = 1;
 	cpu->ipl_mask = rp.f != nullptr;
 	cpu->warp_level = 0;
 	cpu->reset_n = 0;

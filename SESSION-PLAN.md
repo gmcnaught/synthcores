@@ -60,6 +60,7 @@ Assumptions:
 | 14 | P2K sound HDL against `p2k_render` (simulation) | 11 | — | `snd.raw` bit-identical to `p2k_render` on all 22 corpus cases: 14a with `--nofilter --nofx`, 14b with `--nofx`, 14c in full |
 | 15 | CZ-101 and JV-880 follow-ups | 12, 13 | yes | listed per item below; reference tests unchanged |
 | 16 | P2K sound HDL for the Cyclone V | 14 | — | `snd.raw` still bit-identical on all 22 cases × 3 modes through a DDR3 model; standalone Quartus 17 build meets timing at 100 MHz; worst sample within the 100 MHz budget (2267 clocks) |
+| 18 | P2K MiSTer core (`cores/p2k/docs/plan.md`, P0–P6) | 11, 16 | yes | OS 2.26 boots to its main screen in the system bench and on the MiSTer with the Composer stand-in SIMM; the bench's sound-write log replayed by `p2k_render` equals the bench audio; plays MIDI on the MiSTer; user data in flash survives a reload |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -247,6 +248,14 @@ iteration restructures it for the DE10-Nano without changing a single output sam
       5CSEBA6U23I7: timing met at 100 MHz; ALMs, M10K and DSP recorded.
     - Worst clocks per sample on the corpus and the 128-voice random log at most 2267 (100 MHz).
 - **Not in this iteration:** the MiSTer top (CPU, MIDI, sample loading) and hardware tests.
+
+### 18. P2K MiSTer core (2026-11-24, user: "finish this out to a full usable mister core")
+
+Plan and design: `cores/p2k/docs/plan.md`. A new core folder `cores/p2k` (LAYOUT-PLAN) holds the
+board, the MiSTer top and the system bench; the CPU and sound RTL stay in `cores/proteus/p2k/rtl`
+for now. All memory is in DDR3 (no SDRAM board needed); the CPU reads it through a block-RAM cache.
+Steps P0-P6 and their gates are in the plan. User flash SIMMs (G20 port B writes) are P6 and may
+move to a later iteration.
 
 ## Not in this session
 

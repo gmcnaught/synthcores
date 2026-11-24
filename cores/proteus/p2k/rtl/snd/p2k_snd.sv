@@ -36,6 +36,18 @@ module p2k_snd #(
     input  logic [15:0] wr_data,
     input  logic [15:0] wr_mask,
 
+    // live values for CPU reads (MAME g20_r / h_r): while idle, rd_chip 0 = voice rd_addr[6:0]'s
+    // address and end select, 1 = H block rd_addr[7:0]'s three interpolator values (R, L, cutoff)
+    output logic        idle,         // between samples, no write or read in progress
+    input  logic        rd_valid,
+    output logic        rd_ready,
+    input  logic        rd_chip,
+    input  logic [7:0]  rd_addr,
+    output logic        rd_done,
+    output logic [25:0] rd_vaddr,
+    output logic        rd_vsel,
+    output logic [15:0] rd_ipx [0:2],
+
     input  logic        start,
     output logic        done,
     output logic signed [15:0] out_l,
@@ -132,7 +144,7 @@ module p2k_snd #(
 
     // ------------------------------------------------------------------ top state
     typedef enum logic [3:0] {
-        S_CLR, S_IDLE, S_W1, S_W2, S_WT, S_WE, S_W3, S_WC, S_RUN, S_MIX, S_FXW, S_FIN, S_OUT
+        S_CLR, S_IDLE, S_W1, S_W2, S_WT, S_WE, S_W3, S_WC, S_RUN, S_MIX, S_FXW, S_FIN, S_OUT, S_R1, S_R2
     } state_t;
     state_t st;
 
@@ -158,9 +170,11 @@ module p2k_snd #(
     wire [2:0]   wh_page  = w_addr[13:11];
     wire         wh_in    = w_addr < 19'h4000;
     wire         wh_coef  = !wh_o[5] && wh_o[4:3] != 2'd3 && !wh_o[2];   // words 0-3, 8-11, 16-19
-    wire         wp_act   = st == S_W1 || st == S_W2 || st == S_WT || st == S_WE || st == S_W3 || st == S_WC;
+    wire         wp_act   = st == S_W1 || st == S_W2 || st == S_WT || st == S_WE || st == S_W3 || st == S_WC || st == S_R1;
 
     assign wr_ready = st == S_IDLE && !start;
+    assign rd_ready = st == S_IDLE && !start && !wr_valid;
+    assign idle = st == S_IDLE;
 
     // ------------------------------------------------------------------ register files
     // G20 fields [voice]
@@ -208,7 +222,7 @@ module p2k_snd #(
     // read enables: only while a read is used, so no read meets a write of the same word
     logic        tk_run;
     wire re_fe   = st == S_RUN || (st == S_IDLE && start);
-    wire re_wp   = st == S_W1;
+    wire re_wp   = st == S_W1 || st == S_R1;
     wire re_run  = st == S_RUN;
 
     genvar gi;
@@ -452,6 +466,7 @@ module p2k_snd #(
     // ------------------------------------------------------------------ main
     always_ff @(posedge clk) begin
         done <= 1'b0;
+        rd_done <= 1'b0;
         fx_pre <= 1'b0;
         fx_go <= 1'b0;
         for (int n = 0; n < 10; n++) gf_we[n] <= 1'b0;
@@ -508,7 +523,20 @@ module p2k_snd #(
                     w_data <= (wr_chip == 2'd0 && wr_addr[4:0] == 5'd31) ? (wr_data & 16'h03ff) : wr_data;
                     w_mask <= wr_mask;
                     st <= S_W1;
+                end else if (rd_valid) begin
+                    w_chip <= {1'b0, rd_chip};
+                    w_addr <= rd_chip ? {5'd0, rd_addr, 6'd0} : {7'd0, rd_addr[6:0], 5'd0};
+                    st <= S_R1;
                 end
+            end
+            S_R1: st <= S_R2;                // the voice state / interpolator values are read
+            S_R2: begin
+                rd_vaddr <= vs_q[38:13];
+                rd_vsel <= vs_q[0];
+                for (int n = 0; n < 3; n++)
+                    rd_ipx[n] <= ipx_q[n];
+                rd_done <= 1'b1;
+                st <= S_IDLE;
             end
             S_W1: st <= S_W2;                // the old values are read
             S_W2: begin                      // combine; side effects

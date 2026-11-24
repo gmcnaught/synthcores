@@ -1,0 +1,84 @@
+# E-mu Proteus 2000 for MiSTer
+
+The Proteus 2000 running its own OS (2.26) on an FPGA model of the unit:
+
+- **CPU:** a ColdFire MCF5206e. This is TG68K with the ColdFire changes and the MCF5206e
+  peripherals, checked against MAME from reset to the main screen.
+- **Sound engine:** the G20 voices, the H filters and interpolators and the G05 effects, bit-exact
+  against the integer sound model the MAME driver uses (`cores/proteus/docs/p2k-mame-plan.md`).
+- **Board:** the boot/OS flash and 8 MB of DRAM. Plan and design: `docs/plan.md`. Sources:
+  `hdl/` (board, MiSTer parts) and `cores/proteus/p2k/rtl` (CPU, sound engine).
+
+No SDRAM board is needed: the flash, DRAM, SIMMs and effect delay lines are in DDR3.
+
+## Files you make
+
+Nothing from the unit is in this repository. `tools/p2k_pack.py` builds the two files the core
+loads from your own copies.
+
+**System pack (`.p2k`)** is the flash image followed by the HD44780 character ROM:
+
+```sh
+tools/p2k_pack.py pack games/P2K/p2k.p2k --font hd44780_a00.bin \
+    --dump proteus-2k-v124-28f160.bin --dli p2k226.dli
+```
+
+- The image is the v1.24 flash dump with OS 2.26 placed in it, built as MAME's `proteus2k`
+  machine builds it.
+- The user area is erased. On its first start the OS writes its factory defaults (about a minute).
+  Open and close the OSD once so they go to the save file.
+- `--flash` takes a finished 2 MB image instead.
+
+**SIMM (`.sim`)** is a sound SIMM's Baby and Big images:
+
+```sh
+tools/p2k_pack.py simm games/P2K/composer.sim --baby baby.bin --big big.bin
+```
+
+No P2K SIMM dump is public. `cores/proteus/tools/p2k_build_simm.py` builds a stand-in from your
+WAVs.
+
+Load the pack, then a SIMM, from the OSD; an MGL can do both:
+
+```xml
+<mistergamedescription>
+  <rbf>_Devices/P2K</rbf>
+  <file delay="1" type="f" index="1" path="p2k.p2k"/>
+  <file delay="2" type="f" index="2" path="composer.sim"/>
+</mistergamedescription>
+```
+
+The CPU restarts after each download. `saves/P2K/<pack>.sav` holds the flash (user presets,
+multisetups, master settings). It is written when the OSD opens after the OS has changed the
+flash, or with "Save flash".
+
+## Using it
+
+- **MIDI:** set the UART to MidiLink; it is MIDI In A, at 31250 or 9600 baud. UART TX is MIDI Out.
+- **Panel keys:**
+
+  | Key | Panel | Key | Panel |
+  |---|---|---|---|
+  | Q | Master | E | Edit |
+  | M | Multi | S | Save/Copy |
+  | A | Arp | Space | Audition |
+  | Enter | Home/Enter | ← → | cursor |
+  | − = or ↓ ↑ | data entry knob | | |
+
+  Names follow MAME's driver; Arp and Audition are its guesses.
+- **OSD:** master volume (the volume knob), filter and effects on/off (for comparison), save flash,
+  autosave, reset.
+- **Screen:** the 2 × 24 LCD, the 16 panel LEDs, an output level meter, and the status strip
+  (green while running; the underrun box marks a sample the engine started late).
+
+## Limits
+
+- **No real unit was available.** Behaviour MAME could not settle is a recorded choice
+  (`cores/proteus/docs/p2k-findings.md`): the level law, the interpolator timing, the effects'
+  microcode.
+- **User flash SIMMs** (programming a SIMM from the OS) are not in this version. Writes to a SIMM
+  are ignored, as for a ROM SIMM.
+- **Not modelled:** MIDI In B, the Proteus 1000 and the sub outputs. Main + Sub 1 + Sub 2 are mixed
+  to the one stereo output.
+- **CPU speed:** the CPU runs at 44.1 MHz as fast as its cache allows; it is not cycle-matched to
+  the MCF5206e. The OS reaches its main screen about as quickly as in MAME.
