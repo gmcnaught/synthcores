@@ -32,6 +32,8 @@ class P2kSnd(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p2k_snd_")
+        if "CXX" not in os.environ and shutil.which("g++-14"):   # CI builds the model with g++-14
+            os.environ["CXX"] = "g++-14"
         cls.render = subprocess.run([os.path.join(CORE, "p2k", "model", "build.sh"), os.path.join(cls.tmp, "model")],
                                     check=True, stdout=subprocess.PIPE, text=True).stdout.strip().splitlines()[-1]
         cls.tb = subprocess.run([os.path.join(CORE, "p2k", "sim", "build_snd.sh"), os.path.join(cls.tmp, "snd")],
