@@ -172,10 +172,10 @@ module p2k_mem #(
 
     logic        done;                  // registered completion (fill, flash, erase)
     logic [15:0] rdata_r;
-    wire         look_ack = 1'b0;           // hits complete through done (registered data)
+    wire         look_ack = st == M_LOOK && hit && !l_prog;
     wire         wr_ack = st == M_WLOOK && !wq_full;
     assign ack = done || look_ack || wr_ack;
-    assign rdata = rdata_r;
+    assign rdata = (st == M_LOOK) ? d_lane : rdata_r;
 
     // the read addresses: the incoming access while idle, else the latched one
     always_comb begin
@@ -282,11 +282,8 @@ module p2k_mem #(
                     if (l_prog) begin
                         l_old <= d_lane;
                         st <= M_PROG;
-                    end else begin
-                        rdata_r <= d_lane;
-                        done <= 1'b1;
-                        st <= M_IDLE;
-                    end
+                    end else
+                        st <= M_IDLE;                // look_ack
                 end else
                     st <= M_MISS;
             M_MISS:
