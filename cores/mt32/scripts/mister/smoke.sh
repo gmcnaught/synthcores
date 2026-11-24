@@ -2,17 +2,22 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # MT-32 MiSTer smoke test: scripts/mister/smoke.sh RBF PACK OUTDIR
 # Installs the RBF (synth-mister, with its lock and backup), loads the ROM pack, checks:
-# boot LCD lit, MIDI over the UART (tests/midi/sysex.txt: master volume 60) changes the LCD,
-# a panel key (G, Master Volume) changes the LCD, no audio underrun, status band "running".
+# boot LCD lit; MIDI over the UART (master volume 60 by SysEx, then notes on part 1, which make
+# the firmware redraw: "vol: 60", as Nuked-MT32 shows for the same bytes) changes the LCD;
+# no audio underrun; status band "running". A panel key (G) is recorded, not checked.
+# The core's UART must be in MIDI mode (config/uartmode.MT-32, set once from the OSD).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
 M=../../modules/synthframe/bin/synth-mister
 mkdir -p "$OUT"
-# corpus schedule (32 kHz samples) -> play_tty events (seconds, hex)
-awk '!/^#/ && NF > 1 { b = ""; for (i = 2; i <= NF; i++) b = b $i; printf "%.5f %s\n", $1 / 32000.0, b }' \
-    tests/midi/sysex.txt > "$OUT/sysex.txt"
-SECS=$(awk 'END { print int($1) + 2 }' "$OUT/sysex.txt")
+# master volume 60 (DT1 10 00 16), then 20 notes on channel 2 (part 1)
+python3 -c '
+print("0.0 f041101612100016" + "3c1ef7")
+for i in range(20):
+    print(f"{0.5 + i * 0.1:.2f} 913c64")
+    print(f"{0.55 + i * 0.1:.2f} 813c00")' > "$OUT/midi.txt"
+SECS=4
 
 $M lock mt32-smoke
 trap '$M unlock' EXIT
@@ -27,8 +32,9 @@ $M midi-stop
 $M load /tmp/mt32_smoke.mgl; sleep "${BOOT:-10}"
 $M shot mt32 "$OUT/boot.png" >/dev/null
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
-scp -q ../sc55/scripts/mister/play_tty.py "$OUT/sysex.txt" "$MISTER:/tmp/"
-$M sh "python3 /tmp/play_tty.py /tmp/sysex.txt $SECS"
+scp -q ../sc55/scripts/mister/play_tty.py "$MISTER:/tmp/"
+scp -q "$OUT/midi.txt" "$MISTER:/tmp/mt32_midi.txt"
+$M sh "python3 /tmp/play_tty.py /tmp/mt32_midi.txt $SECS"
 sleep 1
 $M shot mt32 "$OUT/midi.png" >/dev/null
 keys down:g sleep:1

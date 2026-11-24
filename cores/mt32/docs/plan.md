@@ -120,6 +120,26 @@ follows Nuked-SC55's step order.
 M0 and M1 need no hardware and can run alongside the P2K work (iteration 16). M3 and M4 depend
 only on M0's logs, so they can run in parallel with M1–M2.
 
+## Status (2026-11-24)
+
+| # | Result |
+|---|---|
+| M0 | Done. `ref/build.sh` (hooks: `ref/prepare_src.py`, audio unchanged), corpus of 6 cases / 65 s (`tests/midi/`, `tools/midi_corpus.py`), hashes in `tests/corpus.json` |
+| M1 | Done. `hdl/mcs96/` (decode ROM generated from MAME's compiled `mcs96.hxx`, not the stale `mcs96ops.lst`: they differ in norml, mulub indexed_3e and the div/divu dividend). Random programs (`tools/mcs96_randprog.py`, `tools/c1_run.sh`): 60+ seeds identical, half with SFRs and interrupts; `tests/test_cpu.py` in CI without ROMs |
+| M2 | Done. Co-simulation (`sim/cpu/`: the HDL CPU inside Nuked-MT32's board): boot trace and all 6 corpus cases identical |
+| M3, M4 | Done (`docs/sound.md`): every out-log field, LA32 interrupt and slot state identical on all 6 cases |
+| M5 | Done. `sim/system/` (whole HDL, PCM latency 1-24 random): all 6 corpus hashes identical; 2,658-2,828 mean clocks a sample (budget 3,000 at 96 MHz) |
+| M6 | Windows build: 18,683 ALMs (45 %), 62 DSP, 40 % block memory; core clock 96 MHz, setup slack +0.263 ns, hold met. MiSTer smoke (`scripts/mister/smoke.sh`): boots to "1 2 3 4 5 R vol:100", MIDI over the UART changes the LCD ("vol: 60" after master volume 60, as Nuked-MT32 shows), no underrun. Not checked: audio by ear; panel buttons (the G key changed nothing on the LCD; the reference's response to it is not checked) |
+
+Timing rules the HDL keeps (from the reference, confirmed by the lockstep):
+- `mcs96_device::clock()` slices of 4-33 cycles; the overshoot of a slice is dropped;
+  `total_cycles()` between runs is `totalcycles + step - icount` of the last slice.
+- `internal_update()` at every slice start and at every `bcount` event; HSO/A-D writes call it too.
+- Interrupt entry takes no cycles; at `fetch` every pending level is cleared (the `.hxx`).
+- MIDI bytes go straight into SBUF after a slot's CPU turn, 3,840 CPU cycles apart.
+
+On the MiSTer the core's UART must be in MIDI mode once (`config/uartmode.MT-32`).
+
 ## Shared resources during iteration 16
 
 - **This Mac:** the P2K corpus gate is using the CPUs (load average 11–14 on 9 cores,
