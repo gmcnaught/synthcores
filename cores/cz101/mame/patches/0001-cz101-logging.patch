@@ -246,10 +246,50 @@ index 1f8049d0..cd9eb172 100644
  
  	std::array<voice_t, 8> m_voice;
 diff --git a/src/mame/casio/cz101.cpp b/src/mame/casio/cz101.cpp
-index 225f364e..9613348d 100644
+index 225f364e..c93335b4 100644
 --- a/src/mame/casio/cz101.cpp
 +++ b/src/mame/casio/cz101.cpp
-@@ -420,6 +420,8 @@ void cz101_state::port_c_w(uint8_t data)
+@@ -365,9 +365,38 @@ void cz101_state::led_1_w(uint8_t data)
+ 		m_leds[8+i] = BIT(~data, i);
+ }
+ 
++// cz101 logging patch: CZ_KEYS=file, lines "CYCLE ROW BIT DOWN": from CPU cycle CYCLE, key-matrix
++// row ROW bit BIT is pressed (DOWN 1) or released; CZ_WHEEL=file, lines "CYCLE VALUE": the pitch
++// wheel (AN1) from CYCLE. Both as the HDL bench (cores/cz101/sim/cz101_bench.cpp).
++namespace {
++struct cz_sched
++{
++	std::vector<std::array<uint32_t, 4>> ev;
++	size_t i = 0;
++	cz_sched(const char *env, int fields)
++	{
++		const char *p = getenv(env);
++		if (!p) return;
++		FILE *f = fopen(p, "r");
++		if (!f) return;
++		std::array<uint32_t, 4> e{};
++		while ((fields == 4 ? fscanf(f, "%u %u %u %u", &e[0], &e[1], &e[2], &e[3]) : fscanf(f, "%u %u", &e[0], &e[1])) == fields)
++			ev.push_back(e);
++		fclose(f);
++	}
++};
++}
++
+ uint8_t cz101_state::keys_r()
+ {
+-	return m_keys[m_port_b & 0x0f]->read();
++	static cz_sched keys("CZ_KEYS", 4);
++	static uint8_t pressed[16]{};
++	while (keys.i < keys.ev.size() && keys.ev[keys.i][0] <= m_maincpu->total_cycles())
++	{
++		const auto &e = keys.ev[keys.i++];
++		if (e[3]) pressed[e[1] & 15] |= 1 << e[2]; else pressed[e[1] & 15] &= ~(1 << e[2]);
++	}
++	return m_keys[m_port_b & 0x0f]->read() & ~pressed[m_port_b & 0x0f];
+ }
+ 
+ // 7-------  power switch input (also connected to /NMI)
+@@ -420,6 +449,8 @@ void cz101_state::port_c_w(uint8_t data)
  
  void cz101_state::machine_start()
  {
@@ -258,7 +298,7 @@ index 225f364e..9613348d 100644
  	// register for save states
  	save_item(NAME(m_power));
  	save_item(NAME(m_port_b));
-@@ -442,7 +444,12 @@ void cz101_state::cz101(machine_config &config)
+@@ -442,10 +473,21 @@ void cz101_state::cz101(machine_config &config)
  	m_maincpu->set_addrmap(AS_PROGRAM, &cz101_state::maincpu_map);
  	m_maincpu->pa_in_cb().set(m_hd44780, FUNC(hd44780_device::db_r));
  	m_maincpu->pa_out_cb().set(m_hd44780, FUNC(hd44780_device::db_w));
@@ -271,8 +311,18 @@ index 225f364e..9613348d 100644
 +	});
  	m_maincpu->pb_out_cb().set(FUNC(cz101_state::port_b_w));
  	m_maincpu->pc_out_cb().set(FUNC(cz101_state::port_c_w));
- 	m_maincpu->an1_func().set_ioport("AN1");
-@@ -454,7 +461,17 @@ void cz101_state::cz101(machine_config &config)
+-	m_maincpu->an1_func().set_ioport("AN1");
++	m_maincpu->an1_func().set([this] () -> u8 {
++		static cz_sched wheel("CZ_WHEEL", 2);
++		static int v = -1;
++		while (wheel.i < wheel.ev.size() && wheel.ev[wheel.i][0] <= m_maincpu->total_cycles())
++			v = wheel.ev[wheel.i++][1];
++		return v < 0 ? ioport("AN1")->read() : u8(v);
++	});
+ 	m_maincpu->an2_func().set_ioport("AN2");
+ 
+ 	CLOCK(config, "midi_clock", 2_MHz_XTAL).signal_handler().set(m_maincpu, FUNC(upd7810_device::sck_w));
+@@ -454,11 +496,33 @@ void cz101_state::cz101(machine_config &config)
  	CASIO_RA3(config, m_cart);
  
  	midi_port_device& mdin(MIDI_PORT(config, "mdin", midiin_slot, "midiin"));
@@ -291,3 +341,20 @@ index 225f364e..9613348d 100644
  	m_maincpu->rxd_func().set([this] () { return m_midi_rx; });
  
  	MIDI_PORT(config, "mdout", midiout_slot, "midiout");
+-	m_maincpu->txd_func().set("mdout", FUNC(midi_port_device::write_txd));
++	m_maincpu->txd_func().set([this] (int state) {
++		// cz101 logging patch: CZ_TX_LOG gets every MIDI-out line change with its exact time
++		static FILE *txlog = getenv("CZ_TX_LOG") ? fopen(getenv("CZ_TX_LOG"), "w") : nullptr;
++		static int last = 1;
++		if (txlog && state != last)
++		{
++			const attotime t = machine().time();
++			fprintf(txlog, "%u %llu %d\n", t.seconds(), (unsigned long long)t.attoseconds(), state);
++			fflush(txlog);
++		}
++		last = state;
++		subdevice<midi_port_device>("mdout")->write_txd(state);
++	});
+ 
+ 	// video hardware
+ 	screen_device &screen(SCREEN(config, "screen").set_lcd());

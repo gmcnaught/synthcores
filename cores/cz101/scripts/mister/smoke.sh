@@ -9,13 +9,16 @@
 # the pack through an MGL (as the OSD's "Load ROM pack": saves/CZ-101/cz101_smoke.sav is
 # mounted), waits BOOT seconds (default 8), screenshots, plays tests/midi/basic.txt once over
 # the UART at 9600 baud (synthframe_midi_rx also takes 9600), screenshots again (its last
-# program change selects preset 15). Then the panel and the save file: key "4" (Internal),
+# program change selects preset 15). MIDI out: keys "3" (Preset) and F3 (Tone 3) while
+# scripts/mister/tty_midi_read.py reads /dev/ttyS1 at 31,250 baud; Tone 3 in the bank half
+# that holds preset 15 selects preset 11, and the firmware sends its program change, C0 0A
+# (the C4 panel case, tests/panel/basic.txt, checks the MIDI-out bytes against MAME). Then the panel and the save file: key "4" (Internal),
 # screenshot; the OSD opens (autosave) and closes; the save file must be 8 KB and its battery RAM
 # must differ from the pack's init_ram; the core and pack load again and the LCD is compared
 # with the one before the reload (information only: the firmware boots to preset 1).
-# Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, cz101_smoke.sav and result.txt. Exit 1
-# if the core is not running (band not green), an underrun was seen, the LCD is blank at boot, MIDI did not
-# change the LCD, or the save file is wrong.
+# Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, midi_out.txt, cz101_smoke.sav and result.txt.
+# Exit 1 if the core is not running (band not green), an underrun was seen, the LCD is blank at boot,
+# MIDI did not change the LCD, the program change did not come out, or the save file is wrong.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
@@ -43,6 +46,14 @@ printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
 scp -q ../sc55/scripts/mister/play_tty.py "$OUT/basic.txt" "$MISTER:/tmp/"
 $M sh "python3 /tmp/play_tty.py /tmp/basic.txt $SECS"
 $M shot cz101 "$OUT/end.png" >/dev/null
+
+# MIDI out
+scp -q scripts/mister/tty_midi_read.py "$MISTER:/tmp/"
+$M sh "nohup python3 /tmp/tty_midi_read.py 6 > /tmp/cz101_midi_out.txt 2>&1 < /dev/null &"
+sleep 1
+keys text:3 sleep:1 F3 sleep:1
+sleep 2
+$M sh "cat /tmp/cz101_midi_out.txt" > "$OUT/midi_out.txt"
 
 # panel key and the save file
 keys text:4 sleep:1
@@ -94,10 +105,14 @@ print(f"underrun: {und_s}")
 print(f"lcd_lit_pixels_boot: {lit(boot)}")
 print(f"midi_changed_lcd: {endp.tobytes() != boot.tobytes()}")
 print(f"key_changed_lcd: {changed.tobytes() != endp.tobytes()}")
+midi_out = open(f"{out}/midi_out.txt").read().split()
+pc = "c0 0a" in " ".join(midi_out)
+print(f"midi_out: {' '.join(midi_out)[:60]}")
+print(f"midi_out_program_change: {pc}")
 print(f"save_file_bytes: {sz}")
 print(f"save_ram_differs_from_init_ram: {bool(ram) and ram != init}")
 print(f"lcd_after_reload_same_as_before: {reloaded.tobytes() == changed.tobytes()}")
 ok = (s[2] == "running" and und_s == "never" and lit(boot) > 500 and endp.tobytes() != boot.tobytes()
-      and sz == 8192 and ram != init)
+      and pc and sz == 8192 and ram != init)
 sys.exit(0 if ok else 1)
 EOF
