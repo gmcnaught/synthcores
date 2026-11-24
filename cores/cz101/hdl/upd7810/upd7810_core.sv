@@ -93,8 +93,7 @@ module upd7810_core #(
 
     localparam logic [4:0] A_MOV = 0, A_ADD = 1, A_ADC = 2, A_SUB = 3, A_SBB = 4, A_ANA = 5,
                            A_ORA = 6, A_XRA = 7, A_ADDNC = 8, A_SUBNB = 9, A_GTA = 10,
-                           A_LTA = 11, A_NEA = 12, A_EQA = 13, A_ONA = 14, A_OFFA = 15,
-                           A_ADCX = 16;  // ADC whose ZHC_ADD carry argument is 0 (MAME ADCX_*)
+                           A_LTA = 11, A_NEA = 12, A_EQA = 13, A_ONA = 14, A_OFFA = 15;
 
     localparam logic [3:0] M_B = 0, M_D = 1, M_H = 2, M_DP = 3, M_HP = 4, M_DM = 5, M_HM = 6,
                            M_DXX = 7, M_HA = 8, M_HB = 9, M_HEA = 10, M_HXX = 11, M_DP2 = 12,
@@ -229,9 +228,9 @@ module upd7810_core #(
                 alu_res = t32[15:0]; alu_wr = 1'b1;
                 if (alu_op == A_ADDNC && !p[0]) p[5] = 1'b1;
             end
-            A_ADC, A_ADCX: begin
+            A_ADC: begin
                 t32 = (lz + {16'h0, alu_r} + {31'h0, cy}) & mask;
-                p = zhc_add(p, t32, lz, alu_op == A_ADC ? cy : 1'b0);
+                p = zhc_add(p, t32, lz, cy);
                 alu_res = t32[15:0]; alu_wr = 1'b1;
             end
             A_SUB, A_SUBNB, A_LTA, A_NEA, A_EQA: begin

@@ -110,7 +110,7 @@ construction.
 
 | # | Result |
 |---|---|
-| C0 | Done: patched MAME (`../mame-cz101`, `mame/patches/0001-cz101-logging.patch`), test-ROM harness, user's ROM set |
+| C0 | Done: patched MAME (`../mame-cz101`, `mame/patches/0001-cz101-logging.patch`, `0002-upd7810-adcx-carry.patch`), test-ROM harness, user's ROM set |
 | C1 | Done: 120 random programs, 3 M instructions identical to MAME (`docs/upd7810.md`) |
 | C2 | Done: peripherals on 160 random programs (310 k interrupts); firmware boot identical (below) |
 | C3 | Done: uPD933 identical to a standalone copy of MAME's model on synthetic stimuli; identical to MAME itself inside C4 |

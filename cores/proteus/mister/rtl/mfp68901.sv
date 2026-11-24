@@ -7,7 +7,8 @@
 //     timers C/D: stopped / delay
 //     on a prescaled tick: counter == 1 -> toggle TxO, interrupt (if IER),
 //     reload from data register; otherwise decrement (0 counts as 256)
-//   - GPIP inputs with AER edge interrupts
+//   - GPIP inputs with AER edge interrupts; in pulse mode, an interrupt at the end of the
+//     pulse, from the input or from an AER write
 //   - USART: asynchronous 8 data bits, no parity, x16 clock (UCR 0x88)
 //  Registers are addressed by index 0..23 (A5..A1 of the 68000 bus).
 //  `wr` and `rd` are single-cycle strobes, one per bus access.
@@ -242,7 +243,13 @@ always @(posedge clk) begin
 		if (cs && wr) begin
 			case (rs)
 				R_GPIP:  gpip <= din;
-				R_AER:   aer <= din;
+				R_AER:   begin
+					aer <= din;
+					// pulse mode: an AER write that ends the active level interrupts as the
+					// input going inactive does (MAME mc68901 AER write)
+					if (tacr[3] && tacr[2:0] != 0 && din[4] != aer[4] && tai == aer[4] && ier[CH_GPIP4]) ipr[CH_GPIP4] <= 1;
+					if (tbcr[3] && tbcr[2:0] != 0 && din[3] != aer[3] && tbi == aer[3] && ier[CH_GPIP3]) ipr[CH_GPIP3] <= 1;
+				end
 				R_DDR:   ddr <= din;
 				R_IERA:  begin ier[15:8] <= din; ipr[15:8] <= ipr[15:8] & din; end
 				R_IERB:  begin ier[7:0]  <= din; ipr[7:0]  <= ipr[7:0]  & din; end
