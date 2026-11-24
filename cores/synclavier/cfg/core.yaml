@@ -1,4 +1,4 @@
-# Read by modules/synthframe/bin/synthcore, which writes mister/Synclavier.qsf and mister/files.qip.
+# Read by modules/synthframe/bin/synthcore, which writes the Quartus project in mister/.
 name: Synclavier
 mister:
   seed: 1

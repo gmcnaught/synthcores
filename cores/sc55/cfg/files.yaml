@@ -1,4 +1,5 @@
-# HDL and constraint files, in Quartus order. synthcore writes them to mister/files.qip.
+# The core's files, in Quartus order. synthcore writes mister/files.qip (search:, files:,
+# mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
 search:
   - hdl/board
@@ -26,5 +27,6 @@ files:
   - hdl/board/lcd_video.sv
   - hdl/board/kbd_buttons.sv
   - hdl/board/sc55_board.sv
+mister:
   - mister/SC55.sdc
   - mister/SC55.sv

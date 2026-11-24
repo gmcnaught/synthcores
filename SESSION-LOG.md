@@ -2,6 +2,62 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 9b: qpf, qip header and Verilator file lists (2026-11-23, branch `iter9b-filelists`)
+
+- **synthcore now also writes:**
+    - `mister/<core>.qpf`;
+    - `sim/files.f` for `verilator -F`: `+incdir+` per search directory, then the core's HDL.
+- **`cfg/files.yaml`:** the MiSTer top level and `.sdc` moved to a `mister:` list (Quartus only).
+- **Quartus files:**
+    - The qsf and qip say they are generated from `cfg/`; the old "add the files manually to
+      files.qip" header is gone.
+    - All qsf and qpf are LF with a final newline; `qsf_eol` is dropped.
+    - The non-comment content of every qsf, qpf and qip is identical to `main`.
+- **Benches on `sim/files.f`:**
+    - SC-55 `board_lockstep`, JV-880 `jv880_board_bench`, CZ-101 `cz101_bench`: through
+      `modules/synthframe/cmake/synthframe_files.cmake`.
+    - Synclavier `sim/lockstep.py` `board` top: `SYSTEM_RTL` first, then the rest of
+      `files.f`. In `files.f` order Verilator emitted the same logic in a different statement
+      order; with `SYSTEM_RTL` first the generated C++ is identical to `main`.
+- **Checks:**
+    - Verilator lint of every core's `files.f` under its core top: no errors (Proteus needs
+      `-Wno-BLKANDNBLK` for fx68k).
+    - SC-55 `test_system_lockstep.py`: 4 passed (board mk1 10 M steps, mk2 8 M steps,
+      samples identical to the reference); the two `SC55_LONG` hash runs skipped.
+    - JV-880 board bench, `jv880.mid` from power-on with the factory NVRAM (`d5da7845…`) in
+      the pack: 42,181,775 steps and 1,640,121 samples identical to the reference (peak
+      -14.6 dBFS, 18,510,322 DDR3 reads), LCD `I-01:Syn Lead`, output SHA-256
+      `73feda3c…bbbc`, the reference's hash.
+    - CZ-101 `cz101_bench`, real firmware, 4 M instructions: trace (4,838,063 lines) and
+      438,294 samples byte-identical to the `main` build.
+    - Synclavier `tests/hdl/test_board.py` with `SYNCLAVIER_RELEASE_L`: 30 tests OK, none
+      skipped, including the MONITOR boot and ORK-LM state image on `board_top`. The Release L
+      image was not on the Mac or the NAS; it was downloaded from
+      `Synclavier/Synclavier_Distributions` (SHA-256 `97bb43de…1db0`, as `docs/sources.md`) to
+      `synclavier-ii-MiSTer/Synclavier_Distributions/Release_L/` (untracked).
+    - Windows builds, all meet timing:
+
+      | Core | ALMs | main | DSP | Block memory bits |
+      |---|---|---|---|---|
+      | SC-55 | 32,655 | 32,655 | 99 | 3,696,465 |
+      | JV-880 | 28,902 | 28,902 | 97 | 4,166,705 |
+      | CZ-101 | 14,527 | 14,527 | 37 | 927,169 |
+      | Proteus/1 | 25,071 | 25,071 | 40 | 2,065,010 |
+      | Synclavier | 26,399 | 26,399 | 52 | 3,579,505 |
+
+      `main` is 9c6f186 built on the same host. Worst slack +0.241 ns (Proteus, Synclavier,
+      JV-880) to +0.250 ns (SC-55).
+    - MiSTer smoke tests of these RBFs, all pass:
+        - SC-55: running, no underrun or lag.
+        - JV-880: running, no underrun, NVRAM kept after a reload.
+        - CZ-101: MIDI and keys change the LCD, 8 KB save file.
+        - Synclavier: menu up, no underrun, 0 late P in 30 s.
+        - Proteus: 0 missed sample deadlines in the 60 s soak, produced 1.008 of the expected
+          samples.
+
+- **Open:** the Proteus `sys_top` simulation has no build script; `sim/files.f` is its file
+  list when one is written. The Vivado list waits for the M64.
+
 ## Iteration 9: `cfg/` files and the `synthcore` generator (2026-11-23, branch `iter9-synthcore`)
 
 - **Generator:** `modules/synthframe/bin/synthcore` (Python, MIT, PyYAML) writes each core's
