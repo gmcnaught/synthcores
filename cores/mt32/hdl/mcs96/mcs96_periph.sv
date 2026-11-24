@@ -51,8 +51,9 @@ module mcs96_periph (
                            IRQ_SERIAL = 8'h40, IRQ_EXTINT = 8'h80;
 
     // ---------------------------------------------------------------- state
-    logic [7:0]  ram [256];
-    logic [7:0]  ram_q;
+    // registers, not an MLAB: the read is asynchronous (Cyclone V MLABs need a registered
+    // read address), so a register-file read is acknowledged in the clock it is taken
+    (* ramstyle = "logic" *) logic [7:0] ram [256];
     logic [7:0]  clr_a;
     logic        clearing;
 
@@ -106,7 +107,7 @@ module mcs96_periph (
     logic        u_from_reg;       // the update was called from an SFR write
 
     // register-access FSM
-    typedef enum logic [2:0] { A_IDLE, A_RAM, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD, A_ACK } a_t;
+    typedef enum logic [2:0] { A_IDLE, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD, A_ACK } a_t;
     a_t as;
     logic [7:0] a_q;
 
@@ -127,7 +128,6 @@ module mcs96_periph (
     logic [7:0] wr_a, wr_d;
 
     always_ff @(posedge clk) begin
-        logic [7:0] act;
         logic [7:0] irq;
         irq = 8'h0;
         wr_en <= 1'b0;
@@ -382,7 +382,6 @@ module mcs96_periph (
                     endcase
                 end
             end
-            A_RAM:  begin a_q <= ram_q; r_ack <= 1'b1; as <= A_IDLE; end
             A_DIV:  as <= A_DIV2;
             A_DIV2: as <= A_DIV3;
             A_DIV3: as <= A_DIVW;

@@ -38,9 +38,9 @@ module mt32_mix (
     logic [31:0] ax;
     logic [63:0] px;
     logic signed [31:0] s, v;
-    logic signed [31:0] q, x17;            // blocking temporaries
 
     always_ff @(posedge clk) begin
+        logic signed [31:0] q, x17;        // blocking temporaries
         valid <= 1'b0;
         if (rst) begin
             st <= 4'd0;
