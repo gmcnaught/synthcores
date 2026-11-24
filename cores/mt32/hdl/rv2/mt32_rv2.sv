@@ -105,7 +105,7 @@ module mt32_rv2 (
 
     ac_t ac_in, ac_mid, ac_out;
     always_comb begin
-        ac_in = '{accum: accum, shifter: shifter, shifter_add: shifter_add};
+        ac_in = {accum, shifter, shifter_add};
         ac_mid = accum_op(ac_in, ctrl0, ctrlext[1], shift_sel, ramin);
         ac_out = accum_op(ac_mid, ctrl1, ctrlext[0], shift_sel, ramin);
     end

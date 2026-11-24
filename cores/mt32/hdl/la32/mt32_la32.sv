@@ -52,13 +52,16 @@ module mt32_la32 #(
         return {{10{pr[21]}}, pr};
     endfunction
 
-    // calc_pow, second half: rom = {powdrom, powrom} at v[11:3]
-    function automatic logic [31:0] pow_fin(input logic [15:0] rom, input logic [15:0] v);
+    // calc_pow after the table read (rom = {powdrom, powrom} at v[11:3]), in two steps:
+    // p = (powrom + ((powdrom * low) >> 3)) | 0x1000, then (p << hi) >> 9
+    function automatic logic [12:0] pow_p(input logic [15:0] rom, input logic [15:0] v);
         logic [12:0] p;
-        logic [31:0] sh;
         p = {1'b0, rom[11:0]} + 13'((7'(rom[15:12]) * 7'(v[2:0])) >> 3);
-        p = p | 13'h1000;
-        sh = {19'd0, p} << v[15:12];
+        return p | 13'h1000;
+    endfunction
+    function automatic logic [31:0] pow_sh(input logic [12:0] p, input logic [3:0] hi);
+        logic [31:0] sh;
+        sh = {19'd0, p} << hi;
         return sh >> 9;
     endfunction
 
@@ -106,8 +109,20 @@ module mt32_la32 #(
         la_q <= logsin_rom[la_a];
         lb_q <= logsin_rom[lb_a];
     end
-    wire [31:0] pa_r = pow_fin(pa_q, pa_vq);
-    wire [31:0] pb_r = pow_fin(pb_q, pb_vq);
+    // calc_pow results and logsin values, registered twice more: a lookup issued (address
+    // presented) in stage X is used in stage X + 3
+    logic [12:0] pa_p2, pb_p2;
+    logic [3:0]  pa_h2, pb_h2;
+    logic [31:0] pa_r, pb_r;
+    logic [12:0] la_q2, lb_q2, la_qq, lb_qq;
+    always_ff @(posedge clk) begin
+        pa_p2 <= pow_p(pa_q, pa_vq); pb_p2 <= pow_p(pb_q, pb_vq);
+        pa_h2 <= pa_vq[15:12]; pb_h2 <= pb_vq[15:12];
+        pa_r <= pow_sh(pa_p2, pa_h2);
+        pb_r <= pow_sh(pb_p2, pb_h2);
+        la_q2 <= la_q; lb_q2 <= lb_q;
+        la_qq <= la_q2; lb_qq <= lb_q2;
+    end
 
     // ---------------------------------------------------------------- state
     logic [15:0] rf0 [32], rf1 [32], rf2 [32], rf3 [32], rf4 [32], rf5 [32];
@@ -129,9 +144,10 @@ module mt32_la32 #(
     assign acc_prev6 = acc[!oddeven][2][15:0];
     assign acc_prev7 = acc[!oddeven][3][15:0];
 
-    typedef enum logic [3:0] {
-        ST_IDLE, ST_TV, ST_WG, ST_PREQ1, ST_PREQ2, ST_PWAIT, ST_W3, ST_W4,
-        ST_N3, ST_N4, ST_N5, ST_N6, ST_ACC
+    typedef enum logic [4:0] {
+        ST_IDLE, ST_TVW, ST_TVW2, ST_TV, ST_WGW, ST_WGW2, ST_WG1, ST_WG2, ST_PREQ1, ST_PREQ2, ST_PWAIT,
+        ST_W3, ST_W3W, ST_W3W2, ST_N2W, ST_N2W2, ST_N3A, ST_N3A2, ST_N3B, ST_N3C, ST_N3D, ST_N4, ST_N5, ST_N5W,
+        ST_N5W2, ST_G0, ST_G1, ST_G2, ST_ACC1, ST_ACC1B, ST_ACC2, ST_WG3
     } st_t;
     st_t st;
 
@@ -274,7 +290,7 @@ module mt32_la32 #(
         if (!a15[14]) wv_t22 = 32'd0;
         if (a15[14] && t19[13]) wv_t22 = wv_t22 | 32'h2000;
 
-        ph = (ph_new >> 8) & 32'h3ffff;
+        ph = (phase >> 8) & 32'h3ffff;
         w271 = wcfg(ctrl[15:12]);
         w282 = ctrl[15];
         wv_end = ((ph[17:11] & w271) != 0) && !w282;
@@ -346,8 +362,8 @@ module mt32_la32 #(
         if (!a15[14]) t30 = 32'd0;
         if (a15[14] && t19n[13]) t30 = t30 | 32'h2000;
 
-        nw_m1 = (ph_new >> 6) & 32'hfff;
-        if (ph_new[18]) nw_m1 = nw_m1 | 32'h3000;
+        nw_m1 = (phase >> 6) & 32'hfff;
+        if (phase[18]) nw_m1 = nw_m1 | 32'h3000;
 
         a15 = add14(t30, nw_t31 << 1, 1'b1);
         t29 = 32'(a15[13:0]);
@@ -355,7 +371,7 @@ module mt32_la32 #(
         if (!a15[14]) nw_t32 = 32'd0;
         if (a15[14] && t29[13]) nw_t32 = nw_t32 | 32'h2000;
 
-        nw_l1 = (~ph_new >> 3) & 32'hffff;
+        nw_l1 = (~phase >> 3) & 32'hffff;
         nw_ix1 = (nw_l1 >> 5) & 32'h7ff;
         if (nw_ix1[9]) nw_ix1 = nw_ix1 ^ 32'h400;
         nw_ix1 = nw_ix1 ^ 32'h200;
@@ -373,6 +389,8 @@ module mt32_la32 #(
     // registered results of ST_WG
     logic [31:0] r_t27, r_t22, r_t5, r_t12, r_t32, r_l1, r_m1;
     logic        r_w467, r_end, r_end2;
+    logic [15:0] r_e1, r_e2;
+    logic [8:0]  r_ix1q, r_ix2;
     logic [19:0] r_wa1, r_wa2;
     logic [7:0]  s1l, s1h, s2l, s2h;
     logic [1:0]  pcm_need, pcm_got;       // [0] wa1, [1] wa2
@@ -408,98 +426,107 @@ module mt32_la32 #(
     end
     logic        r_zero1, r_zero2, r_sign1, r_sign2;
 
-    // output of a wave generator (both branches): w1/w2 -> oo, prev
-    logic signed [31:0] gen_oo, gen_prev;
-    logic [31:0] g_w1, g_w2;
-    always_comb begin : b_c5
-        logic signed [31:0] o1, o2, ot3, ot4, ot5, ot6, ot7, c;
-        logic [31:0] ot8;
+    // ================================================================ combine (both branches)
+    // ST_G1: w1, w2 (registered pow) with their signs -> the PCM interpolation sum, or the
+    // square/saw sum ot3 + (ot4 >> 1) + c (= ot7 of the ring modulator)
+    logic signed [31:0] g1_v;
+    always_comb begin : b_g1
+        logic signed [31:0] o1, o2, ot3, ot4, c;
+        logic [31:0] w1, w2;
         logic [6:0] interp;
-        o1 = '0; o2 = '0; ot3 = '0; ot4 = '0; ot5 = '0; ot6 = '0; ot7 = '0; c = '0; ot8 = '0;
         interp = phase[7:1];
-        gen_prev = prev;
-        if (st == ST_W4) begin
-            g_w1 = pa_r;
-            if (!r_zero1 && (sign_flip ^ r_sign1)) g_w1 = ~g_w1;
-            g_w2 = pb_r;
-            if (!r_zero2 && (sign_flip ^ r_sign2)) g_w2 = ~g_w2;
+        w1 = r_w1;
+        w2 = r_w2;
+        o1 = '0; o2 = '0; ot3 = '0; ot4 = '0; c = '0;
+        if (ctrl[7] && mode) begin
+            o1 = mul(w1 >> 6, 32'(interp ^ 7'h7f)) >>> 7;
+            o2 = mul(w2 >> 6, 32'(interp)) >>> 7;
+            g1_v = o1 + o2;
         end else begin
-            g_w1 = pa_r;
-            if (sign_flip ^ r_sign1) g_w1 = ~g_w1;
-            g_w2 = pb_r;
-            if (!r_zero2 && (sign_flip ^ r_sign2)) g_w2 = ~g_w2;
-        end
-        if (st == ST_W4 && mode) begin
-            o1 = mul(g_w1 >> 6, 32'(interp ^ 7'h7f)) >>> 7;
-            o2 = mul(g_w2 >> 6, 32'(interp)) >>> 7;
-            gen_oo = o1 + o2;
-            gen_prev = gen_oo;
-        end else begin
-            o1 = g_w1 >> 5;
-            o2 = g_w2 >> 5;
+            o1 = w1 >> 5;
+            o2 = w2 >> 5;
             ot4 = sext15(o1);
             ot3 = sext15(o2);
             c = 32'(ot4[0]);
-            gen_oo = ot3 + (ot4 >>> 1) + c;
-            if (ring) begin
-                ot7 = (ot4 >>> 1) + ot3 + c;
-                ot8 = 32'({ot7[13], ot7[13:7]});
-                ot5 = mul(prev, ot8) >>> 6;
-                ot6 = mul(prev, 32'(ot7[6:0])) >>> 13;
-                gen_prev = gen_oo;
-                gen_oo = ot5 + ot6;
-            end else
-                gen_prev = gen_oo;
+            g1_v = ot3 + (ot4 >>> 1) + c;
         end
+    end
+    logic signed [31:0] r_g1;
+    logic [31:0] r_w1, r_w2;                 // ST_G0: w1, w2 with their signs applied
+    // ST_G2: ring modulation (not for PCM in interpolation mode)
+    logic signed [31:0] g2_oo;
+    always_comb begin : b_g2
+        logic signed [31:0] ot5, ot6;
+        logic [31:0] ot8;
+        ot8 = 32'({r_g1[13], r_g1[13:7]});
+        ot5 = mul(prev, ot8) >>> 6;
+        ot6 = mul(prev, 32'(r_g1[6:0])) >>> 13;
+        if (!(ctrl[7] && mode) && ring) g2_oo = ot5 + ot6;
+        else g2_oo = r_g1;
     end
 
     // ================================================================ synthesis stages
-    // ST_N3: p1, p2 (pow), ls1, ls2 (logsin)
-    logic [31:0] n3_l3, n3_l4, n3_l3_, n3_l4_, n3_t34, n3_t52, n3_t43;
-    logic        n3_l3c_, n3_l4c_;
-    logic        w326, w402, w407, w413, w417, w418, w419, w429, w430, w464;
-    logic [8:0]  n3_ix3, n3_ix4;
-    always_comb begin : b_c6
-        logic [31:0] p1, p2, t21, l2, p1lo, p1hi, ix3, ix4, l7, l8, t36, t37, t38, t44, t45;
-        logic signed [31:0] m2, m3, m4, m5;
-        logic [31:0] l3, l4, l3_, l4_, w348;
-        logic l3c, l4c, w403, w404, w408, w409, w352, w353, w354, w355;
-        logic [31:0] t42, w518;
+    // ST_N3A: p1, p2 (pow), ls1, ls2 (logsin) -> m2..m5, t34, t52
+    logic signed [31:0] n3a_m2, n3a_m3, n3a_m4, n3a_m5;
+    logic [31:0] n3a_l2, n3a_t34, n3a_t52, n3a_p1lo, n3a_p1hi;
+    always_comb begin : b_n3a
+        logic [31:0] t21, p1lo, p1hi, l7, l8, t37, t38, t50;
         logic [14:0] a15;
-        logic [7:0] rom8;
-        w352 = 1'b0; w353 = 1'b0; w354 = 1'b0; w355 = 1'b0; w518 = '0; t42 = '0;
-        p1 = pa_r;
-        p2 = pb_r;
-        t21 = (p2 >> 4) & 32'h7fff;
-        l2 = (r_l1 + t21 + 32'h10001) & 32'h1ffff;
-        p1lo = (p1 >> 4) & 32'd127;
-        p1hi = (p1 >> 11) & 32'd127;
-        m2 = mul(r_m1, p1lo);
-        m3 = mul(r_m1, p1hi);
-        m4 = mul(l2 >> 3, p1lo);
-        m5 = mul(l2 >> 3, p1hi);
+        t21 = (pb_r >> 4) & 32'h7fff;
+        n3a_l2 = (r_l1 + t21 + 32'h10001) & 32'h1ffff;
+        p1lo = (pa_r >> 4) & 32'd127;
+        p1hi = (pa_r >> 11) & 32'd127;
+        n3a_p1lo = p1lo;
+        n3a_p1hi = p1hi;
+        n3a_m2 = mul(r_m1, p1lo);
+        n3a_m3 = mul(r_m1, p1hi);
+        n3a_m4 = mul(r_l2 >> 3, r_p1lo);      // ST_N3A2, from the registered l2
+        n3a_m5 = mul(r_l2 >> 3, r_p1hi);
 
-        l3 = (32'(m2 >>> 8) & 32'hffff) + (32'(m3 >>> 1) & 32'hffff);
+        l7 = 32'(la_qq) ^ 32'h3fff;
+        l8 = mode ? l7 : 32'h3fff;
+        t37 = 32'(ctrl[12:8]) << 8;
+        if (ctrl[12:8] != 0) t37 = t37 | 32'h2000;
+        t38 = 32'(lb_qq) ^ 32'h3fff;
+        a15 = add14(t37, t38, 1'b1);
+        t50 = a15[14] ? 32'(a15[13:0]) : 32'd0;
+        a15 = add14(l8, r_t32, 1'b1);
+        n3a_t34 = a15[14] ? 32'(a15[13:0]) : 32'd0;
+        a15 = add14(t50, n3a_t34, 1'b1);
+        n3a_t52 = a15[14] ? 32'(a15[13:0]) : 32'd0;
+    end
+    logic signed [31:0] r_m2, r_m3, r_m4, r_m5;
+    logic [31:0] r_l2, r_t34, r_t52, r_p1lo, r_p1hi;
+
+    // ST_N3B: l3, l4, the w4xx flags, logsin lookups ix3/ix4, t44, t45
+    logic [31:0] n3b_t44, n3b_t45;
+    logic        w326, w402, w407, w413, w417, w418, w419, w429, w430, w464;
+    logic [8:0]  n3b_ix3, n3b_ix4;
+    always_comb begin : b_n3b
+        logic [31:0] ix3, ix4, l3, l4, l3_, l4_, w348, w518;
+        logic l3c, l4c, l3c_, l4c_, w403, w404, w408, w409, w352, w353, w354, w355;
+        logic [7:0] rom8;
+        w352 = 1'b0; w353 = 1'b0; w354 = 1'b0; w355 = 1'b0; w518 = '0;
+        l3 = (32'(r_m2 >>> 8) & 32'hffff) + (32'(r_m3 >>> 1) & 32'hffff);
         l3c = l3[16];
         l3 = l3 & 32'hffff;
-        l3_ = (32'(m2 >>> 8) & 32'h3ffff) + (32'(m3 >>> 1) & 32'h3ffff);
-        n3_l3c_ = l3_[18];
+        l3_ = (32'(r_m2 >>> 8) & 32'h3ffff) + (32'(r_m3 >>> 1) & 32'h3ffff);
+        l3c_ = l3_[18];
         l3_ = l3_ & 32'h3ffff;
-        l4 = (32'(m4 >>> 8) & 32'hffff) + (32'(m5 >>> 1) & 32'hffff);
+        l4 = (32'(r_m4 >>> 8) & 32'hffff) + (32'(r_m5 >>> 1) & 32'hffff);
         l4c = l4[16];
         l4 = l4 & 32'hffff;
-        l4_ = (32'(m4 >>> 8) & 32'h3ffff) + (32'(m5 >>> 1) & 32'h3ffff);
-        n3_l4c_ = l4_[18];
+        l4_ = (32'(r_m4 >>> 8) & 32'h3ffff) + (32'(r_m5 >>> 1) & 32'h3ffff);
+        l4c_ = l4_[18];
         l4_ = l4_ & 32'h3ffff;
-        n3_l3 = l3; n3_l4 = l4; n3_l3_ = l3_; n3_l4_ = l4_;
 
-        w403 = !(l3c || (l3 & 32'hfc00) != 0 || (32'(m3 >>> 8) & 32'h1e00) != 0);
-        w408 = !(!l3c && !(((32'(m3 >>> 8) & 32'h1000) != 0) ^ ((32'(m2 >>> 8) & 32'h8000) != 0)))
-               && (32'(m3 >>> 8) & 32'h1e00) == 32'h1e00 && (l3 & 32'hfc00) == 32'hfc00;
-        w404 = !(l4c || (l4 & 32'hfc00) != 0 || (32'(m5 >>> 8) & 32'h1e00) != 0);
-        w409 = !(!l4c && !(((32'(m5 >>> 8) & 32'h1000) != 0) ^ ((32'(m4 >>> 8) & 32'h8000) != 0)))
-               && (32'(m5 >>> 8) & 32'h1e00) == 32'h1e00 && (l4 & 32'hfc00) == 32'hfc00;
-        w326 = l2[16];
+        w403 = !(l3c || (l3 & 32'hfc00) != 0 || (32'(r_m3 >>> 8) & 32'h1e00) != 0);
+        w408 = !(!l3c && !(((32'(r_m3 >>> 8) & 32'h1000) != 0) ^ ((32'(r_m2 >>> 8) & 32'h8000) != 0)))
+               && (32'(r_m3 >>> 8) & 32'h1e00) == 32'h1e00 && (l3 & 32'hfc00) == 32'hfc00;
+        w404 = !(l4c || (l4 & 32'hfc00) != 0 || (32'(r_m5 >>> 8) & 32'h1e00) != 0);
+        w409 = !(!l4c && !(((32'(r_m5 >>> 8) & 32'h1000) != 0) ^ ((32'(r_m4 >>> 8) & 32'h8000) != 0)))
+               && (32'(r_m5 >>> 8) & 32'h1e00) == 32'h1e00 && (l4 & 32'hfc00) == 32'hfc00;
+        w326 = r_l2[16];
         w417 = !(w326 || w403);
         w402 = !(!w326 && w403);
         w419 = !(w408 || !w326);
@@ -513,60 +540,52 @@ module mt32_la32 #(
         if (ix3[9]) ix3 = ix3 ^ 32'h1ff;
         ix4 = (l4 >> 1) & 32'h7ff;
         if (ix4[9]) ix4 = ix4 ^ 32'h1ff;
-        n3_ix3 = ix3[8:0];
-        n3_ix4 = ix4[8:0];
+        n3b_ix3 = ix3[8:0];
+        n3b_ix4 = ix4[8:0];
         if (w326) w464 = r_w467 ^ !ix4[10];
         else w464 = r_w467 ^ !ix3[10];
-
-        l7 = 32'(la_q) ^ 32'h3fff;
-        l8 = mode ? l7 : 32'h3fff;
-        t36 = 32'(ctrl[12:8]);
-        t37 = t36 << 8;
-        if (t36 != 0) t37 = t37 | 32'h2000;
-        t38 = 32'(lb_q) ^ 32'h3fff;
-        a15 = add14(t37, t38, 1'b1);
-        // t50
-        t36 = a15[14] ? 32'(a15[13:0]) : 32'd0;
-        a15 = add14(l8, r_t32, 1'b1);
-        n3_t34 = a15[14] ? 32'(a15[13:0]) : 32'd0;
-        a15 = add14(t36, n3_t34, 1'b1);
-        n3_t52 = a15[14] ? 32'(a15[13:0]) : 32'd0;
 
         case (ctrl[15:13])
             3'd0: rom8 = 8'd127; 3'd1: rom8 = 8'd64; 3'd2: rom8 = 8'd48; 3'd3: rom8 = 8'd32;
             3'd4: rom8 = 8'd20;  3'd5: rom8 = 8'd12; 3'd6: rom8 = 8'd8;  default: rom8 = 8'd4;
         endcase
-        t44 = 32'(rom8);
-        if (w326) t44 = t44 ^ 32'd255;
+        n3b_t44 = 32'(rom8);
+        if (w326) n3b_t44 = n3b_t44 ^ 32'd255;
         if (w326) begin
-            t45 = (l4_ >> 5) & 32'h1ff;
-            w348 = 32'(m5 >>> 8) & 32'hffff;
-            w352 = !(w348[12] ^ ((32'(m4 >>> 8) & 32'h8000) != 0));
-            w353 = !(w352 && !n3_l4c_);
+            n3b_t45 = (l4_ >> 5) & 32'h1ff;
+            w348 = 32'(r_m5 >>> 8) & 32'hffff;
+            w352 = !(w348[12] ^ ((32'(r_m4 >>> 8) & 32'h8000) != 0));
+            w353 = !(w352 && !l4c_);
             w354 = w353 && w348[11];
             w518 = w354 ? ((l4_ >> 14) & 32'd15) : 32'd0;
-            t45 = t45 | (w518 << 9) | 32'h2000;
+            n3b_t45 = n3b_t45 | (w518 << 9) | 32'h2000;
         end else begin
-            t45 = (l3_ >> 5) & 32'h1ff;
-            w348 = 32'(m3 >>> 8) & 32'hffff;
-            w355 = !(n3_l3c_ || w348[11]);
+            n3b_t45 = (l3_ >> 5) & 32'h1ff;
+            w348 = 32'(r_m3 >>> 8) & 32'hffff;
+            w355 = !(l3c_ || w348[11]);
             w518 = w355 ? ((l3_ >> 14) & 32'd15) : 32'd15;
-            t45 = t45 | (w518 << 9);
+            n3b_t45 = n3b_t45 | (w518 << 9);
         end
-        t42 = 32'(mul(t45, t44));
-        n3_t43 = (~t42 >> 1) & 32'h3ff;
-        if (t42 < 32'h8000) n3_t43 = n3_t43 | ((~t42 >> 1) & 32'h3c00);
     end
-    logic [31:0] r_t34, r_t52, r_t43;
+    logic [31:0] r_t44, r_t45, r_t43;
     logic        r_w326, r_w402, r_w407, r_w413, r_w417, r_w418, r_w419, r_w429, r_w430, r_w464;
+
+    // ST_N3C: t42 = mul(t45, t44) -> t43
+    logic [31:0] n3c_t43;
+    always_comb begin : b_n3c
+        logic [31:0] t42;
+        t42 = 32'(mul(r_t45, r_t44));
+        n3c_t43 = (~t42 >> 1) & 32'h3ff;
+        if (t42 < 32'h8000) n3c_t43 = n3c_t43 | ((~t42 >> 1) & 32'h3c00);
+    end
 
     // ST_N4: ls3, ls4 -> t53, t56, t48
     logic [31:0] n4_t53, n4_t56, n4_t48;
-    always_comb begin : b_c7
+    always_comb begin : b_n4
         logic [31:0] t40, t55, ls3, ls4;
         logic [14:0] a15;
-        ls3 = 32'(la_q);
-        ls4 = 32'(lb_q);
+        ls3 = 32'(la_qq);
+        ls4 = 32'(lb_qq);
         t40 = 32'd0;
         if (!r_w407 || !r_w402) t40 = (ls3 ^ 32'h1fff) << 1;
         if (r_w417) t40 = ls3 ^ 32'h3fff;
@@ -589,7 +608,7 @@ module mt32_la32 #(
     // ST_N5: t41 -> t46 -> t47 -> t49, zero
     logic [31:0] n5_t49;
     logic        n5_zero;
-    always_comb begin : b_c8
+    always_comb begin : b_n5
         logic [31:0] t46;
         logic [14:0] a15;
         a15 = add14(r_t53, r_t43, 1'b1);
@@ -599,40 +618,45 @@ module mt32_la32 #(
         n5_zero = a15[13:11] == 0 || !a15[14];
     end
 
-    // ================================================================ ST_ACC: pan, accumulate, rf5
+    // ================================================================ ST_ACC1/2: pan, accumulate, rf5
     logic signed [31:0] r_oo;
-    logic signed [31:0] acc_add_lo, acc_add_hi;
+    logic signed [31:0] acc1_lo, acc1_hi, r_add_lo, r_add_hi;
     logic        acc_en_lo, acc_en_hi;
     logic        rf5_we;
     logic [4:0]  rf5_wa;
     logic [15:0] rf5_wd;
     logic        latch_w;
     logic [4:0]  latch_a;
-    always_comb begin : b_c9
-        logic signed [31:0] ot1, ot2, c;
-        logic [31:0] c1, t1, t2, t3, t4, t5;
+    logic        r_rf5_we, r_latch_w;
+    logic [4:0]  r_rf5_wa, r_latch_a;
+    logic [15:0] r_rf5_wd;
+    // ST_ACC1: ot1 = mul(oo, pan1), the rf5 counter operands; ST_ACC1B: sums; ST_ACC2: writes
+    logic signed [31:0] r_ot1;
+    logic [31:0] acc0_c1, acc0_t2;
+    logic [31:0] r_c1, r_t2;
+    always_comb begin : b_acc
+        logic signed [31:0] c;
+        logic [31:0] t1, t3, t4, t5;
         logic [4:0] pv, a;
-        ot1 = mul(r_oo, 32'(pan1));
-        acc_add_lo = ot1 >>> 7;
-        c = 32'((~ot1 >>> 6) & 32'sd1);
-        ot2 = r_oo + (~ot1 >>> 7) + c;
-        acc_add_hi = ot2;
+        acc1_lo = r_ot1 >>> 7;
+        c = 32'((~r_ot1 >>> 6) & 32'sd1);
+        acc1_hi = r_oo + (~r_ot1 >>> 7) + c;
         acc_en_lo = !(ring && !i[0]) && outch[1];
         acc_en_hi = !(ring && !i[0]) && outch[1] && (ctrl[2:0] != 3'd7);
 
         rf5_we = i[2:0] == 3'd1 || i[2:0] == 3'd2 || i[2:0] == 3'd3;
-        c1 = (i[2:0] == 3'd1) ? 32'(w186) : (i[2:0] == 3'd2) ? 32'(w187) : 32'(w188);
-        t1 = ~(c1 >> 1) & 32'h3fff;
-        pv = i - 5'd1;
-        a = pv & 5'h1b;
-        t2 = (32'(rf5[a]) >> 2) & 32'h3ffe;
-        t3 = t1 + t2 + 32'd1;
+        t1 = ~(r_c1 >> 1) & 32'h3fff;
+        t3 = t1 + r_t2 + 32'd1;
         t4 = (t3 >> 6) & 32'hff;
         if (!t3[14]) t4 = t4 | 32'hff00;
-        t5 = c1 + t4;
+        t5 = r_c1 + t4;
         if (t3[14]) t5 = t5 + 32'd1;
         rf5_wa = 5'd4 | (i & 5'h1b);
         rf5_wd = t5[15:0] & 16'h7fff;
+        pv = i - 5'd1;
+        a = pv & 5'h1b;
+        acc0_c1 = (i[2:0] == 3'd1) ? 32'(w186) : (i[2:0] == 3'd2) ? 32'(w187) : 32'(w188);
+        acc0_t2 = (32'(rf5[a]) >> 2) & 32'h3ffe;
 
         latch_w = i[2:0] == 3'd7;
         latch_a = 5'd4 | ((i[4] ^ i[3]) ? 5'h10 : 5'h0) | (!i[3] ? 5'h8 : 5'h0);
@@ -647,19 +671,19 @@ module mt32_la32 #(
                 pb_v = (rf2[slot] << 9);
             end
             ST_TV: pa_v = rf3i;
-            ST_WG: begin
-                pa_v = nw_e1[15:0];
-                pb_v = nw_e2[15:0];
-                la_a = nw_ix1q;
-                lb_a = nw_ix2;
+            ST_WG3: begin
+                pa_v = r_e1;
+                pb_v = r_e2;
+                la_a = r_ix1q;
+                lb_a = r_ix2;
             end
             ST_W3: begin
                 pa_v = w_v1[15:0];
                 pb_v = w_v2[15:0];
             end
-            ST_N3: begin
-                la_a = n3_ix3;
-                lb_a = n3_ix4;
+            ST_N3B: begin
+                la_a = n3b_ix3;
+                lb_a = n3b_ix4;
             end
             ST_N5: begin
                 pa_v = {r_t56[13:0], 2'b00};
@@ -754,8 +778,10 @@ module mt32_la32 #(
                     w46 <= w46n;
                     rf0i <= rf0[slot]; rf1i <= rf1[slot]; rf2i <= rf2[slot]; rf3i <= rf3[slot]; rf4i <= rf4[slot];
                     r20i <= r2_0[slot]; r21i <= r2_1[slot]; r22i <= r2_2[slot];
-                    st <= ST_TV;
+                    st <= ST_TVW;
                 end
+                ST_TVW: st <= ST_TVW2;
+                ST_TVW2: st <= ST_TV;
                 ST_TV: begin
                     tvv0 <= tv_val[0];
                     tvv1 <= tv_val[1];
@@ -768,11 +794,16 @@ module mt32_la32 #(
                         int_state <= 1'b1;
                         int_status <= 8'h80 | 8'(i) | 8'h20;
                     end
-                    st <= ST_WG;
+                    st <= ST_WGW;
                 end
-                ST_WG: begin
+                ST_WGW: st <= ST_WGW2;
+                ST_WGW2: st <= ST_WG1;
+                ST_WG1: begin
                     phase <= ph_new;
                     r2_2[i] <= ph_new[25:0];
+                    st <= ST_WG2;
+                end
+                ST_WG2: begin
                     sign_flip <= sf;
                     r_t27 <= wv_t27; r_t22 <= wv_t22;
                     r_wa1 <= wa1; r_wa2 <= wa2;
@@ -792,25 +823,43 @@ module mt32_la32 #(
                         s1l <= 8'd0; s1h <= 8'd0; s2l <= 8'd0; s2h <= 8'd0;
                         st <= ST_PREQ1;
                     end else
-                        st <= ST_N3;
+                        st <= ST_WG3;
+                    r_e1 <= nw_e1[15:0]; r_e2 <= nw_e2[15:0]; r_ix1q <= nw_ix1q; r_ix2 <= nw_ix2;
                 end
+                ST_WG3: st <= ST_N2W;
                 ST_PREQ1: if (!pcm_need[0] || pcm_req_ready) st <= ST_PREQ2;
                 ST_PREQ2: if (!pcm_need[1] || pcm_req_ready) st <= ST_PWAIT;
                 ST_PWAIT: if (pcm_got == pcm_need) st <= ST_W3;
                 ST_W3: begin
                     r_zero1 <= w_zero1; r_zero2 <= w_zero2;
                     r_sign1 <= w_sign1; r_sign2 <= w_sign2;
-                    st <= ST_W4;
+                    st <= ST_W3W;
                 end
-                ST_W4: begin
-                    r_oo <= gen_oo;
-                    prev <= gen_prev;
-                    st <= ST_ACC;
+                ST_W3W: st <= ST_W3W2;
+                ST_W3W2: st <= ST_G0;
+                ST_N2W: st <= ST_N2W2;
+                ST_N2W2: st <= ST_N3A;
+                ST_N3A: begin
+                    r_m2 <= n3a_m2; r_m3 <= n3a_m3;
+                    r_l2 <= n3a_l2; r_t34 <= n3a_t34; r_t52 <= n3a_t52;
+                    r_p1lo <= n3a_p1lo; r_p1hi <= n3a_p1hi;
+                    st <= ST_N3A2;
                 end
-                ST_N3: begin
-                    r_t34 <= n3_t34; r_t52 <= n3_t52; r_t43 <= n3_t43;
+                ST_N3A2: begin
+                    r_m4 <= n3a_m4; r_m5 <= n3a_m5;
+                    st <= ST_N3B;
+                end
+                ST_N3B: begin
+                    r_t44 <= n3b_t44; r_t45 <= n3b_t45;
                     r_w326 <= w326; r_w402 <= w402; r_w407 <= w407; r_w413 <= w413; r_w417 <= w417;
                     r_w418 <= w418; r_w419 <= w419; r_w429 <= w429; r_w430 <= w430; r_w464 <= w464;
+                    st <= ST_N3C;
+                end
+                ST_N3C: begin
+                    r_t43 <= n3c_t43;
+                    st <= ST_N3D;
+                end
+                ST_N3D: begin
                     st <= ST_N4;
                 end
                 ST_N4: begin
@@ -818,25 +867,50 @@ module mt32_la32 #(
                     st <= ST_N5;
                 end
                 ST_N5: begin
-                    // w1: sign1 = !w469 = w467 ^ w326; no zero test. w2: sign2 = !w464, zero = n5_zero
+                    // w1: sign1 = !w469 = w467 ^ w326, no zero test; w2: sign2 = !w464, zero
+                    r_zero1 <= 1'b0;
                     r_sign1 <= r_w467 ^ r_w326;
                     r_sign2 <= !r_w464;
                     r_zero2 <= n5_zero;
-                    st <= ST_N6;
+                    st <= ST_N5W;
                 end
-                ST_N6: begin
-                    r_oo <= gen_oo;
-                    prev <= gen_prev;
-                    st <= ST_ACC;
+                ST_N5W: st <= ST_N5W2;
+                ST_N5W2: st <= ST_G0;
+                ST_G0: begin
+                    r_w1 <= (!r_zero1 && (sign_flip ^ r_sign1)) ? ~pa_r : pa_r;
+                    r_w2 <= (!r_zero2 && (sign_flip ^ r_sign2)) ? ~pb_r : pb_r;
+                    st <= ST_G1;
                 end
-                ST_ACC: begin
-                    if (acc_en_lo) acc[oddeven][{1'b0, outch[0]}] <= acc[oddeven][{1'b0, outch[0]}] + acc_add_lo;
-                    if (acc_en_hi) acc[oddeven][{1'b1, outch[0]}] <= acc[oddeven][{1'b1, outch[0]}] + acc_add_hi;
-                    if (rf5_we) rf5[rf5_wa] <= rf5_wd;
-                    if (latch_w) begin
-                        w186 <= rf5[latch_a + 5'd1][14:0];
-                        w187 <= rf5[latch_a + 5'd2][14:0];
-                        w188 <= rf5[latch_a + 5'd3][14:0];
+                ST_G1: begin
+                    r_g1 <= g1_v;
+                    st <= ST_G2;
+                end
+                ST_G2: begin
+                    r_oo <= g2_oo;
+                    prev <= r_g1;
+                    st <= ST_ACC1;
+                end
+                ST_ACC1: begin
+                    r_ot1 <= mul(r_oo, 32'(pan1));
+                    r_c1 <= acc0_c1;
+                    r_t2 <= acc0_t2;
+                    st <= ST_ACC1B;
+                end
+                ST_ACC1B: begin
+                    r_add_lo <= acc1_lo;
+                    r_add_hi <= acc1_hi;
+                    r_rf5_we <= rf5_we; r_rf5_wa <= rf5_wa; r_rf5_wd <= rf5_wd;
+                    r_latch_w <= latch_w; r_latch_a <= latch_a;
+                    st <= ST_ACC2;
+                end
+                ST_ACC2: begin
+                    if (acc_en_lo) acc[oddeven][{1'b0, outch[0]}] <= acc[oddeven][{1'b0, outch[0]}] + r_add_lo;
+                    if (acc_en_hi) acc[oddeven][{1'b1, outch[0]}] <= acc[oddeven][{1'b1, outch[0]}] + r_add_hi;
+                    if (r_rf5_we) rf5[r_rf5_wa] <= r_rf5_wd;
+                    if (r_latch_w) begin
+                        w186 <= rf5[r_latch_a + 5'd1][14:0];
+                        w187 <= rf5[r_latch_a + 5'd2][14:0];
+                        w188 <= rf5[r_latch_a + 5'd3][14:0];
                     end
                     st <= ST_IDLE;
                     slot <= i + 5'd1;
