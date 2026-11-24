@@ -8,9 +8,9 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
 | `cores/sc55/` | Roland SC-55 / mk2 / SC-155 (H8/532, PCM chip), lockstep against Nuked-SC55 | gmcnaught/sc55-MiSTer `main` |
 | `cores/proteus/` | E-mu Proteus/1 XR (fx68k); Proteus 2000 core in progress under `p2k/` (TG68K + ColdFire) | gmcnaught/emu-proteus-xr-MiSTer `p2k-research` |
 | `cores/synclavier/` | NED Synclavier (ABLE CPU, FM, poly sampling) | gmcnaught/synclavierii `main` |
-| `cores/jv880/` | Roland JV-880 (H8/532, PCM chip from `modules/roland`), lockstep against Nuked-SC55's `jv880` model | new here (iteration 12) |
+| `cores/jv880/` | Roland JV-880 (H8/532, PCM chip from `modules/roland`), lockstep against Nuked-SC55's `jv880` model; released as gmcnaught/JV-880-MiSTer | new here (iteration 12) |
 | `cores/mt32/` | Roland MT-32, second generation (8098, LA32, reverb chip), lockstep against Nuked-MT32; released as gmcnaught/MT-32-MiSTer | new here (iteration 17) |
-| `cores/cz101/` | Casio CZ-101 (uPD7811, uPD933), lockstep against MAME | new here (iteration 13) |
+| `cores/cz101/` | Casio CZ-101 (uPD7811, uPD933), lockstep against MAME; released as gmcnaught/CZ-101-MiSTer | new here (iteration 13) |
 | `modules/nuked-sc55/` | SC-55 and JV-880 reference model (submodule) | jcmoyer/Nuked-SC55 |
 | `modules/nuked-mt32/` | MT-32 reference model (submodule) | nukeykt/Nuked-MT32 |
 
