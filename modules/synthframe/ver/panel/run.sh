@@ -21,6 +21,7 @@ build() {   # name top warm clks sources...
     verilator --cc --exe --build -O2 -Wno-fatal -Wno-lint -Wno-style --top-module "$top" \
         -I"$HERE" -I"$ROLAND/board" -I"$PANEL" \
         +define+LCD_BACK_HEX=\""$ROOT/cores/sc55/hdl/board/lcd_back.hex"\" \
+        +define+SC55_PANEL_DIR=\""$ROOT/cores/sc55/hdl/panel/"\" -I"$ROOT/cores/sc55/hdl/panel" \
         +define+CZ101_PANEL_DIR=\""$ROOT/cores/cz101/hdl/panel/"\" -I"$ROOT/cores/cz101/hdl/panel" \
         -CFLAGS "-O2 -DBENCH_TOP=V$top -DBENCH_H='\"V$top.h\"' -DNAME='\"$name\"'" \
         --Mdir "$OUT/$name" -o "bench_$name" "$HERE/tb_frame.cpp" "$@" >"$OUT/$name.build.log" 2>&1 \

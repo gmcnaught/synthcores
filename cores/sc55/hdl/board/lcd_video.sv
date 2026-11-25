@@ -2,13 +2,23 @@
 // reference's LCD_Render draws it for the mk1 (lcd.cpp: 741 x 268, the
 // background bitmap, the eight text fields of 5 x 7 dots of 5 x 5 pixels on
 // a 6-pixel pitch, the L/R marks and the level bars), placed at (29, 40);
-// below it a status strip. Timing and status strip from synthframe's panel modules. Reads the LCD controller's state from the core
-// clock without synchronisation (display only).
-module lcd_video (
+// around it the front panel (cfg/panel.yaml: POWER, ALL / MUTE and the eight
+// pairs of arrow buttons, each shown pressed while its MiSTer key is held),
+// the status strip at (29, 564). Timing, panel art and status strip from
+// synthframe's panel modules (the panel ROMs in hdl/panel/ are made by
+// modules/synthframe/tools/panel_art.py). Reads the LCD controller's state and
+// the buttons from the core clock without synchronisation (display only).
+`ifndef SC55_PANEL_DIR
+    `define SC55_PANEL_DIR "../hdl/panel/"               // Quartus: relative to mister/
+`endif
+module lcd_video #(
+    parameter PANEL_DIR = `SC55_PANEL_DIR
+) (
     input  logic       clk,              // pixel clock
     input  logic [7:0] dd [80],
     input  logic [4:0] cg [64],
     input  logic       enable,
+    input  logic [31:0] buttons,         // kbd_buttons: mcu.button_pressed bits (MCU_BUTTON_*)
     // status strip
     input  logic       rom_ok,
     input  logic       loading,
@@ -30,6 +40,7 @@ module lcd_video (
     output logic [8:0] lcd_y
 );
     localparam int X0 = 29, Y0 = 40, LW = 741, LH = 268;
+    localparam int SX = 29, SY = 564;           // status strip
 
     // background bitmap: pixel p in bit p % 8 of byte p / 8
 `ifndef LCD_BACK_HEX
@@ -72,6 +83,8 @@ module lcd_video (
     // x and y separately: position in the LCD, the text/bar cell and the offset
     // in it (one constant division each); stage 1 combines them
     logic        hb0, vb0, hs0, vs0;
+    logic [10:0] x0, x1, x2, x3;        // screen position, for the panel art and the status strip
+    logic [9:0]  y0, y1, y2, y3;
     logic        in_area0;
     logic [9:0]  lx0, ly0;
     logic [1:0]  tx_in3, tx_in16;       // per side: inside 3 (side 1 also 16) cells
@@ -98,6 +111,7 @@ module lcd_video (
         lx = lxs[9:0];
         ly = lys[9:0];
         hb0 <= hb; vb0 <= vb; hs0 <= hsy; vs0 <= vsy;
+        x0 <= x; y0 <= y;
         in_area0 <= !lxs[10] && !lys[10] && lxs < 11'(LW) && lys < 11'(LH);
         lx0 <= lx;
         ly0 <= ly;
@@ -139,6 +153,7 @@ module lcd_video (
         logic [7:0] bm;
         logic       inn;
         hb1 <= hb0; vb1 <= vb0; hs1 <= hs0; vs1 <= vs0;
+        x1 <= x0; y1 <= y0;
         in_lcd1 <= in_area0;
         lx1 <= lx0;
         ly1 <= ly0[8:0];
@@ -207,6 +222,7 @@ module lcd_video (
         back_bit2 <= p1[2:0];
         in_lcd2 <= in_lcd1; hs2 <= hs1; vs2 <= vs1; hb2 <= hb1; vb2 <= vb1;
         lx2 <= lx1; ly2 <= ly1;
+        x2 <= x1; y2 <= y1;
     end
 
     // ------------------------------------------------------------ stage 3: font row
@@ -222,6 +238,7 @@ module lcd_video (
         back3 <= back_q[back_bit2];
         in_lcd3 <= in_lcd2; hs3 <= hs2; vs3 <= vs2; hb3 <= hb2; vb3 <= vb2;
         lx3 <= lx2; ly3 <= ly2;
+        x3 <= x2; y3 <= y2;
     end
 
     // ------------------------------------------------------------ stage 4: colour
@@ -229,11 +246,26 @@ module lcd_video (
     logic [6:0]  st;
     logic        st_hit;
     logic [23:0] st_rgb;
-    // the status strip, 300 lines below the LCD's top left corner (coordinates relative to it)
-    synthframe_status_strip #(.X0(0), .Y0(300)) strip (
-        .x({1'b0, lx3}), .y({1'b0, ly3}), .rom_ok(st[0]), .loading(st[1]), .running(st[2]),
+    synthframe_status_strip #(.X0(SX), .Y0(SY)) strip (
+        .x(x3), .y(y3), .rom_ok(st[0]), .loading(st[1]), .running(st[2]),
         .midi_led(st[3]), .underrun_led(st[4]), .underrun_seen(st[5]), .lag_seen(st[6]),
         .hit(st_hit), .rgb(st_rgb));
+
+    // front panel: (x0, y0) in, the colour with stage 3 (three clocks)
+    /* verilator lint_off UNUSEDPARAM */
+    `include "sc55_panel.svh"
+    /* verilator lint_on UNUSEDPARAM */
+    logic [2**PANEL_EB-1:0] panel_state;
+    `include "sc55_panel_state.svh"
+    generate if (PANEL_NE + 1 < 2**PANEL_EB) begin : g_state_pad
+        assign panel_state[2**PANEL_EB-1:PANEL_NE+1] = '0;
+    end endgenerate
+    logic [23:0] art;
+    synthframe_panel_art #(.W(PANEL_W), .H(PANEL_H), .BPP(PANEL_BPP), .TB(PANEL_TB), .EB(PANEL_EB),
+                           .NT(PANEL_NT), .PAL(PANEL_PAL), .LIT(PANEL_LIT),
+                           .MAP_HEX({PANEL_DIR, "sc55_panel_map.hex"}),
+                           .TILE_HEX({PANEL_DIR, "sc55_panel_tiles.hex"})) panel_art (
+        .clk, .ce(1'b1), .x(x0), .y(y0), .state(panel_state), .rgb(art));
     always_ff @(posedge clk) begin : b_lcd_video_2
         logic on;
         st <= {lag_seen, underrun_seen, underrun_led, midi_led, running, loading, rom_ok};
@@ -244,9 +276,7 @@ module lcd_video (
             if (!enable) {r, g, b} <= 24'h000000;
             else if (k3 == 2'd0) {r, g, b} <= back3 ? 24'h000000 : 24'h0f6fff;
             else {r, g, b} <= on ? 24'h000000 : 24'h0050c8;
-        end else begin
-            {r, g, b} <= 24'h101828;
-            if (st_hit) {r, g, b} <= st_rgb;
-        end
+        end else if (st_hit) {r, g, b} <= st_rgb;
+        else {r, g, b} <= art;
     end
 endmodule

@@ -41,9 +41,11 @@ $M sh "python3 /tmp/play_tty.py /tmp/0A.txt $SECS"
 $M shot sc55 "$OUT/end.png" >/dev/null
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
 # Status strip (hdl/board/lcd_video.sv, 800 x 600 frame): 20-pixel-high boxes at x 0-199 (state
-# band), 220-259 (MIDI), 280-319 (underrun), 340-379 (lag) from the strip's left edge, 300 lines
-# below the top of the 741 x 268 LCD area. Screenshots come scaled (640 x 480 seen), so every
-# offset is scaled by width / 800. The strip is found by the state band's colour.
+# band), 220-259 (MIDI), 280-319 (underrun), 340-379 (lag) from the strip's left edge, at
+# (29, 564), 524 lines below the top of the 741 x 268 LCD area at (29, 40); the front panel art
+# (cfg/panel.yaml) fills the rest. Screenshots come scaled (640 x 480 seen), so every offset is
+# scaled by width / 800. The strip is found by the state band's colour, below the panel's
+# buttons (y >= 540).
 import hashlib, sys
 from PIL import Image
 out = sys.argv[1]
@@ -51,7 +53,7 @@ COL = {(0x20, 0xc0, 0x40): "running", (0xe0, 0xa0, 0x20): "loading", (0x20, 0x60
        (0xc0, 0x20, 0x20): "no rom"}
 def strip(im):
     px = im.load(); w, h = im.size
-    for y in range(h):
+    for y in range(int(540 * h / 600), h):
         for x in range(w):
             if px[x, y][:3] in COL:
                 return x, y, COL[px[x, y][:3]]
@@ -71,7 +73,7 @@ und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0
 lag_s = {(0x30, 0x38, 0x48): "never", (0xe0, 0xa0, 0x20): "seen"}.get(lag, "?%02x%02x%02x" % lag)
 sb = strip(boot)
 k = boot.size[0] / 800
-lcd = boot.crop((sb[0], sb[1] - int(300 * k), sb[0] + int(741 * k), sb[1] - int(32 * k))) if sb else None
+lcd = boot.crop((sb[0], sb[1] - int(524 * k), sb[0] + int(741 * k), sb[1] - int(256 * k))) if sb else None
 print(f"band: {band}")
 print(f"underrun: {und_s}")
 print(f"lag: {lag_s}")

@@ -44,7 +44,7 @@ target_link_libraries(board_lockstep PRIVATE sc55_common_traced)
 verilate(board_lockstep SOURCES ${SC55_SV}
          TOP_MODULE sc55_board PREFIX Vsc55_board INCLUDE_DIRS ${SC55_INC}
          VERILATOR_ARGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-BLKSEQ -Wno-PINCONNECTEMPTY -O3 --x-assign unique --x-initial unique --public-flat-rw
-         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
+         "-DLCD_BACK_HEX=\"${HDL}/board/lcd_back.hex\"" "-DSC55_PANEL_DIR=\"${HDL}/panel/\"" "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
 
 add_executable(resample_tb resample/resample_tb.cpp)
 verilate(resample_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/board/resample.sv" TOP_MODULE resample PREFIX Vresample
