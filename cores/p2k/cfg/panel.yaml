@@ -1,0 +1,333 @@
+# Proteus 2000 panel (owner's manual p. 21, 165), rearranged for 800 x 600: LCD on top,
+# upper and lower button rows below. LED bits are not yet mapped (bit: null).
+size: [800, 600]
+theme: {background: '#101828', ink: '#101418', hint: '#7a4a00'}
+elements:
+- type: case
+  rect: [4, 8, 792, 584]
+  color: '#8c9096'
+  screws: []
+- type: label
+  at: [400, 28]
+  text: PROTEUS 2000
+  size: 14
+  weight: Bold
+  color: '#1c2030'
+- type: lcd
+  rect: [30, 56, 740, 100]
+  color: '#6a7d8c'
+  bezel: 10
+  bezel_color: '#202428'
+- type: area
+  rect: [22, 188, 430, 190]
+  color: '#7c8086'
+  radius: 4
+- type: button
+  rect: [40, 206, 34, 24]
+  key: A
+  input: 7
+  color: '#3a3c40'
+  radius: 12
+- type: label
+  at: [57, 246]
+  text: CONTROL
+  size: 9
+  color: '#101418'
+- type: label
+  at: [100, 208]
+  text: A-D
+  size: 9
+  color: '#101418'
+  anchor: lm
+- type: led
+  at: [134, 208]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [100, 222]
+  text: E-H
+  size: 9
+  color: '#101418'
+  anchor: lm
+- type: led
+  at: [134, 222]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [100, 236]
+  text: I-L
+  size: 9
+  color: '#101418'
+  anchor: lm
+- type: led
+  at: [134, 236]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [190, 206]
+  text: TONE
+  size: 8
+  color: '#101418'
+- type: label
+  at: [190, 218]
+  text: ATTACK
+  size: 8
+  color: '#101418'
+- type: label
+  at: [190, 230]
+  text: DYNAMIC 1
+  size: 8
+  color: '#101418'
+- type: knob
+  at: [190, 272]
+  r: 22
+  color: '#c8c8c4'
+- type: led
+  at: [218, 248]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [190, 310]
+  text: A/E/I
+  size: 9
+  color: '#101418'
+- type: label
+  at: [262, 206]
+  text: PRESENCE
+  size: 8
+  color: '#101418'
+- type: label
+  at: [262, 218]
+  text: DECAY/RLS
+  size: 8
+  color: '#101418'
+- type: label
+  at: [262, 230]
+  text: DYNAMIC 2
+  size: 8
+  color: '#101418'
+- type: knob
+  at: [262, 272]
+  r: 22
+  color: '#c8c8c4'
+- type: led
+  at: [290, 248]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [262, 310]
+  text: B/F/J
+  size: 9
+  color: '#101418'
+- type: label
+  at: [334, 206]
+  text: SHAPE
+  size: 8
+  color: '#101418'
+- type: label
+  at: [334, 218]
+  text: MOVEMENT
+  size: 8
+  color: '#101418'
+- type: label
+  at: [334, 230]
+  text: FX A
+  size: 8
+  color: '#101418'
+- type: knob
+  at: [334, 272]
+  r: 22
+  color: '#c8c8c4'
+- type: led
+  at: [362, 248]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [334, 310]
+  text: C/G/K
+  size: 9
+  color: '#101418'
+- type: label
+  at: [406, 206]
+  text: IMAGE
+  size: 8
+  color: '#101418'
+- type: label
+  at: [406, 218]
+  text: RATE
+  size: 8
+  color: '#101418'
+- type: label
+  at: [406, 230]
+  text: FX B
+  size: 8
+  color: '#101418'
+- type: knob
+  at: [406, 272]
+  r: 22
+  color: '#c8c8c4'
+- type: led
+  at: [434, 248]
+  r: 3
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [406, 310]
+  text: D/H/L
+  size: 9
+  color: '#101418'
+- type: knob
+  at: [57, 300]
+  r: 18
+  color: '#c8c8c4'
+  label: VOLUME
+  key: OSD
+- type: label
+  at: [240, 350]
+  text: knobs not modelled by the core
+  size: 8
+  color: '#3a3c40'
+- type: area
+  rect: [464, 188, 314, 190]
+  color: '#7c8086'
+  radius: 4
+- type: button
+  rect: [476, 214, 34, 24]
+  key: Q
+  input: 15
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [520, 222]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [493, 204]
+  text: MASTER
+  size: 9
+  color: '#101418'
+- type: button
+  rect: [536, 214, 34, 24]
+  key: E
+  input: 14
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [580, 222]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [553, 204]
+  text: EDIT
+  size: 9
+  color: '#101418'
+- type: button
+  rect: [596, 214, 34, 24]
+  key: ←
+  input: 13
+  glyph: ◀
+  color: '#3a3c40'
+  radius: 12
+- type: button
+  rect: [642, 214, 34, 24]
+  key: →
+  input: 12
+  glyph: ▶
+  color: '#3a3c40'
+  radius: 12
+- type: label
+  at: [636, 204]
+  text: CURSOR
+  size: 9
+  color: '#101418'
+- type: button
+  rect: [476, 300, 34, 24]
+  key: Spc
+  input: 11
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [520, 308]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [498, 290]
+  text: AUDITION
+  size: 8
+  color: '#101418'
+- type: button
+  rect: [536, 300, 34, 24]
+  key: M
+  input: 10
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [580, 308]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [558, 290]
+  text: MULTI
+  size: 8
+  color: '#101418'
+- type: button
+  rect: [596, 300, 34, 24]
+  key: S
+  input: 9
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [640, 308]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [618, 290]
+  text: SAVE/COPY
+  size: 8
+  color: '#101418'
+- type: button
+  rect: [656, 300, 34, 24]
+  key: Ent
+  input: 8
+  color: '#3a3c40'
+  radius: 12
+- type: led
+  at: [700, 308]
+  r: 4
+  color: '#ff3020'
+  bit: null
+- type: label
+  at: [678, 290]
+  text: HOME/ENTER
+  size: 8
+  color: '#101418'
+- type: knob
+  at: [740, 250]
+  r: 26
+  color: '#d0d0cc'
+  label: DATA
+  key: '- = ↓↑'
+- type: led
+  at: [740, 330]
+  r: 4
+  color: '#30ff40'
+  bit: null
+  label: MIDI
+- type: label
+  at: [400, 400]
+  text: LEDs drawn here are not yet mapped to the core's 16 LED bits
+  size: 9
+  color: '#3a3c40'
+- type: strip
+  at: [30, 556]

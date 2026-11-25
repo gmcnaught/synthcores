@@ -1,0 +1,65 @@
+# CZ-101 front panel for the MiSTer screen (800 x 600). The panel below the LCD is MAME's
+# cz101.lay (CC0) "No Keyboard (Parameters at Bottom)" view; the LCD is drawn larger above it.
+size: [800, 600]
+theme: {background: '#101828', hint_style: inside, hint: '#e0b040'}
+# MAME inputtag:inputmask -> MiSTer key (cores/cz101/hdl/cz101_kbd.sv)
+keys:
+  kc9:0x01: W
+  kc9:0x02: Q
+  kc9:0x04: '2'
+  kc9:0x08: '1'
+  kc9:0x10: '3'
+  kc9:0x20: '4'
+  kc9:0x40: '5'
+  kc9:0x80: '6'
+  kc10:0x01: E
+  kc10:0x02: R
+  kc10:0x04: T
+  kc10:0x08: Y
+  kc10:0x10: U
+  kc10:0x40: Ent
+  kc11:0x01: F1
+  kc11:0x02: F2
+  kc11:0x04: F3
+  kc11:0x08: F4
+  kc11:0x10: F5
+  kc11:0x20: F6
+  kc11:0x40: F7
+  kc11:0x80: F8
+  kc12:0x01: '↓'
+  kc12:0x02: '↑'
+  kc12:0x04: '←'
+  kc12:0x08: '→'
+  kc12:0x10: End
+  kc12:0x20: Hom
+  kc12:0x40: Ins
+  kc12:0x80: Del
+  kc13:0x02: A
+  kc13:0x04: S
+  kc13:0x08: D
+  kc13:0x10: F
+  kc13:0x20: G
+  kc13:0x40: H
+  kc13:0x80: J
+  kc14:0x01: ','
+  kc14:0x02: Z
+  kc14:0x04: X
+  kc14:0x08: C
+  kc14:0x10: V
+  kc14:0x20: B
+  kc14:0x40: N
+  kc14:0x80: M
+  kc15:0x01: K
+  kc15:0x02: L
+  kc15:0x04: .
+  kc15:0x08: /
+  kc15:0x10: '-'
+  kc15:0x20: '='
+  PB:0x80: OSD
+elements:
+  - {type: case, rect: [4, 8, 792, 584], color: '#1c1c1e'}
+  - {type: label, at: [400, 26], text: 'CZ-101', size: 13, color: '#e8e8e8', weight: Bold}
+  - {type: lcd, rect: [206, 46, 388, 76], color: '#6f7f3a', bezel: 10}
+  - {type: lay, file: cz101.lay,
+     view: 'No Keyboard (Parameters at Bottom)', rect: [8, 138, 784, 412], lcd: window}
+  - {type: strip, at: [12, 562]}
