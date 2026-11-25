@@ -6,7 +6,8 @@
 # modules/synthframe/hdl/panel (SC-55, JV-880: before iteration 8; Proteus/1 and CZ-101: main at
 # 4c45522, before the CZ-101 move). The CZ-101 hashes were recorded again when it took
 # synthframe_status_strip: its frames differ from 4c45522's only inside the strip
-# (x 12-391, y 412-431). test_panel.py compares against it.
+# (x 12-391, y 412-431). The CZ-101 hashes were recorded again (2026-11-25) when it took the
+# front-panel art (synthframe_panel_art, cfg/panel.yaml). test_panel.py compares against it.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../../.." && pwd)
