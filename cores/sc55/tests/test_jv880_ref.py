@@ -6,6 +6,8 @@ headless, and the reference renders Nuked-SC55's jv880.mid integration test from
 
 Expected hashes are Nuked-SC55's (doc/building.rst, test/integration/CMakeLists.txt).
 test_mix_saturates: the 20-bit mix saturates instead of wrapping (ref/patch_ref.py FIXES).
+test_panel_after_rq1: after answering an RQ1 the panel takes keys again (ref/patch_ref.py FIXES,
+the SCI transmitter).
 """
 import hashlib
 import os
@@ -53,6 +55,22 @@ def test_factory_nvram_and_render():
         print(f"    factory NVRAM {nv_sha[:8]}..., jv880.mid render {got[:8]}...")
     finally:
         shutil.rmtree(tmp)
+
+
+def test_panel_after_rq1():
+    """System-area RQ1, 2 s, then SYSTEM: the LCD shows the System page. With the model's own
+    SCI transmitter the firmware stayed in its bulk-send state and ignored the key."""
+    roms = rom_dir()
+    nvram_exe = need_file(REF_BUILD / "jv880-nvram", "jv880-nvram")
+    with tempfile.TemporaryDirectory() as d:
+        r = subprocess.run([str(nvram_exe), roms, str(pathlib.Path(d) / "nv"), ROMSET, "rq1,12"],
+                           capture_output=True, text=True)
+    assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
+    lines = [l for l in r.stdout.splitlines() if l.startswith("key ")]
+    assert len(lines) == 2, r.stdout[-2000:]
+    assert "Perf" in lines[0], lines        # back on the play screen after the reply
+    assert "System" in lines[1], lines      # and SYSTEM is taken
+    print(f"    {lines[1]}")
 
 
 def smf(events):

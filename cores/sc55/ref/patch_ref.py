@@ -9,6 +9,16 @@ fork departs from Nuked-SC55's original:
     overflows in loud chords (the 20-bit mix wrapped from full negative to full positive). The
     SC-55 models keep the plain add (none of their tests overflow; saturating them costs the
     SC-55 core its timing). The jv880.mid integration-test hash is unchanged.
+  - JV-880: the SCI transmitter behaves as the H8/532's. The H8's SCI is double-buffered: when
+    the CPU clears TDRE while the line is idle, TDR moves to the shift register and TDRE sets
+    again at once; the next byte waits only for the shift register (one byte time). TXI is
+    requested while TDRE and TIE are both 1, so setting TIE with TDRE 1 interrupts. The model
+    instead holds TDRE at 0 for 3000 cycles after each clear and requests TXI only as TDRE
+    sets. The JV-880 firmware sends from its TXI handler and enables TIE to start a transfer,
+    so after a reply to an RQ1 it missed the interrupt that ends the transfer: the LCD stayed at
+    "Now bulk sending" (or blank) and the panel took no keys until a reset. With this fix the
+    reply is the same bytes and the panel returns after ~1 s. The SC-55 models keep the model's
+    transmitter (no symptom; their tests and hashes stay as they are).
 
 The hooks only observe: with no hook installed, the hooked backend behaves exactly like the
 plain one (checked by tests/test_ref_patch.py, which renders with both builds and compares the
@@ -46,6 +56,28 @@ FIXES = [
      "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n",
      "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n"
      "    g_addclip20_saturate = pcm.mcu->is_jv880;\n"),
+    # JV-880 SCI transmitter (see above): the 3000-cycle byte time starts when TDR moves to the
+    # shift register (TDRE sets), not at the CPU's clear; TXI follows TIE while TDRE is 1.
+    ("backend/mcu.cpp",
+     "            mcu.dev_register[address] &= ~0x80;\n"
+     "            mcu.uart_tx_delay = mcu.cycles + 3000;",
+     "            mcu.dev_register[address] &= ~0x80;\n"
+     "            if (!mcu.is_jv880) // JV-880: double-buffered (ref/patch_ref.py FIXES)\n"
+     "                mcu.uart_tx_delay = mcu.cycles + 3000;"),
+    ("backend/mcu.cpp",
+     "    mcu.dev_register[DEV_SSR] |= 0x80;\n"
+     "    MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);",
+     "    mcu.dev_register[DEV_SSR] |= 0x80;\n"
+     "    if (mcu.is_jv880) // JV-880: the shift register is busy one byte time (ref/patch_ref.py FIXES)\n"
+     "        mcu.uart_tx_delay = mcu.cycles + 3000;\n"
+     "    MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);"),
+    ("backend/mcu.cpp",
+     "    case DEV_SCR:\n        break;",
+     "    case DEV_SCR:\n"
+     "        if (mcu.is_jv880) // JV-880: TXI = TIE && TDRE (ref/patch_ref.py FIXES)\n"
+     "            MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX,\n"
+     "                                     (data & 0x80) != 0 && (mcu.dev_register[DEV_SSR] & 0x80) != 0);\n"
+     "        break;"),
 ]
 
 EDITS = [
