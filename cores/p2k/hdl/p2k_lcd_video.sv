@@ -3,12 +3,17 @@
 // proteus2k screen (emup2k.cpp: 2 lines of 24 characters, 6 x 8 pixels a character, dots x < 5,
 // palette 131,136,139 / 92,83,88) at 5 x 5 per MAME pixel. HD44780 render() as MAME's: CGRAM for
 // codes below 0x10, else the character ROM (hd44780_a00.bin from the system pack); cursor
-// underline on row 7; blink fills the cell every other 102,400 LCD clocks. Below: the 16 panel LEDs
-// (latches 0x900000 / 0xA00000), the output level (peak of |L|, |R|, 1 pixel per 64 / 32768 of
-// full scale, decaying; the smoke test reads it) and the status strip.
+// underline on row 7; blink fills the cell every other 102,400 LCD clocks. Around it: the front
+// panel (cfg/panel.yaml, through synthframe_panel_art and the ROMs in hdl/panel/ that
+// modules/synthframe/tools/panel_art.py makes) with its LEDs lit (latches 0x900000 / 0xA00000)
+// and its buttons shown pressed. Below the panel: the output level (peak of |L|, |R|, 1 pixel per
+// 64 / 32768 of full scale, decaying; the smoke test reads it), the diagnostics line and the
+// status strip.
 // Adapted from cores/cz101/hdl/cz101_lcd_video.sv (MIT), built from synthframe's panel modules.
 // The LCD state lives in the CPU clock domain and is read here asynchronously (display only).
-module p2k_lcd_video (
+module p2k_lcd_video #(
+    parameter PANEL_DIR = "../hdl/panel/"   // Quartus: relative to mister/
+) (
     input  logic       clk,              // pixel clock
     input  logic       clk_sys,
     input  logic       font_we,
@@ -23,7 +28,8 @@ module p2k_lcd_video (
     input  logic       display_on,
     input  logic       cursor_on,
     input  logic       blink_on,
-    input  logic [15:0] leds,
+    input  logic [15:0] leds,            // low byte 0x900000, high byte 0xA00000
+    input  logic [15:7] buttons,         // p2k_kbd's panel buttons, 1 = pressed
     input  logic [14:0] level,           // output peak (any clock; display only)
     input  logic       rom_ok,
     input  logic       loading,
@@ -41,11 +47,10 @@ module p2k_lcd_video (
     output logic [7:0] b
 );
     localparam int PW = 24 * 30 + 20, PH = 2 * 40 + 20;
-    localparam int X0 = (800 - PW) / 2, Y0 = 200;
-    localparam int LY = Y0 + PH + 40;            // LED row
-    localparam int MY = LY + 40;                 // level meter
-    localparam int SY = MY + 40;                 // status strip
-    localparam int DY = SY + 40;                 // diagnostics line
+    localparam int X0 = 30, Y0 = 56;             // the lcd rect of cfg/panel.yaml
+    localparam int MY = 402;                     // level meter
+    localparam int DY = 440;                     // diagnostics line
+    localparam int SY = 556;                     // status strip
 
     logic [7:0] font [0:4095];
     always_ff @(posedge clk_sys) if (font_we) font[font_addr] <= font_data;
@@ -128,9 +133,21 @@ module p2k_lcd_video (
         .x(x2), .y(y2), .rom_ok, .loading, .running, .midi_led,
         .underrun_led(1'b0), .underrun_seen(late_seen), .lag_seen(1'b0), .hit(st_hit), .rgb(st_rgb));
 
-    wire        in_led = y2 >= 10'(LY) && y2 < 10'(LY + 20) && x2 >= 11'(X0) && x2 < 11'(X0 + 16 * 46);
+    // front panel, 3 clocks (as x2 / y2)
+    `include "p2k_panel.svh"
+    logic [2**PANEL_EB-1:0] panel_state;
+    `include "p2k_panel_state.svh"
+    generate if (PANEL_NE + 1 < 2**PANEL_EB)
+        assign panel_state[2**PANEL_EB-1:PANEL_NE+1] = '0;
+    endgenerate
+    logic [23:0] art;
+    synthframe_panel_art #(.W(PANEL_W), .H(PANEL_H), .BPP(PANEL_BPP), .TB(PANEL_TB), .EB(PANEL_EB),
+                           .NT(PANEL_NT), .PAL(PANEL_PAL), .LIT(PANEL_LIT),
+                           .MAP_HEX({PANEL_DIR, "p2k_panel_map.hex"}),
+                           .TILE_HEX({PANEL_DIR, "p2k_panel_tiles.hex"})) panel_art (
+        .clk, .ce(1'b1), .x, .y, .state(panel_state), .rgb(art));
+
     wire [10:0] lxo = x2 - 11'(X0);
-    wire [3:0]  led_i = 4'(lxo / 11'd46);
     wire        in_meter = y2 >= 10'(MY) && y2 < 10'(MY + 12) && x2 >= 11'(X0) && x2 < 11'(X0 + 512);
     logic [14:0] level_q;
     always_ff @(posedge clk) level_q <= level;
@@ -139,14 +156,12 @@ module p2k_lcd_video (
         if (panel) begin
             if (dot) {r, g, b} <= lit ? 24'h5C5358 : 24'h83888B;   // MAME's pens 1 / 0
             else {r, g, b} <= 24'h8A9294;
-        end else if (in_led && (lxo % 11'd46) < 11'd26) begin
-            {r, g, b} <= leds[led_i] ? 24'hFF3020 : 24'h402018;
         end else if (in_meter) begin
             {r, g, b} <= (lxo < 11'(level_q[14:6])) ? 24'h40E060 : 24'h203028;
         end else if (diag && d_panel) begin
             {r, g, b} <= (d_dot && d_lit) ? 24'hE0E0E0 : 24'h202838;
         end else if (st_hit) begin
             {r, g, b} <= st_rgb;
-        end else {r, g, b} <= 24'h101828;
+        end else {r, g, b} <= art;
     end
 endmodule

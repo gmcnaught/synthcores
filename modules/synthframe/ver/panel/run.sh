@@ -22,6 +22,7 @@ build() {   # name top warm clks sources...
         -I"$HERE" -I"$ROLAND/board" -I"$PANEL" \
         +define+LCD_BACK_HEX=\""$ROOT/cores/sc55/hdl/board/lcd_back.hex"\" \
         +define+CZ101_PANEL_DIR=\""$ROOT/cores/cz101/hdl/panel/"\" -I"$ROOT/cores/cz101/hdl/panel" \
+        +define+P2K_PANEL_DIR=\""$ROOT/cores/p2k/hdl/panel/"\" -I"$ROOT/cores/p2k/hdl/panel" \
         -CFLAGS "-O2 -DBENCH_TOP=V$top -DBENCH_H='\"V$top.h\"' -DNAME='\"$name\"'" \
         --Mdir "$OUT/$name" -o "bench_$name" "$HERE/tb_frame.cpp" "$@" >"$OUT/$name.build.log" 2>&1 \
         || { cat "$OUT/$name.build.log" >&2; exit 1; }
@@ -35,11 +36,14 @@ build proteus tb_proteus "$HERE/tb_proteus.sv" \
     $(cat "$HERE/files_proteus.txt" | sed "s|^|$ROOT/|")
 build cz101 tb_cz101 "$HERE/tb_cz101.sv" \
     $(cat "$HERE/files_cz101.txt" | sed "s|^|$ROOT/|")
+build p2k tb_p2k "$HERE/tb_p2k.sv" \
+    $(cat "$HERE/files_p2k.txt" | sed "s|^|$ROOT/|")
 
-# one frame is 1056 x 628 clocks (SC-55, JV-880, CZ-101) or 424 x 262 x 12 (Proteus); two frames
+# one frame is 1056 x 628 clocks (SC-55, JV-880, CZ-101, P2K) or 424 x 262 x 12 (Proteus); two frames
 # each. The CZ-101 bench loads its font (4096 clocks) and runs its pin sequence (about 35,000)
-# first.
+# first; the P2K bench loads its font and sends its commands (about 13,000) first.
 "$OUT/sc55/bench_sc55" 0 1326336 $SEEDS
 "$OUT/jv880/bench_jv880" 0 1326336 $SEEDS
 "$OUT/proteus/bench_proteus" 20000 2666112 $SEEDS
 "$OUT/cz101/bench_cz101" 60000 1326336 $SEEDS
+"$OUT/p2k/bench_p2k" 20000 1326336 $SEEDS
