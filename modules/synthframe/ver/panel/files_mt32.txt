@@ -1,0 +1,4 @@
+modules/synthframe/hdl/panel/synthframe_vtiming.sv
+modules/synthframe/hdl/panel/synthframe_status_strip.sv
+modules/synthframe/hdl/panel/synthframe_panel_art.sv
+cores/mt32/hdl/mt32_lcd_video.sv

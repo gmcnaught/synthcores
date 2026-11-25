@@ -1,5 +1,10 @@
 # MT-32 panel (owner's manual p. 2), rearranged for 800 x 600.
 size: [800, 600]
+bpp: 5
+# HDL expressions, in mt32_lcd_video's scope: buttons = the core's button inputs in Nuked-MT32's
+# MT32_BUTTTON_* order (mister/MT32.sv: Q W E R T = 0-4 = Part 1, 2, 3, Sound group, Volume;
+# A S D F G = 5-9 = Part 4, 5, Rhythm, Sound, Master volume); msg_led = the MIDI MESSAGE LED,
+# bit 0 of the CPU's last write to 0200 (MAME roland_mt32.cpp so_w).
 theme: {hint_style: inside, hint: '#e0b040'}
 elements:
 - type: case
@@ -24,13 +29,16 @@ elements:
   at: [720, 150]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: msg_led
   label: MIDI MESSAGE
   shape: rect
   size: [22, 6]
   label_at: [660, 150]
 - type: line
-  xy: [80, 206, 280, 206]
+  xy: [80, 206, 160, 206]
+  color: '#c0c0c0'
+- type: line
+  xy: [200, 206, 280, 206]
   color: '#c0c0c0'
 - type: label
   at: [180, 206]
@@ -39,7 +47,7 @@ elements:
 - type: button
   rect: [90, 226, 40, 40]
   key: Q
-  input: 0
+  input: 'buttons[0]'
   color: '#505054'
 - type: label
   at: [110, 278]
@@ -48,7 +56,7 @@ elements:
 - type: button
   rect: [160, 226, 40, 40]
   key: W
-  input: 1
+  input: 'buttons[1]'
   color: '#505054'
 - type: label
   at: [180, 278]
@@ -57,7 +65,7 @@ elements:
 - type: button
   rect: [230, 226, 40, 40]
   key: E
-  input: 2
+  input: 'buttons[2]'
   color: '#505054'
 - type: label
   at: [250, 278]
@@ -66,7 +74,7 @@ elements:
 - type: button
   rect: [90, 306, 40, 40]
   key: A
-  input: 5
+  input: 'buttons[5]'
   color: '#505054'
 - type: label
   at: [110, 358]
@@ -75,7 +83,7 @@ elements:
 - type: button
   rect: [160, 306, 40, 40]
   key: S
-  input: 6
+  input: 'buttons[6]'
   color: '#505054'
 - type: label
   at: [180, 358]
@@ -84,7 +92,7 @@ elements:
 - type: button
   rect: [230, 306, 40, 40]
   key: D
-  input: 7
+  input: 'buttons[7]'
   color: '#505054'
 - type: label
   at: [250, 358]
@@ -97,7 +105,7 @@ elements:
 - type: button
   rect: [360, 236, 110, 30]
   key: R
-  input: 3
+  input: 'buttons[3]'
   color: '#505054'
 - type: label
   at: [565, 224]
@@ -106,7 +114,7 @@ elements:
 - type: button
   rect: [510, 236, 110, 30]
   key: T
-  input: 4
+  input: 'buttons[4]'
   color: '#505054'
 - type: label
   at: [415, 304]
@@ -115,7 +123,7 @@ elements:
 - type: button
   rect: [360, 316, 110, 30]
   key: F
-  input: 8
+  input: 'buttons[8]'
   color: '#505054'
 - type: label
   at: [565, 304]
@@ -124,7 +132,7 @@ elements:
 - type: button
   rect: [510, 316, 110, 30]
   key: G
-  input: 9
+  input: 'buttons[9]'
   color: '#505054'
 - type: knob
   at: [690, 286]

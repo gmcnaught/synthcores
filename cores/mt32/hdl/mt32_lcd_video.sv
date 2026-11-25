@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // MT-32 LCD on an 800 x 600 screen: 20 characters of 5 x 8 dots at 6 x 6 pixels, the font of
 // Nuked-MT32 (lcd_font.h -> mt32_lcd_font.hex, tools/mkfont.py), drawn as lcd.cpp does: rows
-// 0-6 from the font, row 7 only as the cursor line. A synthframe status strip sits above it.
+// 0-6 from the font, row 7 only as the cursor line. Around it the front panel (cfg/panel.yaml,
+// owner's manual p. 2: synthframe_panel_art from the ROMs in hdl/panel/ that
+// modules/synthframe/tools/panel_art.py makes), its buttons shown pressed and the MIDI MESSAGE
+// LED lit; the synthframe status strip at the bottom.
 module mt32_lcd_video #(
-    parameter FONT_HEX = "mt32_lcd_font.hex"
+    parameter FONT_HEX = "mt32_lcd_font.hex",
+    parameter PANEL_DIR = "../hdl/panel/"   // Quartus: relative to mister/
 ) (
     input  logic        clk,           // pixel clock (40 MHz)
     // LCD state (clk_sys domain, read asynchronously: it changes rarely)
@@ -14,6 +18,9 @@ module mt32_lcd_video #(
     input  logic [4:0]  cursor,
     input  logic        cursor_on,
     input  logic        display_on,
+    // front panel (clk_sys domain, display only)
+    input  logic [9:0]  buttons,       // MT32_BUTTTON_* order of Nuked-MT32's mt32.h
+    input  logic        msg_led,       // MIDI MESSAGE LED
     // status strip
     input  logic        rom_ok,
     input  logic        loading,
@@ -24,7 +31,8 @@ module mt32_lcd_video #(
     output logic        hs, vs, hblank, vblank,
     output logic [7:0]  r, g, b
 );
-    localparam int X0 = 40, Y0 = 260, CW = 36;   // 20 x 36 = 720 pixels wide, 8 x 6 = 48 high
+    localparam int X0 = 40, Y0 = 70, CW = 36;    // 20 x 36 = 720 pixels wide, 8 x 6 = 48 high
+    localparam int SX = 40, SY = 560;            // status strip
 
     logic [7:0] font [1280];
     initial $readmemh(FONT_HEX, font);
@@ -78,32 +86,47 @@ module mt32_lcd_video #(
         on = s_cell && bits[3'd4 - s_col] && (s_row != 3'd7 || s_cur);
         s_dot <= s_in && on;
     end
+    logic s_dot2;
+    always_ff @(posedge clk) s_dot2 <= s_dot;
 
-    // status strip at the top
+    // status strip at the bottom
     logic        st_hit;
     logic [23:0] st_rgb;
-    synthframe_status_strip #(.X0(40), .Y0(40)) strip (
+    synthframe_status_strip #(.X0(SX), .Y0(SY)) strip (
         .x, .y, .rom_ok, .loading, .running, .midi_led, .underrun_led(1'b0),
         .underrun_seen, .lag_seen(1'b0), .hit(st_hit), .rgb(st_rgb)
     );
 
-    // two-clock delay of the timing to match the pixel pipeline
-    logic [1:0] d_hb, d_vb, d_hs, d_vs, d_lcd;
-    logic [23:0] d_st0, d_st1;
-    logic [1:0]  d_sth;
+    // front panel, 3 clocks
+    `include "mt32_panel.svh"
+    logic [2**PANEL_EB-1:0] panel_state;
+    `include "mt32_panel_state.svh"
+    generate if (PANEL_NE + 1 < 2**PANEL_EB)
+        assign panel_state[2**PANEL_EB-1:PANEL_NE+1] = '0;
+    endgenerate
+    logic [23:0] art;
+    synthframe_panel_art #(.W(PANEL_W), .H(PANEL_H), .BPP(PANEL_BPP), .TB(PANEL_TB), .EB(PANEL_EB),
+                           .NT(PANEL_NT), .PAL(PANEL_PAL), .LIT(PANEL_LIT),
+                           .MAP_HEX({PANEL_DIR, "mt32_panel_map.hex"}),
+                           .TILE_HEX({PANEL_DIR, "mt32_panel_tiles.hex"})) panel_art (
+        .clk, .ce(1'b1), .x, .y, .state(panel_state), .rgb(art));
+
+    // three-clock delay of the timing to match the panel art (the LCD dot is ready after two)
+    logic [2:0] d_hb, d_vb, d_hs, d_vs, d_lcd, d_sth;
+    logic [23:0] d_st0, d_st1, d_st2;
     always_ff @(posedge clk) begin
-        d_hb <= {d_hb[0], hb}; d_vb <= {d_vb[0], vb};
-        d_hs <= {d_hs[0], hsy}; d_vs <= {d_vs[0], vsy};
-        d_lcd <= {d_lcd[0], in_lcd};
-        d_sth <= {d_sth[0], st_hit}; d_st0 <= st_rgb; d_st1 <= d_st0;
+        d_hb <= {d_hb[1:0], hb}; d_vb <= {d_vb[1:0], vb};
+        d_hs <= {d_hs[1:0], hsy}; d_vs <= {d_vs[1:0], vsy};
+        d_lcd <= {d_lcd[1:0], in_lcd};
+        d_sth <= {d_sth[1:0], st_hit}; d_st0 <= st_rgb; d_st1 <= d_st0; d_st2 <= d_st1;
     end
-    assign hblank = d_hb[1];
-    assign vblank = d_vb[1];
-    assign hs = d_hs[1];
-    assign vs = d_vs[1];
+    assign hblank = d_hb[2];
+    assign vblank = d_vb[2];
+    assign hs = d_hs[2];
+    assign vs = d_vs[2];
     always_comb begin
-        {r, g, b} = 24'h000000;
-        if (d_sth[1]) {r, g, b} = d_st1;
-        else if (d_lcd[1]) {r, g, b} = !display_on ? 24'h102008 : s_dot ? 24'h10300c : 24'h6cb030;
+        {r, g, b} = art;
+        if (d_sth[2]) {r, g, b} = d_st2;
+        else if (d_lcd[2]) {r, g, b} = !display_on ? 24'h102008 : s_dot2 ? 24'h10300c : 24'h6cb030;
     end
 endmodule
