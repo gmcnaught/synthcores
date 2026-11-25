@@ -6,8 +6,8 @@
 // colours from LIT instead of PAL (they differ only in the entries kept for unlit LED and button
 // faces), so the LED lights or the button shows pressed.
 //
-// Latency: rgb is the colour of the pixel at (x, y) three clocks earlier. Outside W x H (the
-// blanking) rgb is undefined.
+// Latency: rgb is the colour of the pixel at (x, y) three enabled clocks (ce = 1) earlier.
+// Outside W x H (the blanking) rgb is undefined.
 module synthframe_panel_art #(
     parameter int W = 800,
     parameter int H = 600,
@@ -21,6 +21,7 @@ module synthframe_panel_art #(
     parameter TILE_HEX = ""
 ) (
     input  logic              clk,
+    input  logic              ce,       // clock enable: 1 for a renderer that runs every clock
     input  logic [10:0]       x,
     input  logic [9:0]        y,
     input  logic [2**EB-1:0]  state,
@@ -44,7 +45,7 @@ module synthframe_panel_art #(
         if (x < 11'(W) && y < 10'(H)) maddr = MAW'(32'(y[9:3]) * COLS + 32'(x[10:3]));
         else maddr = '0;
     end
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk) if (ce) begin
         map_q <= map_rom[maddr];
         xl1 <= x[2:0];
         yl1 <= y[2:0];
@@ -53,7 +54,7 @@ module synthframe_panel_art #(
     // clock 2: the tile row, and the cell's element state
     logic [8*BPP-1:0] tile_q;
     logic             on2;
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk) if (ce) begin
         tile_q <= tile_rom[{map_q[TB-1:0], yl1}];
         on2 <= state[map_q[TB+EB-1:TB]];
         xl2 <= xl1;
@@ -62,5 +63,5 @@ module synthframe_panel_art #(
     // clock 3: the colour
     logic [BPP-1:0] idx;
     assign idx = tile_q[xl2*BPP +: BPP];
-    always_ff @(posedge clk) rgb <= on2 ? LIT[idx*24 +: 24] : PAL[idx*24 +: 24];
+    always_ff @(posedge clk) if (ce) rgb <= on2 ? LIT[idx*24 +: 24] : PAL[idx*24 +: 24];
 endmodule

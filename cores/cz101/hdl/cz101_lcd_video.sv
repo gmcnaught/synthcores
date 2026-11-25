@@ -131,7 +131,7 @@ module cz101_lcd_video #(
                            .NT(PANEL_NT), .PAL(PANEL_PAL), .LIT(PANEL_LIT),
                            .MAP_HEX({PANEL_DIR, "cz101_panel_map.hex"}),
                            .TILE_HEX({PANEL_DIR, "cz101_panel_tiles.hex"})) panel_art (
-        .clk, .x, .y, .state(panel_state), .rgb(art));
+        .clk, .ce(1'b1), .x, .y, .state(panel_state), .rgb(art));
 
     // ------------------------------------------------------------ colour
     always_ff @(posedge clk) begin

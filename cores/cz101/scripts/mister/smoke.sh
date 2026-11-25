@@ -73,8 +73,8 @@ $M shot cz101 "$OUT/nv_reloaded.png" >/dev/null
 keys F12 sleep:3 ESC sleep:1
 scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/save2.sav" 2>/dev/null || true
 python3 -I - "$OUT" "$PACK" <<'EOF' | tee "$OUT/result.txt"
-# cz101_lcd_video.sv, 800 x 600 frame: the LCD (MAME's 97 x 19 pixels at 8x) at (12, 160),
-# 776 x 152, background 8a9294, dot on 3f3b3e; synthframe_status_strip at (12, 412): band at
+# cz101_lcd_video.sv, 800 x 600 frame: the LCD (MAME's 97 x 19 pixels at 4x) at (206, 46),
+# 388 x 76, background 8a9294, dot on 3f3b3e; synthframe_status_strip at (12, 562): band at
 # x 0-199 (green running, amber loading, blue ROM pack not running, red no ROM), boxes at
 # 220-259 (MIDI), 280-319 (underrun: dark red seen, bright red now), 340-379 (lag). Screenshots
 # come scaled; offsets are scaled by width / 800; the strip is found by the band's colour.
@@ -93,8 +93,8 @@ def strip(im):
 def panel(name, s):
     im = Image.open(f"{out}/{name}.png").convert("RGB")
     k = im.size[0] / 800
-    x0, y0 = s[0], s[1] - int(252 * k)
-    return im.crop((x0, y0, x0 + int(776 * k), y0 + int(152 * k)))
+    x0, y0 = s[0] + int(194 * k), s[1] - int(516 * k)
+    return im.crop((x0, y0, x0 + int(388 * k), y0 + int(76 * k)))
 def lit(p):
     return sum(1 for c in p.getdata() if abs(c[0] - 0x3f) < 16 and abs(c[1] - 0x3b) < 16 and abs(c[2] - 0x3e) < 16)
 end = Image.open(f"{out}/end.png").convert("RGB")
@@ -132,7 +132,7 @@ print(f"save2_bytes: {len(s2)}")
 print(f"internal_tone_2_kept_after_reload: {kept}")
 print(f"tone_recalled_after_reload: {recalled}")
 print(f"lcd_after_reload_same_as_before: {reloaded.tobytes() == changed.tobytes()}")
-ok = (s[2] == "running" and und_s == "never" and lit(boot) > 500 and endp.tobytes() != boot.tobytes()
+ok = (s[2] == "running" and und_s == "never" and lit(boot) > 100 and endp.tobytes() != boot.tobytes()
       and pc and sz == 8192 and ram != init and written and kept and recalled)
 sys.exit(0 if ok else 1)
 EOF

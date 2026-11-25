@@ -330,11 +330,17 @@ def build_rom(spec, bpp, base='.'):
     idx = np.asarray(q, dtype=np.int32).copy()
     qp = q.getpalette()[:3 * nstat]
     pal = [tuple(qp[3 * i:3 * i + 3]) if 3 * i + 2 < len(qp) else (0, 0, 0) for i in range(nstat)]
+    # the smoke tests find synthframe_status_strip by its state band's colours: keep the art off
+    strip = {(0x20, 0xc0, 0x40), (0xe0, 0xa0, 0x20), (0x20, 0x60, 0xc0), (0xc0, 0x20, 0x20)}
+    pal = [(c[0], c[1], c[2] ^ 1) if c in strip else c for c in pal]
     for r, u in enumerate(reserved):
         sel = mine & np.all(a == u, axis=2)
         idx[sel] = nstat + r
     pal += reserved
     lit = pal[:nstat] + [lit_of[u] for u in reserved]
+    bad = strip & (set(pal) | set(lit))
+    if bad:
+        raise ValueError(f'panel LED or button colours {bad} are status strip band colours')
     tiles, tmap = {}, []
     for cy in range(rows):
         for cx in range(cols):
