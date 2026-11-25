@@ -13,6 +13,7 @@ against [Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) (`modules/nuked-sc55
 | MCU (memory map, gate array, panel, encoder, NVRAM, timers) | `mcu_lockstep --romset jv880-v1.0.1 --jv880-factory`: from an empty NVRAM through the factory preset | 21,324,800 steps identical; the NVRAM's SHA-256 is d5da7845…d207, the reference's documented factory preset |
 | PCM (wave ROM banks, 25/29 clock, filter) | `system_lockstep --smf jv880.mid` from the factory NVRAM | SHA-256 73feda3c…bbbc, the reference's integration-test hash |
 | Board (pack, DDR3, pacing, MIDI, LCD) | `sim/jv880_board_bench --smf jv880.mid` from power-on, wave ROM through a DDR3 model | 42,181,775 steps and 1,640,121 samples identical to the reference; SHA-256 73feda3c…bbbc; 18.1 clocks a step of 30 |
+| MIDI out | `mcu_lockstep --nvram factory --midi-at` with the system-area RQ1; `jv880_board_bench` decoding `uart_txd`; the MiSTer smoke | a 75-byte DT1, identical to the model's in byte and cycle, on `uart_txd`, and on the MiSTer's `/dev/ttyS1` |
 | Quartus (Windows build host) | `winbuild.sh jv880`, seed 4 | 28,980 ALMs (69 %); timing met (core setup slack +0.948 ns) |
 | MiSTer | `scripts/mister/smoke.sh` with the factory-preset pack | boots to "I-01:Syn Lead"; 60 s of `jv880.mid` over MidiLink and the autosave on OSD open with no underrun or lag; panel keys and the encoder respond as the reference's |
 
@@ -41,6 +42,11 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
     - MIDI that arrives while the firmware's receiver is still off (the first ~4 s of boot) is
       dropped, as on the real unit. The reference keeps those bytes, and a controller's MIDI
       clock during boot then leaves the firmware deaf to notes.
+    - **MIDI out** goes back through the UART (MidiLink), at the speed MIDI comes in at. Data
+      requests (RQ1) are answered. For example, the system area at device ID 17 gives a 75-byte
+      DT1, identical to the reference's. After answering, the panel stays at "Now bulk sending"
+      and takes no keys until the core is reloaded. The reference does the same
+      (`MIDI-OUT-PLAN.md`).
     - OSD **Diagnostics** shows a hex line under the status strip: MIDI bytes received, the
       last 4 bytes, the PCM's peak, the output's peak, and the underrun count.
 4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full

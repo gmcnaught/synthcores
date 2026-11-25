@@ -35,6 +35,8 @@ module sc55_core #(
     input  logic        midi_valid,
     input  logic [7:0]  midi_data,
     output logic        midi_full,
+    output logic        tx_valid,         // MIDI out byte (sc55_mcu: the SCI, or the mk2's sub-MCU)
+    output logic [7:0]  tx_data,
     input  logic [31:0] buttons,
 
     output logic        rom_req,
@@ -66,10 +68,16 @@ module sc55_core #(
 
     logic m_ready, p_ready;
     assign ready = m_ready && p_ready;
+    logic       mcu_tx_stb, mcu_sm_tx_stb;
+    logic [7:0] mcu_tx_byte, mcu_sm_tx_byte;
+    assign tx_valid = mk2 ? mcu_sm_tx_stb : mcu_tx_stb;
+    assign tx_data  = mk2 ? mcu_sm_tx_byte : mcu_tx_byte;
+
     sc55_mcu #(.RXBUF_BITS(RXBUF_BITS), .ROM2_AW(ROM2_AW), .JV880_RAMS(JV880_RAMS)) mcu (
         .clk, .rst, .mk2, .sc155, .jv880, .enc_we, .enc_dir, .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data, .nv_dump_a, .nv_dump_d, .nv_wrote, .idle,
         .midi_valid, .midi_data, .midi_full, .buttons,
+        .tx_stb(mcu_tx_stb), .tx_byte(mcu_tx_byte), .sm_tx_stb(mcu_sm_tx_stb), .sm_tx_byte(mcu_sm_tx_byte),
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),
         .pcm_tick(p_tick), .pcm_irq0(p_irq0), .pcm_irq_known(p_known),
         .lcd_we, .lcd_rs, .lcd_data, .lcd_enable,

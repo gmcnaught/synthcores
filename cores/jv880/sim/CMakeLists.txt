@@ -21,7 +21,7 @@ synthframe_files("${CMAKE_CURRENT_SOURCE_DIR}/.." JV880_SV JV880_INC)   # the co
 
 add_executable(jv880_board_bench jv880_board_bench.cpp "${SC55}/sim/common/midi_demo.cpp" "${NUKED}/src/renderer/smf.cpp")
 target_include_directories(jv880_board_bench PRIVATE "${NUKED}/src/renderer")
-target_link_libraries(jv880_board_bench PRIVATE sc55_common)
+target_link_libraries(jv880_board_bench PRIVATE sc55_common_traced)   # ref_hooks (MIDI out)
 verilate(jv880_board_bench SOURCES ${JV880_SV}
          TOP_MODULE jv880_board PREFIX Vjv880_board INCLUDE_DIRS ${JV880_INC}
          VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw

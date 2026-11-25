@@ -5,12 +5,18 @@
 // against the reference model with the same MIDI bytes, comparing PC after
 // every step and the two sample streams in order.
 //
+// MIDI out: uart_txd, decoded at 31250 baud, must carry the bytes the model sends (ref/patch_ref.py's
+// tx hook), in order, with none dropped.
+//
 // Usage: board_lockstep --roms DIR --pack FILE [--steps N] [--midi-loud S | --midi-demo S] [--seed S]
+//                       [--midi-at STEP:HEX]...
 #include "Vsc55_board.h"
 #include "Vsc55_board___024root.h"
 #include "verilated.h"
 
 #include "../common/midi_demo.h"
+#include "../common/uart_decode.h"
+#include "ref_hooks.h"
 #include "emu.h"
 #include "mcu.h"
 #include "submcu.h"
@@ -92,6 +98,7 @@ int main(int argc, char** argv)
     std::string lcd_ppm;
     uint64_t    free_run = 0, stall_at = 0, stall_len = 0;   // free run: close step_gate for stall_len clocks at stall_at
     std::vector<uint8_t> frame(741 * 268 * 3, 0);
+    std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -102,6 +109,14 @@ int main(int argc, char** argv)
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--midi-loud" && i + 1 < argc) loud_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
+        else if (a == "--midi-at" && i + 1 < argc)
+        {
+            std::string v = argv[++i];
+            size_t c = v.find(':');
+            if (c == std::string::npos || (v.size() - c - 1) % 2) { fprintf(stderr, "--midi-at STEP:HEX\n"); return 2; }
+            uint64_t at = std::strtoull(v.substr(0, c).c_str(), nullptr, 0);
+            for (size_t k = c + 1; k < v.size(); k += 2) sched.push_back({at, (uint8_t)std::stoul(v.substr(k, 2), nullptr, 16)});
+        }
         else if (a == "--zero-init") zero_init = true;
         else if (a == "--serial") serial = true;
         else if (a == "--lcd-ppm" && i + 1 < argc) lcd_ppm = argv[++i];
@@ -165,6 +180,9 @@ int main(int argc, char** argv)
     std::string last_pcm;
     uint32_t pre_vm = 0, pre_vmp = 0; bool pre_upd = false; uint64_t pre_cyc = 0; uint16_t pre_r2[16] = {};
     uint64_t last_rd_due = 0, ddr_reads = 0;
+    UartDecode txdec(50'000'000 / 31'250);   // the board at its default CLK_HZ
+    static std::vector<uint8_t> tx_ref;
+    g_ref_hooks.tx = [](void*, int, uint64_t, uint8_t d) { tx_ref.push_back(d); };
     auto tick = [&]() {
         t->DDRAM_BUSY = busy_mod > 0 && (rng() % busy_mod) == 0;
         t->DDRAM_DOUT_READY = 0;
@@ -222,6 +240,7 @@ int main(int argc, char** argv)
         t->clk_vid = 0;
         ++clocks;
         if (t->sample_valid) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
+        txdec.clock(t->uart_txd);
     };
 
     t->clk_vid = 0;
@@ -436,6 +455,15 @@ int main(int argc, char** argv)
             tick();
             t->midi_inject = 0;
         }
+        else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0)
+        {
+            uint8_t b = sched.front().second;
+            sched.pop_front();
+            emu.PostMIDI(b);
+            t->midi_inject = 1; t->midi_inject_data = b;
+            tick();
+            t->midi_inject = 0;
+        }
         {
             pcm_t& pm = emu.GetPCM();
             pre_vm = pm.voice_mask; pre_vmp = pm.voice_mask_pending; pre_upd = pm.voice_mask_updating; pre_cyc = pm.cycles;
@@ -490,6 +518,23 @@ int main(int argc, char** argv)
         // PCM state, whenever the HDL PCM has caught up with the model
         if (!pcm_check(s, serial)) return 1;
     }
+    // MIDI out: let the line finish, then the bytes must be the model's
+    for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * 1600 &&
+                         (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
+        tick();
+    {
+        const unsigned dropped = t->rootp->sc55_board__DOT__midi_out__DOT__dropped;
+        if (txdec.bytes != tx_ref || txdec.errors || dropped)
+        {
+            fprintf(stderr, "MIDI out: uart_txd carried %zu bytes (%d framing errors, %u dropped), model sent %zu\n",
+                    txdec.bytes.size(), txdec.errors, dropped, tx_ref.size());
+            for (size_t i = 0; i < std::max(txdec.bytes.size(), tx_ref.size()) && i < 64; ++i)
+                fprintf(stderr, "  %zu: line %s model %s\n", i, i < txdec.bytes.size() ? std::to_string(txdec.bytes[i]).c_str() : "-",
+                        i < tx_ref.size() ? std::to_string(tx_ref[i]).c_str() : "-");
+            return 1;
+        }
+    }
+
     // one video frame against the model's LCD_Render (741 x 268, ARGB; compare RGB)
     uint64_t lcd_pixels = 0, lcd_lit = 0;
     {
@@ -527,9 +572,9 @@ int main(int argc, char** argv)
     for (int i = 0; i < 80; ++i) { uint8_t c = emu.GetLCD().LCD_Data[i]; putchar(c >= 32 && c < 127 ? c : '.'); }
     printf("\n");
     printf("OK: pack loaded in %" PRIu64 " clocks, %" PRIu64 " steps, %" PRIu64 " samples identical (peak %.1f dBFS), "
-           "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu\n",
+           "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu, MIDI out bytes %zu on uart_txd\n",
            load_clocks, steps, compared, peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0,
-           (double)run_clocks / (double)steps, max_step, ddr_reads, pos);
+           (double)run_clocks / (double)steps, max_step, ddr_reads, pos, tx_ref.size());
     delete t;
     return 0;
 }

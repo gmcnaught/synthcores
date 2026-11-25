@@ -49,6 +49,7 @@ module jv880_board #(
     output logic        nv_restored,      // the NVRAM came from the save file
 
     input  logic        uart_rxd,
+    output logic        uart_txd,         // MIDI out (synthframe_midi_tx, at the receiver's baud)
     input  logic        midi_inject,      // bench: a MIDI byte straight into the receive buffer
     input  logic [7:0]  midi_inject_data,
     input  logic [13:0] buttons,          // MCU_BUTTON_CURSOR_L (bit 0) .. MCU_BUTTON_RHYTHM (13)
@@ -168,6 +169,11 @@ module jv880_board #(
     synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi (
         .clk, .rst, .rxd(uart_rxd), .byte_valid(rx_valid), .byte_data(rx_data), .frame_err(), .alt(midi_alt)
     );
+    logic       tx_valid;
+    logic [7:0] tx_data;
+    synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_out (
+        .clk, .rst, .alt(midi_alt), .valid(tx_valid), .data(tx_data), .txd(uart_txd), .busy(), .dropped()
+    );
     wire       m_valid = rx_valid || midi_inject;
     wire [7:0] m_data  = midi_inject ? midi_inject_data : rx_data;
     always_ff @(posedge clk) midi_seen <= m_valid;
@@ -192,7 +198,7 @@ module jv880_board #(
         .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
         .enc_we(enc_go), .enc_dir(enc_pdir),
         .rom2x_req(), .rom2x_addr(), .rom2x_ack(1'b0), .rom2x_data(8'h00),
-        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons({18'h0, buttons}),
+        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons({18'h0, buttons}),
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,

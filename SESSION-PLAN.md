@@ -277,6 +277,17 @@ address 0x3C000000, so Main_MiSTer writes the file into DDR3 itself; the loader 
 places (byte-swapped) after the download. File formats unchanged; the byte path stays as the
 fallback. Design and results: `cores/p2k/docs/plan.md`.
 
+### 20. MIDI out: SC-55, JV-880, MT-32 (2026-11-24, user)
+
+Plan, reference findings and steps: `MIDI-OUT-PLAN.md`. Neither Nuked-SC55 nor Nuked-MT32 emits
+TX bytes, but both store the byte and time TX-done, and in a probe the mk2 and MT-32 firmware sent
+complete DT1 replies to RQ1. Steps: reference TX hooks, HDL taps, a cycle-exact byte-stream
+comparison in the benches, a shared `synthframe_midi_tx` (FIFO + 31,250-baud shifter), then
+`UART_TXD` in each MiSTer top. MT-32 first.
+- **Gates:** existing lockstep/hash tests bit-identical; HDL TX stream = reference TX stream
+  (bytes and cycles); Windows builds meet timing; MiSTer smoke reads the reference reply on
+  `/dev/ttyS1`.
+
 ## Not in this session
 
 - **Vivado builds and loading the M64:** no x86-64 Linux host, and AMD's download needs an

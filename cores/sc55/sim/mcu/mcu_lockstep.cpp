@@ -14,6 +14,11 @@
 //        [--jv880-factory] plays the factory-preset key presses (cores/sc55/ref/jv880_nvram.cpp:
 //        UTILITY, nine encoder detents, ENTER twice) from 6 s; [--nvram-out FILE] writes the HDL's
 //        NVRAM at the end, after checking it equals the model's.
+//        [--midi-at STEP:HEX] (repeatable) queues MIDI bytes from STEP on, one every 600 steps.
+//        MIDI out: every byte the model sends (ref/patch_ref.py's tx hook: the SCI at the TDRE
+//        clear, the mk2 sub-MCU's UART2 write) must come from the HDL's tx/sm_tx strobes, with
+//        the same byte and cycle (mcu.cycles / sm.cycles); [--tx-log FILE] writes them,
+//        "S CYCLE BYTE" (S 0 SCI, 1 sub-MCU).
 #include "Vsc55_mcu.h"
 #include "Vsc55_mcu___024root.h"
 #include "verilated.h"
@@ -51,6 +56,22 @@ static void bus_hook(void*, bool write, uint32_t addr, uint8_t data)
 }
 static void cpu_done_hook(void*) { g_recording = false; }
 
+struct Tx
+{
+    int      src;
+    uint64_t cycle;
+    uint8_t  data;
+    bool operator==(const Tx&) const = default;
+};
+static std::vector<Tx> g_tx_ref, g_tx_hdl;
+static void tx_hook(void*, int src, uint64_t cycle, uint8_t data) { g_tx_ref.push_back({src, cycle, data}); }
+static std::string tx_str(const Tx& x)
+{
+    char b[48];
+    snprintf(b, sizeof b, "%d %" PRIx64 " %02x", x.src, x.cycle, x.data);
+    return b;
+}
+
 static std::string acc_str(const Access& a)
 {
     char b[48];
@@ -63,7 +84,8 @@ int main(int argc, char** argv)
     std::string rom_dir, romset = "mk1-v1.21";
     uint64_t    steps = 2'000'000;
     int64_t     midi_seed = -1, button_seed = -1;
-    std::string nvram_in, nvram_out;
+    std::string nvram_in, nvram_out, tx_log;
+    std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
     bool        jv_factory = false;
     uint64_t    trace_from = ~0ull;
     for (int i = 1; i < argc; ++i)
@@ -78,6 +100,15 @@ int main(int argc, char** argv)
         else if (a == "--nvram-out" && i + 1 < argc) nvram_out = argv[++i];
         else if (a == "--jv880-factory") jv_factory = true;
         else if (a == "--trace-from" && i + 1 < argc) trace_from = std::strtoull(argv[++i], nullptr, 0);
+        else if (a == "--tx-log" && i + 1 < argc) tx_log = argv[++i];
+        else if (a == "--midi-at" && i + 1 < argc)
+        {
+            std::string v = argv[++i];
+            size_t c = v.find(':');
+            if (c == std::string::npos || (v.size() - c - 1) % 2) { fprintf(stderr, "--midi-at STEP:HEX\n"); return 2; }
+            uint64_t at = std::strtoull(v.substr(0, c).c_str(), nullptr, 0);
+            for (size_t k = c + 1; k < v.size(); k += 2) sched.push_back({at, (uint8_t)std::stoul(v.substr(k, 2), nullptr, 16)});
+        }
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -109,7 +140,11 @@ int main(int argc, char** argv)
     Vsc55_mcu* t = new Vsc55_mcu{&ctx};
     auto*      R = t->rootp;
     uint64_t   clocks = 0;
-    auto tick = [&]() { t->clk = 0; t->eval(); t->clk = 1; t->eval(); ++clocks; };
+    auto tick = [&]() {
+        t->clk = 0; t->eval(); t->clk = 1; t->eval(); ++clocks;
+        if (t->tx_stb) g_tx_hdl.push_back({0, t->cycles, t->tx_byte});
+        if (t->sm_tx_stb) g_tx_hdl.push_back({1, R->sc55_mcu__DOT__sm__DOT__cycles, t->sm_tx_byte});
+    };
 
     t->rst = 1; t->run_step = 0; t->reset_start = 0; t->ld_we = 0; t->midi_valid = 0;
     t->mk2 = mk2; t->sc155 = m.is_sc155; t->jv880 = jv; t->enc_we = 0; t->enc_dir = 0; t->rom2x_ack = 0;
@@ -138,6 +173,9 @@ int main(int argc, char** argv)
 
     g_ref_hooks.bus = bus_hook;
     g_ref_hooks.cpu_done = cpu_done_hook;
+    g_ref_hooks.tx = tx_hook;
+    g_tx_hdl.clear();
+    size_t tx_checked = 0;
 
     std::vector<uint8_t> midi;
     if (midi_seed >= 0) midi = make_midi_demo((uint64_t)midi_seed);
@@ -173,6 +211,13 @@ int main(int argc, char** argv)
         if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && midi_pos < midi.size() && !t->midi_full)
         {
             uint8_t b = midi[midi_pos++];
+            emu.PostMIDI(b);
+            t->midi_data = b; t->midi_valid = 1;
+        }
+        else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0 && !t->midi_full)
+        {
+            uint8_t b = sched.front().second;
+            sched.pop_front();
             emu.PostMIDI(b);
             t->midi_data = b; t->midi_valid = 1;
         }
@@ -366,6 +411,24 @@ int main(int argc, char** argv)
         cmp("cycles", t->cycles, m.cycles);
         if (!diff.empty())
             return fail("step " + std::to_string(s) + ": " + diff);
+
+        // MIDI out, in order (the mk2's sub-MCU runs alongside the next step, so the HDL's bytes
+        // can come a step later than the model's)
+        for (; tx_checked < g_tx_ref.size() && tx_checked < g_tx_hdl.size(); ++tx_checked)
+            if (!(g_tx_ref[tx_checked] == g_tx_hdl[tx_checked]))
+                return fail("step " + std::to_string(s) + ": MIDI out byte " + std::to_string(tx_checked) + ": HDL " +
+                            tx_str(g_tx_hdl[tx_checked]) + ", model " + tx_str(g_tx_ref[tx_checked]));
+        if (g_tx_hdl.size() > g_tx_ref.size() + 1 || g_tx_ref.size() > g_tx_hdl.size() + 1)
+            return fail("step " + std::to_string(s) + ": MIDI out: HDL " + std::to_string(g_tx_hdl.size()) + " bytes, model " +
+                        std::to_string(g_tx_ref.size()));
+    }
+    if (g_tx_hdl.size() != g_tx_ref.size())
+        return fail("MIDI out at the end: HDL " + std::to_string(g_tx_hdl.size()) + " bytes, model " + std::to_string(g_tx_ref.size()));
+    if (!tx_log.empty())
+    {
+        FILE* f = fopen(tx_log.c_str(), "w");
+        for (auto& x : g_tx_ref) fprintf(f, "%s\n", tx_str(x).c_str());
+        fclose(f);
     }
 
     // memories at the end
@@ -391,8 +454,8 @@ int main(int argc, char** argv)
         }
         printf("NVRAM: HDL = model (%d bytes)\n", NVRAM_SIZE);
     }
-    printf("OK (%s): %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, ended at %02x:%04x\n",
-           romset.c_str(), steps, n_acc, n_pcm, clocks, (double)clocks / (double)steps, midi_pos, m.cp, m.pc);
+    printf("OK (%s): %" PRIu64 " steps, %" PRIu64 " bus accesses (%" PRIu64 " PCM), %" PRIu64 " HDL clocks (%.1f/step), MIDI bytes %zu, MIDI out bytes %zu, ended at %02x:%04x\n",
+           romset.c_str(), steps, n_acc, n_pcm, clocks, (double)clocks / (double)steps, midi_pos, g_tx_ref.size(), m.cp, m.pc);
     delete t;
     return 0;
 }

@@ -20,7 +20,8 @@ module emu
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_DTR} = 0;
-assign UART_TXD = 1'b1;
+wire   midi_tx;                     // MIDI out (board: synthframe_midi_tx)
+assign UART_TXD = midi_tx;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 
@@ -126,6 +127,7 @@ sc55_board #(.CLK_HZ(50_000_000)) board
 	.ioctl_wait(ioctl_wait),
 
 	.uart_rxd(UART_RXD),
+	.uart_txd(midi_tx),
 	.midi_inject(1'b0),
 	.midi_inject_data(8'd0),
 	.buttons(panel_buttons),
