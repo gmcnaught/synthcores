@@ -1,6 +1,12 @@
 # Proteus 2000 panel (owner's manual p. 21, 165), rearranged for 800 x 600: LCD on top,
-# upper and lower button rows below. LED bits are not yet mapped (bit: null).
+# upper and lower button rows below; the output level meter (y 402) and the diagnostics line
+# (y 440) are drawn by p2k_lcd_video in the free space below the panel, the status strip at
+# (30, 556).
+# HDL expressions, in p2k_lcd_video's scope: buttons = p2k_kbd's buttons[15:7] (1 = pressed),
+# leds = the LED word (low byte 0x900000, high byte 0xA00000); the bit of each LED is in
+# cores/proteus/docs/p2k-findings.md ("LED bits").
 size: [800, 600]
+bpp: 5
 theme: {background: '#101828', ink: '#101418', hint: '#7a4a00'}
 elements:
 - type: case
@@ -25,7 +31,7 @@ elements:
 - type: button
   rect: [40, 206, 34, 24]
   key: A
-  input: 7
+  input: buttons[7]
   color: '#3a3c40'
   radius: 12
 - type: label
@@ -43,7 +49,7 @@ elements:
   at: [134, 208]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[8]
 - type: label
   at: [100, 222]
   text: E-H
@@ -54,7 +60,7 @@ elements:
   at: [134, 222]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[9]
 - type: label
   at: [100, 236]
   text: I-L
@@ -65,7 +71,7 @@ elements:
   at: [134, 236]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[10]
 - type: label
   at: [190, 206]
   text: TONE
@@ -89,7 +95,7 @@ elements:
   at: [218, 248]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[11]
 - type: label
   at: [190, 310]
   text: A/E/I
@@ -118,7 +124,7 @@ elements:
   at: [290, 248]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[12]
 - type: label
   at: [262, 310]
   text: B/F/J
@@ -147,7 +153,7 @@ elements:
   at: [362, 248]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[13]
 - type: label
   at: [334, 310]
   text: C/G/K
@@ -176,7 +182,7 @@ elements:
   at: [434, 248]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: leds[14]
 - type: label
   at: [406, 310]
   text: D/H/L
@@ -200,14 +206,14 @@ elements:
 - type: button
   rect: [476, 214, 34, 24]
   key: Q
-  input: 15
+  input: buttons[15]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [520, 222]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[0]
 - type: label
   at: [493, 204]
   text: MASTER
@@ -216,14 +222,14 @@ elements:
 - type: button
   rect: [536, 214, 34, 24]
   key: E
-  input: 14
+  input: buttons[14]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [580, 222]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[1]
 - type: label
   at: [553, 204]
   text: EDIT
@@ -232,14 +238,14 @@ elements:
 - type: button
   rect: [596, 214, 34, 24]
   key: ←
-  input: 13
+  input: buttons[13]
   glyph: ◀
   color: '#3a3c40'
   radius: 12
 - type: button
   rect: [642, 214, 34, 24]
   key: →
-  input: 12
+  input: buttons[12]
   glyph: ▶
   color: '#3a3c40'
   radius: 12
@@ -251,14 +257,14 @@ elements:
 - type: button
   rect: [476, 300, 34, 24]
   key: Spc
-  input: 11
+  input: buttons[11]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [520, 308]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[2]
 - type: label
   at: [498, 290]
   text: AUDITION
@@ -267,14 +273,14 @@ elements:
 - type: button
   rect: [536, 300, 34, 24]
   key: M
-  input: 10
+  input: buttons[10]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [580, 308]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[3]
 - type: label
   at: [558, 290]
   text: MULTI
@@ -283,14 +289,14 @@ elements:
 - type: button
   rect: [596, 300, 34, 24]
   key: S
-  input: 9
+  input: buttons[9]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [640, 308]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[4]
 - type: label
   at: [618, 290]
   text: SAVE/COPY
@@ -299,14 +305,14 @@ elements:
 - type: button
   rect: [656, 300, 34, 24]
   key: Ent
-  input: 8
+  input: buttons[8]
   color: '#3a3c40'
   radius: 12
 - type: led
   at: [700, 308]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[5]
 - type: label
   at: [678, 290]
   text: HOME/ENTER
@@ -322,12 +328,13 @@ elements:
   at: [740, 330]
   r: 4
   color: '#30ff40'
-  bit: null
+  bit: leds[6]
   label: MIDI
 - type: label
-  at: [400, 400]
-  text: LEDs drawn here are not yet mapped to the core's 16 LED bits
-  size: 9
-  color: '#3a3c40'
+  at: [30, 393]
+  text: OUTPUT
+  size: 8
+  color: '#101418'
+  anchor: lm
 - type: strip
   at: [30, 556]
