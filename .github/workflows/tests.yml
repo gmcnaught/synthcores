@@ -126,6 +126,10 @@ jobs:
         if: matrix.core == 'sc55' || matrix.core == 'proteus'
         run: python ../../modules/synthframe/ver/panel/test_panel.py
 
+      - name: MIDI out serial line (synthframe_midi_tx; SC-55, JV-880, MT-32)
+        if: matrix.core == 'sc55' || matrix.core == 'mt32'
+        run: python ../../modules/synthframe/ver/midi/test_midi_tx.py
+
       - name: Run tests
         env:
           SC55_REF_BUILD: out/sim/ref
