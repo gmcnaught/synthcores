@@ -2,6 +2,17 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 21b: P2K copier reads each burst twice (2026-11-25, branch `iter21b-p2k-copy-fix`)
+
+- **Found** with the release build: after loading the core over a running P2K, the system pack's
+  first 8 flash words were sample data in 3 of 4 tries (CPU runaway, blank LCD; DDR3 trace). Only
+  the copier's first read burst was wrong; the data came from the slot the old core's engine read.
+- **Fix:** `p2k_loader` reads every burst twice and writes it only when both agree, else again
+  (`copy_retries` on the diagnostics line). The loader bench injects misread bursts (the first and
+  one in 64); a version without the retry fails it.
+- **Gates:** loader bench 3 seeds identical; Quartus build meets timing (clk_sys +1.204 ns); the
+  failing sequence boots 6 of 6 times; smoke tests below.
+
 ## Iteration 21: P2K user flash SIMMs (2026-11-25, branch `iter21-p2k-flash-simm`)
 
 - **What:** P6 of `cores/p2k/docs/plan.md`. A `.sim` file mounted as "Flash SIMM slot 1/2"

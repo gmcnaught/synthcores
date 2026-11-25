@@ -6,7 +6,10 @@
 // flash save would take for a new download), built from the file layout (p2k_loader.sv's header).
 // DDR3 starts as a hash of the address, so byte enables are checked too. The memory port is ready
 // on a random 1 clock in 2 and returns reads in order after 1-30 clocks; ext_busy is high for a
-// random time after the download. Exits 1 on the first difference.
+// random time after the download. Direct copies also get misreads: the first read burst and one
+// in 64 after it return other words (as the MiSTer's first read after loading the core over a
+// running P2K did once in a while); the copier must read those bursts again (copy_retries).
+// Exits 1 on the first difference.
 //   loader_tb [--seed N] [--full]   (--full adds a 34 MB SIMM)
 #include "Vp2k_loader.h"
 #include "verilated.h"
@@ -107,6 +110,7 @@ result run(bool pack, int slot, const std::vector<uint8_t> &f, bool direct, std:
 	auto top = std::make_unique<Vp2k_loader>();
 	std::deque<std::pair<uint64_t, uint64_t>> rsp;   // (due clock, data)
 	uint64_t clk = 0;
+	long reads = 0, misreads = 0;
 	if (direct)
 		for (uint64_t k = 0; k < f.size(); k++)
 			r.mem.put(STAGE_BASE + k / 8, uint64_t(f[k]) << 8 * (k & 7), uint8_t(1u << (k & 7)));
@@ -132,6 +136,11 @@ result run(bool pack, int slot, const std::vector<uint8_t> &f, bool direct, std:
 				}
 				else
 					rsp.emplace_back(due + i, r.mem.get(a));
+			}
+			if (direct && !top->req_we && len == 8 && (reads++ == 0 || rng() % 64 == 0))
+			{
+				misreads++;                               // the burst comes back as other words
+				for (unsigned i = 0; i < len; i++) rsp[rsp.size() - len + i].second ^= rng() | 1;
 			}
 		}
 		if (top->font_we) r.font[top->font_addr] = top->font_data;
@@ -189,7 +198,15 @@ result run(bool pack, int slot, const std::vector<uint8_t> &f, bool direct, std:
 	for (int i = 0; i < 20; i++) tick();
 	for (int s = 0; s < 4; s++) { r.big[s] = top->big_words[s]; r.baby[s] = top->baby_words[s]; }
 	r.pack_ok = top->pack_ok;
-	std::printf("  %s: %" PRIu64 " clocks\n", direct ? "direct" : "bytes ", clk);
+	std::printf("  %s: %" PRIu64 " clocks", direct ? "direct" : "bytes ", clk);
+	if (direct)
+	{
+		std::printf(", %ld misread bursts, %d read again", misreads, int(top->copy_retries));
+		// both reads of a burst may be misread: one retry for two misreads
+		if ((misreads && !top->copy_retries) || top->copy_retries > std::min(misreads, 255L))
+		{ std::printf("\nretries do not follow the misreads\n"); std::exit(1); }
+	}
+	std::printf("\n");
 	return r;
 }
 

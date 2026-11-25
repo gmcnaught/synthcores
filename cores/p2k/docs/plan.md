@@ -241,4 +241,14 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
   requests now start only while the engine is idle with no sample due, and erase fills are 32
   words. `flash_smoke.sh` checks the underrun box.
 
+- Found on the MiSTer with the release build: loading the core over a running P2K (the smoke
+  test's last MGL, then the flash test's) left the system pack's first 8 flash words as 8 words of
+  sample data now and then (3 of 4 tries): the CPU read its reset vector from them and ran away
+  (blank LCD; the bus trace in DDR3 showed it). The rest of the 2 MB was right, and the data was
+  from the part of slot 1 the previous core's engine had been reading: the copier's first read
+  burst came back with other words. [I] Read data from the previous core still pending when the
+  FPGA was loaded; not settled. The copier now reads every burst twice and writes it only when
+  both agree (`copy_retries` on the diagnostics line; 0.3 s more for a 34 MB SIMM); the loader
+  bench injects misread bursts. The same sequence then booted 6 of 6 times.
+
 **Open:** none of the planned steps.
