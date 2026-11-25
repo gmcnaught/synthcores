@@ -22,7 +22,7 @@ Firmware images: `build/proteusxr_v200.bin` (XR v2.00), `build/protologic_v230.b
 | `0x800000–0x8003FF` | word/long writes | **Sound chip: 32 voices × 32 bytes** (`addr = 0x800000 + voice<<5`) | [O] `0x4110`, `0x42B4`, `0x48B2` |
 | `0x900001–0x90002F` (odd) | byte r/w | MC68901 MFP: GPDR `0x01`, ISRB `0x11`, TBDR `0x21`, RSR `0x2B`, UDR `0x2F` (MIDI) | [O] register offsets match MC68901 |
 | `0xA00000` | word read (`tst.w`) | Volume-pot strobe: fires a one-shot measured by MFP timer B in pulse-width mode (`TBCR=0x0C`); count read from `TBDR`, inverted, scaled 0–127 against min `0xFFE094` / max `0xFFE095` → `0xFFF988`, attenuation `0xFFF986` | [O] `0x4E9C–0x4EBA`, `0x25DA–0x2662` (v2.30) |
-| `0xB00001` | byte write, shadow at `0xFFF965` | [I] output latch (LEDs / mute / bank select); bit 2 cleared before entering diagnostics | [O] `0x4B7C–0x4B8C` |
+| `0xB00001` | byte write, shadow at `0xFFF965` (v2.30: `0xFFF995`) | LED latch, active low: bit 0 MASTER, bit 1 EDIT, bit 2 ENTER, bit 3 MIDI (see *Front-panel LEDs* below); bit 2 is lit on the "* SYSTEM ERROR *" screen while it waits for ENTER | [O] `0x4B7C–0x4B8C`; v2.30 `0x4E88`, `0x4DBA` |
 | `0xC00001` | byte read | [I] output-jack sense: bits 0–1 / 2–3 tested when a voice is routed to sub-output 1 (`0x10`) / sub-output 2 (`0x20`); if the bits are 0 the routing bits are cleared (falls back to main). Not in MAME map. | [O] `0x3716–0x375C` |
 | `0xD00001` / `0xD00003` | byte r/w | **Serial debug UART**: status bit0 = RX ready, bit1 = TX ready; data at `0xD00003`. Not in MAME map. | [O] `0x8152–0x8194`; [I] 6850 ACIA-style layout |
 | `0xFFC000–0xFFFFFF` | RAM | Work RAM (stack top `0xFFFFFE`); short-absolute variables span `0xFFC000–0xFFFA8C`; [U] which part is battery-backed | [O] MAME, vectors, listing |
@@ -52,6 +52,28 @@ Register meanings: see the table below and the header of `proteus_snd.cpp`.
 | Address | Use | Evidence |
 |---|---|---|
 | `0x500009 + 2·voice` | byte per voice; channel test writes `0x0F/0x00/0x1F/0x10/0x2F/0x20` → [I] output pair + left/right/pan select | [O] v2.30 `0x2AF8`, `0x490C` |
+
+## Front-panel LEDs (v2.30)
+Latch `0xB00001`, active low: bit 0 MASTER, bit 1 EDIT, bit 2 ENTER, bit 3 MIDI [O].
+- `0x4E88` refreshes the latch from its shadow `0xFFF995`. The ENTER LED follows its mode byte
+  `0xFFF996`: 0 off, 1 on, 2 blinking with bit 8 of the tick counter `0xFFF998` (~256 ms per
+  phase). Table byte `0x9D` at `0x4EF0` [O].
+- A page sets `0xFFF996` from bits 3–2 of byte 3 of its descriptor in the page table at `0xDE2`
+  (`0x5ECE`); `0x7D10–0x7D52` set it to 1 or 2 elsewhere [O].
+- ENTER (GPIP3) is entry `0x250A` of the button jump table at `0x24E6`: it clears `0xFFF996`,
+  then jumps to the ENTER handler held at `0xFFF9A8` [O].
+- `0x4DBA` lights bit 2 on the "* SYSTEM ERROR *" screen and waits for GPIP3 [O].
+- Full-system simulation (`sim/sys_main.cpp`, v2.30 ip485/ip486, GPIO script: MASTER, the
+  encoder to "SEND MIDI DATA / User Presets", CURSOR, ENTER) [O]:
+  ```
+  3.195974 b00000 3e3e   MASTER pressed (bit 0 on)
+  5.995905 fff996 0202   CURSOR on "SEND MIDI DATA": ENTER LED mode 2
+  6.095113 b00000 3a3a   bit 2 on
+  6.350885 b00000 3e3e   bit 2 off; toggles every ~256 ms until
+  8.495731 fff996 0000   ENTER pressed: "SENDING DATA... / Done.", SysEx out; bit 2 stays off
+  ```
+  Bit 2 stayed off when idle, on every Master page and on every Edit page (including
+  "SAVE PRESET to" with the cursor on the title).
 
 ## Sound chip registers (per voice, `0x800000 + v·0x20`) — partial
 | Offset | Written as | Meaning | Evidence |

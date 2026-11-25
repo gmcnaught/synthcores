@@ -62,7 +62,8 @@ volume boost also works), **Tone Filter** (on by default, see Known limits), **S
 **Autosave on OSD open** (on by default), **Factory Reset Presets** (re-runs the initialisation;
 overwrites your presets on the next save).
 
-The screen shows the LCD, the MIDI / MASTER / EDIT LEDs and a level bar per voice.
+The screen shows the front panel (`cfg/panel.yaml`) with the LCD, the MIDI / MASTER / EDIT / ENTER LEDs
+lit and the buttons shown pressed, and a level bar per voice.
 
 ## Known limits
 - The sound chip is modelled from the firmware's use of it and from E-mu's patents of the period

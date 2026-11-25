@@ -27,6 +27,7 @@ build() {   # name top warm clks sources...
         +define+MT32_PANEL_DIR=\""$ROOT/cores/mt32/hdl/panel/"\" -I"$ROOT/cores/mt32/hdl/panel" \
         +define+MT32_FONT_HEX=\""$ROOT/cores/mt32/hdl/mt32_lcd_font.hex"\" \
         +define+P2K_PANEL_DIR=\""$ROOT/cores/p2k/hdl/panel/"\" -I"$ROOT/cores/p2k/hdl/panel" \
+        +define+PROTEUS_PANEL_DIR=\""$ROOT/cores/proteus/mister/rtl/panel/"\" -I"$ROOT/cores/proteus/mister/rtl/panel" \
         -CFLAGS "-O2 -DBENCH_TOP=V$top -DBENCH_H='\"V$top.h\"' -DNAME='\"$name\"'" \
         --Mdir "$OUT/$name" -o "bench_$name" "$HERE/tb_frame.cpp" "$@" >"$OUT/$name.build.log" 2>&1 \
         || { cat "$OUT/$name.build.log" >&2; exit 1; }

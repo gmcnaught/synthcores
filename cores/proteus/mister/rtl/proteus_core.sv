@@ -168,9 +168,9 @@ wire [15:0] snd_data, snd_mask, snd_rb_data, snd_raw;
 wire        lcd_line, lcd_is_cg, lcd_cursor, lcd_on;
 wire  [3:0] lcd_pos;
 wire  [2:0] lcd_row;
-wire  [7:0] lcd_code, font_data, font2_data, leds;
+wire  [7:0] lcd_code, font_data, leds;
 wire  [4:0] lcd_cgbits;
-wire [11:0] font_addr, font2_addr;
+wire [11:0] font_addr;
 
 proteus_sys sys
 (
@@ -183,7 +183,7 @@ proteus_sys sys
 	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
 	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
-	.font2_addr(font2_addr), .font2_data(font2_data), .leds(leds),
+	.leds(leds),
 	.dbg_pc_addr(), .bus_wr_strobe(dbg_wr_strobe), .bus_wr_addr(dbg_wr_addr), .bus_wr_data(dbg_wr_data), .bus_wr_ds(dbg_wr_ds)
 );
 
@@ -230,7 +230,7 @@ display display
 	.clk(clk), .ce_pix(ce_pix), .hsync(hsync), .vsync(vsync), .hblank(hblank), .vblank(vblank), .r(r), .g(g), .b(b),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
 	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
-	.font2_addr(font2_addr), .font2_data(font2_data), .leds(leds),
+	.leds(leds), .buttons(gpio[3:0]),
 	.voice(disp_voice), .level(disp_level), .running(loaded)
 );
 

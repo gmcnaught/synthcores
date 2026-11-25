@@ -1,6 +1,8 @@
 # The core's files, in Quartus order. synthcore writes mister/files.qip (search:, files:,
 # mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - mister/rtl/panel
 files:
   - mister/rtl/bram.sv
   - mister/rtl/interp_rom.sv
@@ -10,6 +12,7 @@ files:
   - mister/rtl/snd_ctrl.sv
   - mister/rtl/mfp68901.sv
   - modules/synthframe/hdl/panel/synthframe_hd44780.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - mister/rtl/display.sv
   - mister/rtl/panel.sv
   - mister/rtl/proteus_sys.sv

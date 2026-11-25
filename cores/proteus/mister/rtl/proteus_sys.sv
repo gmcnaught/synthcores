@@ -67,9 +67,7 @@ module proteus_sys
 	output            lcd_on,
 	input      [11:0] font_addr,
 	output      [7:0] font_data,
-	input      [11:0] font2_addr,      // second read port (display labels)
-	output      [7:0] font2_data,
-	output reg  [7:0] leds,           // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit3 MIDI
+	output reg  [7:0] leds,           // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit2 ENTER, bit3 MIDI
 
 	// debug
 	output     [23:0] dbg_pc_addr,
@@ -160,7 +158,6 @@ bram #(15, 8) ram_hi (.clk(clk), .we(ram_we_hi), .waddr(ram_wa), .wdata(ram_wd_h
 bram #(15, 8) ram_lo (.clk(clk), .we(ram_we_lo), .waddr(ram_wa), .wdata(ram_wd_lo), .raddr(ram_ra), .rdata(ram_ql));
 assign nv_rdata = nv_lo_q ? ram_ql : ram_qh;
 bram #(12, 8) fontm  (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font_addr), .rdata(font_data));
-bram #(12, 8) fontm2 (.clk(clk), .we(ld_font), .waddr(ioctl_addr[11:0]), .wdata(ioctl_dout), .raddr(font2_addr), .rdata(font2_data));
 
 
 // one access per AS assertion, started when a data strobe is active (bus_busy, ds_act above)
