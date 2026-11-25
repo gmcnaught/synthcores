@@ -151,3 +151,19 @@ MT-32 goes first: its reference replies cleanly and the wire is faster than the 
 - MIDI THRU / soft-thru (the reference has none).
 - Wire-paced TDRE as an OSD option.
 - SC-55 mk2 serial/computer port selection.
+
+## 3. Results (2026-11-24)
+
+| Core | Simulation | Quartus (winbuild, default seed) | MiSTer smoke |
+|---|---|---|---|
+| SC-55 | `mcu_lockstep`: mk1 Active Sensing, mk2 GS RQ1 → DT1, byte and cycle identical; `board_lockstep`: 4 (mk1) and 202 (mk2) bytes on `uart_txd` = the model's, none dropped; whole suite passes | 33,168 ALMs (main: 32,973); core setup slack +0.868 ns | mk2 pack: `F0 41 10 42 12 40 00 00 00 04 00 00 3C F7` on `/dev/ttyS1` = the model's; Active Sensing every ~21 ms, the model's sub-MCU rate |
+| JV-880 | `mcu_lockstep` (factory NVRAM, system RQ1): 75-byte DT1, byte and cycle identical; `jv880_board_bench`: the same 75 bytes on `uart_txd` | 28,703 ALMs; worst setup slack +0.265 ns (HDMI PLL), core +0.267 ns | the 75-byte DT1 = the model's; panel then at "Now bulk s", as the model |
+| MT-32 | PR #39: `T` lines in the trace, 59 bytes (two DT1s) identical over 11,254,172 trace lines; corpus 7/7 | 18,666 ALMs (main 18,647, same run); core slack +0.466 ns | both DT1s = the model's at 31,250; at 9600 the same, master volume 60 after the smoke's MIDI |
+
+Findings from the hardware runs:
+
+- **MidiLink restarts after each core load.** A core load starts `/sbin/uartmode` loops that
+  restart MidiLink every second, and MidiLink then reads the core's output off `/dev/ttyS1`.
+  `synth-mister midi-off` stops both.
+- **First bytes lost after a speed change.** When `synthframe_midi_rx` switches between 31,250
+  and 9600 it drops the first bytes, so the smokes send zero bytes before the first request.
