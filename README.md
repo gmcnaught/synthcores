@@ -12,7 +12,7 @@ planned. The layout follows jotego's jtcores and JTFRAME.
 | Roland MT-32 (second generation) | [`cores/mt32`](cores/mt32) | plays MIDI on the MiSTer; instruction- and sample-exact against Nuked-MT32 | [MT-32-MiSTer](https://github.com/gmcnaught/MT-32-MiSTer/releases) v20261124 | GPL-2.0-or-later (8098 CPU MIT) |
 | Casio CZ-101 | [`cores/cz101`](cores/cz101) | plays MIDI on the MiSTer; instruction- and sample-exact against MAME | [CZ-101-MiSTer](https://github.com/gmcnaught/CZ-101-MiSTer/releases) v20261124 | MIT (MAME's BSD-3-Clause notice in its `NOTICE`) |
 | E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | plays MIDI on the MiSTer | [emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer/releases) v0.2.0 | GPL-3.0-or-later |
-| E-mu Proteus 2000 | [`cores/p2k`](cores/p2k) (CPU and sound RTL in [`cores/proteus/p2k`](cores/proteus/p2k)) | boots OS 2.26 and plays MIDI on the MiSTer with a stand-in SIMM; sound bit-exact against the integer MAME model; user flash SIMMs written as MAME writes them | — (not released) | GPL-3.0-or-later |
+| E-mu Proteus 2000 | [`cores/p2k`](cores/p2k) (CPU and sound RTL in [`cores/proteus/p2k`](cores/proteus/p2k)) | boots OS 2.26 and plays MIDI on the MiSTer with a stand-in SIMM; sound bit-exact against the integer MAME model; user flash SIMMs written as MAME writes them | [Proteus-2000-MiSTer](https://github.com/gmcnaught/Proteus-2000-MiSTer/releases) v20261125 | GPL-3.0-or-later |
 | New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on the MiSTer | [synclavierii](https://github.com/gmcnaught/synclavierii/releases) Synclavier_20261118 | MIT |
 
 Each core's README gives its checks, the ROM dumps it needs and how to install it.
