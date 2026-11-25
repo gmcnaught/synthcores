@@ -27,6 +27,7 @@ Scripts in `scripts/` (`-autoboot_script mame/scripts/run_test.lua`, choose with
 | `trace_io.lua` | Log sound-chip and I/O accesses to `PROTEUS_TRACE` |
 | `call_init.lua` | Call the firmware's diagnostics "Initialize" (factory presets into NVRAM) |
 | `sound_rom_test.lua` | Call the firmware's Sound ROM test on bank `PROTEUS_ROMTEST_BANK`; result in `error.log` as `ROMTEST d0=0` (pass). Needs `-debug -debugger none -log`. |
+| `p2k_leds.lua` | `proteus2k`: log panel LED latch changes to `P2K_LEDLOG`; `P2K_ADC` moves knobs (the LED map in `docs/p2k-findings.md`) |
 
 Verified 2026-11-20 (`proteusxrpl`, firmware v2.30):
 - Sound ROM test passes on bank 1 (ProtoLogic dump) and bank 0 (Proteus/1 dump; earlier also on the rebuilt ROM).

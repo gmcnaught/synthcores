@@ -1,6 +1,8 @@
 # The core's files, in Quartus order. synthcore writes mister/files.qip (search:, files:,
 # mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - hdl/panel
 files:
   - hdl/upd7810/upd7810_core.sv
   - hdl/upd7810/upd7810_periph.sv
@@ -14,6 +16,7 @@ files:
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_charlcd.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - hdl/cz101_lcd_video.sv
   - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
   - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv

@@ -8,6 +8,10 @@ from the MiSTer keyboard or a controller.
 No ROM, firmware or sample data is included. You build the core's system image from files you
 download yourself (below).
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen (320 x 240, shown at 2x): the front panel (owner's manual p. 13) with the LCD, the MIDI / MASTER / EDIT / ENTER LEDs, the buttons with their keyboard keys, and the 32 voice levels.
+
 ## What you need
 | File | Where | Used for |
 |---|---|---|
@@ -62,7 +66,8 @@ volume boost also works), **Tone Filter** (on by default, see Known limits), **S
 **Autosave on OSD open** (on by default), **Factory Reset Presets** (re-runs the initialisation;
 overwrites your presets on the next save).
 
-The screen shows the LCD, the MIDI / MASTER / EDIT LEDs and a level bar per voice.
+The screen shows the front panel (`cfg/panel.yaml`) with the LCD, the MIDI / MASTER / EDIT / ENTER LEDs
+lit and the buttons shown pressed, and a level bar per voice.
 
 ## Known limits
 - The sound chip is modelled from the firmware's use of it and from E-mu's patents of the period

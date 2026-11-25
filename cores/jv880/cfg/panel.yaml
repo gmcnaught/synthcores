@@ -1,0 +1,284 @@
+# JV-880 panel (owner's manual pp. 9-10), rearranged for 800 x 600.
+# HDL expressions, in jv880_lcd_video's scope: buttons = jv880_kbd's buttons (mcu.h
+# MCU_BUTTON_* for the JV-880; 1 = pressed), leds = sc55_mcu's jv_leds (the LEDs the
+# firmware drives: [4:0] UTILITY, RHYTHM, SYSTEM, EDIT, MIDI MESSAGE; [9:5] TONE SWITCH 4-1, PATCH).
+bpp: 4
+size: [800, 600]
+theme: {hint_style: inside, hint: '#e0b040'}
+elements:
+- type: case
+  rect: [4, 8, 792, 584]
+  color: '#1e1e20'
+- type: label
+  at: [20, 26]
+  text: JV-880
+  size: 13
+  weight: Bold
+  anchor: lm
+- type: lcd
+  rect: [16, 50, 768, 104]
+  color: '#78a000'
+  bezel: 8
+- type: knob
+  at: [60, 230]
+  r: 24
+  label: VOLUME
+- type: label
+  at: [60, 282]
+  text: PREVIEW (PUSH)
+  size: 8
+- type: button
+  rect: [40, 292, 40, 18]
+  key: P
+  input: buttons[9]
+  radius: 9
+- type: label
+  at: [60, 322]
+  text: 'level: OSD'
+  size: 8
+  color: '#8a8a90'
+- type: knob
+  at: [160, 230]
+  r: 30
+  label: DATA
+- type: button
+  rect: [140, 292, 40, 18]
+  key: Tab
+  input: buttons[4]
+  radius: 9
+- type: label
+  at: [160, 282]
+  text: (PUSH)
+  size: 8
+- type: label
+  at: [160, 322]
+  text: 'turn: , .'
+  size: 8
+  color: '#8a8a90'
+- type: box
+  rect: [216, 250, 120, 70]
+  radius: 6
+  color: '#9a9aa2'
+  title: ◀ CURSOR ▶
+  bg: '#1e1e20'
+- type: button
+  rect: [224, 268, 48, 22]
+  key: ←
+  input: buttons[0]
+  glyph: −
+- type: button
+  rect: [280, 268, 48, 22]
+  key: →
+  input: buttons[1]
+  glyph: +
+- type: label
+  at: [276, 308]
+  text: PARAM SHIFT
+  size: 8
+  color: '#8a8a90'
+- type: label
+  at: [390, 192]
+  text: ■ PATCH
+  size: 9
+  anchor: mm
+  color: '#f0a040'
+- type: label
+  at: [390, 204]
+  text: □ PERFORM
+  size: 9
+  anchor: mm
+  color: '#60a0ff'
+- type: button
+  rect: [360, 224, 60, 22]
+  key: A
+  input: buttons[10]
+- type: led
+  at: [390, 219]
+  color: '#ff3020'
+  bit: leds[9]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [390, 262]
+  text: TONE
+  size: 9
+- type: label
+  at: [390, 274]
+  text: SELECT
+  size: 9
+- type: button
+  rect: [360, 288, 60, 22]
+  key: Q
+  input: buttons[2]
+- type: label
+  at: [478, 204]
+  text: EDIT
+  size: 9
+- type: button
+  rect: [448, 224, 60, 22]
+  key: W
+  input: buttons[11]
+- type: led
+  at: [478, 219]
+  color: '#ff3020'
+  bit: leds[3]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [542, 204]
+  text: SYSTEM
+  size: 9
+- type: button
+  rect: [512, 224, 60, 22]
+  key: E
+  input: buttons[12]
+- type: led
+  at: [542, 219]
+  color: '#ff3020'
+  bit: leds[2]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [606, 204]
+  text: RHYTHM
+  size: 9
+- type: button
+  rect: [576, 224, 60, 22]
+  key: R
+  input: buttons[13]
+- type: led
+  at: [606, 219]
+  color: '#ff3020'
+  bit: leds[1]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [670, 204]
+  text: UTILITY
+  size: 9
+- type: button
+  rect: [640, 224, 60, 22]
+  key: T
+  input: buttons[8]
+- type: led
+  at: [670, 219]
+  color: '#ff3020'
+  bit: leds[0]
+  shape: rect
+  size: [16, 3]
+- type: box
+  rect: [440, 260, 270, 72]
+  radius: 6
+  color: '#9a9aa2'
+  title: TONE SWITCH
+  bg: '#1e1e20'
+- type: label
+  at: [478, 271]
+  text: '1'
+  size: 9
+- type: button
+  rect: [448, 288, 60, 22]
+  key: S
+  input: buttons[3]
+- type: led
+  at: [478, 283]
+  color: '#ff3020'
+  bit: leds[8]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [478, 322]
+  text: MUTE
+  size: 8
+  color: '#60a0ff'
+- type: label
+  at: [542, 271]
+  text: '2'
+  size: 9
+- type: button
+  rect: [512, 288, 60, 22]
+  key: D
+  input: buttons[5]
+- type: led
+  at: [542, 283]
+  color: '#ff3020'
+  bit: leds[7]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [542, 322]
+  text: MONITOR
+  size: 8
+  color: '#60a0ff'
+- type: label
+  at: [606, 271]
+  text: '3'
+  size: 9
+- type: button
+  rect: [576, 288, 60, 22]
+  key: F
+  input: buttons[6]
+- type: led
+  at: [606, 283]
+  color: '#ff3020'
+  bit: leds[6]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [606, 322]
+  text: INFO/COMPARE
+  size: 8
+  color: '#f0a040'
+- type: label
+  at: [670, 271]
+  text: '4'
+  size: 9
+- type: button
+  rect: [640, 288, 60, 22]
+  key: G
+  input: buttons[7]
+- type: led
+  at: [670, 283]
+  color: '#ff3020'
+  bit: leds[5]
+  shape: rect
+  size: [16, 3]
+- type: label
+  at: [670, 322]
+  text: ENTER
+  size: 8
+  color: '#e8e8e8'
+- type: area
+  rect: [724, 196, 60, 22]
+  color: '#101010'
+  radius: 2
+- type: label
+  at: [754, 190]
+  text: PCM CARD
+  size: 7
+- type: area
+  rect: [724, 236, 60, 22]
+  color: '#101010'
+  radius: 2
+- type: label
+  at: [754, 230]
+  text: DATA CARD
+  size: 7
+- type: led
+  at: [754, 280]
+  r: 4
+  color: '#ff3020'
+  bit: leds[4]
+  label: MIDI MESSAGE
+  shape: rect
+  size: [24, 5]
+  label_at: [754, 270]
+- type: button
+  rect: [738, 292, 32, 30]
+  color: '#3a3a3c'
+- type: label
+  at: [754, 330]
+  text: POWER
+  size: 8
+- type: strip
+  at: [16, 560]

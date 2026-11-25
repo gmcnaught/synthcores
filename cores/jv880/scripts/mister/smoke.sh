@@ -83,10 +83,11 @@ keys text:e sleep:1
 $M shot jv880 "$OUT/rq1_key.png" >/dev/null
 keys text:e sleep:1
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
-# jv880_lcd_video.sv, 800 x 600 frame: the panel at (16, 196), 768 x 104, dot-on colour 0a1404;
-# the status strip 144 lines below the panel's top: boxes at x 0-199 (state band), 220-259 (MIDI),
-# 280-319 (underrun), 340-379 (lag) from the panel's left edge. Screenshots come scaled; every
-# offset is scaled by width / 800. The strip is found by the state band's colour.
+# jv880_lcd_video.sv, 800 x 600 frame: the LCD panel at (16, 50), 768 x 104, dot-on colour 0a1404;
+# the status strip at (16, 560), 510 lines below the LCD's top: boxes at x 0-199 (state band),
+# 220-259 (MIDI), 280-319 (underrun), 340-379 (lag) from the LCD's left edge. Screenshots come
+# scaled; every offset is scaled by width / 800. The strip is found by the state band's colour
+# (the front-panel art's palette keeps off the band colours).
 import sys
 from PIL import Image
 out = sys.argv[1]
@@ -112,7 +113,7 @@ und, lag = box(end, x0, y0, 280), box(end, x0, y0, 340)
 und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(und, "?%02x%02x%02x" % und)
 lag_s = {(0x30, 0x38, 0x48): "never", (0xe0, 0xa0, 0x20): "seen"}.get(lag, "?%02x%02x%02x" % lag)
 k = boot.size[0] / 800
-bx, by = s[0], s[1] - int(144 * k)
+bx, by = s[0], s[1] - int(510 * k)
 lit = 0
 for y in range(by, by + int(104 * k)):
     for x in range(bx, bx + int(768 * k)):

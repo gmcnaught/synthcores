@@ -2,6 +2,7 @@
 # mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
 search:
+  - hdl/panel
   - modules/roland/hdl/pcm
   - modules/roland/hdl/board
 files:
@@ -25,6 +26,7 @@ files:
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_charlcd.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - hdl/jv880_lcd_video.sv
   - hdl/jv880_kbd.sv
   - hdl/jv880_board.sv

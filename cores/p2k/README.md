@@ -11,6 +11,10 @@ The Proteus 2000 running its own OS (2.26) on an FPGA model of the unit:
 
 No SDRAM board is needed: the flash, DRAM, SIMMs and effect delay lines are in DDR3.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen while MIDI plays: the front panel (owner's manual p. 21) with the LCD, the firmware's LEDs (control row A-D, MIDI) and the output level meter. Each button shows its keyboard key.
+
 ## Files you make
 
 Nothing from the unit is in this repository. `tools/p2k_pack.py` builds the two files the core
@@ -72,16 +76,17 @@ SIMM download (see `docs/plan.md`).
   |---|---|---|---|
   | Q | Master | E | Edit |
   | M | Multi | S | Save/Copy |
-  | A | Arp | Space | Audition |
+  | A | Control | Space | Audition |
   | Enter | Home/Enter | ← → | cursor |
   | − = or ↓ ↑ | data entry knob | | |
 
-  Names follow MAME's driver; Arp and Audition are its guesses.
+  Control and Audition are confirmed by the LEDs they light (`cores/proteus/docs/p2k-findings.md`).
 - **OSD:** master volume (the volume knob), filter and effects on/off (for comparison), save flash,
   autosave, reset.
 - **Diagnostics** (OSD): a hex line under the screen with the CPU's PC, its last bus address and
   the load/hold flags.
-- **Screen:** the 2 × 24 LCD, the 16 panel LEDs, an output level meter, and the status strip
+- **Screen:** the front panel (`cfg/panel.yaml`) with the 2 × 24 LCD, its LEDs lit and its
+  buttons shown pressed, an output level meter, and the status strip
   (green while running; the underrun box marks a sample the engine started late).
 
 ## Limits

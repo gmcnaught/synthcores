@@ -12,6 +12,7 @@ CZ-101 use `synthframe_hd44780`, which is MAME's `hd44780_base_device`.
 | `synthframe_hd44780.sv` | HD44780 controller after MAME: DDRAM 128 x 8, CGRAM 64 x 8, address counter correction, entry mode, display/cursor shift, busy timing, and a combinational render port | Proteus/1, CZ-101 (`cores/cz101/hdl/cz101_lcd.sv` adds the E/RW/RS pins) |
 | `synthframe_charlcd.sv` | Character LCD renderer, the dot layer. Draws LINES x COLS characters of 5 x 8 dots from a character LCD read port; geometry and pitch are parameters | JV-880 (the LCD and the debug line), CZ-101 |
 | `synthframe_vtiming.sv` | Video timing counters, 800 x 600 at 60 Hz from 40 MHz by default | SC-55, JV-880, CZ-101 |
+| `synthframe_panel_art.sv` | Front-panel art from block RAM: an 8 x 8 cell map (tile, element) and a tile ROM of 4 or 5 bits a pixel, made by `modules/synthframe/tools/panel_art.py` from `cores/<core>/cfg/panel.yaml`. LEDs light and buttons show pressed by swapping the palette of their cells (`state[element]`). Three clocks (enabled clocks) of latency, as the renderers' | CZ-101, JV-880 |
 | `synthframe_status_strip.sv` | The status strip the MiSTer smoke tests read: state band, MIDI, underrun and lag boxes | SC-55, JV-880, CZ-101 |
 
 `synthframe_hd44780` measures the busy flag in clock cycles (`BUSY_EXT = 0`; the Proteus/1 at
@@ -20,6 +21,20 @@ the firmware's busy polls match MAME's instruction by instruction). Reset and cl
 fill DDRAM one address a clock (128 clocks); reset also zeroes CGRAM, as MAME's device_reset.
 In one-line mode MAME draws only line 0; the render port returns line 0's characters for line
 1 too.
+
+## Front panel art
+
+`cores/<core>/cfg/panel.yaml` describes the panel at the output resolution: the case, labels,
+buttons (with the MiSTer key that presses each one), LEDs, knobs, the LCD rectangle and the status
+strip. A `type: lay` entry pulls in a MAME layout view (the CZ-101 uses MAME's CC0 `cz101.lay`).
+Buttons with `input:` and LEDs with `bit:` hold an HDL expression in the renderer's scope; they
+are the dynamic elements. `panel_art.py PANEL.yaml --hdl DIR --name NAME` writes
+`NAME_panel_map.hex`, `NAME_panel_tiles.hex`, `NAME_panel.svh` (geometry and palettes) and
+`NAME_panel_state.svh` (`assign panel_state[i] = <expression>;`); `--png` draws a mock-up.
+The renderer includes both `.svh` files, instantiates `synthframe_panel_art` with the pixel
+counters, and uses its colour wherever the LCD and the status strip do not draw. Fonts:
+`tools/fonts/` (Inter, SIL OFL 1.1). The palette keeps off the status strip's band colours,
+which the smoke tests search for.
 
 ## Character LCD read port
 

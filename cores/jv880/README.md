@@ -6,6 +6,10 @@ are the SC-55 core's (`modules/roland`) with the `jv880` model, checked sample f
 against [Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) (`modules/nuked-sc55`, romsets
 `jv880-v1.0.0` and `jv880-v1.0.1`). No ROMs are included.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen in System mode: the front panel (owner's manual pp. 9-10) with the LCD; the SYSTEM and MIDI MESSAGE LEDs are lit by the firmware. Each button shows its keyboard key.
+
 ## Status
 
 | Part | Check | Result |
@@ -70,12 +74,16 @@ Panel keys (PS/2 or USB keyboard, the reference frontend's map):
 | D | MONITOR |
 | F | COMPARE |
 | G | ENTER |
-| Tab | DATA |
+| Tab | DATA (pushing the DATA dial: hold it while turning for large steps) |
 | ← → | CURSOR |
-| , . or ↓ ↑ | the VALUE encoder |
+| , . or ↓ ↑ | turning the DATA dial |
 
 As on the unit, pressing a mode button (UTILITY, SYSTEM, RHYTHM, EDIT) again returns to play
 mode; PATCH/PERFORM switches between patch and performance play.
+
+The screen shows the front panel (`cfg/panel.yaml`) around the LCD: buttons show pressed while
+their keys are held, and the indicators (PATCH, EDIT, SYSTEM, RHYTHM, UTILITY, TONE SWITCH 1-4,
+MIDI MESSAGE) light as the firmware drives them.
 
 **NVRAM (the unit's battery-backed memory):** the core keeps it in `saves/JV-880/<pack>.sav`
 (32 KB, the reference's NVRAM layout).

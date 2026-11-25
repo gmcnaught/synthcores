@@ -6,6 +6,7 @@
 # (sim/build.sh).
 search:
   - ../proteus/p2k/rtl/snd
+  - hdl/panel
 files:
   - ../proteus/p2k/rtl/cpu/mcf5206e_periph.sv
   - ../proteus/p2k/rtl/cpu/p2k_cpu.sv
@@ -21,6 +22,7 @@ files:
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_charlcd.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
   - hdl/p2k_x21.sv
   - hdl/p2k_mem.sv

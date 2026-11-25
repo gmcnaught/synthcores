@@ -3,7 +3,7 @@
 # Build a core's MiSTer RBF with Quartus 17.0 on the Windows build host over SSH, from the
 # working tree as it is (tracked files, uncommitted edits included).
 #
-#   [SEED=N] scripts/build-hosts/winbuild.sh CORE [OUTDIR]    CORE: sc55 | synclavier | proteus | jv880 | cz101 | p2k
+#   [SEED=N] scripts/build-hosts/winbuild.sh CORE [OUTDIR]    CORE: sc55 | synclavier | proteus | jv880 | mt32 | cz101 | p2k
 #
 # WINBUILD (default "winbuild", an ~/.ssh/config host) must accept SSH key logins and run
 # PowerShell, with Quartus Lite 17.0 at C:\intelFPGA_lite\17.0 and Git for Windows (bash, tar)
@@ -51,7 +51,7 @@ W=/c/synthbuild/$ID
 mkdir -p "\$W" && cd "\$W" || exit 1
 tar -xzf /c/synthbuild/$ID-src.tgz && rm -f /c/synthbuild/$ID-src.tgz
 cd cores/$CORE || exit 1
-SC55_SEED='$SEED' SYNCLAVIER_SEED='$SEED' JV880_SEED='$SEED' $BUILD > mister/build.out 2>&1
+SC55_SEED='$SEED' SYNCLAVIER_SEED='$SEED' JV880_SEED='$SEED' MT32_SEED='$SEED' $BUILD > mister/build.out 2>&1
 echo \$? > mister/build.status
 tar -czf /c/synthbuild/$ID-out.tgz mister/build.out mister/build.status mister/build.log \
     mister/_out mister/output_files 2>/dev/null

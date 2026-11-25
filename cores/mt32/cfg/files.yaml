@@ -3,6 +3,7 @@
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
 search:
   - hdl/mcs96
+  - hdl/panel
 files:
   - hdl/mcs96/mcs96_core.sv
   - hdl/mcs96/mcs96_periph.sv
@@ -16,6 +17,7 @@ files:
   - hdl/mt32_core.sv
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - hdl/mt32_lcd_video.sv
   - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
   - modules/synthframe/hdl/midi/synthframe_midi_tx.sv

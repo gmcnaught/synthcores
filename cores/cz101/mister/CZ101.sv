@@ -263,6 +263,7 @@ cz101_kbd kbd
 wire        sample_valid;
 wire signed [15:0] sample;
 wire [15:0] leds;
+wire  [7:0] led_latch [4];
 wire        lcd_power, lcd_display_on, lcd_cursor_on, lcd_blink_on;
 wire        r_line, r_at_ac;
 wire  [3:0] r_pos;
@@ -292,7 +293,7 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.powered_down(powered_down),
 	.cycles(cycles),
 
-	.leds(leds), .led_latch(), .lcd_power(lcd_power),
+	.leds(leds), .led_latch(led_latch), .lcd_power(lcd_power),
 	.sample_valid(sample_valid), .sample(sample), .sample_sum(),
 
 	.r_line(r_line), .r_pos(r_pos), .r_row(r_row), .r_code(r_code), .r_at_ac(r_at_ac),
@@ -365,7 +366,7 @@ cz101_lcd_video video
 	.r_line(r_line), .r_pos(r_pos), .r_row(r_row), .r_code(r_code), .r_at_ac(r_at_ac),
 	.r_cg_bits(r_cg_bits),
 	.display_on(lcd_display_on), .cursor_on(lcd_cursor_on), .blink_on(lcd_blink_on),
-	.power(lcd_power), .leds(leds),
+	.power(lcd_power), .leds(leds), .lat(led_latch), .keys(keys),
 	.rom_ok(rom_ok), .loading(ioctl_download), .midi_led(LED_USER),
 	.underrun_seen(underruns != 0),
 	.hs(hs), .vs(vs), .hblank(hblank), .vblank(vblank), .r(r), .g(g), .b(b)

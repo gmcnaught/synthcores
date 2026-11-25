@@ -48,8 +48,8 @@ lit() {
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert("RGB"); k = im.size[0] / 800
-band = im.getpixel((int(40 * k), int(430 * k)))
-box = im.crop((int(30 * k), int(200 * k), int(770 * k), int(300 * k)))
+band = im.getpixel((int(40 * k), int(566 * k)))
+box = im.crop((int(30 * k), int(56 * k), int(770 * k), int(156 * k)))
 n = sum(1 for x in range(box.size[0]) for y in range(box.size[1]) if box.getpixel((x, y))[0] < 0x70 and box.getpixel((x, y))[1] < 0x70)
 print(n if band[1] > 0xa0 and band[0] < 0x60 else 0)
 PY
@@ -95,8 +95,8 @@ fi
 echo "$SAV $USER" > "$OUT/sav"
 
 python3 -I - "$OUT" "${ERASED:+1}" <<'EOF' | tee "$OUT/result.txt"
-# p2k_lcd_video.sv, 800 x 600: LCD panel at (30, 200), 740 x 100, dots 5C5358 on / 83888B off;
-# level meter at (30, 380), 512 x 12, lit 40E060; status strip at (30, 420): state band x 0-199,
+# p2k_lcd_video.sv, 800 x 600: LCD panel at (30, 56), 740 x 100, dots 5C5358 on / 83888B off;
+# level meter at (30, 402), 512 x 12, lit 40E060; status strip at (30, 556): state band x 0-199,
 # underrun box (here: a late sample) at x 280-319. Lit dots and meter: by darkness / green
 # (screenshots are scaled and filtered). Screenshots come scaled: offsets scale by
 # width / 800; the strip is found by the state band's colour.
@@ -115,12 +115,12 @@ def strip(im):
     return None
 def near(c, ref, tol=24): return all(abs(a - b) <= tol for a, b in zip(c, ref))
 def lcd(im, s):
-    k = im.size[0] / 800; x0, y0 = s[0], s[1] - int(220 * k)
+    k = im.size[0] / 800; x0, y0 = s[0], s[1] - int(500 * k)
     box = im.crop((x0, y0, x0 + int(740 * k), y0 + int(100 * k)))
     return sum(1 for x in range(box.size[0]) for y in range(box.size[1])
                if box.getpixel((x, y))[0] < 0x70 and box.getpixel((x, y))[1] < 0x70), box.tobytes()
 def meter(im, s):
-    k = im.size[0] / 800; x0, y = s[0], s[1] - int(34 * k)
+    k = im.size[0] / 800; x0, y = s[0], s[1] - int(148 * k)
     return sum(1 for x in range(x0, x0 + int(512 * k)) if im.getpixel((x, y))[1] > 0xa0 and im.getpixel((x, y))[0] < 0x80)
 ok = True
 end = load("end"); s = strip(end)

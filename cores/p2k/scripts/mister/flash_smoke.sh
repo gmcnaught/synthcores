@@ -44,19 +44,19 @@ lit() {
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert("RGB"); k = im.size[0] / 800
-band = im.getpixel((int(40 * k), int(430 * k)))
-box = im.crop((int(30 * k), int(200 * k), int(770 * k), int(300 * k)))
+band = im.getpixel((int(40 * k), int(566 * k)))
+box = im.crop((int(30 * k), int(56 * k), int(770 * k), int(156 * k)))
 n = sum(1 for x in range(box.size[0]) for y in range(box.size[1]) if box.getpixel((x, y))[0] < 0x70 and box.getpixel((x, y))[1] < 0x70)
 print(n if band[1] > 0xa0 and band[0] < 0x60 else 0)
 PY
 }
-# the status strip's underrun box (x 310-349 at y 420-439: strip x 280-319): dark red once a sample was late
+# the status strip's underrun box (x 310-349 at y 556-575: strip x 280-319): dark red once a sample was late
 late() {
     python3 -I - "$1" <<'PY'
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert("RGB"); k = im.size[0] / 800
-r, g, b = im.getpixel((int(330 * k), int(430 * k)))
+r, g, b = im.getpixel((int(330 * k), int(566 * k)))
 print(1 if r > 0x60 and g < 0x40 else 0)
 PY
 }

@@ -1,0 +1,109 @@
+# Proteus/1 panel (owner's manual p. 13) for the 320 x 240 output.
+# HDL expressions, in display.sv's scope: leds = the 0xB00001 latch (active low),
+# led_midi = its MIDI bit stretched to ~60 ms, buttons = MFP GPIP 3-0 (active low).
+# display.sv draws the LCD over the lcd rect (x 12-304, y 16-74; its dots at x 16-300,
+# y 20-70), the voice bars in the VOICES area (y 162-225) and the running bar at y 232-239.
+size: [320, 240]
+bpp: 4
+theme: {hint_style: inside, hint: '#e0b040', background: '#101828'}
+elements:
+- type: case
+  rect: [0, 0, 320, 240]
+  color: '#2a2c30'
+- type: lcd
+  rect: [12, 16, 293, 59]
+  color: '#284628'
+  bezel: 5
+- type: label
+  at: [160, 6]
+  text: PROTEUS
+  size: 8
+  weight: Bold
+- type: button
+  rect: [8, 104, 22, 14]
+  key: OSD
+  size: 7
+- type: label
+  at: [19, 96]
+  text: POWER
+  size: 7
+- type: led
+  at: [42, 96]
+  r: 3
+  color: '#ff3020'
+  bit: led_midi
+  label: MIDI
+  lsize: 7
+  label_at: [42, 106]
+- type: led
+  at: [76, 88]
+  r: 3
+  color: '#30e040'
+  bit: '!leds[0]'
+- type: label
+  at: [76, 96]
+  text: MASTER
+  size: 7
+- type: button
+  rect: [64, 104, 26, 16]
+  key: M
+  input: '!buttons[0]'
+  radius: 8
+- type: led
+  at: [118, 88]
+  r: 3
+  color: '#30e040'
+  bit: '!leds[1]'
+- type: label
+  at: [118, 96]
+  text: EDIT
+  size: 7
+- type: button
+  rect: [106, 104, 26, 16]
+  key: E
+  input: '!buttons[1]'
+  radius: 8
+- type: led
+  at: [160, 88]
+  r: 3
+  color: '#ff3020'
+  bit: '!leds[2]'
+- type: label
+  at: [160, 96]
+  text: ENTER
+  size: 7
+- type: button
+  rect: [148, 104, 26, 16]
+  key: Ent
+  input: '!buttons[3]'
+  radius: 8
+- type: label
+  at: [206, 96]
+  text: CURSOR
+  size: 7
+- type: button
+  rect: [193, 104, 26, 16]
+  key: C
+  input: '!buttons[2]'
+  radius: 8
+- type: knob
+  at: [248, 104]
+  r: 11
+  label: DATA
+  key: ← →
+  size: 7
+- type: knob
+  at: [294, 104]
+  r: 10
+  label: VOLUME
+  key: OSD
+  size: 7
+- type: area
+  rect: [8, 148, 304, 80]
+  color: '#14161a'
+  radius: 2
+- type: label
+  at: [160, 154]
+  text: VOICES
+  size: 7
+  color: '#8a8a90'

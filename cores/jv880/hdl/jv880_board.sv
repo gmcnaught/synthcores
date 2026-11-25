@@ -16,7 +16,8 @@
 // playing: none in 10 s of notes and program changes on the reference).
 module jv880_board #(
     parameter longint CLK_HZ = 50_000_000,
-    parameter logic [31:0] WAVE_BASE = 32'h3000_0000
+    parameter logic [31:0] WAVE_BASE = 32'h3000_0000,
+    parameter PANEL_DIR = "../hdl/panel/"   // front-panel art ROMs; Quartus: relative to mister/
 ) (
     input  logic        clk,
     input  logic        clk_vid,          // 40 MHz: 800 x 600 video
@@ -190,6 +191,7 @@ module jv880_board #(
     logic [21:0] rom_addr;
     logic [7:0]  rom_data;
 
+    logic [9:0] jv_leds;                  // panel LEDs (sc55_mcu), for the video
     sc55_core #(.ROM2_AW(18), .JV880_RAMS(1'b1)) core (
         .clk, .rst(core_rst),
         .run_step, .step_done, .reset_start, .reset_done, .ready(core_ready),
@@ -198,7 +200,7 @@ module jv880_board #(
         .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
         .enc_we(enc_go), .enc_dir(enc_pdir),
         .rom2x_req(), .rom2x_addr(), .rom2x_ack(1'b0), .rom2x_data(8'h00),
-        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons({18'h0, buttons}),
+        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons({18'h0, buttons}), .jv_leds,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,
@@ -261,8 +263,8 @@ module jv880_board #(
     assign dbg_bits = {dbg_n, dbg_last, dbg_pcm_pk, dbg_out_pk, underruns};
     always_comb for (int k = 0; k < 24; k++) dbg_ch[k] = hexc(dbg_bits[95 - 4 * k -: 4]);
 
-    jv880_lcd_video video (
-        .clk(clk_vid), .dd(lcd_dd), .cg, .dd_ram, .cursor_on(c_flag),
+    jv880_lcd_video #(.PANEL_DIR(PANEL_DIR)) video (
+        .clk(clk_vid), .dd(lcd_dd), .cg, .dd_ram, .cursor_on(c_flag), .buttons, .leds(jv_leds),
         .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
         .underrun_seen(underruns != 16'd0), .lag_seen, .dbg_ch, .dbg_on(diag),
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b)

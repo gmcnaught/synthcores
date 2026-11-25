@@ -39,6 +39,7 @@ module mt32_core #(
     input  logic [9:0]  knob,
     output logic        tx_stb,         // MIDI out: pulse, a byte the CPU sends (tx_byte)
     output logic [7:0]  tx_byte,
+    output logic        msg_led,        // MIDI MESSAGE LED: bit 0 of the last write to 0200 (MAME so_w)
 
     output logic        sample_valid,
     output logic signed [15:0] out_l,
@@ -99,4 +100,8 @@ module mt32_core #(
         .dbg_ram2_2(), .dbg_sacc2(), .dbg_sacc3(), .dbg_sacc6(), .dbg_sacc7(), .dbg_w186(),
         .dbg_w187(), .dbg_w188()
     );
+    // the 0200 write (rv_reg 2) also carries the MIDI MESSAGE LED in bit 0
+    always_ff @(posedge clk)
+        if (rst) msg_led <= 1'b0;
+        else if (rv_we && rv_reg == 2'd2) msg_led <= rv_value[0];
 endmodule

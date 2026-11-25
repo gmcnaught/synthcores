@@ -1,0 +1,232 @@
+# SC-55 (mk1) panel (owner's manual p. 5): the LCD keeps its printed legends; the controls
+# that sit right of it on the unit are drawn below it.
+size: [800, 600]
+bpp: 4
+theme: {hint_style: inside, hint: '#e0b040'}
+elements:
+- type: case
+  rect: [4, 8, 792, 584]
+  color: '#26282c'
+- type: lcd
+  rect: [29, 40, 741, 268]
+  color: '#1060f0'
+  bezel: 8
+- type: label
+  at: [29, 24]
+  text: SC-55
+  size: 12
+  weight: Bold
+  anchor: lm
+- type: button
+  rect: [40, 360, 58, 26]
+  label: POWER
+  key: Q
+  input: buttons[0]
+  color: '#4a4c50'
+- type: knob
+  at: [150, 372]
+  r: 22
+  label: VOLUME
+- type: label
+  at: [150, 420]
+  text: (not modelled)
+  size: 8
+  color: '#8a8a90'
+- type: button
+  rect: [228, 348, 30, 24]
+  key: W
+  input: buttons[6]
+  radius: 12
+- type: label
+  at: [214, 360]
+  text: ALL
+  size: 10
+  anchor: rm
+- type: button
+  rect: [228, 392, 30, 24]
+  key: E
+  input: buttons[5]
+  radius: 12
+- type: label
+  at: [214, 404]
+  text: MUTE
+  size: 10
+  anchor: rm
+- type: box
+  rect: [300, 336, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [410, 327]
+  text: PART
+  size: 10
+- type: button
+  rect: [340, 344, 62, 24]
+  key: R
+  input: buttons[22]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [418, 344, 62, 24]
+  key: T
+  input: buttons[14]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [540, 336, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [650, 327]
+  text: INSTRUMENT
+  size: 10
+- type: button
+  rect: [580, 344, 62, 24]
+  key: Y
+  input: buttons[3]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [658, 344, 62, 24]
+  key: U
+  input: buttons[4]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [300, 392, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [410, 383]
+  text: LEVEL
+  size: 10
+- type: button
+  rect: [340, 400, 62, 24]
+  key: P
+  input: buttons[20]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [418, 400, 62, 24]
+  key: '['
+  input: buttons[21]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [540, 392, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [650, 383]
+  text: PAN
+  size: 10
+- type: button
+  rect: [580, 400, 62, 24]
+  key: D
+  input: buttons[12]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [658, 400, 62, 24]
+  key: F
+  input: buttons[13]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [300, 448, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [410, 439]
+  text: REVERB
+  size: 10
+- type: button
+  rect: [340, 456, 62, 24]
+  key: G
+  input: buttons[18]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [418, 456, 62, 24]
+  key: H
+  input: buttons[19]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [540, 448, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [650, 439]
+  text: CHORUS
+  size: 10
+- type: button
+  rect: [580, 456, 62, 24]
+  key: J
+  input: buttons[10]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [658, 456, 62, 24]
+  key: K
+  input: buttons[11]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [300, 504, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [410, 495]
+  text: KEY SHIFT
+  size: 10
+- type: button
+  rect: [340, 512, 62, 24]
+  key: I
+  input: buttons[16]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [418, 512, 62, 24]
+  key: O
+  input: buttons[17]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: box
+  rect: [540, 504, 220, 40]
+  radius: 18
+  color: '#9a9aa2'
+- type: label
+  at: [650, 495]
+  text: MIDI CH
+  size: 10
+- type: button
+  rect: [580, 512, 62, 24]
+  key: A
+  input: buttons[8]
+  glyph: ◀
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: button
+  rect: [658, 512, 62, 24]
+  key: S
+  input: buttons[9]
+  glyph: ▶
+  color: '#d0d0d0'
+  gcolor: '#202020'
+- type: strip
+  at: [29, 564]

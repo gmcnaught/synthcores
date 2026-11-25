@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Frame bench for the JV-880 renderer (cores/jv880/hdl/jv880_lcd_video.sv): seeded display
-// data, CG RAM, cursor, status bits and debug line.
+// data, CG RAM, cursor, status bits, debug line and pressed panel buttons and lit panel LEDs.
 module tb_jv880 (
     input  logic        clk,
     input  logic        load,
@@ -15,6 +15,8 @@ module tb_jv880 (
     logic [7:0] dbg_ch [24];
     logic [6:0] dd_ram, st;
     logic       cursor_on, dbg_on;
+    logic [13:0] buttons;
+    logic [9:0]  leds;
     always_ff @(posedge clk) if (load) begin : gen
         logic [31:0] s;
         s = seed;
@@ -26,9 +28,11 @@ module tb_jv880 (
         dd_ram <= {s[7], 1'b0, s[12:8] % 5'd24};
         cursor_on <= s[13] | seed[0];
         dbg_on <= seed[1];
+        s = xs(s); buttons <= s[13:0] & s[29:16];   // ~1/4 pressed
+        s = xs(s); leds <= s[9:0];                  // ~1/2 lit
     end
-    jv880_lcd_video dut (
-        .clk, .dd, .cg, .dd_ram, .cursor_on,
+    jv880_lcd_video #(.PANEL_DIR(`JV880_PANEL_DIR)) dut (
+        .clk, .dd, .cg, .dd_ram, .cursor_on, .buttons, .leds,
         .rom_ok(st[0]), .loading(st[1]), .running(st[2]), .midi_led(st[3]),
         .underrun_led(st[4]), .underrun_seen(st[5]), .lag_seen(st[6]),
         .dbg_ch, .dbg_on,
