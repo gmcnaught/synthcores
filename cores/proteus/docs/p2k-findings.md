@@ -394,9 +394,9 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   bit 12 cursor right, 13 cursor left (both move the cursor in the Save menu), 8 HOME/ENTER.
 - **LEDs**: 16-bit word, low byte 0x900000, high byte 0xA00000 (0x0103570C). The latch 0xB00000
   low nibble = 8 + row (0x010359AC), bit 6 = Baby select.
-- **LED bits** (2026-11-25; MAME `proteus2k` with a Lua write tap on the two latches, scripted
-  presses through `P2K_KEYS`, knob moves by overriding the 0xC00000 ADC reads, notes through
-  `-midiin`). The boot test lights bits 0-6 of 0xA00000, then bits 0-6 of 0x900000, one at a
+- **LED bits** (2026-11-25; MAME `proteus2k` with `mame/scripts/p2k_leds.lua`: a write tap on
+  the two latches, knob moves by overriding the 0xC00000 ADC reads (`P2K_ADC`); scripted presses
+  through `P2K_KEYS`, notes through `-midiin`). The boot test lights bits 0-6 of 0xA00000, then bits 0-6 of 0x900000, one at a
   time: 14 LEDs, the manual's 14.
 
   | Word bit | LED | Evidence |
