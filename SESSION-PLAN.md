@@ -62,6 +62,7 @@ Assumptions:
 | 16 | P2K sound HDL for the Cyclone V | 14 | — | `snd.raw` still bit-identical on all 22 cases × 3 modes through a DDR3 model; standalone Quartus 17 build meets timing at 100 MHz; worst sample within the 100 MHz budget (2267 clocks) |
 | 17 | MT-32 core on the MiSTer (`cores/mt32/docs/plan.md`, M0–M6) | 1, 2 | yes | MCS-96 trace, LA32 and reverb samples identical to Nuked-MT32 (`5b4e239`, firmware 2.07) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 | 18 | P2K MiSTer core (`cores/p2k/docs/plan.md`, P0–P6) | 11, 16 | yes | OS 2.26 boots to its main screen in the system bench and on the MiSTer with the Composer stand-in SIMM; the bench's sound-write log replayed by `p2k_render` equals the bench audio; plays MIDI on the MiSTer; user data in flash survives a reload |
+| 19 | P2K downloads straight to DDR3 | 18 | yes | the loader bench places packs and SIMMs identically by bytes and direct (3 seeds and a 34 MB SIMM); Quartus build meets timing; the MiSTer smoke test passes, with the main screen well under the 110 s of iteration 18 |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -268,7 +269,15 @@ for now. All memory is in DDR3 (no SDRAM board needed); the CPU reads it through
 Steps P0-P6 and their gates are in the plan. User flash SIMMs (G20 port B writes) are P6 and may
 move to a later iteration.
 
-### 19. MIDI out: SC-55, JV-880, MT-32 (2026-11-24, user)
+### 19. P2K downloads straight to DDR3 (2026-11-24, user: "speed up the load")
+
+Iteration 18's SIMM download took about 100 s: Main_MiSTer sends a download without a load address
+one byte at a time, with a handshake per byte. The pack and SIMM entries now carry the load
+address 0x3C000000, so Main_MiSTer writes the file into DDR3 itself; the loader copies it to its
+places (byte-swapped) after the download. File formats unchanged; the byte path stays as the
+fallback. Design and results: `cores/p2k/docs/plan.md`.
+
+### 20. MIDI out: SC-55, JV-880, MT-32 (2026-11-24, user)
 
 Plan, reference findings and steps: `MIDI-OUT-PLAN.md`. Neither Nuked-SC55 nor Nuked-MT32 emits
 TX bytes, but both store the byte and time TX-done, and in a probe the mk2 and MT-32 firmware sent

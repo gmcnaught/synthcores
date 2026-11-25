@@ -53,6 +53,12 @@ module sc55_mcu #(
     input  logic        midi_valid,
     input  logic [7:0]  midi_data,
     output logic        midi_full,
+    // MIDI out (the reference sends nothing; patch_ref.py's tx hook marks the same points):
+    // the SCI's byte when the CPU clears TDRE (mk1, SC-155, JV-880), the sub-MCU's UART2 byte (mk2)
+    output logic        tx_stb,
+    output logic [7:0]  tx_byte,
+    output logic        sm_tx_stb,
+    output logic [7:0]  sm_tx_byte,
 
     // front panel
     input  logic [31:0] buttons,         // mcu.button_pressed
@@ -178,7 +184,7 @@ module sc55_mcu #(
         .sys_req(sm_req && !sm_ack), .sys_we(sm_we), .sys_addr(sm_addr), .sys_wdata(sm_wdata), .sys_rdata(sm_rdata), .sys_ack(sm_ack),
         .rx_avail(mk2 && sm_wp != rx_rp), .rx_data(rx_rd), .rx_pop(sm_rx_pop), .rx_byte(sm_rx_byte),
         .rx_delay_we(sm_dly_we), .rx_delay_wv(sm_dly_wv),
-        .buttons, .ga5_we(sm_ga5_we), .ga5_val(sm_ga5_val),
+        .buttons, .ga5_we(sm_ga5_we), .ga5_val(sm_ga5_val), .tx_stb(sm_tx_stb), .tx_byte(sm_tx_byte),
         .st_pc(), .st_a(), .st_x(), .st_y(), .st_s(), .st_sr(), .st_cycles(), .st_sleep(),
         .st_p0_data(), .st_p0_dir(), .st_p1_dir(), .st_p1_data(), .st_prescaler(), .st_counter(),
         .st_timer_cycles(), .st_rx_delay(), .st_gotbyte(), .st_instructions()
@@ -217,6 +223,7 @@ module sc55_mcu #(
     logic [7:0]  uart_rx_byte;
     logic [47:0] uart_rx_delay, uart_tx_delay;
     logic [7:0]  ssr_rd;
+    logic        tdr_written;              // MIDI out: TDR written since the last byte sent
     // analog
     logic [47:0] analog_end;
     logic        adf_rd;
@@ -457,6 +464,7 @@ module sc55_mcu #(
         reset_done <= 1'b0;
         pcm_tick <= 1'b0;
         lcd_we <= 1'b0;
+        tx_stb <= 1'b0;
         sm_run <= 1'b0;
         sm_reset <= 1'b0;
         sm_dly_we <= 1'b0;
@@ -508,7 +516,7 @@ module sc55_mcu #(
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
             ga_lcd_counter <= 9'd0; ga_trigger <= 3'd0; ga_int1 <= 1'b0; io_sd <= 8'h00;
-            uart_rx_byte <= 8'h00; uart_rx_delay <= 48'd0; uart_tx_delay <= 48'd0; ssr_rd <= 8'h00;
+            uart_rx_byte <= 8'h00; uart_rx_delay <= 48'd0; uart_tx_delay <= 48'd0; ssr_rd <= 8'h00; tdr_written <= 1'b0;
             analog_end <= 48'd0; adf_rd <= 1'b0; tempreg <= 8'h00;
             lcd_enable <= 1'b0;
         end else begin
@@ -730,6 +738,9 @@ module sc55_mcu #(
                             end else if (a16[6:0] == 7'h5c) begin
                                 // SSR: flag clears, then the whole register is overwritten (reference behaviour)
                                 if (!d[7] && ssr_rd[7]) begin uart_tx_delay <= cycles + 48'd3000; int_req[20] <= 1'b0; end
+                                // MIDI out: TDR written, then TDRE written 0 (the SCI is double-buffered;
+                                // patch_ref.py's tx hook)
+                                if (!d[7] && tdr_written) begin tx_stb <= 1'b1; tx_byte <= dev[7'h5b]; tdr_written <= 1'b0; end
                                 if (!d[6] && ssr_rd[6]) begin
                                     uart_rx_delay <= cycles + 48'd3000; int_req[19] <= 1'b0;
                                     sm_dly_we <= mk2; sm_dly_wv <= cycles + 48'd3000;   // mk2: the sub-MCU's (shared) delay
@@ -737,6 +748,7 @@ module sc55_mcu #(
                                 dev[7'h5c] <= d;
                             end else begin
                                 dev[a16[6:0]] <= d;
+                                if (a16[6:0] == 7'h5b) tdr_written <= 1'b1;
                             end
                         end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
                         else if (a16 < 16'he000) ;                          // SRAM: write port below

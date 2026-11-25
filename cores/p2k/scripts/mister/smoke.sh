@@ -8,7 +8,7 @@
 # image); EVENTS: "seconds hexbytes" MIDI lines (cores/sc55/scripts/mister/smf2events.py).
 # Installs RBF (synth-mister install; run 'synth-mister backup' once first), copies PACK and SIMM
 # to games/P2K/ as p2k_smoke.p2k / p2k_smoke.sim, removes the pack's save file, loads both
-# through an MGL, waits for the main screen (up to 240 s: the 36 MB download and the OS start) and:
+# through an MGL, waits for the main screen (up to 240 s; about 19 s with direct downloads) and:
 #   boot.png    the main screen;
 #   play.png    during EVENTS (repeated for SECONDS, default 30) sent at 9600 baud (the core's
 #               MIDI input takes 9600 as well as MidiLink's 31250): the level meter must move;
@@ -41,7 +41,8 @@ mgl() {
 mgl p2k_smoke.p2k p2k_smoke
 scp -q ../synclavier/scripts/mister/mister_keys.py ../sc55/scripts/mister/play_tty.py "$EV" "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
-# wait (up to LIMIT seconds) until the LCD shows text and the band is green, then screenshot to $1
+# wait (up to LIMIT seconds) until the LCD shows text and the band is green, then screenshot to $1;
+# $1.secs: the seconds from the MGL load to the main screen (2 s steps)
 lit() {
     python3 -I - "$1" <<'PY'
 import sys
@@ -56,9 +57,9 @@ PY
 wait_main() {
     local t0=$(date +%s)
     while [ $(( $(date +%s) - t0 )) -lt "${2:-240}" ]; do
-        sleep 10
+        sleep 2
         $M shot p2k "$1" >/dev/null 2>&1 || continue
-        [ "$(lit "$1")" -gt 3000 ] && { sleep "${SETTLE:-15}"; $M shot p2k "$1" >/dev/null; echo "$(( $(date +%s) - t0 ))" > "$1.secs"; return 0; }
+        [ "$(lit "$1")" -gt 3000 ] && { echo "$(( $(date +%s) - t0 ))" > "$1.secs"; sleep "${SETTLE:-15}"; $M shot p2k "$1" >/dev/null; return 0; }
     done
     return 1
 }
@@ -99,7 +100,7 @@ python3 -I - "$OUT" "${ERASED:+1}" <<'EOF' | tee "$OUT/result.txt"
 # underrun box (here: a late sample) at x 280-319. Lit dots and meter: by darkness / green
 # (screenshots are scaled and filtered). Screenshots come scaled: offsets scale by
 # width / 800; the strip is found by the state band's colour.
-import sys
+import os, sys
 from PIL import Image
 out, erased = sys.argv[1], len(sys.argv) > 2 and sys.argv[2] == "1"
 COL = {(0x20, 0xc0, 0x40): "running", (0xe0, 0xa0, 0x20): "loading", (0x20, 0x60, 0xc0): "rom ok",
@@ -132,6 +133,8 @@ lit, boot_px = lcd(load("boot"), s)
 lvl = meter(load("play"), s)
 mlit, master_px = lcd(load("master"), s)
 print(f"band: {s[2]}"); ok &= s[2] == "running"
+secs = open(f"{out}/boot.png.secs").read().strip() if os.path.exists(f"{out}/boot.png.secs") else "none"
+print(f"seconds_to_main_screen: {secs}")
 print(f"late_sample: {late_s}"); ok &= late_s == "never"
 print(f"lcd_lit_pixels_boot: {lit}"); ok &= lit > 200
 print(f"level_meter_pixels_playing: {lvl}"); ok &= lvl > 0

@@ -19,6 +19,7 @@ from your own dumps.
 | MiSTer board (ROM pack, DDR3 wave ROMs, pacing, MIDI, audio) | identical in simulation from power-on | [`docs/board.md`](docs/board.md) |
 | LCD and panel keys | LCD identical pixel for pixel to the reference's renderer | [`docs/lcd.md`](docs/lcd.md) |
 | MiSTer hardware | mk1 and mk2: play MIDI in real time (100 s of avmidi 0A.mid, no underrun or lag) | [`docs/board.md`](docs/board.md), [`docs/mk2.md`](docs/mk2.md) |
+| MIDI out | the bytes the model sends identical in byte and cycle (`mcu_lockstep`: mk1 Active Sensing, mk2 GS RQ1 → DT1) and on `uart_txd` (`board_lockstep`); MiSTer: the mk2's DT1 on `/dev/ttyS1` = the model's | [`MIDI-OUT-PLAN.md`](../../MIDI-OUT-PLAN.md) |
 
 ## Using the core
 
@@ -33,7 +34,11 @@ from your own dumps.
 3. Copy the newest core from [`releases/`](releases/) (`SC55_YYYYMMDD.rbf`)
    to a core folder on the SD card, e.g. `_Devices/` (or install it with the MiSTer downloader from this
    repository).
-4. Set the UART to MidiLink (MiSTer menu) and send MIDI.
+4. Set the UART to MidiLink (MiSTer menu) and send MIDI. MIDI out goes back through the UART at
+   the same speed:
+    - every model sends Active Sensing (FE);
+    - the mk2 answers GS data requests (RQ1) with DT1 (the SC-155mk2 is not checked);
+    - the mk1's firmware answers no RQ1, in the reference as well.
 
 Panel keys (PS/2 or USB keyboard): Q power, W all, E mute, R/T part,
 Y/U instrument, I/O key shift, P/[ level, A/S MIDI channel, D/F pan,

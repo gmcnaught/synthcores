@@ -45,12 +45,38 @@ Unknown, to check in step 1:
   serial/computer port). The reference reads received bytes from the same register.
 - **SC-155 / SC-155mk2.** Not probed; expected to follow the mk1 / mk2 paths.
 
+### Step 1 results (SC-55 / JV-880)
+
+- **JV-880 replies after the factory preset.** With an empty NVRAM the firmware ignores RQ1.
+  With the factory-preset NVRAM (`jv880-nvram`), it answers the system-area RQ1 (00 00 00 00,
+  16 bytes) with one 75-byte DT1 (64 data bytes, valid checksum). The temp-patch RQ1
+  (00 08 20 00, in Performance mode) gets no reply.
+- **"Byte sent" on the SCI.** The JV-880 firmware relies on the H8/532 SCI's double buffer:
+    1. It writes byte A to TDR and clears TDRE.
+    2. About 450 cycles later it writes byte B to TDR and clears TDRE again.
+
+  On the chip, TDR moves to the shift register at once and TDRE sets again, so both bytes go
+  out. The reference keeps TDRE at 0 for 3000 cycles, so B's clear lands while TDRE reads 0. Tapping
+  where the model starts its transmit time (the TDRE 1→0 clear) therefore loses every second
+  byte. The byte definition used on both sides is: TDR written, then SSR written with TDRE 0.
+  mk1 and the MT-32 are unaffected.
+- **JV-880 panel after an RQ1.** After the reply the reference leaves the LCD at "Now bulk se"
+  (cut off mid-word) and stops taking panel keys (SYSTEM, PATCH/PERFORM checked for 15 s). The
+  CPU keeps running. The core does the same, since it follows the reference, and it did so before
+  MIDI out existed. Unknown: whether the real unit does this. More likely the reference's SCI
+  model is missing something the firmware waits for. Not changed here: changing it would mean
+  departing from the reference.
+- **mk1:** no RQ1 reply in any variant; Active Sensing only.
+- **Clocks:** the boards run the reference at 600 ns a step of 12 cycles (20 MHz). An SCI byte
+  is 150 µs of model time against 320 µs on the wire, so the FIFO holds the difference. The
+  board benches check that the 512-byte FIFO drops no byte of the 75-byte JV-880 reply.
+
 ## 2. Plan
 
 ### Step 1: reference TX log (test side only)
 
 - `cores/sc55/ref/patch_ref.py` (traced build): a hook giving `(cycle, byte)`
-    - main MCU: at the `SSR` write that clears TDRE (the point where `uart_tx_delay` is set), byte
+    - main MCU: at an `SSR` write with TDRE 0 after a TDR write (step 1 results), byte
       = `dev_register[TDR]`;
     - sub-MCU: at the write to dev 0x08, byte = data, cycle = `sm.cycles`.
 - `cores/mt32/ref/prepare_src.py`: a `mt32h_tx(byte, cycle)` hook in `i8x9x_device::sbuf_w`. The
@@ -63,8 +89,7 @@ Unknown, to check in step 1:
 ### Step 2: HDL tap (no state change)
 
 - `modules/roland/hdl/mcu/sc55_mcu.sv`: outputs `tx_stb`, `tx_byte`
-    - mk1 / JV-880: under the same condition that sets `uart_tx_delay` (`!d[7] && ssr_rd[7]` on the
-      SSR write), byte = `dev[7'h5b]`;
+    - mk1 / JV-880: an SSR write with `!d[7]` after a TDR write (`tdr_written`), byte = `dev[7'h5b]`;
     - mk2: on the sub-MCU's write to `dm[8]`.
 - `cores/mt32/hdl/mcs96/mcs96_periph.sv`: `tx_stb`, `tx_byte` on the SBUF write (`8'h07`).
 - The tap only adds outputs. **Gate:** every existing lockstep and hash test is bit-identical.
@@ -126,3 +151,19 @@ MT-32 goes first: its reference replies cleanly and the wire is faster than the 
 - MIDI THRU / soft-thru (the reference has none).
 - Wire-paced TDRE as an OSD option.
 - SC-55 mk2 serial/computer port selection.
+
+## 3. Results (2026-11-24)
+
+| Core | Simulation | Quartus (winbuild, default seed) | MiSTer smoke |
+|---|---|---|---|
+| SC-55 | `mcu_lockstep`: mk1 Active Sensing, mk2 GS RQ1 → DT1, byte and cycle identical; `board_lockstep`: 4 (mk1) and 202 (mk2) bytes on `uart_txd` = the model's, none dropped; whole suite passes | 33,168 ALMs (main: 32,973); core setup slack +0.868 ns | mk2 pack: `F0 41 10 42 12 40 00 00 00 04 00 00 3C F7` on `/dev/ttyS1` = the model's; Active Sensing every ~21 ms, the model's sub-MCU rate |
+| JV-880 | `mcu_lockstep` (factory NVRAM, system RQ1): 75-byte DT1, byte and cycle identical; `jv880_board_bench`: the same 75 bytes on `uart_txd` | 28,703 ALMs; worst setup slack +0.265 ns (HDMI PLL), core +0.267 ns | the 75-byte DT1 = the model's; panel then at "Now bulk s", as the model |
+| MT-32 | PR #39: `T` lines in the trace, 59 bytes (two DT1s) identical over 11,254,172 trace lines; corpus 7/7 | 18,666 ALMs (main 18,647, same run); core slack +0.466 ns | both DT1s = the model's at 31,250; at 9600 the same, master volume 60 after the smoke's MIDI |
+
+Findings from the hardware runs:
+
+- **MidiLink restarts after each core load.** A core load starts `/sbin/uartmode` loops that
+  restart MidiLink every second, and MidiLink then reads the core's output off `/dev/ttyS1`.
+  `synth-mister midi-off` stops both.
+- **First bytes lost after a speed change.** When `synthframe_midi_rx` switches between 31,250
+  and 9600 it drops the first bytes, so the smokes send zero bytes before the first request.

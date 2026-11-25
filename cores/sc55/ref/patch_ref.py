@@ -63,6 +63,26 @@ EDITS = [
      "    mcu.cycles += 12; // FIXME: assume 12 cycles per instruction",
      "    if (g_ref_hooks.cpu_done) g_ref_hooks.cpu_done(g_ref_hooks.ctx);\n"
      "    mcu.cycles += 12; // FIXME: assume 12 cycles per instruction"),
+    # MIDI out. The reference sends nothing ("dummy TX"). A byte counts as sent when the CPU
+    # writes TDR and then writes SSR with TDRE 0 (the byte is TDR), whether or not the model's
+    # TDRE was 1: the H8/532's SCI is double-buffered (TDR moves to the shift register and TDRE
+    # sets again at once while the line is idle), and the JV-880 firmware writes two bytes into
+    # one of the model's 3000-cycle TDRE periods. On the mk2, a byte is the sub-MCU's write to its
+    # UART2 data register (dev 0x08, address 0xe8).
+    ("backend/mcu.cpp",
+     "void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)\n{\n    address &= 0x7f;\n",
+     "void MCU_DeviceWrite(mcu_t& mcu, uint32_t address, uint8_t data)\n{\n    address &= 0x7f;\n"
+     "    if (address == DEV_TDR)\n"
+     "        g_ref_hooks.tdr_written = true;\n"
+     "    else if (address == DEV_SSR && (data & 0x80) == 0 && g_ref_hooks.tdr_written)\n"
+     "    {\n"
+     "        g_ref_hooks.tdr_written = false;\n"
+     "        if (g_ref_hooks.tx) g_ref_hooks.tx(g_ref_hooks.ctx, 0, mcu.cycles, mcu.dev_register[DEV_TDR]);\n"
+     "    }\n"),
+    ("backend/submcu.cpp",
+     "void SM_Write(submcu_t& sm, uint16_t address, uint8_t data)\n{\n    address &= 0x1fff;\n",
+     "void SM_Write(submcu_t& sm, uint16_t address, uint8_t data)\n{\n    address &= 0x1fff;\n"
+     "    if (address == 0xe8 && g_ref_hooks.tx) g_ref_hooks.tx(g_ref_hooks.ctx, 1, sm.cycles, data);\n"),
 ]
 
 APPEND = {
@@ -85,6 +105,7 @@ void MCU_Write(mcu_t& mcu, uint32_t address, uint8_t value)
     MCU_Write_Base(mcu, address, value);
 }
 """,
+    "backend/submcu.cpp": "",
 }
 
 HOOKS_H = """#pragma once
@@ -98,6 +119,9 @@ struct RefHooks
     void (*bus)(void* ctx, bool write, uint32_t address, uint8_t data) = nullptr;
     // Called in MCU_Step after the instruction, before cycles += 12 and the devices.
     void (*cpu_done)(void* ctx) = nullptr;
+    // MIDI out: a byte sent (src 0 main MCU SCI, 1 mk2 sub-MCU UART2; cycle = mcu.cycles / sm.cycles).
+    void (*tx)(void* ctx, int src, uint64_t cycle, uint8_t data) = nullptr;
+    bool tdr_written = false;   // TDR written since the last byte sent
     uint64_t error_traps = 0;
 };
 

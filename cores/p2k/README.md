@@ -85,5 +85,6 @@ flash, or with "Save flash".
 - **CPU speed:** the CPU runs at 44.1 MHz as fast as its cache allows; it is not cycle-matched to
   the MCF5206e. In simulation the OS reaches its main screen within a second of MAME (12.25 s
   against 11.5 s).
-- **Start time on the MiSTer:** about 110 s from loading the MGL to the main screen. Most of it is
-  the 36 MB SIMM download, after which the CPU restarts.
+- **Start time on the MiSTer:** about 19 s from loading the MGL to the main screen with a 34 MB
+  SIMM. Main_MiSTer writes the pack and SIMMs straight into DDR3 (load address 0x3C000000) and
+  the core copies them into place; the OS start takes most of the rest.

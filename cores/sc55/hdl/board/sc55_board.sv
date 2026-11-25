@@ -23,6 +23,7 @@ module sc55_board #(
     output logic        ioctl_wait,
 
     input  logic        uart_rxd,
+    output logic        uart_txd,         // MIDI out (synthframe_midi_tx, at the receiver's baud)
     input  logic        midi_inject,      // bench: a MIDI byte straight into the receive buffer
     input  logic [7:0]  midi_inject_data,
     input  logic [31:0] buttons,
@@ -125,6 +126,11 @@ module sc55_board #(
     synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi (
         .clk, .rst, .rxd(uart_rxd), .byte_valid(rx_valid), .byte_data(rx_data), .frame_err(), .alt(midi_alt)
     );
+    logic       tx_valid;
+    logic [7:0] tx_data;
+    synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_out (
+        .clk, .rst, .alt(midi_alt), .valid(tx_valid), .data(tx_data), .txd(uart_txd), .busy(), .dropped()
+    );
     wire       m_valid = rx_valid || midi_inject;
     wire [7:0] m_data  = midi_inject ? midi_inject_data : rx_data;
     always_ff @(posedge clk) midi_seen <= m_valid;
@@ -140,7 +146,7 @@ module sc55_board #(
         .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155, .jv880(1'b0), .enc_we(1'b0), .enc_dir(1'b0),
         .nv_dump_a(15'd0), .nv_dump_d(), .nv_wrote(), .idle(),
         .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data,
-        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .buttons,
+        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,

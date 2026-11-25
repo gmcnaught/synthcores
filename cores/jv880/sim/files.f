@@ -9,6 +9,7 @@
 ../../../modules/roland/hdl/pcm/sc55_pcm.sv
 ../../../modules/roland/hdl/core/sc55_core.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 ../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
 ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 ../../../modules/roland/hdl/board/wave_ddr.sv
