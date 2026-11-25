@@ -223,8 +223,8 @@ Corrections to earlier sections:
 Not exercised. Over SysEx, none of these produced arpeggiated notes in MAME (3 note starts for a
 held 3-note chord in each case): preset arp on (1025 = 1, mode Up, 1/16) alone; with the channel's
 multimode setting 134 = 0 (Preset arp) or −1 (On) after 129 = 0; master arp 641 = 1 with 134 = 1.
-[I] The front-panel Arp button (0x800000 bit 7, forced to 0 by the research driver at boot) may gate
-it. The arpeggiator generates notes on the CPU, so the sound core is not affected.
+0x800000 bit 7, once guessed to be an Arp button, is CONTROL (front-panel section below), so no
+panel button gates it. The arpeggiator generates notes on the CPU, so the sound core is not affected.
 
 ## User flash SIMMs (step 5 of docs/p2k-mame-plan.md, 2026-11-23)
 **No sample import** [O]: no path in OS 2.26 or the 1.24 boot block brings new sample data into a
@@ -389,10 +389,29 @@ MIDI note-on with a synthetic SIMM preset (bank MSB 4) programs one G20 voice pe
   maps bits to key codes (0x01034C9C): 7 → 0x130, 8 → 0x111, 9 → 0x110, 10 → 0x103, 11 → 0x104,
   12 → 0x121, 13 → 0x120, 14 → 0x101, 15 → 0x102 (14+15 → 0x140). Pressed from the main screen:
   bit 9 → "SAVE PRESET" (Save/Copy), 10 → "CH VOLS" (Multi), 11 → "Bank MSB/LSB" screen,
-  14 → "PRESET NAME" (Edit), 15 → "MASTER TRANSPOSE" (Master). Bit 7 toggles an LED in the
-  0xA00000 latch [I: Arp]; bits 8, 12, 13 [I: Audition, cursor right/left].
+  14 → "PRESET NAME" (Edit), 15 → "MASTER TRANSPOSE" (Master). Bit 7 is CONTROL (it steps the
+  control-row LEDs, below; earlier guessed Arp); bit 11 is AUDITION (it latches the Audition LED),
+  bit 12 cursor right, 13 cursor left (both move the cursor in the Save menu), 8 HOME/ENTER.
 - **LEDs**: 16-bit word, low byte 0x900000, high byte 0xA00000 (0x0103570C). The latch 0xB00000
   low nibble = 8 + row (0x010359AC), bit 6 = Baby select.
+- **LED bits** (2026-11-25; MAME `proteus2k` with a Lua write tap on the two latches, scripted
+  presses through `P2K_KEYS`, knob moves by overriding the 0xC00000 ADC reads, notes through
+  `-midiin`). The boot test lights bits 0-6 of 0xA00000, then bits 0-6 of 0x900000, one at a
+  time: 14 LEDs, the manual's 14.
+
+  | Word bit | LED | Evidence |
+  |---|---|---|
+  | 0 | MASTER | on while the Master menu is open (bit 15 pressed, pressed again) |
+  | 1 | EDIT | on while the Edit menu is open (bit 14) |
+  | 2 | AUDITION | bit 11 turns it on and leaves it on; the next press turns it off |
+  | 3 | MULTI | on while the Multi menu is open (bit 10) |
+  | 4 | SAVE/COPY | on in the Save/Copy menu (bit 9); blinks (0.23 s on, 1.3 s period) after a preset edit or a knob move |
+  | 5 | HOME/ENTER | blinks in the Save menu after the cursor moves to the destination (waiting for Enter) |
+  | 6 | MIDI | on for ~80 ms on each received MIDI message |
+  | 7 | not a panel LED [U] | pulses ~10 times in 15 ms when the Master menu closes, and once at boot (6.96-7.29 s); not in the boot test |
+  | 8, 9, 10 | control row A-D, E-H, I-L | CONTROL (bit 7) steps 8 → 9 → 10 → 8; 8 is on after boot |
+  | 11-14 | realtime knobs 1-4 | in row A-D, moving pot 1, 2, 3, 4 (ADC channels 1, 0, 4, 3) lights 11, 12, 13, 14 and stays lit; they go out in rows E-H / I-L and come back in A-D. Bit 11 is on after boot (knob 1's ADC reads 0 in MAME, off its stored value) |
+  | 15 | unused | never written as 1 |
 - **Boot and bit 7** [U]: the 1.24 boot block (0x02000BAC) repeats an LED/cache test until bit 7
   reads 0 when CSCR0 PS1 is clear (0x02001724), but the OS reads bit 7 = 0 as a held key. With
   PS1 set the boot block takes another path ("Searching for OS..."). The driver forces bit 7 to 0

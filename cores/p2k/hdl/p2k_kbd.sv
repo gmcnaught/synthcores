@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Proteus 2000 front panel from a PS/2 keyboard (hps_io ps2_key), with the key names of MAME's
-// proteus2k input ports (emup2k.cpp; [I] where MAME marks the function inferred):
-//   A Arp [I] (bit 7)       Enter Home/Enter (8)    S Save/Copy (9)      M Multi (10)
-//   Space Audition [I] (11) right: cursor right (12) left: cursor left (13)
+// proteus2k input ports (emup2k.cpp); Control and Audition confirmed by the LEDs they light
+// (cores/proteus/docs/p2k-findings.md):
+//   A Control (bit 7)       Enter Home/Enter (8)    S Save/Copy (9)      M Multi (10)
+//   Space Audition (11)     right: cursor right (12) left: cursor left (13)
 //   E Edit (14)             Q Master (15)
 //   - / =  or  down / up: the data-entry encoder, one step per key press
 // buttons[n] = panel bit n pressed (0x800000 reads them active low).
