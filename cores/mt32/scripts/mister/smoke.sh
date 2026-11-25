@@ -6,6 +6,10 @@
 # the firmware redraw: "vol: 60", as Nuked-MT32 shows for the same bytes) changes the LCD;
 # no audio underrun; status band "running". The Part 1 key (Q) changes the LCD
 # (Nuked-MT32 with mt32_ref --button shows "1|Slap Bass1|vol> 80" for the same input).
+# MIDI out: two RQ1 requests (system area, patch temp) at 31,250 baud right after boot get the
+# DT1 replies Nuked-MT32 sends (tests/midi/rq1.txt, T lines of its trace), byte for byte; the same
+# requests at 9600 after the 9600-baud MIDI above (synthframe_midi_rx and _tx follow the HPS UART
+# to 9600) get them with master volume 60.
 # The core's UART must be in MIDI mode (config/uartmode.MT-32, set once from the OSD).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -32,6 +36,16 @@ keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
 $M load /tmp/mt32_smoke.mgl; sleep "${BOOT:-10}"
 $M shot mt32 "$OUT/boot.png" >/dev/null
+RQ1="f04110161110000000001759f7 f0411016110300000000106df7"
+scp -q scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+# The core load starts `/sbin/uartmode 3`, which respawns MidiLink every second after
+# `synth-mister midi-stop` kills it; MidiLink holds ttyS1 and would read the replies. Stop the
+# loops too ([u]: the pattern must not match this shell's own command line).
+stop_midilink() {
+    $M sh 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true'
+}
+stop_midilink
+$M sh "python3 /tmp/tty_midi_xfer.py 31250 2 $RQ1" > "$OUT/midi_out_31250.txt"
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 scp -q ../sc55/scripts/mister/play_tty.py "$MISTER:/tmp/"
 scp -q "$OUT/midi.txt" "$MISTER:/tmp/mt32_midi.txt"
@@ -41,6 +55,9 @@ $M shot mt32 "$OUT/midi.png" >/dev/null
 keys down:q sleep:1
 $M shot mt32 "$OUT/key.png" >/dev/null
 keys up:q sleep:1
+stop_midilink
+# zero bytes first (framing errors at 31250): synthframe_midi_rx is at 9600 before the requests
+$M sh "python3 /tmp/tty_midi_xfer.py 9600 2.5 0000000000000000 $RQ1" > "$OUT/midi_out_9600.txt"
 python3 -I - "$OUT" <<'PY' | tee "$OUT/result.txt"
 import sys
 from PIL import Image
@@ -69,7 +86,19 @@ print(f"underrun: {und_s}")
 print(f"lcd_dots_boot: {dots(ims['boot'])}")
 print(f"midi_changed_lcd: {lcd(ims['midi']) != lcd(ims['boot'])}")
 print(f"key_changed_lcd: {lcd(ims['key']) != lcd(ims['midi'])}")
+# DT1 replies to the RQ1s, as Nuked-MT32 sends them (tests/midi/rq1.txt)
+SYS = bytes.fromhex("4a000503030a06040300000006010203040506070809") + bytes([0x64])
+def dt1(addr, data):
+    return bytes.fromhex("f041101612") + addr + data + bytes([-sum(addr + data) & 0x7f, 0xf7])
+TEMP = dt1(bytes.fromhex("030000"), bytes.fromhex("01041832" "0c000100" "5007007f" "00000000"))
+want = {"31250": dt1(bytes.fromhex("100000"), SYS) + TEMP,
+        "9600": dt1(bytes.fromhex("100000"), SYS[:-1] + bytes([60])) + TEMP}   # master volume 60
+mo = {}
+for b, w in want.items():
+    got = bytes.fromhex(open(f"{out}/midi_out_{b}.txt").read().strip())
+    mo[b] = got == w
+    print(f"midi_out_{b}: {'as Nuked-MT32' if mo[b] else 'DIFFERENT'} ({len(got)} bytes: {got.hex(' ')})")
 ok = s[2] == "running" and und_s == "never" and dots(ims["boot"]) > 200 and lcd(ims["midi"]) != lcd(ims["boot"]) \
-     and lcd(ims["key"]) != lcd(ims["midi"])
+     and lcd(ims["key"]) != lcd(ims["midi"]) and all(mo.values())
 sys.exit(0 if ok else 1)
 PY

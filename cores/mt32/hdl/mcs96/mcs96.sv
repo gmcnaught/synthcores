@@ -44,6 +44,8 @@ module mcs96 #(
     input  logic        la32_sh3,
     input  logic [9:0]  knob,
     output logic [7:0]  pwm,
+    output logic        tx_stb,        // MIDI out: SBUF write (pulse, with tx_byte)
+    output logic [7:0]  tx_byte,
 
     // trace
     output logic        dbg_fetch,
@@ -86,7 +88,7 @@ module mcs96 #(
         .r_rdata, .r_ack,
         .now(total_cycles),
         .upd_req, .upd_time, .upd_fast, .upd_q(tq), .upd_ack, .ev_valid, .ev_time,
-        .serial_in, .serial_byte, .extint, .la32_sh3, .knob, .pwm, .irq_set, .unsupported
+        .serial_in, .serial_byte, .extint, .la32_sh3, .knob, .pwm, .irq_set, .unsupported, .tx_stb, .tx_byte
     );
 
     assign ext_req   = m_req && m_space;

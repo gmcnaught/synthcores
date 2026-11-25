@@ -118,6 +118,7 @@ int main(int argc, char** argv)
             if (m->dbg_irq) fprintf(tr, "I %llx %x %04x\n", c, m->dbg_level, m->dbg_pc);
             if (m->dbg_fetch) fprintf(tr, "F %llx %04x %04x\n", c, m->dbg_fpc, m->dbg_psw);
             if (m->dbg_regw) fprintf(tr, "R %llx %02x %02x\n", c, m->dbg_addr, m->dbg_data);
+            if (m->tx_stb) fprintf(tr, "T %llx %02x\n", c, m->tx_byte);
             if (m->dbg_busw) fprintf(tr, "W %llx %04x %02x\n", c, m->dbg_waddr, m->dbg_wdata);
             if (m->extint != extint_q) fprintf(tr, "X %llx 0 %x\n", c, m->extint);
             if (m->dbg_midi) fprintf(tr, "M %llx %02x\n", c, m->dbg_mbyte);

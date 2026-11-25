@@ -15,6 +15,7 @@
 ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 ../hdl/mt32_lcd_video.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 ../../../modules/synthframe/hdl/audio/synthframe_resample.sv
 ../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv

@@ -8,7 +8,8 @@
 //  through hps_io, the PCM ROM in DDR3, video, audio (resampled from 32 to 96 kHz), MidiLink.
 //
 //  Use: make the ROM pack with `cores/mt32/tools/mkpack.py`, copy it to games/MT-32/ and load
-//  it once from the OSD (FSC: remembered). Set UART to MidiLink for MIDI in.
+//  it once from the OSD (FSC: remembered). Set UART to MidiLink for MIDI in and out (MIDI out:
+//  the CPU's serial transmitter, e.g. DT1 replies to RQ1 requests).
 //
 //  Pack: 00000-1FFFF control ROM (mt32_cpu.bin, firmware 2.0x), 20000-27FFF reverb ROM
 //  (mt32_reverb.bin), 28000-A7FFF PCM ROM (mt32_pcm.bin).
@@ -22,7 +23,6 @@ module emu
 assign ADC_BUS  = 'Z;
 assign USER_OUT = '1;
 assign {UART_RTS, UART_DTR} = 0;
-assign UART_TXD = 1'b1;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 
@@ -219,11 +219,24 @@ wire core_reset = rst_hard | rst_user | ioctl_download | !rom_ok;
 
 wire       mb_valid;
 wire [7:0] mb_data;
+wire       midi_alt;
 synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi_rx
 (
 	.clk(clk_sys), .rst(rst_hard), .rxd(UART_RXD),
-	.byte_valid(mb_valid), .byte_data(mb_data), .frame_err(), .alt()
+	.byte_valid(mb_valid), .byte_data(mb_data), .frame_err(), .alt(midi_alt)
 );
+
+// MIDI out: the bytes the CPU writes to SBUF, queued for the wire (the CPU keeps Nuked-MT32's
+// 9600-cycle transmit time, 800 us, slower than the wire's 320 us a byte); at 9600 baud when the
+// receiver found the HPS UART there
+wire       tx_stb, midi_tx;
+wire [7:0] tx_byte;
+synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_tx_out
+(
+	.clk(clk_sys), .rst(rst_hard), .alt(midi_alt),
+	.valid(tx_stb), .data(tx_byte), .txd(midi_tx), .busy(), .dropped()
+);
+assign UART_TXD = midi_tx;
 
 // Pacing: the core may run at most 8 samples ahead of a 32 kHz real-time count
 reg  [26:0] pace_acc = 0;
@@ -267,7 +280,7 @@ mt32_core #(
 	.pcm_rsp_tag(c_rsp_tag),
 	.hold(hold), .at_hold(),
 	.midi_valid(mb_valid), .midi_byte(mb_data), .midi_full(),
-	.buttons(panel), .knob(knob),
+	.buttons(panel), .knob(knob), .tx_stb(tx_stb), .tx_byte(tx_byte),
 	.sample_valid(sample_valid), .out_l(out_l), .out_r(out_r),
 	.lcd_rd_addr(lcd_rd_addr), .lcd_rd_text(lcd_rd_text), .lcd_cg_addr(lcd_cg_addr),
 	.lcd_cg_row(lcd_cg_row), .lcd_cursor(lcd_cursor), .lcd_cursor_on(lcd_cursor_on),

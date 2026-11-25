@@ -12,7 +12,7 @@
 // --out      raw output, s16le stereo
 // Logs (text, numbers in hex; the HDL benches print the same lines):
 //   --trace    F cycle pc psw | I cycle level pc | R cycle addr data | W cycle addr data |
-//              X cycle line state | M cycle byte          (cycle = CPU cycles, 12 MHz)
+//              X cycle line state | M cycle byte | T cycle byte (MIDI out)   (cycle = CPU cycles, 12 MHz)
 //   --la32-log L la32cycle addr data
 //   --rv-log   W la32cycle reg value | I la32cycle which value
 //   --out-log  one line a sample: acc2 acc3 acc6 acc7 rv0 rv1 vol l r (signed decimal)
@@ -34,6 +34,7 @@ void (*mt32h_regw)(uint8_t, uint8_t, uint64_t);
 void (*mt32h_input)(int, int, uint64_t);
 void (*mt32h_busw)(uint16_t, uint8_t, uint64_t);
 void (*mt32h_midi)(uint8_t, uint64_t);
+void (*mt32h_tx)(uint8_t, uint64_t);
 void (*mt32h_lcd)(const uint8_t*, uint64_t);
 void (*mt32h_la32w)(uint16_t, uint8_t, uint64_t);
 void (*mt32h_rvw)(int, uint32_t, uint64_t);
@@ -123,6 +124,7 @@ int main(int argc, char** argv)
         mt32h_input = [](int l, int s, uint64_t c) { fprintf(f_trace, "X %llx %x %x\n", (unsigned long long)c, l, s); };
         mt32h_busw = [](uint16_t a, uint8_t d, uint64_t c) { fprintf(f_trace, "W %llx %04x %02x\n", (unsigned long long)c, a, d); };
         mt32h_midi = [](uint8_t b, uint64_t c) { fprintf(f_trace, "M %llx %02x\n", (unsigned long long)c, b); };
+        mt32h_tx = [](uint8_t b, uint64_t c) { fprintf(f_trace, "T %llx %02x\n", (unsigned long long)c, b); };
     }
     if (f_la32)
         mt32h_la32w = [](uint16_t a, uint8_t d, uint64_t c) { fprintf(f_la32, "L %llx %03x %02x\n", (unsigned long long)c, a, d); };

@@ -17,6 +17,7 @@ No ROMs are included.
 | LA32, reverb chip, mix (M3, M4) | replay of the reference's logs (`sim/sound/`, `tests/sound_check.sh`) | all six cases identical, every output field, interrupt and slot state; design note `docs/sound.md` |
 | System (M5) | `sim/system/`: the whole HDL from power-on, PCM ROM behind a random-latency memory model | all six corpus hashes identical; CPU trace identical |
 | MiSTer (M6) | Windows build; `scripts/mister/smoke.sh` | 96 MHz: +0.263 ns (Windows), +0.570 ns (CI container); boots; MIDI and the Part 1 key change the LCD as in Nuked-MT32; no underrun on the dense corpus case or a game soundtrack; audio checked by ear (2026-11-24) |
+| MIDI out | reference hook on `sbuf_w` (`T` trace lines), the HDL's SBUF-write tap in `sim/system/` and `sim/cpu/`; corpus case `rq1`; `scripts/mister/smoke.sh` reads the UART | `rq1`: 59 bytes (two DT1 replies), trace identical cycle for cycle; on the MiSTer the same bytes at 31,250 and at 9600 baud |
 
 The plan, the hardware map and the timing rules are in [`docs/plan.md`](docs/plan.md).
 
@@ -27,7 +28,8 @@ The plan, the hardware map and the timing rules are in [`docs/plan.md`](docs/pla
    `python3 cores/mt32/tools/mkpack.py CONTROL REVERB PCM MT-32.rom`
    (or `--dir DIR OUT` with Nuked-MT32's file names). It warns when a file is not MAME's.
 2. Copy the pack to `games/MT-32/` and load it once from the OSD (`Load ROM pack`; remembered).
-3. Set the UART to MidiLink. Parts 1-8 listen on MIDI channels 2-9, rhythm on 10.
+3. Set the UART to MidiLink. Parts 1-8 listen on MIDI channels 2-9, rhythm on 10. MIDI out
+   carries what the firmware sends, such as DT1 replies to RQ1 data requests.
 4. Panel: Q W E R T = Part 1, 2, 3, Sound group, Volume; A S D F G = Part 4, 5, Rhythm, Sound,
    Master volume; - and = turn the volume knob.
 
