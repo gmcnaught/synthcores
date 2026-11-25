@@ -34,7 +34,7 @@ MIDI, screenshots and reads back the audio capture over SSH (`MISTER=root@<addre
 | (core) output level | MiSTer core volume: above 0 dB gives the framework boost (+12 / +24 dB, soft knee). OSD **Output Level** adds 0 (default) / +6 / +12 / +18 dB with hard saturation | |
 
 On screen: the front panel (`cfg/panel.yaml`, drawn by `synthframe_panel_art`) with the LCD, the
-LEDs (MIDI, MASTER, EDIT) lit and the buttons shown pressed, and one level bar per voice.
+LEDs (MIDI, MASTER, EDIT, ENTER) lit and the buttons shown pressed, and one level bar per voice.
 Wiring (from the firmware, verified in simulation): buttons on MFP GPIP0–3 (active low:
 0 MASTER → `MASTER TUNE`, 1 EDIT → `PRESET NAME`, 2 CURSOR, 3 ENTER); knob = GPIP4 falling edge
 with GPIP5 as direction (1 = −1); LEDs = latch 0xB00001 bits 0 (MASTER), 1 (EDIT), 3 (MIDI), active

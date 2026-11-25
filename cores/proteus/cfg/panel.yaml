@@ -67,7 +67,7 @@ elements:
   at: [160, 88]
   r: 3
   color: '#ff3020'
-  bit: null
+  bit: '!leds[2]'
 - type: label
   at: [160, 96]
   text: ENTER

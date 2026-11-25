@@ -67,7 +67,7 @@ module proteus_sys
 	output            lcd_on,
 	input      [11:0] font_addr,
 	output      [7:0] font_data,
-	output reg  [7:0] leds,           // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit3 MIDI
+	output reg  [7:0] leds,           // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit2 ENTER, bit3 MIDI
 
 	// debug
 	output     [23:0] dbg_pc_addr,

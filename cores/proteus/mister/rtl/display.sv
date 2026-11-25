@@ -34,7 +34,7 @@ module display #(
 	input             lcd_on,
 	output     [11:0] font_addr,
 	input       [7:0] font_data,
-	input       [7:0] leds,             // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit3 MIDI
+	input       [7:0] leds,             // latch 0xB00001, active low: bit0 MASTER, bit1 EDIT, bit2 ENTER, bit3 MIDI
 	input       [3:0] buttons,          // MFP GPIP 3-0, active low: MASTER, EDIT, CURSOR, ENTER
 
 	// voice levels
