@@ -28,6 +28,15 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
   | Baby flash/ROM, 4 slots of 2 MB | 0x7100000 | 8 MB |
   | Boot/OS/user flash (28F160) | 0x7200000 | 2 MB |
   | DRAM | 0x7240000 | 8 MB |
+  | Debug trace (`TRACE_BASE`) | 0x7400000 | 16 KB |
+  | Download staging (`STAGE_BASE`, CONF_STR address 0x3C000000) | 0x7800000 | 34 MB |
+
+- **Downloads go straight to DDR3.** The pack and SIMM entries in CONF_STR carry the load address
+  0x3C000000, so Main_MiSTer copies the file into the staging region itself instead of sending it
+  a byte at a time through hps_io (about 2.7 µs a byte, 100 s for a 34 MB SIMM). When the
+  download ends, `p2k_loader` copies the staged words to their places in bursts of 8, swapping
+  the bytes of each 16-bit word, and the font bytes to their block RAM (34 MB in about 0.3 s).
+  The file formats are unchanged, and a byte download (no load address) still works.
 
 - **CPU memory** goes through a direct-mapped block-RAM cache (32 KB, 32-byte lines, write-through)
   over flash and DRAM. The real MCF5206e has only a 4 KB I-cache and DRAM with wait states, so this
@@ -159,6 +168,21 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
 - A trace (`TRACE`): the last 1,024 CPU bus accesses, written to DDR3 at byte 0x3A000000 when
   the PC leaves flash and DRAM. Read it with `synth-mister peek`.
 
+**Iteration 19, direct downloads** (see "Downloads go straight to DDR3" above):
+- `sim/loader_tb.cpp` (CI: `tests/test_p2k_loader.py`): packs and SIMMs, odd sizes and partial
+  last words, downloaded as bytes and direct with random memory timing and a save in flight:
+  identical DDR3 words, font, slot sizes and pack_ok against the file layout, `loading` and
+  `pack_loading` high once per download. 3 seeds and a 34 MB SIMM (27M clocks, 0.31 s at
+  88.2 MHz with the port ready 1 clock in 2).
+- Quartus 17.0 (winbuild, seed 1): 26,747 ALMs (64 %), 37,610 registers, 245 M10K, 92 DSP;
+  setup slack clk_sys +1.103 ns, clk_cpu +1.861 ns, video +5.835 ns, HDMI +0.651 ns; hold all
+  positive.
+- MiSTer smoke test: main screen 19 s after the MGL load (iteration 18: about 110 s); MIDI, level
+  meter, Master key, no late sample; the save file is 2 MB with the factory defaults and the
+  reload restores it.
+- Found on the MiSTer: `pack_loading` fell for the one clock between the download's end and the
+  copier's start; the flash save took the rise after it for a new pack download and forgot the
+  mounted save file (no restore, no save). Fixed; the loader bench now checks it.
+
 **Open:**
 - P6, user flash SIMMs.
-- Boot time is dominated by the SIMM download.
