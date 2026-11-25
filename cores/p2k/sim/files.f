@@ -21,7 +21,7 @@
 ../hdl/p2k_sndbus.sv
 ../hdl/p2k_board.sv
 ../hdl/p2k_loader.sv
-../hdl/p2k_flashsave.sv
+../hdl/p2k_imgsave.sv
 ../hdl/p2k_kbd.sv
 ../hdl/p2k_midi.sv
 ../hdl/p2k_lcd_video.sv

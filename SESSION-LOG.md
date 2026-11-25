@@ -2,6 +2,35 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 21: P2K user flash SIMMs (2026-11-25, branch `iter21-p2k-flash-simm`)
+
+- **What:** P6 of `cores/p2k/docs/plan.md`. A `.sim` file mounted as "Flash SIMM slot 1/2"
+  (CONF_STR `S1`/`S2`, hps_io disks 1-2) is loaded into the slot and becomes a user flash SIMM:
+  - `hdl/p2k_sndbus.sv`: port B writes to the slot go to MAME's `p2k::intel_flash` command model
+    (program as a read-AND-write of the DDR3 word, erase as fills of 0xFFFF, buffered program with a
+    buffer per Big chip, status/ID reads);
+  - `hdl/p2k_imgsave.sv` replaces `p2k_flashsave.sv`: the flash save file as before, plus the SIMM
+    files: loaded at mount (the rest of the slot erased), and the 256 KB regions the OS changed
+    written back with the flash save;
+  - the loader's copier and the image transfers take turns on the memory client (`x_owner`);
+  - `tools/p2k_pack.py simm --flash/--blank`, `scripts/mister/flash_smoke.sh`.
+- **Gates:**
+  - unit benches (CI): the sound bus against `p2k::intel_flash`, the image transfers against an
+    hps_io model; 3 seeds each, mutations caught;
+  - MAME, RENAME FLASH SIMM 106 -> 108 on the Composer stand-in built as ID 106: "Done" at 47.25 s,
+    written file SHA-256 ee79865e...b0d7;
+  - system bench: the same rename, "Done" at 73.75 s, written images byte-identical to MAME's, no late
+    sample, every changed region marked;
+  - Quartus: 27,645 ALMs (66 %), timing met (clk_sys +0.979 ns);
+  - MiSTer: the rename on hardware writes the mounted file back byte-identical to MAME's; no late
+    sample; the regular smoke test passes.
+- **Found on the way:**
+  - the sound-bus bench: one buffered-program buffer shared by all chips differs from MAME's
+    per-chip buffers;
+  - the MAME reference: the old test's 40 s run stops in the middle of this larger SIMM's rename;
+  - on hardware: erase fills of 128 words made a sample start late; flash memory requests now wait
+    for the engine to be idle, in fills of 32 words.
+
 ## Iteration 19: P2K downloads straight to DDR3 (2026-11-24, branch `iter19-p2k-fastload`)
 
 - **Why:** the 34 MB SIMM took about 100 s to load. Without a load address, Main_MiSTer sends a

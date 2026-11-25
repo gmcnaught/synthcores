@@ -1,7 +1,6 @@
 # Proteus 2000 MiSTer core: plan (iteration 18)
 
-**Status (2026-11-24):** P0-P5 done; P6 (user flash SIMMs) not started. Results are in
-"Results" at the end.
+**Status (2026-11-25):** P0-P6 done. Results are in "Results" at the end.
 
 As of 2026-11-24. The parts exist and have been checked separately:
 
@@ -84,6 +83,25 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
     - One file per SIMM slot: Baby (2 MB) followed by Big (up to 32 MB), from
       `tools/p2k_build_simm.py`.
   An MGL loads them. The CPU stays in reset while anything loads and restarts after each load.
+- **User flash SIMMs (P6)** in slots 1 and 2: a `.sim` file mounted as "Flash SIMM slot N"
+  (CONF_STR `S1`/`S2`, hps_io virtual disks 1 and 2; disk 0 stays the flash save file).
+    - `hdl/p2k_sndbus.sv`: port B data writes (+0x1E) to a flash slot go to MAME's
+      `p2k::intel_flash` (`cores/proteus/p2k/model/p2k_flash.h`): Big is four x16 chips (word
+      address bits 23-22), Baby one; program ANDs the word into DDR3 (read, then a lane write),
+      erase fills the block with 0xFFFF in fills of 128 words, buffered program has one 32-word
+      buffer per Big chip. In any mode but read array and ID a port read returns 0x0080 (ready).
+      The CPU waits for each operation. The chips return to read array while the CPU is held.
+    - `hdl/p2k_imgsave.sv` (replaces `p2k_flashsave.sv`, same behaviour for the flash save file):
+      a mount loads the file through the SD interface (16 KB requests) into the slot's Baby and
+      Big words, erases the rest of the slot, and restarts the CPU. The sound bus marks the
+      256 KB region of the file each program or erase lands in; a save (the flash save's
+      triggers: "Save flash", or autosave when the OSD opens) writes those regions back,
+      within the file (Main_MiSTer does not grow a mounted image, so `tools/p2k_pack.py simm
+      --flash` makes 34 MB files). A ROM SIMM download into the slot makes it a ROM slot again.
+    - The loader's copier and the image transfers share the memory client; whichever asks first
+      owns it until it is done (`x_owner` in `mister/P2K.sv`).
+    - Why mounts and not the download path: a download has no way back to the file, and
+      Main_MiSTer mounts the save file of an `FS` entry on disk 0 only.
 - **Panel:** keyboard keys for the 9 buttons and the data-entry encoder (MAME's `proteus2k` input
   names); OSD master volume (ADC pot 0); LCD 2 × 24 through `synthframe_hd44780` and
   `synthframe_charlcd`; the 16 LEDs drawn below it.
@@ -100,7 +118,7 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
 | P3 | `mister/P2K.sv`: hps_io, packs, flash save, keyboard, OSD, video, audio, MIDI, PLL | Quartus 17 build on winbuild meets timing; ALMs/M10K/DSP recorded |
 | P4 | Pack tools and MGL (`tools/p2k_pack.py`), smoke script `scripts/mister/smoke.sh` | packs built from the user's dumps; hashes recorded |
 | P5 | MiSTer hardware | boots to the main screen (screenshot); MIDI over MidiLink plays (audio peak, no stall); a panel key changes the screen; an edited preset survives a core reload |
-| P6 | User flash SIMMs: G20 port B writes, Intel command model for Big/Baby, saved per slot | RENAME FLASH SIMM 106 → 108 as `tools/p2k_flash_test.py`, in the bench (may move to a later iteration) |
+| P6 | User flash SIMMs: G20 port B writes, Intel command model for Big/Baby, saved per slot | RENAME FLASH SIMM 106 → 108 as `tools/p2k_flash_test.py`, in the bench: the written images equal MAME's; on the MiSTer the mounted file is written back with ID 108 |
 
 ## Risks
 
@@ -187,5 +205,40 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
   copier's start; the flash save took the rise after it for a new pack download and forgot the
   mounted save file (no restore, no save). Fixed; the loader bench now checks it.
 
-**Open:**
-- P6, user flash SIMMs.
+**P6, user flash SIMMs** (2026-11-25, iteration 21):
+- `tests/test_p2k_sndbus.py`: a flash slot added to the sound-bus bench, driven by the OS's command
+  sequences (program, erase, buffered program with up to 40 words, status, ID, read array, other
+  commands, beyond Baby) and compared with MAME's `p2k::intel_flash` on its own copy of the slot:
+  port reads identical, the slot's DDR3 equal to MAME's copy at the end, every changed region
+  marked. 3 seeds; a mutation without the AND of a program is caught. The bench found that one
+  write buffer shared by all chips differs from MAME's per-chip buffers; each Big chip has its own.
+- `tests/test_p2k_imgsave.py` (`sim/imgsave_tb.cpp`): the image transfers against an hps_io SD
+  model and a DDR3 model: restore and autosave of the save file, loads of an odd-sized and a
+  34 MB SIMM file (the rest erased), write-back of exactly the marked regions within each file, a
+  ROM download and a pack download stopping a transfer, read-only and empty mounts. 3 seeds and
+  the 34 MB case; a mutation that drops the marks is caught.
+- Reference: MAME (`cores/proteus/tools/p2k_flash_test.py --seconds 150`) with the Composer
+  stand-in built as ROM ID 106 ("UsrFl") and the user's flash: RENAME FLASH SIMM to 108 shows
+  "Done. Please reboot now!" at 47.25 s after 3,812,040 port-B writes; ID 108 in the Big header,
+  block checksums valid, the Baby library rewritten. Written SIMM file (Baby + Big, 34 MB)
+  SHA-256 `ee79865ee082efa5…b0d7`. The 40 s run of the older test stops in the middle of the
+  rewrite with this larger library.
+- System bench (`sim/p2k_board_tb --flash-slot 1 --keys .../rename_106_108.keys --until "Done. Please"`,
+  the same flash and SIMM): "Done. Please reboot now!" at 73.75 s (the core's sound-chip accesses
+  wait for the clock crossing, MAME's do not); the written Baby + Big equal MAME's file byte for
+  byte (`ee79865ee082efa5…b0d7`); 8 regions changed, all marked dirty; no late sample.
+- Quartus 17.0 (winbuild, seed 1): 27,645 ALMs (66 %), 38,742 registers, 247 M10K, 92 DSP;
+  setup slack clk_sys +0.979 ns, clk_cpu +1.162 ns, video +5.689 ns, HDMI +0.527 ns; hold all
+  positive.
+- MiSTer, `scripts/mister/flash_smoke.sh` (pack from the same flash, the ID 106 file mounted as
+  Flash SIMM slot 1): main screen 24 s after the MGL load (the 34 MB file read through the SD
+  interface included); the rename on the panel keys; after the OSD opened, the file on the SD card
+  has ID 108 and equals MAME's written file byte for byte; no late sample; the reload reaches the
+  main screen. `scripts/mister/smoke.sh` on the same build: main screen at 20 s, MIDI and level
+  meter, Master key, no late sample, the 2 MB save file written and restored.
+- Found on the MiSTer: the erase held the sample memory for whole fills of 128 words while the
+  engine waited, and a sample started late (the status strip's underrun box). Flash memory
+  requests now start only while the engine is idle with no sample due, and erase fills are 32
+  words. `flash_smoke.sh` checks the underrun box.
+
+**Open:** none of the planned steps.

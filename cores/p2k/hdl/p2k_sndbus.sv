@@ -12,7 +12,22 @@
 //     the word at the port address fetched into the latch, the address incremented. The address
 //     is set by writes to +0x30/+0x32 (A) and +0x34/+0x36 (B) of any voice, from that voice's
 //     registers. Big/Baby by latch 0xB00000 bit 6; a slot beyond its loaded image reads 0 (Big) or
-//     0xFFFF (Baby). Port B data writes (+0x1E) only step the address (ROM SIMMs).
+//     0xFFFF (Baby). Port B data writes (+0x1E) step the address; on a ROM SIMM they are lost.
+//   - User flash SIMMs (flash_slot): port B data writes go to the slot's flash chips, MAME's
+//     p2k::intel_flash (cores/proteus/p2k/model/p2k_flash.h): Big is four x16 chips of 4 M words
+//     (word address bits 23-22; maker 0x0089, device 0x0015, 64 K-word blocks, buffered program
+//     0xE8), Baby one x16 chip of 1 M words (maker 0x00B0, device 0x00D0, 32 K-word blocks).
+//     Commands 0x40/0x10 program, 0x20 + 0xD0 erase, 0xE8 + count + data + 0xD0 buffered program,
+//     0x70 status, 0x90 ID, 0x50 clear status, anything else read array. Program ANDs the word
+//     into DDR3 (read, then write the lane); erase fills the block with 0xFFFF in fills of 32 words.
+//     Each memory request starts only while the engine is idle with no sample due, so at most one
+//     short request delays a sample's start (the erase of a 64 K-word block would otherwise hold
+//     the memory for a whole sample). Both complete at
+//     once: in any mode but read array and ID a port read returns 0x0080 (ready). The CPU waits
+//     for the operation. Each Big chip has its own write buffer (32 words), as MAME's.
+//     The modes return to read array while flash_reset (the CPU is held). fl_dirty marks the
+//     256 KB region of the slot's file (Baby bytes 0-2 MB: 0-7, Big from 2 MB: 8-135) that a
+//     program or erase changed.
 //   - G20 +0x18/+0x1A: the voice's live address; +0x02: bit 12 the live end select. H +0x34/+0x36/
 //     +0x3E: the block's live interpolator values; +0x3A: the block's +0x7A word. These wait until
 //     the FIFO is empty and the engine idle, then read the engine.
@@ -44,6 +59,11 @@ module p2k_sndbus #(
     output logic        enc_take,
     input  logic [24:0] big_words [4],    // Big image words loaded per slot
     input  logic [20:0] baby_words [4],   // Baby image words loaded per slot
+    input  logic [3:0]  flash_slot,       // the slot is a user flash SIMM
+    input  logic        flash_reset,      // flash chips to read array
+    output logic        fl_dirty,         // a program or erase changed region fl_dirty_region of slot fl_dirty_slot
+    output logic [1:0]  fl_dirty_slot,
+    output logic [7:0]  fl_dirty_region,
 
     // sample clock
     input  logic        tick,             // a 44.1 kHz sample is due
@@ -65,10 +85,14 @@ module p2k_sndbus #(
     input  logic        snd_rd_vsel,
     input  logic [15:0] snd_rd_ipx [0:2],
 
-    // memory port client (port reads; CTW 1)
+    // memory port client (port reads, flash programs and erases; CTW 1)
     output logic        req_valid,
     input  logic        req_ready,
+    output logic        req_we,
     output logic [28:0] req_addr,
+    output logic [63:0] req_wdata,
+    output logic [7:0]  req_be,
+    output logic [7:0]  req_len,
     input  logic        rsp_valid,
     input  logic [63:0] rsp_data,
 
@@ -118,12 +142,14 @@ module p2k_sndbus #(
 
     // ------------------------------------------------------------------ engine schedule
     logic pend, rd_req, rd_busy;
+    logic fl_ok;                        // a flash memory request may start
     logic        rd_chip_l;
     logic [7:0]  rd_addr_l;
     assign snd_start    = pend && snd_idle;
     assign snd_wr_valid = head_v && !pend;
     assign {snd_wr_chip, snd_wr_addr, snd_wr_data, snd_wr_mask} = head;
     wire   quiet = !head_v && f_mem_n == 0 && !f_push && !f_fetched;
+    assign fl_ok = snd_idle && !pend && !tick;
     assign snd_rd_valid = rd_req && !rd_busy && !pend && quiet;
     assign snd_rd_chip = rd_chip_l;
     assign snd_rd_addr = rd_addr_l;
@@ -148,12 +174,53 @@ module p2k_sndbus #(
     logic [15:0] pf_fill;
     logic [1:0]  pf_lane;
     logic [28:0] pf_addr;
-    assign req_valid = pf_busy && !pf_wait && !pf_zero;
-    assign req_addr = pf_addr;
+
+    // ------------------------------------------------------------------ user flash SIMMs
+    localparam logic [2:0] M_ARRAY = 3'd0, M_ID = 3'd1, M_STATUS = 3'd2, M_PROG = 3'd3, M_ERASE = 3'd4,
+                           M_BCOUNT = 3'd5, M_BDATA = 3'd6, M_BCONF = 3'd7;
+    logic [2:0]  fm [4][5];             // chip modes: Big chips 0-3, Baby 4
+    logic [25:0] fl_a;                  // the port B write's word address
+    logic        fl_bsel;               // ... to Baby
+    logic [8:0]  b_count [4][4], b_got [4][4];   // buffered program per Big chip: words announced, received
+    logic [8:0]  b_i, b_n;              // programming a buffer: word, words
+    logic [1:0]  b_c;                   // ... of chip b_c of fl_slot
+    logic [39:0] bbuf [0:511];          // {slot, chip, entry}: {word offset in the slot, data}
+    logic [39:0] bb_q;
+    logic [8:0]  bb_ra;
+    logic        bb_we;
+    logic [8:0]  bb_wa;
+    logic [39:0] bb_wd;
+    always_ff @(posedge clk) begin
+        if (bb_we) bbuf[bb_wa] <= bb_wd;
+        bb_q <= bbuf[bb_ra];
+    end
+    logic        fl_req, fl_we, fl_buf;  // a request; a write; programming the buffer
+    logic [28:0] fl_addr;
+    logic [63:0] fl_wdata;
+    logic [7:0]  fl_be, fl_len;
+    logic [23:0] fp_off;                // the word being programmed
+    logic [15:0] fp_d, fp_old;
+    logic [9:0]  fe_n;                  // erase: fills issued
+    logic [1:0]  fl_ph;                 // program: 0 read, 1 read taken, 2 word back, 3 write taken
+    wire  [1:0]  fl_slot = fl_a[25:24];
+    // a slot word's DDR3 word
+    function automatic logic [28:0] fl_word(input logic [1:0] sl, input logic bs, input logic [23:0] o);
+        return bs ? BABY_BASE + 29'({sl, o[19:2]}) : SMP_BASE + 29'({sl, o[23:2]});
+    endfunction
+    function automatic logic [7:0] fl_region(input logic bs, input logic [23:0] o);
+        return bs ? {5'd0, o[19:17]} : 8'(o[23:17]) + 8'd8;
+    endfunction
+
+    assign req_valid = (pf_busy && !pf_wait && !pf_zero) || fl_req;
+    assign req_addr  = fl_req ? fl_addr : pf_addr;
+    assign req_we    = fl_req && fl_we;
+    assign req_wdata = fl_wdata;
+    assign req_be    = fl_req ? fl_be : 8'hff;
+    assign req_len   = fl_req ? fl_len : 8'd1;
 
     // ------------------------------------------------------------------ CPU access state
     typedef enum logic [3:0] { B_IDLE, B_WFULL, B_SHRD, B_SHW, B_SHQ, B_LIVE, B_LIVEQ, B_PORT, B_PADDR1,
-                               B_PADDR2, B_PADDR3 } bst_t;
+                               B_PADDR2, B_PADDR3, B_FL, B_FLP, B_FLB, B_FLB1, B_FLE } bst_t;
     bst_t        st;
     logic        l_uds, l_lds;
     logic [1:0]  l_chip;
@@ -178,7 +245,21 @@ module p2k_sndbus #(
         pf_busy <= 1'b1;
         pf_wait <= 1'b0;
         pf_zero <= 1'b0;
-        if (baby_sel) begin
+        if (flash_slot[slot]) begin                             // p2k::intel_flash::read
+            automatic logic [2:0] m = baby_sel ? fm[slot][4] : fm[slot][{1'b0, off[23:22]}];
+            pf_addr <= fl_word(slot, baby_sel, off);
+            pf_lane <= off[1:0];
+            if (baby_sel && off >= 24'h100000) begin
+                pf_zero <= 1'b1;
+                pf_fill <= 16'hffff;
+            end else if (m == M_ID) begin
+                pf_zero <= 1'b1;
+                pf_fill <= baby_sel ? (off[0] ? 16'h00d0 : 16'h00b0) : (off[0] ? 16'h0015 : 16'h0089);
+            end else if (m != M_ARRAY) begin
+                pf_zero <= 1'b1;
+                pf_fill <= 16'h0080;
+            end
+        end else if (baby_sel) begin
             pf_addr <= BABY_BASE + 29'({slot, off[19:2]});
             pf_lane <= off[1:0];
             if (off >= 24'h100000 || {3'd0, off[20:0]} >= {3'd0, baby_words[slot]}) begin
@@ -200,7 +281,13 @@ module p2k_sndbus #(
         sh_we <= 1'b0;
         f_push <= 1'b0;
         enc_take <= 1'b0;
+        bb_we <= 1'b0;
+        fl_dirty <= 1'b0;
+        if (rst || flash_reset)
+            for (int sl = 0; sl < 4; sl++)
+                for (int c = 0; c < 5; c++) fm[sl][c] <= M_ARRAY;
         if (rst) begin
+            fl_req <= 1'b0;
             st <= B_IDLE;
             rd_req <= 1'b0;
             pf_busy <= 1'b0;
@@ -254,8 +341,14 @@ module p2k_sndbus #(
                     sh_be <= {l_uds, l_lds};
                     if (l_chip == 2'd0 && l_word == 5'd15) begin       // port B data: step the address
                         p_addr[1] <= p_addr[1] + 26'd1;
-                        done <= 1'b1;
-                        st <= B_IDLE;
+                        fl_a <= p_addr[1];
+                        fl_bsel <= baby_sel;
+                        if (flash_slot[p_addr[1][25:24]])
+                            st <= B_FL;
+                        else begin
+                            done <= 1'b1;
+                            st <= B_IDLE;
+                        end
                     end else if (l_chip == 2'd0 && l_word[4:2] == 3'b110) begin   // +0x30-0x36: port address
                         l_port <= l_word[1];
                         st <= B_PADDR1;
@@ -353,6 +446,150 @@ module p2k_sndbus #(
                     port_fetch(l_port, p_addr[l_port]);
                     done <= 1'b1;
                     st <= B_IDLE;
+                end
+            // ---------------------------------------------- flash: p2k::intel_flash::write
+            B_FL: begin
+                automatic logic [23:0] off = fl_a[23:0];
+                automatic logic [2:0]  c = fl_bsel ? 3'd4 : {1'b0, off[23:22]};
+                automatic logic [2:0]  m = fm[fl_slot][c];
+                automatic logic [7:0]  cmd = l_wd[7:0];
+                automatic logic        fin = 1'b1;
+                if (!(fl_bsel && off >= 24'h100000)) begin       // beyond Baby: ignored
+                    case (m)
+                    M_PROG: begin
+                        fm[fl_slot][c] <= M_STATUS;
+                        fp_off <= off;
+                        fp_d <= l_wd;
+                        fl_buf <= 1'b0;
+                        fl_ph <= 2'd0;
+                        st <= B_FLP;
+                        fin = 1'b0;
+                    end
+                    M_ERASE: begin
+                        fm[fl_slot][c] <= M_STATUS;
+                        if (cmd == 8'hd0) begin
+                            fl_addr <= fl_bsel ? BABY_BASE + 29'({fl_slot, off[19:15], 13'd0})
+                                               : SMP_BASE + 29'({fl_slot, off[23:16], 14'd0});
+                            fe_n <= '0;
+                            st <= B_FLE;
+                            fin = 1'b0;
+                        end
+                    end
+                    M_BCOUNT: begin
+                        b_count[fl_slot][c[1:0]] <= 9'(cmd) + 9'd1;
+                        b_got[fl_slot][c[1:0]] <= '0;
+                        fm[fl_slot][c] <= M_BDATA;
+                    end
+                    M_BDATA: begin
+                        automatic logic [8:0] g = b_got[fl_slot][c[1:0]];
+                        if (g < 9'd32) begin
+                            bb_we <= 1'b1;
+                            bb_wa <= {fl_slot, c[1:0], g[4:0]};
+                            bb_wd <= {off, l_wd};
+                        end
+                        b_got[fl_slot][c[1:0]] <= g + 9'd1;
+                        if (g + 9'd1 >= b_count[fl_slot][c[1:0]]) fm[fl_slot][c] <= M_BCONF;
+                    end
+                    M_BCONF: begin
+                        automatic logic [8:0] n = b_count[fl_slot][c[1:0]];
+                        fm[fl_slot][c] <= M_STATUS;
+                        if (cmd == 8'hd0) begin
+                            b_i <= '0;
+                            b_n <= n < 9'd32 ? n : 9'd32;
+                            b_c <= c[1:0];
+                            st <= B_FLB;
+                            fin = 1'b0;
+                        end
+                    end
+                    default:
+                        case (cmd)
+                        8'h40, 8'h10: fm[fl_slot][c] <= M_PROG;
+                        8'h20: fm[fl_slot][c] <= M_ERASE;
+                        8'he8: fm[fl_slot][c] <= c != 3'd4 ? M_BCOUNT : M_ARRAY;
+                        8'h70: fm[fl_slot][c] <= M_STATUS;
+                        8'h50: ;
+                        8'h90: fm[fl_slot][c] <= M_ID;
+                        default: fm[fl_slot][c] <= M_ARRAY;
+                        endcase
+                    endcase
+                end
+                if (fin) begin
+                    done <= 1'b1;
+                    st <= B_IDLE;
+                end
+            end
+            B_FLB:                                           // buffered: the next word
+                if (b_i < b_n) begin
+                    bb_ra <= {fl_slot, b_c, b_i[4:0]};
+                    st <= B_FLB1;
+                end else begin
+                    done <= 1'b1;
+                    st <= B_IDLE;
+                end
+            B_FLB1: begin                                    // bb_q is valid in B_FLP
+                fl_buf <= 1'b1;
+                fl_ph <= 2'd0;
+                st <= B_FLP;
+            end
+            B_FLP:                                           // program one word: read, AND, write
+                case (fl_ph)
+                2'd0: if (!pf_busy && fl_ok) begin
+                    automatic logic [23:0] o = fl_buf ? bb_q[39:16] : fp_off;
+                    if (fl_buf) begin
+                        fp_off <= bb_q[39:16];
+                        fp_d <= bb_q[15:0];
+                    end
+                    fl_req <= 1'b1;
+                    fl_we <= 1'b0;
+                    fl_addr <= fl_word(fl_slot, fl_bsel, o);
+                    fl_len <= 8'd1;
+                    fl_ph <= 2'd1;
+                end
+                2'd1: if (req_ready) begin
+                    fl_req <= 1'b0;
+                    fl_ph <= 2'd2;
+                end
+                2'd2: if (rsp_valid) begin
+                    fl_req <= 1'b1;
+                    fl_we <= 1'b1;
+                    fl_wdata <= {4{rsp_data[16 * fp_off[1:0] +: 16] & fp_d}};
+                    fl_be <= 8'b11 << {fp_off[1:0], 1'b0};
+                    fl_ph <= 2'd3;
+                end
+                default: if (req_ready) begin
+                    fl_req <= 1'b0;
+                    fl_we <= 1'b0;
+                    fl_dirty <= 1'b1;
+                    fl_dirty_slot <= fl_slot;
+                    fl_dirty_region <= fl_region(fl_bsel, fp_off);
+                    if (fl_buf) begin
+                        b_i <= b_i + 9'd1;
+                        st <= B_FLB;
+                    end else begin
+                        done <= 1'b1;
+                        st <= B_IDLE;
+                    end
+                end
+                endcase
+            B_FLE:                                           // erase: fills of 32 words
+                if (!fl_req && !pf_busy && fl_ok) begin
+                    fl_req <= 1'b1;
+                    fl_we <= 1'b1;
+                    fl_wdata <= '1;
+                    fl_be <= 8'hff;
+                    fl_len <= 8'd32;
+                end else if (fl_req && req_ready) begin
+                    fl_req <= 1'b0;
+                    fl_we <= 1'b0;
+                    fl_addr <= fl_addr + 29'd32;
+                    fe_n <= fe_n + 10'd1;
+                    if (fe_n == (fl_bsel ? 10'd255 : 10'd511)) begin
+                        fl_dirty <= 1'b1;
+                        fl_dirty_slot <= fl_slot;
+                        fl_dirty_region <= fl_region(fl_bsel, fl_a[23:0]);
+                        done <= 1'b1;
+                        st <= B_IDLE;
+                    end
                 end
             default: st <= B_IDLE;
             endcase

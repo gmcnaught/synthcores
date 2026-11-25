@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """CI (no ROMs): hdl/p2k_sndbus.sv, the CPU side of the sound chips, against MAME's emup2k.cpp read
 and write handlers (sim/sndbus_tb.cpp): shadows, sound-memory ports, live values, the write FIFO
-to the engine; three seeds."""
+to the engine, and a user flash SIMM slot against MAME's p2k::intel_flash; three seeds."""
 import os
 import subprocess
 import unittest

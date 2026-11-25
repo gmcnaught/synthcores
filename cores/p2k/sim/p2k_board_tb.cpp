@@ -6,6 +6,7 @@
 //   p2k_board_tb --flash FLASH.bin [--big N=FILE] [--baby N=FILE] [--seconds S] [--midi EVENTS.txt]
 //                [--lcd OUT.txt] [--sndlog OUT.log] [--raw OUT.raw] [--until TEXT] [--vol 0-100]
 //                [--ddr-busy N] [--ddr-lat MIN MAX] [--seed N] [--nofilter] [--nofx]
+//                [--flash-slot N] [--save-big N=FILE] [--save-baby N=FILE] [--keys FILE]
 //     --flash      2 MB flash image (big-endian words: tools/p2k_flash_image.py, or a MAME flash NVRAM)
 //     --big/--baby SIMM slot N (1-4) Big / Baby images (big-endian words)
 //     --seconds    system time to run (default 15)
@@ -18,6 +19,13 @@
 //     --until      stop 1 s after the LCD's first line contains TEXT
 //     --ddr-busy N DDR3 BUSY on a random 1 clock in N (0: never; default 4)
 //     --ddr-lat    read latency in clk_sys clocks, random in [MIN, MAX], in order (default 8 24)
+//     --flash-slot slot N (1-4) is a user flash SIMM (p2k_sndbus): 16 M Big and 1 M Baby words, the
+//                  part beyond the --big/--baby images erased (0xFFFF), as the MiSTer loads a mount
+//     --save-big/--save-baby  at the end, write slot N's whole Big (32 MB) / Baby (2 MB) to FILE, as
+//                  MAME's P2K_FLASHn writes them back; and check that every 256 KB region of a flash
+//                  slot that changed was marked dirty (fl_dirty)
+//     --keys       scripted front panel, MAME's P2K_KEYS lines: "<seconds> key <bit 7-15> <hold s>" and
+//                  "<seconds> enc <signed steps>" (seconds from power-on)
 // clk_sys 88.2 MHz, clk_cpu 44.1 MHz (rising edges aligned).
 #include "Vp2k_board.h"
 #include "verilated.h"
@@ -93,7 +101,9 @@ std::vector<midi_ev> load_midi(const std::string &path)
 
 int main(int argc, char **argv)
 {
-	std::string flash, big[4], baby[4], midi_path, lcd_path, log_path, raw_path, until, dram_path;
+	std::string flash, big[4], baby[4], midi_path, lcd_path, log_path, raw_path, until, dram_path, keys_path;
+	std::string save_big[4], save_baby[4];
+	unsigned flash_slots = 0;
 	double seconds = 15.0, hold_at = -1, hold_for = 0.01;
 	int busy_mod = 4, lat_min = 8, lat_max = 24, vol = 100;
 	unsigned seed = 1;
@@ -112,6 +122,14 @@ int main(int argc, char **argv)
 			const int n = std::clamp(s[0] - '1', 0, 3);
 			(a == "--big" ? big : baby)[n] = s.substr(2);
 		}
+		else if (a == "--save-big" || a == "--save-baby")
+		{
+			const std::string s = next();
+			const int n = std::clamp(s[0] - '1', 0, 3);
+			(a == "--save-big" ? save_big : save_baby)[n] = s.substr(2);
+		}
+		else if (a == "--flash-slot") flash_slots |= 1u << std::clamp(std::atoi(next().c_str()) - 1, 0, 3);
+		else if (a == "--keys") keys_path = next();
 		else if (a == "--seconds") seconds = std::atof(next().c_str());
 		else if (a == "--midi") midi_path = next();
 		else if (a == "--lcd") lcd_path = next();
@@ -156,6 +174,11 @@ int main(int argc, char **argv)
 	uint32_t big_words[4] = {0, 0, 0, 0}, baby_words[4] = {0, 0, 0, 0};
 	for (int s = 0; s < 4; s++)
 	{
+		if (flash_slots >> s & 1)                            // erased flash under the images
+		{
+			std::fill_n(&ddr[SMP_BASE - DDR_ORG + (size_t(s) << 22)], size_t(1) << 22, ~0ull);
+			std::fill_n(&ddr[BABY_BASE - DDR_ORG + (size_t(s) << 18)], size_t(1) << 18, ~0ull);
+		}
 		if (!big[s].empty())
 		{
 			const auto b = load(big[s]);
@@ -170,6 +193,39 @@ int main(int argc, char **argv)
 			for (size_t i = 0; i < baby_words[s]; i++)
 				put16(BABY_BASE, (size_t(s) << 20) + i, uint16_t((b[2 * i] << 8) | b[2 * i + 1]));
 		}
+		if (flash_slots >> s & 1)
+		{
+			big_words[s] = 1u << 24;
+			baby_words[s] = 1u << 20;
+		}
+	}
+	// a flash slot's words before the run, for the dirty check
+	std::vector<uint64_t> flash_before;
+	for (int s = 0; s < 4; s++)
+		if (flash_slots >> s & 1)
+		{
+			flash_before.insert(flash_before.end(), &ddr[BABY_BASE - DDR_ORG + (size_t(s) << 18)], &ddr[BABY_BASE - DDR_ORG + (size_t(s + 1) << 18)]);
+			flash_before.insert(flash_before.end(), &ddr[SMP_BASE - DDR_ORG + (size_t(s) << 22)], &ddr[SMP_BASE - DDR_ORG + (size_t(s + 1) << 22)]);
+		}
+	// scripted panel (P2K_KEYS)
+	struct key_ev { double t; bool enc; int arg; double hold; };
+	std::vector<key_ev> keys;
+	if (!keys_path.empty())
+	{
+		FILE *f = std::fopen(keys_path.c_str(), "r");
+		if (!f) { std::perror(keys_path.c_str()); return 2; }
+		char line[256];
+		while (std::fgets(line, sizeof(line), f))
+		{
+			char kind[8] = {};
+			double t = 0, hold = 0.2;
+			int arg = 0;
+			if (line[0] == '#' || std::sscanf(line, "%lf %7s %d %lf", &t, kind, &arg, &hold) < 3)
+				continue;
+			keys.push_back({t, kind[0] == 'e', arg, hold});
+		}
+		std::fclose(f);
+		std::stable_sort(keys.begin(), keys.end(), [](const key_ev &x, const key_ev &y) { return x.t < y.t; });
 	}
 	const auto midi = midi_path.empty() ? std::vector<midi_ev>() : load_midi(midi_path);
 	FILE *lcd = lcd_path.empty() ? nullptr : std::fopen(lcd_path.c_str(), "w");
@@ -189,6 +245,7 @@ int main(int argc, char **argv)
 	top->filter_on = filter;
 	top->fx_on = fx;
 	top->buttons = 0;
+	top->flash_slot = flash_slots;
 	top->enc_step = 0;
 	top->midi_rxd = 1;
 	top->flash_lock = 0;
@@ -196,6 +253,8 @@ int main(int argc, char **argv)
 	top->cpu_hold = 0;
 
 	uint64_t cyc = 0, reads = 0, writes = 0, last_due = 0, samples = 0, starts = 0, wr_logged = 0;
+	uint64_t wr_base = 0, wr_i = 0, wr_left = 0;          // the burst write (fill) being taken
+	std::vector<std::vector<bool>> dirty(4, std::vector<bool>(136, false));
 	std::deque<std::pair<uint64_t, uint64_t>> rdq;
 	bool bad = false;
 	auto clock = [&]() {
@@ -216,10 +275,27 @@ int main(int argc, char **argv)
 		{
 			const uint64_t w = top->DDRAM_ADDR;
 			const unsigned n = top->DDRAM_RD ? std::max(1u, unsigned(top->DDRAM_BURSTCNT)) : 1u;
-			if (w < DDR_ORG || w + n > DDR_ORG + DDR_WORDS ||
-			    (top->DDRAM_WE && !(w >= FX_BASE && w < FX_BASE + (14u << 14)) && !(w >= CPU_BASE && w < CPU_BASE + 0x140000)))
+			auto in_flash = [&](uint64_t x) {
+				for (int fs = 0; fs < 4; fs++)
+					if ((flash_slots >> fs & 1) && ((x >= SMP_BASE + (uint64_t(fs) << 22) && x < SMP_BASE + (uint64_t(fs + 1) << 22)) ||
+					                                 (x >= BABY_BASE + (uint64_t(fs) << 18) && x < BABY_BASE + (uint64_t(fs + 1) << 18))))
+						return true;
+				return false;
+			};
+			if (top->DDRAM_WE)
 			{
-				std::fprintf(stderr, "DDR3 %s outside its region: word %" PRIx64 "\n", top->DDRAM_RD ? "read" : "write", w);
+				if (wr_left == 0)
+				{
+					wr_base = w;
+					wr_i = 0;
+					wr_left = std::max(1u, unsigned(top->DDRAM_BURSTCNT));
+				}
+			}
+			const uint64_t wa = top->DDRAM_WE ? wr_base + wr_i : w;
+			if (wa < DDR_ORG || wa + n > DDR_ORG + DDR_WORDS ||
+			    (top->DDRAM_WE && !(wa >= FX_BASE && wa < FX_BASE + (14u << 14)) && !(wa >= CPU_BASE && wa < CPU_BASE + 0x140000) && !in_flash(wa)))
+			{
+				std::fprintf(stderr, "DDR3 %s outside its region: word %" PRIx64 "\n", top->DDRAM_RD ? "read" : "write", wa);
 				bad = true;
 			}
 			else if (top->DDRAM_RD)
@@ -232,15 +308,19 @@ int main(int argc, char **argv)
 				}
 			else
 			{
-				uint64_t &d = ddr[w - DDR_ORG];
+				uint64_t &d = ddr[wa - DDR_ORG];
 				for (int b = 0; b < 8; b++)
 					if (top->DDRAM_BE & (1 << b))
 						d = (d & ~(0xffull << (8 * b))) | (((top->DDRAM_DIN >> (8 * b)) & 0xff) << (8 * b));
 				writes++;
+				wr_i++;
+				wr_left--;
 			}
 		}
 		if (top->dbg_snd_start)
 			starts++;
+		if (top->fl_dirty)
+			dirty[top->fl_dirty_slot][std::min(135u, unsigned(top->fl_dirty_region))] = true;
 		if (top->dbg_snd_wr && slog)
 		{
 			const unsigned a = top->dbg_snd_addr;
@@ -336,6 +416,32 @@ int main(int argc, char **argv)
 		}
 		else
 			top->midi_rxd = 1;
+		// scripted panel: keys held for their time, encoder steps 1 ms apart
+		{
+			static size_t ki = 0;
+			static std::vector<std::pair<uint64_t, unsigned>> release;
+			static int enc_left = 0;
+			static uint64_t enc_next = 0;
+			unsigned held = 0;
+			while (ki < keys.size() && double(cyc) >= keys[ki].t * SYS_HZ)
+			{
+				if (keys[ki].enc) enc_left += keys[ki].arg;
+				else release.push_back({cyc + uint64_t(keys[ki].hold * SYS_HZ), unsigned(keys[ki].arg & 15)});
+				ki++;
+			}
+			for (auto it = release.begin(); it != release.end(); )
+				if (cyc >= it->first) it = release.erase(it);
+				else { if (it->second >= 7) held |= 1u << (it->second - 7); ++it; }
+			top->buttons = held;
+			top->enc_step = 0;
+			if (enc_left != 0 && cyc >= enc_next)
+			{
+				top->enc_step = 1;
+				top->enc_dir = enc_left > 0;
+				enc_left += enc_left > 0 ? -1 : 1;
+				enc_next = cyc + uint64_t(0.001 * SYS_HZ);
+			}
+		}
 		if (hold_at >= 0)                    // the CPU held in reset for a while, as a SIMM download does
 			top->cpu_hold = double(cyc) >= hold_at * SYS_HZ && double(cyc) < (hold_at + hold_for) * SYS_HZ;
 		clock();
@@ -364,6 +470,43 @@ int main(int argc, char **argv)
 	}
 	if (slog) std::fclose(slog);
 	if (raw) std::fclose(raw);
+	// flash slots: images out, and every changed region marked dirty
+	auto save16 = [&](const std::string &path, uint64_t base, size_t words) {
+		FILE *f = std::fopen(path.c_str(), "wb");
+		if (!f) { std::perror(path.c_str()); bad = true; return; }
+		std::vector<unsigned char> b(words * 2);
+		for (size_t i = 0; i < words; i++)
+		{
+			const uint16_t v = uint16_t(ddr[base - DDR_ORG + (i >> 2)] >> (16 * (i & 3)));
+			b[2 * i] = uint8_t(v >> 8);
+			b[2 * i + 1] = uint8_t(v);
+		}
+		std::fwrite(b.data(), 1, b.size(), f);
+		std::fclose(f);
+	};
+	size_t fb = 0;
+	for (int s = 0; s < 4; s++)
+	{
+		if (!save_big[s].empty()) save16(save_big[s], SMP_BASE + (uint64_t(s) << 22), size_t(1) << 24);
+		if (!save_baby[s].empty()) save16(save_baby[s], BABY_BASE + (uint64_t(s) << 18), size_t(1) << 20);
+		if (!(flash_slots >> s & 1)) continue;
+		unsigned changed = 0, marked = 0, missed = 0;
+		for (unsigned r = 0; r < 136; r++)
+		{
+			// region r: 32 K DDR3 words; Baby regions 0-7, Big 8-135
+			const uint64_t base = r < 8 ? BABY_BASE + (uint64_t(s) << 18) + (uint64_t(r) << 15) : SMP_BASE + (uint64_t(s) << 22) + (uint64_t(r - 8) << 15);
+			const size_t before = fb + (r < 8 ? size_t(r) << 15 : (size_t(1) << 18) + (size_t(r - 8) << 15));
+			bool ch = false;
+			for (size_t i = 0; i < (size_t(1) << 15) && !ch; i++)
+				ch = ddr[base - DDR_ORG + i] != flash_before[before + i];
+			changed += ch;
+			marked += dirty[s][r];
+			if (ch && !dirty[s][r]) { missed++; std::fprintf(stderr, "slot %d region %u changed, not marked dirty\n", s + 1, r); }
+		}
+		if (missed) bad = true;
+		std::printf("flash slot %d: %u regions changed, %u marked dirty\n", s + 1, changed, marked);
+		fb += (size_t(1) << 18) + (size_t(1) << 22);
+	}
 	std::printf("time %.3f s, samples %" PRIu64 ", sound writes %" PRIu64 ", DDR3 reads %" PRIu64 " writes %" PRIu64
 	            ", late %d, LCD |%s|%s|\n", double(cyc) / SYS_HZ, samples, wr_logged, reads, writes, int(top->late),
 	            l1.c_str(), l2.c_str());

@@ -17,8 +17,9 @@
 // pack_ok: a whole flash image and font arrived; big_words/baby_words: what each slot holds (a
 // new SIMM download clears its slot first). loading and pack_loading stay high until the copy
 // is done; pack_ok and the slot sizes are set as they fall. While the copier runs (hold) it
-// owns the memory client and its responses; it starts only when ext_busy (another user of the
-// client with reads in flight) is low.
+// owns the memory client and its responses; it asks for it with want and starts only when
+// ext_busy (another user of the client) is low. simm_start: a SIMM download into slot_start
+// starts (pulse).
 module p2k_loader #(
     parameter logic [28:0] SMP_BASE   = 29'h6000000,
     parameter logic [28:0] BABY_BASE  = 29'h7100000,
@@ -42,10 +43,13 @@ module p2k_loader #(
     output logic        loading,          // a pack or SIMM download or its copy is in progress
     output logic        pack_loading,     // the same, for the system pack
     output logic        simm_loaded,      // pulse: a SIMM is in
+    output logic        simm_start,       // pulse: a SIMM download starts
+    output logic [1:0]  slot_start,
     output logic [24:0] big_words [4],
     output logic [20:0] baby_words [4],
 
     input  logic        ext_busy,
+    output logic        want,
     output logic        hold,
 
     output logic        req_valid,
@@ -121,6 +125,7 @@ module p2k_loader #(
     logic [11:0] c_faddr;
     logic [7:0]  c_fdata;
     assign hold = c_st != C_IDLE && c_st != C_WAIT;
+    assign want = c_st != C_IDLE;
 
     // where staged word c_w goes, its data with each 16-bit lane's bytes swapped, and the byte
     // enables of a last, partial word
@@ -160,6 +165,7 @@ module p2k_loader #(
 
     always_ff @(posedge clk) begin
         simm_loaded <= 1'b0;
+        simm_start <= 1'b0;
         dl_d <= ioctl_download;
         c_fwe <= 1'b0;
         if (rst) begin
@@ -184,6 +190,8 @@ module p2k_loader #(
                 if (is_simm) begin
                     big_words[slot] <= '0;
                     baby_words[slot] <= '0;
+                    simm_start <= 1'b1;
+                    slot_start <= slot;
                 end
             end
             if (ioctl_wr && (is_pack || is_simm) && b_ok) begin
