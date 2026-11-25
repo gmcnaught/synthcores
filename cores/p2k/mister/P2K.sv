@@ -42,9 +42,9 @@ assign VIDEO_ARY = 12'd3;
 localparam CONF_STR = {
 	"P2K;UART31250,MIDI;",
 	"-;",
-	"FSC1,P2K,Load system pack;",
-	"FC2,SIM,SIMM slot 1;",
-	"FC3,SIM,SIMM slot 2;",
+	"FSC1,P2K,Load system pack,3C000000;",
+	"FC2,SIM,SIMM slot 1,3C000000;",
+	"FC3,SIM,SIMM slot 2,3C000000;",
 	"-;",
 	"-,Q master E edit M multi S save;",
 	"-,A arp Space audition Enter home;",
@@ -135,6 +135,7 @@ end
 ///////////////////////   CORE   /////////////////////////////////
 
 localparam [28:0] SMP_BASE = 29'h6000000, FX_BASE = 29'h7000000, BABY_BASE = 29'h7100000, CPU_BASE = 29'h7200000;
+localparam [28:0] STAGE_BASE = 29'h7800000;   // downloads land here (CONF_STR address 0x3C000000)
 
 // keyboard
 wire [15:7] panel_buttons;
@@ -161,26 +162,29 @@ assign UART_TXD = midi_txd;
 wire        font_we;
 wire [11:0] font_addr;
 wire  [7:0] font_data;
-wire        pack_ok, loading, simm_loaded;
+wire        pack_ok, loading, pack_loading, simm_loaded, ld_hold, fs_saving;
 wire [24:0] big_words [4];
 wire [20:0] baby_words [4];
-wire        ld_req_valid, ld_req_ready;
+wire        ld_req_valid, ld_req_ready, ld_req_we, ld_rsp_valid;
 wire [28:0] ld_req_addr;
 wire [63:0] ld_req_wdata;
-wire  [7:0] ld_req_be;
-p2k_loader #(.SMP_BASE(SMP_BASE), .BABY_BASE(BABY_BASE), .CPU_BASE(CPU_BASE)) loader
+wire  [7:0] ld_req_be, ld_req_len;
+p2k_loader #(.SMP_BASE(SMP_BASE), .BABY_BASE(BABY_BASE), .CPU_BASE(CPU_BASE), .STAGE_BASE(STAGE_BASE)) loader
 (
 	.clk(clk_sys), .rst(rst_hard),
 	.ioctl_download(ioctl_download), .ioctl_index(ioctl_index), .ioctl_wr(ioctl_wr),
 	.ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
 	.font_we(font_we), .font_addr(font_addr), .font_data(font_data),
-	.pack_ok(pack_ok), .loading(loading), .simm_loaded(simm_loaded),
+	.pack_ok(pack_ok), .loading(loading), .pack_loading(pack_loading), .simm_loaded(simm_loaded),
 	.big_words(big_words), .baby_words(baby_words),
-	.req_valid(ld_req_valid), .req_ready(ld_req_ready), .req_addr(ld_req_addr), .req_wdata(ld_req_wdata), .req_be(ld_req_be)
+	.ext_busy(fs_saving), .hold(ld_hold),
+	.req_valid(ld_req_valid), .req_ready(ld_req_ready), .req_we(ld_req_we), .req_addr(ld_req_addr),
+	.req_wdata(ld_req_wdata), .req_be(ld_req_be), .req_len(ld_req_len),
+	.rsp_valid(ld_rsp_valid), .rsp_data(x_rsp_data)
 );
 
 // flash save file
-wire        boot_hold, flash_lock, saving, flash_changed;
+wire        boot_hold, flash_lock, flash_changed;
 wire        fs_req_valid, fs_req_ready, fs_req_we, fs_rsp_valid;
 wire [28:0] fs_req_addr;
 wire [63:0] fs_req_wdata, x_rsp_data;
@@ -188,23 +192,25 @@ wire  [7:0] fs_req_len;
 p2k_flashsave #(.BASE(CPU_BASE)) fsave
 (
 	.clk(clk_sys), .rst(rst_hard),
-	.loading(ioctl_download && ioctl_index[7:0] == 8'd1), .image_ok(pack_ok),
+	.loading(pack_loading), .image_ok(pack_ok),
 	.img_mounted(img_mounted), .img_readonly(img_readonly), .img_size(img_size),
 	.sd_lba(sd_lba), .sd_blk_cnt(sd_blk_cnt), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr), .sd_buff_din(sd_buff_din),
 	.save_req(status[6]), .osd_open(OSD_STATUS), .autosave(~status[7]), .flash_changed(flash_changed),
-	.boot_hold(boot_hold), .flash_lock(flash_lock), .saving(saving), .restored(), .dirty(),
+	.boot_hold(boot_hold), .flash_lock(flash_lock), .saving(fs_saving), .restored(), .dirty(),
 	.req_valid(fs_req_valid), .req_ready(fs_req_ready), .req_we(fs_req_we), .req_addr(fs_req_addr),
 	.req_wdata(fs_req_wdata), .req_len(fs_req_len), .rsp_valid(fs_rsp_valid), .rsp_data(x_rsp_data)
 );
 
-// the loader writes only while a download runs, the save only while none does
-wire        x_valid = ld_req_valid | fs_req_valid;
+// the loader's byte writes go first; while its copier runs (ld_hold, started only with no save
+// in flight) it alone uses the client and takes the responses
+wire        x_valid = ld_req_valid | (fs_req_valid & ~ld_hold);
 wire        x_ready;
 wire        x_rsp_valid;
 assign ld_req_ready = x_ready & ld_req_valid;
-assign fs_req_ready = x_ready & ~ld_req_valid;
-assign fs_rsp_valid = x_rsp_valid;
+assign fs_req_ready = x_ready & ~ld_req_valid & ~ld_hold;
+assign ld_rsp_valid = x_rsp_valid & ld_hold;
+assign fs_rsp_valid = x_rsp_valid & ~ld_hold;
 
 // the CPU starts once a system pack is in and restored, and again after every download
 reg [7:0] restart;
@@ -236,9 +242,9 @@ p2k_board #(.SYS_HZ(88_200_000), .SMP_BASE(SMP_BASE), .FX_BASE(FX_BASE), .BABY_B
 	.r_line(r_line), .r_pos(r_pos), .r_row(r_row), .r_code(r_code), .r_cgbits(r_cgbits), .r_at_ac(r_at_ac),
 	.lcd_display_on(lcd_on), .lcd_cursor_on(lcd_cursor), .lcd_blink_on(lcd_blink), .leds(leds),
 	.flash_lock(flash_lock), .flash_changed(flash_changed),
-	.x_req_valid(x_valid), .x_req_ready(x_ready), .x_req_we(ld_req_valid | fs_req_we),
+	.x_req_valid(x_valid), .x_req_ready(x_ready), .x_req_we(ld_req_valid ? ld_req_we : fs_req_we),
 	.x_req_addr(ld_req_valid ? ld_req_addr : fs_req_addr), .x_req_wdata(ld_req_valid ? ld_req_wdata : fs_req_wdata),
-	.x_req_be(ld_req_valid ? ld_req_be : 8'hff), .x_req_len(ld_req_valid ? 8'd1 : fs_req_len),
+	.x_req_be(ld_req_valid ? ld_req_be : 8'hff), .x_req_len(ld_req_valid ? ld_req_len : fs_req_len),
 	.x_rsp_valid(x_rsp_valid), .x_rsp_data(x_rsp_data),
 	.late(late), .cpu_pc(cpu_pc), .cpu_addr(cpu_addr), .cpu_running(cpu_running), .mem_rsp_extra(rsp_extra),
 	.dbg_snd_wr(), .dbg_snd_chip(), .dbg_snd_addr(), .dbg_snd_data(), .dbg_snd_mask(), .dbg_snd_start(),
@@ -268,7 +274,7 @@ end
 reg [21:0] midi_stretch;
 always @(posedge clk_sys) midi_stretch <= midi_byte ? 22'h3fffff : (midi_stretch ? midi_stretch - 1'd1 : 22'd0);
 assign LED_USER = midi_stretch != 0;
-assign LED_DISK = {1'b1, loading | saving};
+assign LED_DISK = {1'b1, loading | fs_saving};
 
 ///////////////////////   VIDEO   ////////////////////////////////
 

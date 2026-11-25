@@ -2,6 +2,23 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 19: P2K downloads straight to DDR3 (2026-11-24, branch `iter19-p2k-fastload`)
+
+- **Why:** the 34 MB SIMM took about 100 s to load. Without a load address, Main_MiSTer sends a
+  download a byte at a time with a register handshake per byte (`user_io_file_tx_data` ->
+  `spi_b` -> `fpga_spi`), about 2.7 µs a byte.
+- **What:** the pack and SIMM entries in CONF_STR carry the load address 0x3C000000, so
+  Main_MiSTer maps that DDR3 and reads the file into it. `hdl/p2k_loader.sv` then copies the
+  staged words to flash, Baby, Big and the font RAM with each 16-bit word's bytes swapped (the
+  file formats are unchanged). The byte path stays for a Main_MiSTer that ignores the address.
+  While the copier runs it alone uses the external memory client; it starts only with no flash
+  save in flight.
+- **Gates:** loader bench identical by bytes and direct (3 seeds, a 34 MB SIMM); Quartus build
+  meets timing (26,747 ALMs); MiSTer smoke test passes with the main screen at 19 s (was about
+  110 s), save file written and restored.
+- **Found on hardware:** a one-clock gap in `pack_loading` between the download and the copy
+  made the flash save forget the mounted save file. Fixed, and the loader bench checks it.
+
 ## Iteration 18: P2K MiSTer core (2026-11-24, branch `iter18-p2k-mister`)
 
 - **What:** a new core folder, `cores/p2k`. Design note and results: `cores/p2k/docs/plan.md`.
