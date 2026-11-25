@@ -63,6 +63,7 @@ Assumptions:
 | 17 | MT-32 core on the MiSTer (`cores/mt32/docs/plan.md`, M0–M6) | 1, 2 | yes | MCS-96 trace, LA32 and reverb samples identical to Nuked-MT32 (`5b4e239`, firmware 2.07) over generated test ROMs, firmware boot and a MIDI corpus; plays MIDI on the MiSTer with no underrun |
 | 18 | P2K MiSTer core (`cores/p2k/docs/plan.md`, P0–P6) | 11, 16 | yes | OS 2.26 boots to its main screen in the system bench and on the MiSTer with the Composer stand-in SIMM; the bench's sound-write log replayed by `p2k_render` equals the bench audio; plays MIDI on the MiSTer; user data in flash survives a reload |
 | 19 | P2K downloads straight to DDR3 | 18 | yes | the loader bench places packs and SIMMs identically by bytes and direct (3 seeds and a 34 MB SIMM); Quartus build meets timing; the MiSTer smoke test passes, with the main screen well under the 110 s of iteration 18 |
+| 21 | P2K user flash SIMMs (P6) and the P2K release | 18, 19 | yes | the sound bus against MAME's `p2k::intel_flash` and the image transfers against an hps_io model (3 seeds each); RENAME FLASH SIMM 106 → 108 in the system bench and on the MiSTer leaves the images MAME leaves; no late sample; Quartus build meets timing; smoke tests pass; release built by CI and smoke-tested |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -287,6 +288,15 @@ comparison in the benches, a shared `synthframe_midi_tx` (FIFO + 31,250-baud shi
 - **Gates:** existing lockstep/hash tests bit-identical; HDL TX stream = reference TX stream
   (bytes and cycles); Windows builds meet timing; MiSTer smoke reads the reference reply on
   `/dev/ttyS1`.
+
+### 21. P2K user flash SIMMs and release (2026-11-25, user: "implement 1 and release")
+
+P6 of `cores/p2k/docs/plan.md`. A `.sim` file mounted as "Flash SIMM slot N" (hps_io disks 1-2)
+is loaded into the slot and becomes writable through G20 port B with MAME's flash command model;
+the 256 KB regions the OS changes are written back to the file with the flash save.
+`p2k_flashsave` becomes `p2k_imgsave` (the save file and both SIMM files). Then the release:
+CI build of `main`, both smoke tests on that RBF, tag `p2k-YYYYMMDD`, release repository
+`gmcnaught/Proteus-2000-MiSTer` as for the CZ-101.
 
 ## Not in this session
 

@@ -51,6 +51,10 @@ module p2k_board #(
     // SIMM images loaded (clk_sys), in 16-bit words
     input  logic [24:0] big_words [4],
     input  logic [20:0] baby_words [4],
+    input  logic [3:0]  flash_slot,       // user flash SIMM slots (p2k_sndbus): writable through G20 port B
+    output logic        fl_dirty,         // a program or erase changed this 256 KB region of the slot's file
+    output logic [1:0]  fl_dirty_slot,
+    output logic [7:0]  fl_dirty_region,
 
     // audio (clk_sys): a new sample on audio_strobe
     output logic signed [15:0] audio_l,
@@ -336,18 +340,21 @@ module p2k_board #(
     logic [7:0]  snd_rd_addr;
     logic [25:0] snd_rd_vaddr;
     logic [15:0] snd_rd_ipx [0:2];
-    logic        p_req_valid, p_req_ready, p_rsp_valid;
+    logic        p_req_valid, p_req_ready, p_req_we, p_rsp_valid;
     logic [28:0] p_req_addr;
-    logic [63:0] p_rsp_data;
+    logic [63:0] p_req_wdata, p_rsp_data;
+    logic [7:0]  p_req_be, p_req_len;
     p2k_sndbus #(.SMP_BASE(SMP_BASE), .BABY_BASE(BABY_BASE)) sbus (
         .clk(clk_sys), .rst(rst_s),
         .go(sb_valid), .we(sb_we), .chip(sb_chip), .woff(sb_woff), .wdata(sb_wdata), .uds(sb_uds), .lds(sb_lds),
         .done(sb_done), .rdata(sb_rdata),
         .baby_sel(baby_sel_s), .enc_count, .enc_take, .big_words, .baby_words,
+        .flash_slot, .flash_reset(hold_s), .fl_dirty, .fl_dirty_slot, .fl_dirty_region,
         .tick, .late,
         .snd_idle, .snd_start, .snd_wr_valid, .snd_wr_chip, .snd_wr_addr, .snd_wr_data, .snd_wr_mask,
         .snd_rd_valid, .snd_rd_chip, .snd_rd_addr, .snd_rd_done, .snd_rd_vaddr, .snd_rd_vsel, .snd_rd_ipx,
-        .req_valid(p_req_valid), .req_ready(p_req_ready), .req_addr(p_req_addr),
+        .req_valid(p_req_valid), .req_ready(p_req_ready), .req_we(p_req_we), .req_addr(p_req_addr),
+        .req_wdata(p_req_wdata), .req_be(p_req_be), .req_len(p_req_len),
         .rsp_valid(p_rsp_valid), .rsp_data(p_rsp_data),
         .fifo_level()
     );
@@ -448,7 +455,7 @@ module p2k_board #(
     end endgenerate
     assign tr_ready = c_req_ready[4];
 
-    // ------------------------------------------------------------------ DDR3: engine, ports, CPU, loader
+    // ------------------------------------------------------------------ DDR3: engine, ports and flash SIMMs, CPU, loader
     logic        c_req_valid [5], c_req_ready [5], c_req_we [5], c_rsp_valid [5];
     logic [28:0] c_req_addr [5];
     logic [63:0] c_req_wdata [5];
@@ -457,8 +464,8 @@ module p2k_board #(
     always_comb begin
         c_req_valid[0] = e_req_valid; c_req_we[0] = e_req_we; c_req_addr[0] = e_req_addr;
         c_req_wdata[0] = e_req_wdata; c_req_be[0] = e_req_be; c_req_len[0] = e_req_len; c_req_tag[0] = e_req_tag;
-        c_req_valid[1] = p_req_valid; c_req_we[1] = 1'b0; c_req_addr[1] = p_req_addr;
-        c_req_wdata[1] = '0; c_req_be[1] = 8'hff; c_req_len[1] = 8'd1; c_req_tag[1] = 2'd0;
+        c_req_valid[1] = p_req_valid; c_req_we[1] = p_req_we; c_req_addr[1] = p_req_addr;
+        c_req_wdata[1] = p_req_wdata; c_req_be[1] = p_req_be; c_req_len[1] = p_req_len; c_req_tag[1] = 2'd0;
         c_req_valid[2] = mb_valid; c_req_we[2] = mb_we; c_req_addr[2] = mb_addr;
         c_req_wdata[2] = mb_wdata; c_req_be[2] = mb_be; c_req_len[2] = mb_len; c_req_tag[2] = 2'd0;
         c_req_valid[3] = x_req_valid; c_req_we[3] = x_req_we; c_req_addr[3] = x_req_addr;

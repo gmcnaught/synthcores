@@ -11,9 +11,13 @@
       the first start (about 45 s; the save file keeps them); --keep-user keeps the dump's user
       data. --flash takes a finished 2 MB image instead (big-endian words, e.g. a MAME flash NVRAM).
 
-  p2k_pack.py simm OUT.sim --baby baby.bin --big big.bin
+  p2k_pack.py simm OUT.sim (--baby baby.bin --big big.bin [--flash] | --blank)
       SIMM slot image, OSD "SIMM slot N" (index 1 + N): Baby padded to 2 MB with 0xFF, then Big
       (up to 32 MB), e.g. the Composer stand-in from cores/proteus/tools/p2k_build_simm.py.
+      --flash pads Big to 32 MB with 0xFF (erased flash): a user flash SIMM file for OSD "Flash
+      SIMM slot N", 34 MB, so that whatever the OS writes is saved back (Main_MiSTer does not grow a
+      mounted file). The OS writes only a SIMM whose ROM ID (Big header +0x3E) is 106-119.
+      --blank: an erased flash SIMM (34 MB of 0xFF), e.g. the target of DUPLICATE SLOT 0 FLASH.
 
 Prints each output's size and SHA-256.
 """
@@ -22,7 +26,9 @@ import hashlib
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "proteus", "tools"))
+# p2k_flash_image.py: in cores/proteus/tools, or next to this file (the release repository's tools/)
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path[:0] = [HERE, os.path.join(HERE, "..", "..", "proteus", "tools")]
 import p2k_flash_image  # noqa: E402
 
 
@@ -44,8 +50,10 @@ def main():
     p.add_argument("--flash")
     s = sub.add_parser("simm")
     s.add_argument("out")
-    s.add_argument("--baby", required=True)
-    s.add_argument("--big", required=True)
+    s.add_argument("--baby")
+    s.add_argument("--big")
+    s.add_argument("--flash", action="store_true")
+    s.add_argument("--blank", action="store_true")
     a = ap.parse_args()
 
     if a.cmd == "pack":
@@ -61,11 +69,19 @@ def main():
         if len(font) != 0x1000:
             ap.error("the character ROM must be 4 KB (hd44780_a00.bin)")
         done(a.out, img + font)
+    elif a.blank:
+        if a.baby or a.big:
+            ap.error("simm: --blank takes no --baby/--big")
+        done(a.out, b"\xff" * 0x2200000)
     else:
+        if not (a.baby and a.big):
+            ap.error("simm: give --baby and --big, or --blank")
         baby = open(a.baby, "rb").read()
         big = open(a.big, "rb").read()
         if len(baby) > 0x200000 or len(big) > 0x2000000:
             ap.error("Baby is at most 2 MB, Big at most 32 MB")
+        if a.flash:
+            big += b"\xff" * (0x2000000 - len(big))
         done(a.out, baby + b"\xff" * (0x200000 - len(baby)) + big)
 
 

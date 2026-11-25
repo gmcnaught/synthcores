@@ -20,7 +20,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_mem.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_sndbus.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_board.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_loader.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_flashsave.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_imgsave.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_kbd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_midi.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/p2k_lcd_video.sv

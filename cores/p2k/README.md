@@ -52,6 +52,16 @@ The CPU restarts after each download. `saves/P2K/<pack>.sav` holds the flash (us
 multisetups, master settings). It is written when the OSD opens after the OS has changed the
 flash, or with "Save flash".
 
+**User flash SIMMs:** mount a `.sim` file as "Flash SIMM slot 1" or "2" (OSD, or
+`<file type="s" index="1" path="..."/>` in an MGL) instead of loading it into that slot. The OS
+can then write it, as a real E-mu flash SIMM: from Save/Copy, COPY USER BANK TO FLASH, RENAME
+FLASH SIMM, DUPLICATE SLOT 0 FLASH (it writes only a SIMM whose ROM ID is 106-119, the user flash
+range). What it changed is written back to the mounted file with the flash save ("Save flash",
+or when the OSD opens). Make the file 34 MB so every change fits:
+`tools/p2k_pack.py simm OUT.sim --baby baby.bin --big big.bin --flash`, or `--blank` for an
+erased one. Mounting reads the whole file through the SD interface; it takes longer than a
+SIMM download (see `docs/plan.md`).
+
 ## Using it
 
 - **MIDI:** set the UART to MidiLink; it is MIDI In A, at 31250 or 9600 baud. UART TX is MIDI Out
@@ -79,8 +89,9 @@ flash, or with "Save flash".
 - **No real unit was available.** Behaviour MAME could not settle is a recorded choice
   (`cores/proteus/docs/p2k-findings.md`): the level law, the interpolator timing, the effects'
   microcode.
-- **User flash SIMMs** (programming a SIMM from the OS) are not in this version. Writes to a SIMM
-  are ignored, as for a ROM SIMM.
+- **Flash SIMMs** are written at once: the OS's erase and program polls see "ready" on the
+  first read, where real flash takes seconds. A file mounted read-only is loaded and never
+  written.
 - **Not modelled:** MIDI In B, the Proteus 1000 and the sub outputs. Main + Sub 1 + Sub 2 are mixed
   to the one stereo output.
 - **CPU speed:** the CPU runs at 44.1 MHz as fast as its cache allows; it is not cycle-matched to

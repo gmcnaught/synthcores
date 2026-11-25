@@ -4,7 +4,11 @@
 // G05 windows, the sound-memory ports A/B (Big and Baby, loaded and unloaded slots), the encoder
 // and the live values. The engine is a stub: it applies every write it takes to its own copy (so
 // the bench also checks that each write reaches it, in order) and answers live reads with values
-// derived from the voice or block number. Exits 1 on the first difference.
+// derived from the voice or block number. Slot 2 (index 1) is a user flash SIMM: MAME's
+// p2k::intel_flash (cores/proteus/p2k/model/p2k_flash.h) on its own copy of the slot, driven by
+// command sequences through port B (program, erase, buffered program, status, ID, read array, other
+// commands); at the end the bench's DDR3 must equal that copy and the dirty regions the regions
+// MAME wrote. Exits 1 on the first difference.
 //   sndbus_tb [--accesses N] [--seed N]
 #include "Vp2k_sndbus.h"
 #include "verilated.h"
@@ -12,12 +16,15 @@
 #include "Vp2k_sndbus___024root.h"
 #endif
 
+#include "../../proteus/p2k/model/p2k_flash.h"
+
 #include <array>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <deque>
 #include <map>
+#include <set>
 #include <memory>
 #include <random>
 #include <string>
@@ -28,6 +35,8 @@ constexpr uint64_t SMP_BASE = 0x6000000, BABY_BASE = 0x7100000;
 uint32_t live_addr(unsigned v) { return (v * 0x12345u + 0x777u) & 0x3ffffff; }
 bool live_sel(unsigned v) { return (v * 7) & 4; }
 uint16_t live_ip(unsigned b, unsigned n) { return uint16_t(b * 0x101 + n * 0x3333); }
+uint64_t ddr_init(uint64_t a) { return (a * 0x9e3779b97f4a7c15ull) ^ (a >> 7); }
+constexpr unsigned FL = 1;                           // the flash slot
 }
 
 int main(int argc, char **argv)
@@ -47,17 +56,38 @@ int main(int argc, char **argv)
 	std::map<uint64_t, uint64_t> ddr;
 	auto ddr_word = [&](uint64_t a) -> uint64_t {
 		auto it = ddr.find(a);
-		if (it != ddr.end()) return it->second;
-		const uint64_t v = (a * 0x9e3779b97f4a7c15ull) ^ (a >> 7);
-		ddr[a] = v;
-		return v;
+		return it != ddr.end() ? it->second : ddr_init(a);
 	};
+	// MAME's flash slot: its own copy of the slot's Big and Baby words
+	std::vector<uint16_t> fl_big(1u << 24), fl_baby(1u << 20);
+	for (uint32_t i = 0; i < (1u << 24); i++) fl_big[i] = uint16_t(ddr_init(SMP_BASE + (((FL << 24) | i) >> 2)) >> (16 * (i & 3)));
+	for (uint32_t i = 0; i < (1u << 20); i++) fl_baby[i] = uint16_t(ddr_init(BABY_BASE + ((FL << 18) | (i >> 2))) >> (16 * (i & 3)));
+	p2k::intel_flash big_flash[4], baby_flash;
+	auto fl_config = [&]() {
+		for (int c = 0; c < 4; c++) big_flash[c].configure(&fl_big[c << 22], 1 << 22, 0x0089, 0x0015, 1 << 16, true);
+		baby_flash.configure(fl_baby.data(), 1 << 20, 0x00b0, 0x00d0, 1 << 15, false);
+	};
+	fl_config();
 	auto snd_read = [&](uint32_t a, bool baby) -> uint16_t {         // MAME snd_read
 		const unsigned slot = (a >> 24) & 3;
 		const uint32_t off = a & 0xffffff;
+		if (slot == FL)
+			return baby ? (off < (1u << 20) ? baby_flash.read(off) : 0xffff) : big_flash[(off >> 22) & 3].read(off & 0x3fffff);
 		if (baby)
 			return off < (1u << 20) && off < baby_words[slot] ? uint16_t(ddr_word(BABY_BASE + ((slot << 18) | (off >> 2))) >> (16 * (off & 3))) : 0xffff;
 		return off < big_words[slot] ? uint16_t(ddr_word(SMP_BASE + (a >> 2)) >> (16 * (a & 3))) : 0;
+	};
+
+	auto snd_write = [&](uint32_t a, bool baby, uint16_t d) {          // MAME snd_write
+		const unsigned slot = (a >> 24) & 3;
+		const uint32_t off = a & 0xffffff;
+		if (slot != FL) return;
+		if (baby)
+		{
+			if (off < (1u << 20)) baby_flash.write(off, d);
+		}
+		else
+			big_flash[(off >> 22) & 3].write(off & 0x3fffff, d);
 	};
 
 	// MAME's state
@@ -73,7 +103,11 @@ int main(int argc, char **argv)
 	auto ctx = std::make_unique<VerilatedContext>();
 	auto top = std::make_unique<Vp2k_sndbus>(ctx.get());
 	for (int s = 0; s < 4; s++) { top->big_words[s] = big_words[s]; top->baby_words[s] = baby_words[s]; }
-	std::deque<std::pair<uint64_t, uint64_t>> rdq;
+	top->flash_slot = 1u << FL;
+	top->flash_reset = 0;
+	std::set<unsigned> hdl_regions;                   // fl_dirty regions of the flash slot
+	long mem_writes = 0;
+	std::deque<std::pair<uint64_t, uint64_t>> rdq;    // (due, data): data as of the read's turn
 	uint64_t cyc = 0, last_due = 0;
 	int rd_wait = -1;
 	unsigned rd_chip = 0, rd_addr = 0;
@@ -85,7 +119,7 @@ int main(int argc, char **argv)
 		if (!rdq.empty() && rdq.front().first <= cyc)
 		{
 			top->rsp_valid = 1;
-			top->rsp_data = ddr_word(rdq.front().second);
+			top->rsp_data = rdq.front().second;
 			rdq.pop_front();
 		}
 		top->tick = rng() % 300 == 0;
@@ -104,8 +138,27 @@ int main(int argc, char **argv)
 		top->eval();
 		if (top->req_valid && top->req_ready)
 		{
-			last_due = std::max<uint64_t>(cyc + 1 + rng() % 20, last_due + 1);
-			rdq.push_back({last_due, top->req_addr});
+			const unsigned len = top->req_len ? top->req_len : 1;
+			if (top->req_we)
+			{
+				uint64_t m = 0;
+				for (int b = 0; b < 8; b++)
+					if (top->req_be >> b & 1) m |= 0xffull << (8 * b);
+				for (unsigned i = 0; i < len; i++)
+					ddr[top->req_addr + i] = (ddr_word(top->req_addr + i) & ~m) | (top->req_wdata & m);
+				mem_writes++;
+			}
+			else
+				for (unsigned i = 0; i < len; i++)
+				{
+					last_due = std::max<uint64_t>(cyc + 1 + rng() % 20, last_due + 1);
+					rdq.push_back({last_due, ddr_word(top->req_addr + i)});
+				}
+		}
+		if (top->fl_dirty)
+		{
+			if (top->fl_dirty_slot != FL) { std::fprintf(stderr, "dirty mark for slot %u\n", top->fl_dirty_slot); bad = true; }
+			hdl_regions.insert(top->fl_dirty_region);
 		}
 		const bool fire_wr = top->snd_wr_valid && top->snd_idle && !top->snd_start;
 		if (fire_wr)
@@ -157,6 +210,75 @@ int main(int argc, char **argv)
 		return r;
 	};
 
+	// G20 writes and port reads of the flash slot, as the OS makes them (voice 0)
+	auto g20_w = [&](unsigned w, uint16_t d) {
+		const uint32_t off = w;
+		g20[off] = w == 0x1f ? (d & 0x03ff) : d;
+		expect.push_back({0, off, d, 0xffff});
+		if (w == 0x18 || w == 0x19) snd_addr[0] = ((uint32_t(g20[0x18]) << 16) | g20[0x19]) & 0x3ffffff;
+		else if (w == 0x1a || w == 0x1b) snd_addr[1] = ((uint32_t(g20[0x1a]) << 16) | g20[0x1b]) & 0x3ffffff;
+		else if (w == 0x0f)
+		{
+			snd_write(snd_addr[1], baby_sel, d);
+			snd_addr[1] = (snd_addr[1] + 1) & 0x3ffffff;
+		}
+		access(0, off, true, d, true, true);
+	};
+	auto set_b = [&](uint32_t a) { g20_w(0x1a, uint16_t(a >> 16)); g20_w(0x1b, uint16_t(a)); };
+	auto port_rd = [&](int p) {
+		const uint16_t e = snd_latch[p];
+		snd_latch[p] = snd_read(snd_addr[p], baby_sel);
+		snd_addr[p] = (snd_addr[p] + 1) & 0x3ffffff;
+		const uint16_t got = access(0, 0x0e + p, false, 0, true, true);
+		if (got != e)
+		{
+			std::fprintf(stderr, "flash port %d read = %04x, expected %04x\n", p, got, e);
+			bad = true;
+		}
+	};
+	long fl_ops = 0;
+	auto flash_op = [&]() {
+		fl_ops++;
+		const bool bs = rng() % 3 == 0;
+		baby_sel = bs;
+		top->baby_sel = bs;
+		uint32_t off;
+		if (bs) off = ((rng() % 3) << 15) | (rng() % 64);
+		else off = ((rng() % 4) << 22) | ((rng() % 3) << 16) | (rng() % 64);
+		if (bs && rng() % 40 == 0) off = 0x100000 + rng() % 64;      // beyond Baby
+		const uint32_t a = (FL << 24) | off;
+		const unsigned kind = rng() % 9;
+		const uint16_t dbl[] = { 0x4040, 0x1010, 0x2020, 0x7070, 0x9090, 0xffff, 0x5050, 0x0000, 0xaaaa, 0x5555, 0xf0f0 };
+		switch (kind)
+		{
+		case 0: case 1:                               // program
+			set_b(a); g20_w(0x0f, kind ? 0x1010 : 0x4040);
+			set_b(a); g20_w(0x0f, uint16_t(rng()));
+			break;
+		case 2:                                       // erase (or a wrong confirm)
+			if (rng() % 4) break;
+			set_b(a); g20_w(0x0f, 0x2020);
+			set_b(a); g20_w(0x0f, rng() % 5 ? 0xd0d0 : 0xffff);
+			break;
+		case 3: {                                     // buffered program
+			const unsigned n = rng() % 8 == 0 ? 33 + rng() % 8 : 1 + rng() % 32;
+			set_b(a); g20_w(0x0f, 0xe8e8);
+			set_b(a); g20_w(0x0f, uint16_t(n - 1));
+			set_b(a);
+			for (unsigned i = 0; i < n; i++) g20_w(0x0f, uint16_t(rng()));
+			set_b(a); g20_w(0x0f, rng() % 6 ? 0xd0d0 : 0x0000);
+			break;
+		}
+		default: {                                    // a command, then reads through port A
+			set_b(a); g20_w(0x0f, dbl[rng() % 11]);
+			g20_w(0x18, uint16_t(a >> 16)); g20_w(0x19, uint16_t(a));
+			const unsigned n = 1 + rng() % 5;
+			for (unsigned i = 0; i < n; i++) port_rd(0);
+			break;
+		}
+		}
+	};
+
 	for (long n = 0; n < n_acc && !bad; n++)
 	{
 		const unsigned k = rng() % 100;
@@ -170,6 +292,20 @@ int main(int argc, char **argv)
 		{
 			const int st = int(rng() % 3) - 1;
 			enc += st;
+			continue;
+		}
+		if (k < 12)
+		{
+			flash_op();
+			continue;
+		}
+		if (k == 12 && rng() % 20 == 0)
+		{
+			// the CPU held: every chip back to read array
+			top->flash_reset = 1;
+			clock();
+			top->flash_reset = 0;
+			fl_config();
 			continue;
 		}
 		const unsigned chip = rng() % 3;
@@ -186,6 +322,7 @@ int main(int argc, char **argv)
 			const unsigned w = (rng() % 3) ? hot[rng() % 10] : rng() % 32;
 			const uint32_t off = v * 32 + w;
 			if (w == 0x18 || w == 0x1a) d &= 0x03ff;                    // keep port addresses in range
+			if (w == 0x0f && (d & 0xff) == 0xe8) d ^= 1;                // buffered programs only in flash_op
 			if (we)
 			{
 				uint16_t dd = w == 0x1f ? (d & 0x03ff) : d;
@@ -194,7 +331,11 @@ int main(int argc, char **argv)
 				if (getenv("SB_TRACE") && (w >= 0x18 && w <= 0x1b || w == 0x0f)) std::fprintf(stderr, "write v%u w%02x %04x mask %04x\n", v, w, d, mask);
 				if (w == 0x18 || w == 0x19) snd_addr[0] = ((uint32_t(g20[v * 32 + 0x18]) << 16) | g20[v * 32 + 0x19]) & 0x3ffffff;
 				else if (w == 0x1a || w == 0x1b) snd_addr[1] = ((uint32_t(g20[v * 32 + 0x1a]) << 16) | g20[v * 32 + 0x1b]) & 0x3ffffff;
-				else if (w == 0x0f) snd_addr[1] = (snd_addr[1] + 1) & 0x3ffffff;
+				else if (w == 0x0f)
+				{
+					snd_write(snd_addr[1], baby_sel, d);
+					snd_addr[1] = (snd_addr[1] + 1) & 0x3ffffff;
+				}
 				access(0, off, true, d, u, lo);
 			}
 			else
@@ -273,6 +414,29 @@ int main(int argc, char **argv)
 	}
 	for (int i = 0; i < 20000 && !expect.empty(); i++) clock();
 	if (!expect.empty()) { std::fprintf(stderr, "%zu writes never reached the engine\n", expect.size()); bad = true; }
+	// the flash slot in DDR3 equals MAME's copy; every region that changed was marked dirty
+	long diff = 0, changed = 0;
+	std::set<unsigned> regions;
+	for (uint32_t i = 0; i < (1u << 24) + (1u << 20); i += 4)
+	{
+		const bool bb = i >= (1u << 24);
+		const uint32_t o = bb ? i - (1u << 24) : i;
+		const uint64_t da = bb ? BABY_BASE + ((FL << 18) | (o >> 2)) : SMP_BASE + (((FL << 24) | o) >> 2);
+		const uint64_t got = ddr_word(da);
+		uint64_t want = 0;
+		for (int l = 0; l < 4; l++) want |= uint64_t(bb ? fl_baby[o + l] : fl_big[o + l]) << (16 * l);
+		if (got != want && diff++ < 5) std::fprintf(stderr, "flash %s word %06x: DDR3 %016" PRIx64 ", MAME %016" PRIx64 "\n", bb ? "Baby" : "Big", o, got, want);
+		if (want != ddr_init(da))
+		{
+			changed++;
+			regions.insert(bb ? o >> 17 : 8 + (o >> 17));
+		}
+	}
+	for (unsigned r : regions)
+		if (!hdl_regions.count(r)) { std::fprintf(stderr, "region %u changed but not marked dirty\n", r); bad = true; }
+	if (diff) bad = true;
+	std::printf("flash: %ld operations, %ld DDR3 writes, %ld words changed, %zu regions changed, %zu marked\n", fl_ops,
+	            mem_writes, changed, regions.size(), hdl_regions.size());
 	std::printf("%ld reads, %ld writes, %ld engine writes, %" PRIu64 " clocks: %s\n", reads, writes, engine_writes, cyc,
 	            bad ? "DIFFERENT" : "identical");
 	return bad ? 1 : 0;
