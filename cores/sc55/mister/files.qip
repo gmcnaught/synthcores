@@ -9,6 +9,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/mcu/s
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/pcm/sc55_pcm.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/core/sc55_core.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/rom2x_cache.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv

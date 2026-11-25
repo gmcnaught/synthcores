@@ -56,6 +56,9 @@ module sc55_submcu (
     input  logic [31:0] buttons,
     output logic        ga5_we,
     output logic        ga5_val,
+    // MIDI out: the UART2 data register written (patch_ref.py's tx hook, src 1)
+    output logic        tx_stb,
+    output logic [7:0]  tx_byte,
 
     // state (bench)
     output logic [15:0] st_pc,
@@ -337,6 +340,7 @@ module sc55_submcu (
                 D_COLL:    dm[D_COLL] <= {d[7] & dm[D_COLL][7], d[6:0]};
                 default:   dm[ad[4:0]] <= d;
             endcase
+            if (ad[4:0] == D_U2_DATA) begin tx_stb <= 1'b1; tx_byte <= d; end
             if (ad[4:0] == D_U3_MS) m0d = d;
             if (ad[4:0] == D_U3_CTRL) m0e = d;
             if (ad[4:0] == D_U3_MS || ad[4:0] == D_U3_CTRL) begin
@@ -437,6 +441,7 @@ module sc55_submcu (
         sys_ack <= 1'b0;
         rx_pop <= 1'b0;
         ga5_we <= 1'b0;
+        tx_stb <= 1'b0;
         wq_v <= 1'b0;                              // the pending write goes to its RAM at this edge
         if (rx_delay_we) rx_delay <= rx_delay_wv;
         if (clr_on) begin

@@ -13,11 +13,15 @@
 # 31250), screenshots again. Then the NVRAM save: SYSTEM, five encoder steps to "System MIDI /
 # Unit number", the cursor to the value, three steps up; the OSD opens (autosave) and closes;
 # the save file must be 32 KB; the core and pack load again, and the same page must show the
-# changed value. Writes OUTDIR/{boot,end,nv_before,nv_changed,nv_reloaded}.png and
+# changed value. Last, MIDI out (MIDI-OUT-PLAN.md): a fresh load without the save file, then the
+# data request (RQ1) for the system area (00 00 00 00, 16 bytes); ../sc55/scripts/mister/
+# tty_midi_xfer.py reads /dev/ttyS1 for 4 s (at 9600: synthframe_midi_tx follows the input's
+# speed). The reply must be one DT1 from 00 00 00 00, 75 bytes, with a valid checksum (with the
+# factory-preset NVRAM the reference sends REF_DT1 below). Writes OUTDIR/{boot,end,nv_before,nv_changed,nv_reloaded}.png and
 # OUTDIR/result.txt: the status strip (band, underrun, lag; jv880_lcd_video.sv), the number of
 # lit LCD dots at boot (the panel shows text), the save file's size and whether the value came
-# back. Exit 1 if the core is not running, an underrun or lag box is set, the LCD is blank, or
-# the NVRAM did not survive the reload.
+# back, and the MIDI out reply. Exit 1 if the core is not running, an underrun or lag box is set,
+# the LCD is blank, the NVRAM did not survive the reload, or the DT1 reply did not come out.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR [SECONDS]}; PACK=${2:?}; OUT=${3:?}
@@ -38,6 +42,7 @@ scp -q ../synclavier/scripts/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
 $M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
+$M midi-off
 $M shot jv880 "$OUT/boot.png" >/dev/null
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # a few zero bytes (framing errors at 31250) switch the input to 9600 (synthframe_midi_rx)
@@ -54,10 +59,22 @@ $M shot jv880 "$OUT/nv_changed.png" >/dev/null
 keys text:e sleep:1 F12 sleep:3 ESC sleep:1
 SAV=$($M sh "stat -c %s /media/fat/saves/JV-880/jv880_smoke.sav 2>/dev/null || echo 0")
 $M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
+$M midi-off
 keys text:e sleep:1 text:..... sleep:1 RIGHT sleep:1
 $M shot jv880 "$OUT/nv_reloaded.png" >/dev/null
 keys text:e sleep:1
 echo "$SAV" > "$OUT/sav_size"
+
+# MIDI out, last: after answering an RQ1 the reference, and so the core, leaves the panel at
+# "Now bulk sending" and stops taking keys. Load again without the save file (the NVRAM step
+# changed the Unit number, the SysEx device ID), switch the input to 9600 again, send the RQ1.
+$M sh "rm -f /media/fat/saves/JV-880/jv880_smoke.sav"
+$M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
+$M midi-off
+printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
+scp -q ../sc55/scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+$M sh "python3 /tmp/tty_midi_xfer.py 4 f041104611000000000000001070f7" > "$OUT/midi_out.txt"
+$M shot jv880 "$OUT/midi_out.png" >/dev/null
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
 # jv880_lcd_video.sv, 800 x 600 frame: the panel at (16, 196), 768 x 104, dot-on colour 0a1404;
 # the status strip 144 lines below the panel's top: boxes at x 0-199 (state band), 220-259 (MIDI),
@@ -115,5 +132,15 @@ nv_ok = sav == 32768 and changed != before and reloaded == changed
 print(f"save_file_bytes: {sav}")
 print(f"nvram_after_reload: {'kept' if reloaded == changed else 'as before the change' if reloaded == before else 'other'}"
       f"{'' if changed != before else ' (the change did not show)'}")
-sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and lit > 200 and nv_ok else 1)
+# MIDI out: the DT1 reply to the RQ1 (cores/sc55/tests/test_mcu_lockstep.py has the reference's)
+REF_DT1 = bytes.fromhex(
+    "f041104612000000000040340001010000030700030b030100010101010101010101010101010100100f000000"
+    "40404040404040404040404040404040404040404040404040404040" "41f7")
+rx = bytes.fromhex(open(f"{out}/midi_out.txt").read())
+i = rx.find(bytes.fromhex("f04110461200000000"))
+msg = rx[i:rx.index(0xF7, i) + 1] if i >= 0 and 0xF7 in rx[i:] else b""
+midi_ok = len(msg) == 75 and sum(msg[5:-1]) % 128 == 0
+print(f"midi_out: {len(rx)} bytes; DT1 {len(msg)} bytes, checksum {'ok' if midi_ok else 'bad or missing'}, "
+      f"{'= reference' if msg == REF_DT1 else 'differs from the reference (factory NVRAM)'}: {rx.hex(' ')}")
+sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and lit > 200 and nv_ok and midi_ok else 1)
 EOF

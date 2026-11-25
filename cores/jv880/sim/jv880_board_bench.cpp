@@ -20,11 +20,16 @@
 //   --smf reproduces the renderer's jv880 test (no reset message, reset steps, then the file's
 //   events at 600 ns a step); --out writes the HDL's samples after the reset steps as the
 //   renderer's s16 stream (its SHA-256 compares with `sc55-render --stdout`).
+//   --midi-at STEP:HEX (repeatable) queues MIDI bytes from STEP on, one every 600 steps.
+//   MIDI out: uart_txd, decoded at 31250 baud, must carry the bytes the model sends
+//   (cores/sc55/ref/patch_ref.py's tx hook), in order, with none dropped.
 #include "Vjv880_board.h"
 #include "Vjv880_board___024root.h"
 #include "verilated.h"
 
 #include "../../sc55/sim/common/midi_demo.h"
+#include "../../sc55/sim/common/uart_decode.h"
+#include "ref_hooks.h"
 #include "emu.h"
 #include "lcd.h"
 #include "mcu.h"
@@ -67,6 +72,7 @@ int main(int argc, char** argv)
     double      clock_hz = 0;
     bool        clock_when_re = false;   // clock only while the firmware has the UART receiver on (SCR.RE)             // MIDI clock (F8) bytes a second during --smf, as a controller sends
     std::vector<uint64_t> save_at;
+    std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -82,6 +88,14 @@ int main(int argc, char** argv)
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
         else if (a == "--uart") uart = true;
+        else if (a == "--midi-at" && i + 1 < argc)
+        {
+            std::string v = argv[++i];
+            size_t c = v.find(':');
+            if (c == std::string::npos || (v.size() - c - 1) % 2) { fprintf(stderr, "--midi-at STEP:HEX\n"); return 2; }
+            uint64_t at = std::strtoull(v.substr(0, c).c_str(), nullptr, 0);
+            for (size_t k = c + 1; k < v.size(); k += 2) sched.push_back({at, (uint8_t)std::stoul(v.substr(k, 2), nullptr, 16)});
+        }
         else if (a == "--clock-hz" && i + 1 < argc) clock_hz = std::atof(argv[++i]);
         else if (a == "--clock-when-re") clock_when_re = true;
         else if (a == "--clock-steps" && i + 2 < argc) { clock_from = std::strtoull(argv[++i], nullptr, 0); clock_until = std::strtoull(argv[++i], nullptr, 0); }
@@ -222,6 +236,9 @@ int main(int argc, char** argv)
         t->uart_rxd = (u_frame >> u_bit) & 1;
         if (++u_cnt == 1600) { u_cnt = 0; if (++u_bit == 10) u_bit = -1; }
     };
+    UartDecode txdec(50'000'000 / 31'250);   // the board at its default CLK_HZ
+    static std::vector<uint8_t> tx_ref;
+    g_ref_hooks.tx = [](void*, int, uint64_t, uint8_t d) { tx_ref.push_back(d); };
     auto tick = [&]() {
         sd_clock();
         uart_clock();
@@ -255,6 +272,7 @@ int main(int argc, char** argv)
         dbg_pcm_max = std::max<uint32_t>(dbg_pcm_max, R->jv880_board__DOT__dbg_pcm_pk);
         dbg_out_max = std::max<uint32_t>(dbg_out_max, R->jv880_board__DOT__dbg_out_pk);
         if (t->sample_valid) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
+        txdec.clock(t->uart_txd);
     };
 
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
@@ -440,6 +458,7 @@ int main(int argc, char** argv)
         for (uint64_t s = 0; s < steps; ++s)
         {
             if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && midi_bytes < midi.size()) post(midi[midi_bytes++]);
+            else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0) { post(sched.front().second); sched.pop_front(); }
             if (!step()) return 1;
         }
     }
@@ -458,6 +477,20 @@ int main(int argc, char** argv)
     for (int g = 0; g < 2'000'000 && compared + hdl.size() < g_model.size(); ++g) tick();
     if (!drain()) return 1;
     if (compared + 64 < g_model.size()) { fprintf(stderr, "HDL produced %" PRIu64 " samples, model %zu\n", compared, g_model.size()); return 1; }
+
+    // MIDI out: let the line finish, then the bytes must be the model's
+    for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * 1600 &&
+                         (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
+        tick();
+    {
+        const unsigned dropped = R->jv880_board__DOT__midi_out__DOT__dropped;
+        if (txdec.bytes != tx_ref || txdec.errors || dropped)
+        {
+            fprintf(stderr, "MIDI out: uart_txd carried %zu bytes (%d framing errors, %u dropped), model sent %zu\n",
+                    txdec.bytes.size(), txdec.errors, dropped, tx_ref.size());
+            return 1;
+        }
+    }
 
     // the LCD's display RAM
     lcd_t& lc = emu.GetLCD();
@@ -479,10 +512,10 @@ int main(int argc, char** argv)
         f.write((const char*)out.data(), (std::streamsize)(out.size() * 2));
     }
     printf("OK: pack loaded in %" PRIu64 " clocks (NVRAM %s), %" PRIu64 " steps, %" PRIu64 " samples identical (peak %.1f dBFS), "
-           "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu\n",
+           "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu, MIDI out bytes %zu on uart_txd\n",
            load_clocks, sav_restore ? "from the save file" : pack_nvram ? "from the pack" : "empty", step_no, compared,
            peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0, (double)run_clocks / (double)std::max<uint64_t>(1, step_no),
-           max_step, ddr_reads, midi_bytes);
+           max_step, ddr_reads, midi_bytes, tx_ref.size());
     if (!sav_path.empty() || saves)
         printf("save file: %s; %zu saves identical to the model's NVRAM; SD requests: %" PRIu64 " reads, %" PRIu64 " writes\n",
                sav_restore ? "restored at boot" : "not restored (under 32 KB)", saves, sd_reads, sd_writes);

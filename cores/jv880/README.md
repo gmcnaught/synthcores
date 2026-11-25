@@ -41,6 +41,11 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
     - MIDI that arrives while the firmware's receiver is still off (the first ~4 s of boot) is
       dropped, as on the real unit. The reference keeps those bytes, and a controller's MIDI
       clock during boot then leaves the firmware deaf to notes.
+    - **MIDI out** goes back through the UART (MidiLink), at the speed MIDI comes in at. Data
+      requests (RQ1) are answered. For example, the system area at device ID 17 gives a 75-byte
+      DT1, identical to the reference's. After answering, the panel stays at "Now bulk sending"
+      and takes no keys until the core is reloaded. The reference does the same
+      (`MIDI-OUT-PLAN.md`).
     - OSD **Diagnostics** shows a hex line under the status strip: MIDI bytes received, the
       last 4 bytes, the PCM's peak, the output's peak, and the underrun count.
 4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full

@@ -17,6 +17,9 @@
 #   peek ADDR BYTES > FILE       read physical memory (DDR3) through /dev/mem
 #   midi-stop                    stop MidiLink and Zaparoo (they share /dev/ttyS1); Main_MiSTer
 #                                starts MidiLink again on the next core load
+#   midi-off                     after a core load: stop the /sbin/uartmode loops the load started
+#                                (they respawn MidiLink every second) and MidiLink, so a test can
+#                                read the core's MIDI out on /dev/ttyS1
 #   sh CMD...                    run a command on the MiSTer
 #
 # Cores: sc55 (_Devices/SC55), proteus (_Devices/Proteus), synclavier (_Devices/Synclavier),
@@ -96,6 +99,9 @@ peek)
     "${SSH[@]}" "python3 -c 'import mmap,os,sys; a=$a; n=$n; b=a&~0xfff; fd=os.open(\"/dev/mem\",os.O_RDONLY|os.O_SYNC); m=mmap.mmap(fd,(a-b+n+0xfff)&~0xfff,mmap.MAP_SHARED,mmap.PROT_READ,offset=b); sys.stdout.buffer.write(m[a-b:a-b+n])'" ;;
 midi-stop)
     "${SSH[@]}" "killall -q midilink 2>/dev/null; [ -x $FAT/Scripts/zaparoo.sh ] && $FAT/Scripts/zaparoo.sh -service stop >/dev/null 2>&1; true" ;;
+midi-off)
+    # [u]: the pattern must not match this shell's own command line
+    "${SSH[@]}" 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true' ;;
 sh)
     "${SSH[@]}" "$*" ;;
 *)

@@ -33,7 +33,11 @@ from your own dumps.
 3. Copy the newest core from [`releases/`](releases/) (`SC55_YYYYMMDD.rbf`)
    to a core folder on the SD card, e.g. `_Devices/` (or install it with the MiSTer downloader from this
    repository).
-4. Set the UART to MidiLink (MiSTer menu) and send MIDI.
+4. Set the UART to MidiLink (MiSTer menu) and send MIDI. MIDI out goes back through the UART at
+   the same speed:
+    - every model sends Active Sensing (FE);
+    - the mk2 answers GS data requests (RQ1) with DT1 (the SC-155mk2 is not checked);
+    - the mk1's firmware answers no RQ1, in the reference as well.
 
 Panel keys (PS/2 or USB keyboard): Q power, W all, E mute, R/T part,
 Y/U instrument, I/O key shift, P/[ level, A/S MIDI channel, D/F pan,
