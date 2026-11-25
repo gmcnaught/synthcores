@@ -3,6 +3,7 @@
 # Paths starting with modules/ are from the repo root; the rest are from this core's directory.
 search:
   - hdl/board
+  - hdl/panel
   - modules/roland/hdl/pcm
   - modules/roland/hdl/board
 files:
@@ -25,6 +26,7 @@ files:
   - modules/roland/hdl/board/lcd_ctrl.sv
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - hdl/board/lcd_video.sv
   - hdl/board/kbd_buttons.sv
   - hdl/board/sc55_board.sv

@@ -1,6 +1,7 @@
 # SC-55 (mk1) panel (owner's manual p. 5): the LCD keeps its printed legends; the controls
 # that sit right of it on the unit are drawn below it.
 size: [800, 600]
+bpp: 4
 theme: {hint_style: inside, hint: '#e0b040'}
 elements:
 - type: case
@@ -20,7 +21,7 @@ elements:
   rect: [40, 360, 58, 26]
   label: POWER
   key: Q
-  input: 0
+  input: buttons[0]
   color: '#4a4c50'
 - type: knob
   at: [150, 372]
@@ -34,7 +35,7 @@ elements:
 - type: button
   rect: [228, 348, 30, 24]
   key: W
-  input: 6
+  input: buttons[6]
   radius: 12
 - type: label
   at: [214, 360]
@@ -44,7 +45,7 @@ elements:
 - type: button
   rect: [228, 392, 30, 24]
   key: E
-  input: 5
+  input: buttons[5]
   radius: 12
 - type: label
   at: [214, 404]
@@ -62,14 +63,14 @@ elements:
 - type: button
   rect: [340, 344, 62, 24]
   key: R
-  input: 22
+  input: buttons[22]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [418, 344, 62, 24]
   key: T
-  input: 14
+  input: buttons[14]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -84,14 +85,14 @@ elements:
 - type: button
   rect: [580, 344, 62, 24]
   key: Y
-  input: 3
+  input: buttons[3]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [658, 344, 62, 24]
   key: U
-  input: 4
+  input: buttons[4]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -106,14 +107,14 @@ elements:
 - type: button
   rect: [340, 400, 62, 24]
   key: P
-  input: 20
+  input: buttons[20]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [418, 400, 62, 24]
   key: '['
-  input: 21
+  input: buttons[21]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -128,14 +129,14 @@ elements:
 - type: button
   rect: [580, 400, 62, 24]
   key: D
-  input: 12
+  input: buttons[12]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [658, 400, 62, 24]
   key: F
-  input: 13
+  input: buttons[13]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -150,14 +151,14 @@ elements:
 - type: button
   rect: [340, 456, 62, 24]
   key: G
-  input: 18
+  input: buttons[18]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [418, 456, 62, 24]
   key: H
-  input: 19
+  input: buttons[19]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -172,14 +173,14 @@ elements:
 - type: button
   rect: [580, 456, 62, 24]
   key: J
-  input: 10
+  input: buttons[10]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [658, 456, 62, 24]
   key: K
-  input: 11
+  input: buttons[11]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -194,14 +195,14 @@ elements:
 - type: button
   rect: [340, 512, 62, 24]
   key: I
-  input: 16
+  input: buttons[16]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [418, 512, 62, 24]
   key: O
-  input: 17
+  input: buttons[17]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'
@@ -216,14 +217,14 @@ elements:
 - type: button
   rect: [580, 512, 62, 24]
   key: A
-  input: 8
+  input: buttons[8]
   glyph: ◀
   color: '#d0d0d0'
   gcolor: '#202020'
 - type: button
   rect: [658, 512, 62, 24]
   key: S
-  input: 9
+  input: buttons[9]
   glyph: ▶
   color: '#d0d0d0'
   gcolor: '#202020'

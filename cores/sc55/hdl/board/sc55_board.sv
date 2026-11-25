@@ -186,7 +186,7 @@ module sc55_board #(
         end else if (lag_us != lag_base) lag_seen <= 1'b1;
     end
     lcd_video video (
-        .clk(clk_vid), .dd, .cg, .enable(lcd_on),
+        .clk(clk_vid), .dd, .cg, .enable(lcd_on), .buttons,
         .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
         .underrun_seen(underruns != 16'd0), .lag_seen,
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b),

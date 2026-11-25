@@ -23,6 +23,7 @@ build() {   # name top warm clks sources...
     verilator --cc --exe --build -O2 -Wno-fatal -Wno-lint -Wno-style --top-module "$top" \
         -I"$HERE" -I"$ROLAND/board" -I"$PANEL" \
         +define+LCD_BACK_HEX=\""$ROOT/cores/sc55/hdl/board/lcd_back.hex"\" \
+        +define+SC55_PANEL_DIR=\""$ROOT/cores/sc55/hdl/panel/"\" -I"$ROOT/cores/sc55/hdl/panel" \
         +define+CZ101_PANEL_DIR=\""$ROOT/cores/cz101/hdl/panel/"\" -I"$ROOT/cores/cz101/hdl/panel" \
         +define+MT32_PANEL_DIR=\""$ROOT/cores/mt32/hdl/panel/"\" -I"$ROOT/cores/mt32/hdl/panel" \
         +define+MT32_FONT_HEX=\""$ROOT/cores/mt32/hdl/mt32_lcd_font.hex"\" \
