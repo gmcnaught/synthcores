@@ -5,6 +5,10 @@ firmware on a uPD7811 with the uPD933 sound chip, the HD44780 LCD and the batter
 Every part is written from MAME's `cz101` driver (BSD-3-Clause) and checked against a patched
 MAME in lockstep, instruction for instruction and sample for sample. No ROMs are included.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen: the front panel from MAME's `cz101.lay` with the LCD above it. LEDs are lit by the firmware, buttons show pressed while their key is held; each cap shows its keyboard key.
+
 ## Status
 
 | Part | Check | Result |

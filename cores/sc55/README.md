@@ -7,6 +7,10 @@ and the SC-155 / SC-155mk2, checked sample for sample against the
 model, `third_party/nuked-sc55`). No ROMs are included: you make a ROM pack
 from your own dumps.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen: the SC-55's LCD with its printed legends, and the front-panel buttons with their keyboard keys (pressed buttons light).
+
 ## Status (November 2026)
 
 | Part | Status | Docs |

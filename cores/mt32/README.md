@@ -7,6 +7,10 @@ chip and the 20-character LCD. Every part is checked against
 lockstep: instruction for instruction, register write for register write and sample for sample.
 No ROMs are included.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen with Q held (Part 1 shows pressed): the front panel (owner's manual p. 2) with the LCD and the MIDI MESSAGE LED. Each button shows its keyboard key.
+
 ## Status
 
 | Part | Check | Result |

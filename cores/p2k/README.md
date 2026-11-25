@@ -11,6 +11,10 @@ The Proteus 2000 running its own OS (2.26) on an FPGA model of the unit:
 
 No SDRAM board is needed: the flash, DRAM, SIMMs and effect delay lines are in DDR3.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen while MIDI plays: the front panel (owner's manual p. 21) with the LCD, the firmware's LEDs (control row A-D, MIDI) and the output level meter. Each button shows its keyboard key.
+
 ## Files you make
 
 Nothing from the unit is in this repository. `tools/p2k_pack.py` builds the two files the core

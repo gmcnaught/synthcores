@@ -8,6 +8,10 @@ from the MiSTer keyboard or a controller.
 No ROM, firmware or sample data is included. You build the core's system image from files you
 download yourself (below).
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen (320 x 240, shown at 2x): the front panel (owner's manual p. 13) with the LCD, the MIDI / MASTER / EDIT / ENTER LEDs, the buttons with their keyboard keys, and the 32 voice levels.
+
 ## What you need
 | File | Where | Used for |
 |---|---|---|

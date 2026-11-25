@@ -6,6 +6,10 @@ are the SC-55 core's (`modules/roland`) with the `jv880` model, checked sample f
 against [Nuked-SC55](https://github.com/jcmoyer/Nuked-SC55) (`modules/nuked-sc55`, romsets
 `jv880-v1.0.0` and `jv880-v1.0.1`). No ROMs are included.
 
+![Front panel on the MiSTer screen](docs/panel.png)
+
+The MiSTer screen in System mode: the front panel (owner's manual pp. 9-10) with the LCD; the SYSTEM and MIDI MESSAGE LEDs are lit by the firmware. Each button shows its keyboard key.
+
 ## Status
 
 | Part | Check | Result |
