@@ -2,6 +2,15 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## P2K release v20261125 (2026-11-25)
+
+- CI `build-rbf.yml` run 45652297962 on 63d5544 (#44, #46): timing met (clk_sys +1.210 ns, clk_cpu
+  +1.267 ns, HDMI +0.827 ns), 28,066 ALMs.
+- On that RBF: `smoke.sh` pass (main screen 20 s); `flash_smoke.sh` straight after it pass (written
+  file equals MAME's); loading the core over a running P2K 4 of 4 good.
+- Tag `p2k-20261125`; release repository gmcnaught/Proteus-2000-MiSTer (README, LICENSE, NOTICE,
+  tools, `releases/P2K_20261125.rbf`), GitHub release v20261125.
+
 ## Iteration 21b: P2K copier reads each burst twice (2026-11-25, branch `iter21b-p2k-copy-fix`)
 
 - **Found** with the release build: after loading the core over a running P2K, the system pack's
