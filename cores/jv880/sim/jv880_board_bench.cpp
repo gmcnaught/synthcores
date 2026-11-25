@@ -21,6 +21,8 @@
 //   events at 600 ns a step); --out writes the HDL's samples after the reset steps as the
 //   renderer's s16 stream (its SHA-256 compares with `sc55-render --stdout`).
 //   --midi-at STEP:HEX (repeatable) queues MIDI bytes from STEP on, one every 600 steps.
+//   --press STEP:BUTTON:LEN (repeatable) holds panel button BUTTON (mcu.h MCU_BUTTON_*) on both
+//   sides for LEN steps from STEP. At the end the bench prints the panel LEDs the HDL latched.
 //   MIDI out: uart_txd, decoded at 31250 baud, must carry the bytes the model sends
 //   (cores/sc55/ref/patch_ref.py's tx hook), in order, with none dropped.
 #include "Vjv880_board.h"
@@ -73,6 +75,8 @@ int main(int argc, char** argv)
     bool        clock_when_re = false;   // clock only while the firmware has the UART receiver on (SCR.RE)             // MIDI clock (F8) bytes a second during --smf, as a controller sends
     std::vector<uint64_t> save_at;
     std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
+    struct Press { uint64_t at, len; unsigned bit; };
+    std::vector<Press> presses;                         // --press
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -95,6 +99,12 @@ int main(int argc, char** argv)
             if (c == std::string::npos || (v.size() - c - 1) % 2) { fprintf(stderr, "--midi-at STEP:HEX\n"); return 2; }
             uint64_t at = std::strtoull(v.substr(0, c).c_str(), nullptr, 0);
             for (size_t k = c + 1; k < v.size(); k += 2) sched.push_back({at, (uint8_t)std::stoul(v.substr(k, 2), nullptr, 16)});
+        }
+        else if (a == "--press" && i + 1 < argc)
+        {
+            unsigned long long at, len; unsigned bit;
+            if (std::sscanf(argv[++i], "%llu:%u:%llu", &at, &bit, &len) != 3 || bit > 13) { fprintf(stderr, "--press STEP:BUTTON:LEN\n"); return 2; }
+            presses.push_back({at, len, bit});
         }
         else if (a == "--clock-hz" && i + 1 < argc) clock_hz = std::atof(argv[++i]);
         else if (a == "--clock-when-re") clock_when_re = true;
@@ -459,6 +469,13 @@ int main(int argc, char** argv)
         {
             if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && midi_bytes < midi.size()) post(midi[midi_bytes++]);
             else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0) { post(sched.front().second); sched.pop_front(); }
+            if (!presses.empty())
+            {
+                uint32_t b = 0;
+                for (const Press& p : presses) if (s >= p.at && s < p.at + p.len) b |= 1u << p.bit;
+                t->buttons = b;
+                m.button_pressed = b;
+            }
             if (!step()) return 1;
         }
     }
@@ -496,6 +513,8 @@ int main(int argc, char** argv)
     lcd_t& lc = emu.GetLCD();
     for (int i = 0; i < 80; ++i)
         if (R->jv880_board__DOT__lcd_dd[i] != lc.LCD_Data[i]) { fprintf(stderr, "LCD data[%d]: HDL %02x, model %02x\n", i, R->jv880_board__DOT__lcd_dd[i], lc.LCD_Data[i]); return 1; }
+    // the panel LEDs as sc55_mcu latches them (display only; the model has none)
+    printf("panel LEDs (jv_leds): %03x\n", (unsigned)R->jv880_board__DOT__jv_leds);
     printf("LCD identical: |");
     for (int i = 0; i < 24; ++i) { uint8_t c = lc.LCD_Data[i]; putchar(c >= 32 && c < 127 ? c : '.'); }
     printf("|");

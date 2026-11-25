@@ -62,6 +62,11 @@ module sc55_mcu #(
 
     // front panel
     input  logic [31:0] buttons,         // mcu.button_pressed
+    // JV-880 panel LEDs (display only; the reference has none): the firmware scans them with the
+    // buttons, writing the gate array's x401 (io_sd) = fe or fd, then P7DR = that row's LEDs
+    // (1: lit). [4:0] row fe: UTILITY, RHYTHM, SYSTEM, EDIT, MIDI MESSAGE; [9:5] row fd:
+    // TONE SWITCH 4, 3, 2, 1, PATCH (PATCH/PERFORM indicator, lit in Patch mode).
+    output logic [9:0]  jv_leds,
 
     // PCM chip
     output logic        pcm_req,
@@ -232,6 +237,7 @@ module sc55_mcu #(
     logic [2:0]  ga_trigger;
     logic        ga_int1;
     logic [7:0]  io_sd;
+    logic [1:0]  led_arm;                // JV-880: the next P7DR write is LED row fe ([0]) / fd ([1])
     // gate array (mk2, JV-880): interrupt enable (x402 write << 1); lines (MCU_GA_SetGAInt):
     // mk2 line 5 from the sub-MCU; JV-880 line 5 from the PCM, 3/4 from the encoder
     logic [7:0]  ga_en;
@@ -516,6 +522,7 @@ module sc55_mcu #(
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
             ga_lcd_counter <= 9'd0; ga_trigger <= 3'd0; ga_int1 <= 1'b0; io_sd <= 8'h00;
+            led_arm <= 2'b00; jv_leds <= 10'h000;
             uart_rx_byte <= 8'h00; uart_rx_delay <= 48'd0; uart_tx_delay <= 48'd0; ssr_rd <= 8'h00; tdr_written <= 1'b0;
             analog_end <= 48'd0; adf_rd <= 1'b0; tempreg <= 8'h00;
             lcd_enable <= 1'b0;
@@ -677,7 +684,10 @@ module sc55_mcu #(
                             sm_req <= 1'b1; sm_we <= 1'b1; sm_addr <= a16[7:0]; sm_wdata <= d;
                         end else if (nm1 && a16 >= (ga_base | 16'h0400) && a16 < (ga_base | 16'h0800)) begin
                             if (a16 == (ga_base | 16'h0404) || a16 == (ga_base | 16'h0405)) begin lcd_we <= 1'b1; lcd_rs <= a16[0]; lcd_data <= d; end
-                            else if (a16 == (ga_base | 16'h0401)) begin io_sd <= d; lcd_enable <= !d[0]; end
+                            else if (a16 == (ga_base | 16'h0401)) begin
+                                io_sd <= d; lcd_enable <= !d[0];
+                                led_arm <= {jv880 && d == 8'hfd, jv880 && d == 8'hfe};
+                            end
                             else if (a16 == (ga_base | 16'h0402)) ga_en <= {d[6:0], 1'b0};
                         end else if (a16 >= 16'hff80) begin
                             // MCU_DeviceWrite
@@ -751,6 +761,11 @@ module sc55_mcu #(
                             end else begin
                                 dev[a16[6:0]] <= d;
                                 if (a16[6:0] == 7'h5b) tdr_written <= 1'b1;
+                                if (a16[6:0] == 7'h0e) begin               // P7DR: a JV-880 LED row
+                                    if (led_arm[0]) jv_leds[4:0] <= d[4:0];
+                                    if (led_arm[1]) jv_leds[9:5] <= d[4:0];
+                                    led_arm <= 2'b00;
+                                end
                                 // SCR, JV-880: TXI is requested while TIE and TDRE are both 1 (ref/patch_ref.py FIXES)
                                 if (a16[6:0] == 7'h5a && jv880) int_req[20] <= d[7] && dev[7'h5c][7];
                             end

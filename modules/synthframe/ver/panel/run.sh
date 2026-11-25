@@ -22,6 +22,7 @@ build() {   # name top warm clks sources...
         -I"$HERE" -I"$ROLAND/board" -I"$PANEL" \
         +define+LCD_BACK_HEX=\""$ROOT/cores/sc55/hdl/board/lcd_back.hex"\" \
         +define+CZ101_PANEL_DIR=\""$ROOT/cores/cz101/hdl/panel/"\" -I"$ROOT/cores/cz101/hdl/panel" \
+        +define+JV880_PANEL_DIR=\""$ROOT/cores/jv880/hdl/panel/"\" -I"$ROOT/cores/jv880/hdl/panel" \
         -CFLAGS "-O2 -DBENCH_TOP=V$top -DBENCH_H='\"V$top.h\"' -DNAME='\"$name\"'" \
         --Mdir "$OUT/$name" -o "bench_$name" "$HERE/tb_frame.cpp" "$@" >"$OUT/$name.build.log" 2>&1 \
         || { cat "$OUT/$name.build.log" >&2; exit 1; }

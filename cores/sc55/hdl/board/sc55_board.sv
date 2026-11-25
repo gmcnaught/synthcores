@@ -146,7 +146,7 @@ module sc55_board #(
         .ld_we, .ld_sel, .ld_addr, .ld_data, .mk2, .sc155, .jv880(1'b0), .enc_we(1'b0), .enc_dir(1'b0),
         .nv_dump_a(15'd0), .nv_dump_d(), .nv_wrote(), .idle(),
         .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data,
-        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons,
+        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons, .jv_leds(),
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,
