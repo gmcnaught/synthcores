@@ -65,6 +65,29 @@ Connect the game MiSTer's MidiLink USB MIDI out, through a USB-MIDI interface, a
 another USB-MIDI interface, to the synth MiSTer's MidiLink. The synth cores already take
 MidiLink input. Mix the audio externally. Use this as a baseline for latency and correctness.
 
+### Phase 0b: MIDI over the network with MidiLink UDP (no HDL changes)
+
+Observed on the MiSTer (`/usr/sbin/midilink`, `/media/fat/linux/MidiLink.INI`):
+- MidiLink has a UDP mode with a UDP listener, `UDP_SERVER`, and `UDP_SERVER_PORT = 1999`.
+- Every synth core declares `UART31250,MIDI`, so its OSD offers the MidiLink modes.
+
+Setup:
+- **Game MiSTer:** the core's UART/MIDI is set to MidiLink UDP, and `UDP_SERVER` in
+  `MidiLink.INI` is the synth MiSTer's IP.
+- **Synth MiSTer:** the core's UART is set to MidiLink UDP. Set `UDP_SERVER` back to the game
+  MiSTer too if you want traffic both ways.
+
+Trade-offs compared with the user-port link:
+- **No audio return.** Mix the synth MiSTer's own output externally.
+- **No OSD status or LCD overlay** on the game MiSTer.
+- **UDP drops packets without retrying,** which can cause stuck or missing notes. Use wired
+  Ethernet. The test MiSTer is on `wlan0` today.
+- **Unknown:**
+    - end-to-end latency and jitter;
+    - whether the synth MiSTer can still take its USB keyboard while in UDP mode.
+- **Testing:** the synth side can be checked alone by sending UDP MIDI from a computer to
+  port 1999.
+
 ### Phase 1: MIDI in and audio return over the user port
 
 Add a new MIT module, `modules/synthframe/hdl/midi/synthframe_userport_link.sv`. Write it from
