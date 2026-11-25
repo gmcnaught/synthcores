@@ -38,6 +38,7 @@ module p2k_snd_bench (
     p2k_snd u_snd (
         .clk, .rst, .filter_on, .fx_on,
         .wr_valid, .wr_ready, .wr_chip, .wr_addr, .wr_data, .wr_mask,
+        .idle(), .rd_valid(1'b0), .rd_ready(), .rd_chip(1'b0), .rd_addr(8'd0), .rd_done(), .rd_vaddr(), .rd_vsel(), .rd_ipx(),
         .start, .done, .out_l, .out_r,
         .mem_req_valid(req_valid), .mem_req_ready(req_ready), .mem_req_we(req_we), .mem_req_addr(req_addr),
         .mem_req_wdata(req_wdata), .mem_req_be(req_be), .mem_req_len(req_len), .mem_req_tag(req_tag),

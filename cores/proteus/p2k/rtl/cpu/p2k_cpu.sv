@@ -1,6 +1,8 @@
 // Proteus 2000 CPU subsystem: TG68K kernel (68020 mode, ColdFire changes, see docs/p2k-core-cpu.md)
 // + MCF5206e peripherals at MBAR. External bus: one 16-bit access per cycle when ext_req is high
-// (busstate 00 fetch, 10 read, 11 write; the board must return ext_din combinationally).
+// (busstate 00 fetch, 10 read, 11 write). The board completes an access with ext_ack (ext_din
+// valid in that clock); until then the kernel waits. A zero-wait board ties ext_ack to 1 and
+// returns ext_din combinationally.
 module p2k_cpu (
 	input  logic        clk,
 	input  logic        ce_sys,       // MCF5206e system-clock enable for the peripherals
@@ -8,6 +10,8 @@ module p2k_cpu (
 	output logic [31:0] addr,
 	output logic [1:0]  busstate,     // 00 fetch, 10 read, 11 write, 01 idle
 	output logic        ext_req,      // access goes to the board (not MBAR, not skipped)
+	output logic        ext_sel,      // as ext_req, without cpu_ena
+	input  logic        ext_ack,      // the board completes the access in this clock
 	output logic        uds, lds,
 	output logic [15:0] dout,
 	input  logic [15:0] ext_din,
@@ -34,9 +38,10 @@ module p2k_cpu (
 	logic [2:0] ipl, ipl_k;
 	logic [31:0] rambar;
 	logic [2:0]  fc;
+	logic        clkena;
 
 	TG68KdotC_Kernel cpu (
-		.clk(clk), .nReset(reset_n), .clkena_in(cpu_ena), .data_in(din), .IPL(~ipl_k), .IPL_autovector(1'b1),
+		.clk(clk), .nReset(reset_n), .clkena_in(clkena), .data_in(din), .IPL(~ipl_k), .IPL_autovector(1'b1),
 		.berr(1'b0), .CPU(2'b11), .addr_out(addr), .data_write(dout), .nWr(nwr), .nUDS(nuds), .nLDS(nlds),
 		.busstate(busstate), .longword(), .nResetOut(), .FC(fc), .clr_berr(), .skipFetch(skip), .regin_out(),
 		.CACR_out(), .VBR_out(vbr_out), .MBAR_out(mbar_out), .RAMBAR_out(rambar),
@@ -53,11 +58,13 @@ module p2k_cpu (
 	// Interrupt acknowledge (CPU space, FC 7, address 0xFFFFFFF0 | level << 1): the MCF5206e SIM
 	// answers it internally (autovector), so it never reaches the board bus.
 	assign iack = fc == 3'b111 && busstate == 2'b10;
-	assign ext_req = cpu_ena && busstate != 2'b01 && !skip && !per_sel && !iack;
+	assign ext_sel = busstate != 2'b01 && !skip && !per_sel && !iack;
+	assign ext_req = cpu_ena && ext_sel;
+	assign clkena = cpu_ena && (!ext_sel || ext_ack);
 	assign din = per_sel ? per_dout : ext_din;
 
 	mcf5206e_periph per (
-		.clk(clk), .ce_sys(ce_sys), .reset(!reset_n), .sel(per_sel && cpu_ena), .wr(busstate == 2'b11), .offs({addr[9:1], 1'b0}),
+		.clk(clk), .ce_sys(ce_sys), .reset(!reset_n), .sel(per_sel && clkena), .wr(busstate == 2'b11), .offs({addr[9:1], 1'b0}),
 		.uds(uds), .lds(lds), .din(dout), .dout(per_dout), .ipl(ipl), .warp_level(warp_level),
 		.u1_rxd(u1_rxd), .u2_rxd(u2_rxd), .u1_txd(u1_txd), .u2_txd(u2_txd),
 		.pp_in(pp_in), .pp_out(pp_out), .pp_ddr(pp_ddr)

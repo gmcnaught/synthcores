@@ -78,7 +78,7 @@ Memory (64-bit words): sample word `a` (`a < 2^26`) is bits `[16 (a mod 4) +: 16
   `synthframe_mem_ddr3` and a DDR3 model: BUSY on a random 1 clock in 4, reads back in order after
   8-24 clocks (`--ddr-busy`, `--ddr-lat`). The Verilator build stops on a block-RAM read and write
   of one word in the same clock and on a bus sum beyond 2^39.
-- `p2k/syn/winbuild_snd.sh`: Quartus 17 build of the bench top (all pins virtual) on the Windows
+- `p2k/syn/winbuild_syn.sh p2k_snd`: Quartus 17 build of the bench top (all pins virtual) on the Windows
   build host; reports the fit, the timing per corner and the worst paths.
 
 ## Results (iteration 16)

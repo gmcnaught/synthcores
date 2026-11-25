@@ -20,7 +20,7 @@
 #   sh CMD...                    run a command on the MiSTer
 #
 # Cores: sc55 (_Devices/SC55), proteus (_Devices/Proteus), synclavier (_Devices/Synclavier),
-# jv880 (_Devices/JV880), cz101 (_Devices/CZ101), mt32 (_Devices/MT32). Every core installs under _Devices; restore
+# jv880 (_Devices/JV880), cz101 (_Devices/CZ101), mt32 (_Devices/MT32), p2k (_Devices/P2K; new, so restore leaves it). Every core installs under _Devices; restore
 # moves files from backups made when Proteus was in _Other and Synclavier in _Computer.
 set -euo pipefail
 
@@ -37,11 +37,12 @@ core_path() {   # CORE -> <dir>/<prefix> on the SD card
         jv880) echo _Devices/JV880 ;;
         cz101) echo _Devices/CZ101 ;;
         mt32) echo _Devices/MT32 ;;
+        p2k) echo _Devices/P2K ;;
         *) echo "unknown core: $1" >&2; exit 2 ;;
     esac
 }
 shot_dir() {
-    case "$1" in sc55) echo SC-55 ;; proteus) echo Proteus ;; synclavier) echo Synclavier ;; jv880) echo JV-880 ;; cz101) echo CZ-101 ;; mt32) echo MT-32 ;; esac
+    case "$1" in sc55) echo SC-55 ;; proteus) echo Proteus ;; synclavier) echo Synclavier ;; jv880) echo JV-880 ;; cz101) echo CZ-101 ;; mt32) echo MT-32 ;; p2k) echo P2K ;; esac
 }
 mcmd() {        # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
     "${SSH[@]}" "timeout 10 sh -c 'echo $1 > /dev/MiSTer_cmd'"

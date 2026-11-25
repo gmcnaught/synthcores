@@ -3,7 +3,7 @@
 # Build a core's MiSTer RBF with Quartus 17.0 on the Windows build host over SSH, from the
 # working tree as it is (tracked files, uncommitted edits included).
 #
-#   [SEED=N] scripts/build-hosts/winbuild.sh CORE [OUTDIR]    CORE: sc55 | synclavier | proteus | jv880
+#   [SEED=N] scripts/build-hosts/winbuild.sh CORE [OUTDIR]    CORE: sc55 | synclavier | proteus | jv880 | cz101 | p2k
 #
 # WINBUILD (default "winbuild", an ~/.ssh/config host) must accept SSH key logins and run
 # PowerShell, with Quartus Lite 17.0 at C:\intelFPGA_lite\17.0 and Git for Windows (bash, tar)
@@ -33,7 +33,10 @@ SSH=(ssh -o BatchMode=yes -o ControlPath=none "$HOST")
 
 # tracked files of the core and of modules/ (shared HDL: synthframe, roland, ...), without the
 # reference-model submodules; -h stores what the symlinks point to
-(cd "$ROOT" && git ls-files -z -- "cores/$CORE" modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
+# (the P2K core also takes the CPU and sound RTL from cores/proteus/p2k/rtl)
+EXTRA=()
+[ "$CORE" = p2k ] && EXTRA=(cores/proteus/p2k/rtl)
+(cd "$ROOT" && git ls-files -z -- "cores/$CORE" "${EXTRA[@]}" modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
     COPYFILE_DISABLE=1 tar --null -T - -czhf "$TMP/src.tgz" --exclude "cores/$CORE/third_party/nuked-sc55")
 
 case "$CORE" in

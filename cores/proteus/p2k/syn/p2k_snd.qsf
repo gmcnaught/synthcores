@@ -1,5 +1,5 @@
 # Standalone Quartus check of the P2K sound engine (p2k_snd on synthframe_mem_ddr3, the bench top)
-# on the DE10-Nano's Cyclone V: fit, resources and timing only; all pins virtual. winbuild_snd.sh.
+# on the DE10-Nano's Cyclone V: fit, resources and timing only; all pins virtual. winbuild_syn.sh p2k_snd.
 set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name TOP_LEVEL_ENTITY p2k_snd_bench

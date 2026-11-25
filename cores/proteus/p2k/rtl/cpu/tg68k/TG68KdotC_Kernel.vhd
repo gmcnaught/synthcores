@@ -115,7 +115,7 @@ entity TG68KdotC_Kernel is
 		
 		BarrelShifter : integer := 1;		--0=>no,			1=>yes,				2=>switchable with CPU(1)  
 		MUL_Hardware : integer := 1;		--0=>no,			1=>yes,  
-		ColdFire : integer := 0			-- P2K: 1 => MCF5206e (ColdFire V2) behaviour, see docs/p2k-core-cpu.md
+		ColdFire : integer := 1			-- P2K: 1 => MCF5206e (ColdFire V2) behaviour, see docs/p2k-core-cpu.md
 		);
 	port(clk						: in std_logic;
 		nReset					: in std_logic;			--low active

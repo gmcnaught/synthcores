@@ -1,5 +1,5 @@
-# Worst setup paths of the standalone build (winbuild_snd.sh): output_files/paths.rpt
-project_open p2k_snd
+# Worst setup paths of the standalone build (winbuild_syn.sh): output_files/paths.rpt
+project_open [lindex $argv 0]
 create_timing_netlist
 read_sdc
 update_timing_netlist
