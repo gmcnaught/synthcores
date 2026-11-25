@@ -122,20 +122,21 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
 - Corpus case `poly`, with its MIDI offset to 11.5 s so it arrives after the main screen as in
   MAME: all 214 note starts (voice and sample address, in order) equal MAME's `snd.log`.
 - The bench's audio equals `p2k_render` replaying the bench's own write log, bit for bit
-  (1,058,399 frames). No sample started late.
+  (1,058,399 frames, SHA-256 `8bc01aa03e551a59…`). No sample started late.
 
 **P3, Quartus 17.0** (winbuild, seed 1):
 
 | | |
 |---|---|
-| ALMs | 26,184 (62 %) |
-| Registers | 37,235 |
+| ALMs | 26,088 (62 %) |
+| Registers | 36,968 |
 | Block memory | 1,623,687 bits, 243 M10K |
 | DSP blocks | 92 (82 %) |
-| Setup slack | clk_sys +1.320 ns, clk_cpu +1.586 ns, video +6.370 ns, HDMI +0.298 ns |
+| Setup slack | clk_sys +1.625 ns, clk_cpu +1.386 ns, video +5.915 ns, HDMI +0.381 ns |
 | Hold slack | all positive |
 
-**P5, MiSTer** (`scripts/mister/smoke.sh`, build of 2026-11-24 17:42):
+**P5, MiSTer** (`scripts/mister/smoke.sh`, the build above, 2026-11-24 19:00; a build with
+3-clock cache hits passed it too):
 - Main screen as above, about 110 s after the MGL load. Most of that is the 36 MB SIMM download;
   the CPU restarts after it.
 - MIDI over the UART: the poly case's program changes show (`P2Ksy 070 rom:Click 909`) and the
@@ -160,6 +161,4 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
 
 **Open:**
 - P6, user flash SIMMs.
-- A cache hit takes 3 CPU clocks; it was 2 before the hardware debugging. Going back is a speed
-  option to retest on hardware.
 - Boot time is dominated by the SIMM download.

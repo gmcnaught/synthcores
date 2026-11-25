@@ -20,10 +20,11 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
 - **Gate, simulation** (system bench, the user's flash and the Composer stand-in):
   - main screen at 12.25 s, equal to MAME's rendered screen;
   - corpus case `poly`: all 214 note starts equal MAME's, in order (voice and sample address);
-  - the bench's audio equals `p2k_render` replaying the bench's own write log, bit for bit;
+  - the bench's audio equals `p2k_render` replaying the bench's own write log, bit for bit
+    (1,058,399 frames);
   - unit benches (CI): the cache and the sound bus against flat/MAME models, identical.
-- **Gate, Quartus** (seed 1): 26,184 ALMs, 243 M10K, 92 DSP. Timing met on every clock
-  (clk_sys +1.320 ns, clk_cpu +1.586 ns).
+- **Gate, Quartus** (seed 1): 26,088 ALMs, 243 M10K, 92 DSP. Timing met on every clock
+  (clk_sys +1.625 ns, clk_cpu +1.386 ns, HDMI +0.381 ns).
 - **Gate, MiSTer** (smoke.sh, pass):
   - main screen about 110 s after the MGL load (mostly the 36 MB SIMM download);
   - MIDI program changes and notes (level meter);
@@ -42,7 +43,6 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   away. These found the hardware bugs.
 - **Open:**
   - user flash SIMMs (P6);
-  - 2-clock cache hits (3 now, to be retested);
   - start time on the MiSTer;
   - the CI job needs Verilator only; the system bench needs the user's files and GHDL.
 
