@@ -45,7 +45,10 @@ module mcs96_periph (
     input  logic [9:0]  knob,
     output logic [7:0]  pwm,
     output logic [7:0]  irq_set,
-    output logic        unsupported
+    output logic        unsupported,
+    // MIDI out: pulse with the byte of every SBUF write (sbuf_w; the clock dbg_regw shows it)
+    output logic        tx_stb,
+    output logic [7:0]  tx_byte
 );
     localparam logic [7:0] IRQ_TIMER = 8'h01, IRQ_AD = 8'h02, IRQ_HSO = 8'h08, IRQ_SOFT = 8'h20,
                            IRQ_SERIAL = 8'h40, IRQ_EXTINT = 8'h80;
@@ -134,6 +137,7 @@ module mcs96_periph (
         ev_valid <= 1'b0;
         upd_ack <= 1'b0;
         r_ack <= 1'b0;
+        tx_stb <= 1'b0;
         if (rst) begin
             clearing <= 1'b1; clr_a <= 8'h0; ready <= 1'b0;
             ad_command <= 4'h0; ad_result <= 16'h0; ad_done <= 48'h0;
@@ -368,7 +372,10 @@ module mcs96_periph (
                             end
                         end
                         8'h06: hso_command <= r_wdata;
-                        8'h07: serial_timer <= now + 48'd9600;            // sbuf_w -> serial_send
+                        8'h07: begin                                       // sbuf_w -> serial_send
+                            serial_timer <= now + 48'd9600;
+                            tx_stb <= 1'b1; tx_byte <= r_wdata;
+                        end
                         8'h0e: begin
                             if (brh) baud_reg[15:8] <= r_wdata; else baud_reg[7:0] <= r_wdata;
                             brh <= !brh;

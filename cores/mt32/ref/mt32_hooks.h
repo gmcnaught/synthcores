@@ -11,6 +11,7 @@ extern void (*mt32h_input)(int line, int state, uint64_t cycle);               /
 // Board.
 extern void (*mt32h_busw)(uint16_t addr, uint8_t data, uint64_t cycle);        // external bus write
 extern void (*mt32h_midi)(uint8_t byte, uint64_t cycle);                       // byte written to SBUF
+extern void (*mt32h_tx)(uint8_t byte, uint64_t cycle);                         // byte the CPU sends (sbuf_w)
 extern void (*mt32h_lcd)(const uint8_t* text20, uint64_t cycle);               // after an LCD command
 // LA32 and reverb (cycle = LA32 cycle, 256 a sample).
 extern void (*mt32h_la32w)(uint16_t addr, uint8_t data, uint64_t la32_cycle);

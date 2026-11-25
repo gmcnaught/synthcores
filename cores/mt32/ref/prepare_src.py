@@ -34,6 +34,10 @@ EDITS = [
     ("mame/i8x9x.cpp", "void i8x9x_device::execute_set_input(int linenum, int state)\n{\n",
      "void i8x9x_device::execute_set_input(int linenum, int state)\n{\n"
      "\tif (mt32h_input) mt32h_input(linenum, state, total_cycles());\n", 1),
+    # MIDI out: every byte the CPU sends (sbuf_w; MAME's serial_tx_cb is commented out).
+    ("mame/i8x9x.cpp", "void i8x9x_device::sbuf_w(u8 data)\n{\n",
+     "void i8x9x_device::sbuf_w(u8 data)\n{\n"
+     "\tif (mt32h_tx) mt32h_tx(data, total_cycles());\n", 1),
     # Board: every bus write, every MIDI byte handed to the CPU, the LCD text after a command.
     ("mt32.cpp", "void mt32_t::cpu_write(uint16_t address, uint8_t data)\n{\n",
      "void mt32_t::cpu_write(uint16_t address, uint8_t data)\n{\n"

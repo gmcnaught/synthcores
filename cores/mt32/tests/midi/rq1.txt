@@ -1,0 +1,5 @@
+# samples 192000
+# MIDI out: RQ1 for the system area (10 00 00, 0x17 bytes) and for patch temp (03 00 00, 0x10
+# bytes); the CPU answers each with a DT1 on MIDI out (T lines in the trace)
+64000 f0 41 10 16 11 10 00 00 00 00 17 59 f7
+96000 f0 41 10 16 11 03 00 00 00 00 10 6d f7

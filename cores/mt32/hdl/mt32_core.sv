@@ -37,6 +37,8 @@ module mt32_core #(
     output logic        midi_full,
     input  logic [9:0]  buttons,
     input  logic [9:0]  knob,
+    output logic        tx_stb,         // MIDI out: pulse, a byte the CPU sends (tx_byte)
+    output logic [7:0]  tx_byte,
 
     output logic        sample_valid,
     output logic signed [15:0] out_l,
@@ -75,7 +77,7 @@ module mt32_core #(
         .hold, .at_hold, .midi_valid, .midi_byte, .midi_full, .buttons, .knob,
         .cpu_turn, .turn_slot(slot_idx), .la32_cycle, .cpu_done,
         .la_we, .la_addr, .la_wdata, .la_rdata, .extint,
-        .rv_we, .rv_reg, .rv_value, .pwm,
+        .rv_we, .rv_reg, .rv_value, .pwm, .tx_stb, .tx_byte,
         .lcd_rd_addr, .lcd_rd_text, .lcd_cg_addr, .lcd_cg_row, .lcd_cursor, .lcd_cursor_on,
         .lcd_display_on,
         .cpu_cycles, .dbg_fetch, .dbg_irq, .dbg_regw, .dbg_level, .dbg_pc, .dbg_fpc, .dbg_psw,

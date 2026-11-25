@@ -19,6 +19,10 @@
     "samples": 313600,
     "sha256": "ee08b75a88746ad20e48965fc77deea1a5e143526ddf09a6a20bb613ef48bd17"
   },
+  "rq1": {
+    "samples": 192000,
+    "sha256": "351a8054b23144894668c6a51d5dbba82f56523ef43cc45b6f4d7060a969c31a"
+  },
   "sysex": {
     "samples": 374400,
     "sha256": "04aa171e9d2036db67c91f972081114f3d5d0c9d0d84042cccd67a0d98265c5c"

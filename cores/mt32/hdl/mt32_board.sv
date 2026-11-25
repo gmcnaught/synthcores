@@ -55,6 +55,8 @@ module mt32_board #(
     output logic [1:0]  rv_reg,
     output logic [7:0]  rv_value,
     output logic [7:0]  pwm,            // master volume (255 - pwm) / 255
+    output logic        tx_stb,         // MIDI out: pulse, the CPU wrote tx_byte to SBUF
+    output logic [7:0]  tx_byte,
 
     // LCD for the renderer
     input  logic [4:0]  lcd_rd_addr,
@@ -114,7 +116,7 @@ module mt32_board #(
         .clk, .rst, .ready(c_ready),
         .run(c_run), .target(c_target), .busy(c_busy), .total_cycles(cpu_cycles),
         .ext_req, .ext_we, .ext_addr, .ext_wdata, .ext_rdata, .ext_ack,
-        .serial_in, .serial_byte, .extint, .la32_sh3(sh3), .knob, .pwm,
+        .serial_in, .serial_byte, .extint, .la32_sh3(sh3), .knob, .pwm, .tx_stb, .tx_byte,
         .dbg_fetch, .dbg_irq, .dbg_level, .dbg_pc, .dbg_fpc, .dbg_psw,
         .dbg_regw, .dbg_addr, .dbg_data, .bad_op, .unsupported
     );
