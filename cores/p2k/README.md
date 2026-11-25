@@ -54,7 +54,8 @@ flash, or with "Save flash".
 
 ## Using it
 
-- **MIDI:** set the UART to MidiLink; it is MIDI In A, at 31250 or 9600 baud. UART TX is MIDI Out.
+- **MIDI:** set the UART to MidiLink; it is MIDI In A, at 31250 or 9600 baud. UART TX is MIDI Out
+  (checked on the MiSTer with `scripts/mister/midi_probe.py`: the OS answers an identity request).
 - **Panel keys:**
 
   | Key | Panel | Key | Panel |
