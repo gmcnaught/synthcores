@@ -3,7 +3,7 @@
 // seeded font loaded through the ROM-pack port, then a seeded command sequence on the HD44780
 // pins as the CZ-101 drives them (port A data, port C E/RW/RS): function set (one or two
 // lines), display control, CG RAM, both lines, display shifts, cursor address and a data read.
-// Seeded LEDs, power and status. The C++ driver lets the sequence finish, then hashes every
+// Seeded LEDs (with the matrix latches), pressed panel buttons, power and status. The C++ driver lets the sequence finish, then hashes every
 // clock's outputs.
 module tb_cz101 (
     input  logic        clk,
@@ -21,6 +21,8 @@ module tb_cz101 (
     logic [12:0] fi;
     logic [31:0] fs;
     logic [15:0] leds;
+    logic [7:0]  lat [4];
+    logic [7:0]  keys [16];
     logic        power, rom_ok, loading, midi, under;
     always_ff @(posedge clk) if (load) begin : gen
         logic [31:0] s;
@@ -58,6 +60,9 @@ module tb_cz101 (
         ev_n <= 11'(n);
         s = xs(s);
         leds <= s[15:0];
+        for (int i = 0; i < 4; i++) begin s = xs(s); lat[i] <= s[7:0]; end
+        for (int i = 0; i < 16; i++) begin s = xs(s); keys[i] <= s[7:0] | s[15:8]; end   // ~1/4 pressed
+        s = xs(s);
         power <= seed != 32'h10;
         rom_ok <= !s[16]; loading <= s[17]; midi <= s[18]; under <= s[19];
     end
@@ -98,10 +103,10 @@ module tb_cz101 (
         .r_line, .r_pos, .r_row, .r_code, .r_at_ac, .r_cg_bits,
         .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on));
 
-    cz101_lcd_video dut (
+    cz101_lcd_video #(.PANEL_DIR(`CZ101_PANEL_DIR)) dut (
         .clk, .clk_sys(clk), .font_we, .font_addr, .font_data,
         .r_line, .r_pos, .r_row, .r_code, .r_at_ac, .r_cg_bits,
-        .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on), .power, .leds,
+        .display_on(disp_on), .cursor_on(cur_on), .blink_on(blk_on), .power, .leds, .lat, .keys,
         .rom_ok, .loading, .midi_led(midi), .underrun_seen(under),
         .hs, .vs, .hblank, .vblank, .r, .g, .b);
     assign aux = 32'd0;

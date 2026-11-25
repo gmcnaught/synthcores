@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Draw a core's front panel from cores/<core>/cfg/panel.yaml.
+"""Draw a core's front panel from cores/<core>/cfg/panel.yaml, and the ROMs that show it.
 
-The static art (case, labels, button caps, unlit LEDs, key hints) becomes an 8 x 8 tile set with
-one 16-colour palette, for a tile-map renderer in block RAM. Dynamic parts (LEDs, pressed
-buttons) are listed with their rectangles; the HDL recolours them from the core's LED and key
-bits. The character LCD and the status strip keep their own renderers; the panel leaves their
-rectangles to them.
+The static art (case, labels, button caps, unlit LEDs, key hints) becomes 8 x 8 tiles in one
+palette of 2^bpp colours, for modules/synthframe/hdl/panel/synthframe_panel_art.sv. LEDs and
+buttons with an HDL expression (`bit:` / `input:`) are dynamic: their unlit pixels use reserved
+palette entries, and a second palette holds the lit (or pressed) colours, chosen per 8 x 8 cell by
+the element that owns the cell. The character LCD and the status strip keep their own
+renderers, which draw over the art.
 
-  panel_art.py PANEL.yaml --png OUT.png [--lit] [--pressed]   mock-up at the output resolution
-  panel_art.py PANEL.yaml --stats                              tile and palette counts
+  panel_art.py PANEL.yaml --png OUT.png [--lit] [--pressed]   picture (mock-up)
+  panel_art.py PANEL.yaml --stats                              tile and block RAM counts
+  panel_art.py PANEL.yaml --hdl DIR --name NAME                NAME_panel_map.hex, NAME_panel_tiles.hex,
+                                                               NAME_panel.svh in DIR
 """
+import os
+import re
 import argparse
 import sys
 
+import numpy as np
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 
-FONT_DIRS = ['/opt/homebrew/Caskroom/font-inter/4.1/extras/ttf']
+FONT_DIRS = [os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts')]
 FONTS = {}
 
 
@@ -31,7 +37,7 @@ def font(size, weight='Medium'):
             except OSError:
                 pass
         else:
-            FONTS[key] = ImageFont.load_default(size)
+            raise OSError(f'Inter-{weight}.ttf not found in {FONT_DIRS}')
     return FONTS[key]
 
 
@@ -61,10 +67,12 @@ def text(d, xy, s, size, color, anchor='mm', weight='Medium', fit=None):
     d._image.paste(tmp, (round(x), round(y)), tmp)
 
 
-def expand(spec):
-    """Replace {type: lay} entries with the MAME layout's elements; attach key hints."""
+def expand(spec, base='.'):
+    """Replace {type: lay} entries with the MAME layout's elements, with key hints and the HDL
+    expressions of their buttons (key_expr) and LEDs (led_map)."""
     from lay2panel import convert
     out = []
+
     def norm(k):
         tag, mask = str(k).split(':')
         return f'{tag}:{int(mask, 0)}'.lower()
@@ -73,19 +81,30 @@ def expand(spec):
         if e['type'] != 'lay':
             out.append(e)
             continue
-        for el in convert(e['file'], e['view'], *e['rect']):
+        for el in convert(os.path.join(base, e['file']), e['view'], *e['rect']):
             if el['type'] == 'lcd' and e.get('lcd') == 'window':
                 el = {'type': 'area', 'rect': el['rect'], 'color': '#0a0a0a', 'radius': 0}
             if el['type'] == 'button' and el.get('tag'):
                 k = norm(f"{el['tag']}:{el['mask']}")
                 if k in keys:
                     el['key'] = keys[k]
-                    el['input'] = k
-                el['label_style'] = 'none'
-            if el['type'] == 'led' and el.get('name') in spec.get('leds', {}):
-                el['bit'] = spec['leds'][el['name']]
+                m = re.fullmatch(r'kc(\d+)', el['tag'])
+                if m and 'key_expr' in spec:
+                    el['input'] = spec['key_expr'].format(tag=int(m.group(1)),
+                                                          bit=int(el['mask'], 0).bit_length() - 1)
+            if el['type'] == 'led':
+                for pat, tmpl in spec.get('led_map', []):
+                    m = re.fullmatch(pat, el.get('name') or '')
+                    if m:
+                        el['bit'] = tmpl.format(*m.groups())
+                        break
             out.append(el)
     return out
+
+
+def pressed_face(face):
+    """A pressed button's face: lighter, and never equal to the face (dark faces too)."""
+    return tuple(min(255, int(v * 1.25) + 40) for v in face)
 
 
 def bevel_rect(d, r, face, radius=3, depth=2, pressed=False):
@@ -99,7 +118,8 @@ def bevel_rect(d, r, face, radius=3, depth=2, pressed=False):
                          y + h - 2 - depth // 2], max(0, radius - 1), fill=face)
 
 
-def draw(spec, lit=False, pressed=False):
+def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
+    """hdl: the art the ROMs hold (no LCD contents, no status strip, no LED highlight)."""
     W, H = spec.get('size', [800, 600])
     th = spec.get('theme', {})
     bg = rgb(th.get('background', '#101828'))
@@ -110,7 +130,7 @@ def draw(spec, lit=False, pressed=False):
     im = Image.new('RGB', (W, H), bg)
     d = ImageDraw.Draw(im)
     dyn = []
-    for e in expand(spec):
+    for e in expand(spec, base):
         t = e['type']
         if t == 'case':
             x, y, w, h = e['rect']
@@ -147,7 +167,11 @@ def draw(spec, lit=False, pressed=False):
             x, y, w, h = e['rect']
             face = rgb(e.get('color', th.get('button', '#5a5a60')))
             p = pressed and e.get('input') is not None
-            bevel_rect(d, e['rect'], shade(face, 1.3) if p else face, e.get('radius', 3), 2, p)
+            bevel_rect(d, e['rect'], face, e.get('radius', 3), 2)
+            if p:   # pressed: the face lights (the HDL recolours the face pixels only)
+                x0, y0 = x + 2, y + 2
+                d.rounded_rectangle([x0, y0, x + w - 4, y + h - 4], max(0, e.get('radius', 3) - 1),
+                                    fill=pressed_face(face))
             inside = th.get('hint_style') == 'inside' and 'key' in e
             if 'inner' in e:
                 fx, fy, fw, fh = e['inner']['frac']
@@ -187,17 +211,17 @@ def draw(spec, lit=False, pressed=False):
                                     outline=hint)
                 text(d, (kx, ky), e['key'], 9, hint, weight='Bold')
             if e.get('input') is not None:
-                dyn.append(('button', e['input'], e['rect']))
+                dyn.append(('button', e['input'], [x, y, w, h], face, pressed_face(face)))
         elif t == 'led':
             cx, cy = e['at']
             r = e.get('r', 4)
             on = rgb(e.get('color', '#ff3020'))
             off = shade(on, 0.28)
-            fill = on if lit else off
+            fill = on if lit and (e.get('bit') is not None or not hdl) else off
             if e.get('shape', 'round') == 'round':
                 d.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1], fill=(20, 20, 20))
                 d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
-                if lit:
+                if lit and not hdl:
                     d.ellipse([cx - r // 2 - 1, cy - r // 2 - 1, cx - r // 2 + 1,
                                cy - r // 2 + 1], fill=shade(on, 1.6))
             else:
@@ -209,7 +233,9 @@ def draw(spec, lit=False, pressed=False):
             if 'label' in e:
                 lx, ly = e.get('label_at', [cx, cy + r + 9])
                 text(d, (lx, ly), e['label'], e.get('lsize', 8), dim, e.get('anchor', 'mm'))
-            dyn.append(('led', e.get('bit'), [cx - r, cy - r, 2 * r + 1, 2 * r + 1]))
+            if e.get('bit') is not None:
+                rr = max(r, *e.get('size', [0, 0])) + 1
+                dyn.append(('led', e['bit'], [cx - rr, cy - rr, 2 * rr + 1, 2 * rr + 1], off, on))
         elif t == 'knob':
             cx, cy = e['at']
             r = e['r']
@@ -235,19 +261,21 @@ def draw(spec, lit=False, pressed=False):
             d.rounded_rectangle([x - bz, y - bz, x + w + bz - 1, y + h + bz - 1], 4,
                                 fill=rgb(e.get('bezel_color', '#0c0c0e')))
             d.rectangle([x, y, x + w - 1, y + h - 1], fill=rgb(e.get('color', '#7a8a40')))
-            if 'image' in e:
+            if hdl:
+                pass
+            elif 'image' in e:
                 bx, by, bw, bh = e['image']['box']
                 src = Image.open(e['image']['file']).convert('RGB').crop((bx, by, bx + bw, by + bh))
                 im.paste(src.resize((w, h), Image.LANCZOS), (x, y))
             else:
                 text(d, (x + w / 2, y + h / 2), e.get('placeholder', 'LCD'), 14, (40, 40, 40))
-            dyn.append(('lcd', None, e['rect']))
         elif t == 'strip':
+            if hdl:
+                continue
             x, y = e['at']
             d.rectangle([x, y, x + 199, y + 19], fill=(0x20, 0xc0, 0x40))
             for i, c in enumerate([(255, 255, 255), (0x30, 0x38, 0x48), (0x30, 0x38, 0x48)]):
                 d.rectangle([x + 220 + 60 * i, y, x + 259 + 60 * i, y + 19], fill=c)
-            dyn.append(('strip', None, [x, y, 380, 20]))
         elif t == 'keys':
             x, y, w, h = e['rect']
             n = e['white']
@@ -264,15 +292,104 @@ def draw(spec, lit=False, pressed=False):
     return im, dyn
 
 
-def tile_stats(im):
-    q = im.convert('RGB').quantize(16, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    W, H = q.size
-    px = q.load()
-    tiles = set()
-    for ty in range(0, H, 8):
-        for tx in range(0, W, 8):
-            tiles.add(bytes(px[tx + i, ty + j] for j in range(8) for i in range(8)))
-    return len(tiles), (W // 8) * (H // 8)
+def build_rom(spec, bpp, base='.'):
+    """Tile map, tiles, palettes and element list for synthframe_panel_art."""
+    im, dyn = draw(spec, hdl=True, base=base)
+    W, H = im.size
+    a = np.asarray(im, dtype=np.int32)
+    cols, rows = W // 8, H // 8
+    lit_of = {}
+    for k in dyn:
+        u, l = tuple(k[3]), tuple(k[4])
+        if lit_of.setdefault(u, l) != l:
+            raise ValueError(f'unlit colour {u} lights to two colours')
+    reserved = list(lit_of)
+    nstat = 2 ** bpp - len(reserved)
+    if nstat < 4:
+        raise ValueError(f'{len(reserved)} dynamic colours leave {nstat} for the art')
+    # each dynamic pixel belongs to the first element whose rectangle holds it and whose unlit
+    # colour it has
+    owner = np.zeros((H, W), np.int32)
+    for i, (kind, expr, (x, y, w, h), u, l) in enumerate(dyn, 1):
+        sub = a[y:y + h, x:x + w]
+        o = owner[y:y + h, x:x + w]
+        o[np.all(sub == u, axis=2) & (o == 0)] = i
+    # each cell belongs to one element: LEDs before buttons, then the most pixels
+    cell = np.zeros((rows, cols), np.int32)
+    shared = 0
+    for cy in range(rows):
+        for cx in range(cols):
+            o = owner[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8]
+            ids, cnt = np.unique(o[o > 0], return_counts=True)
+            if len(ids):
+                best = max(zip(ids, cnt), key=lambda t: (dyn[t[0] - 1][0] == 'led', t[1]))
+                cell[cy, cx] = best[0]
+                shared += len(ids) > 1
+    mine = (owner > 0) & (owner == np.kron(cell, np.ones((8, 8), np.int32)))
+    q = im.quantize(nstat, method=Image.Quantize.MEDIANCUT, kmeans=4, dither=Image.Dither.NONE)
+    idx = np.asarray(q, dtype=np.int32).copy()
+    qp = q.getpalette()[:3 * nstat]
+    pal = [tuple(qp[3 * i:3 * i + 3]) if 3 * i + 2 < len(qp) else (0, 0, 0) for i in range(nstat)]
+    for r, u in enumerate(reserved):
+        sel = mine & np.all(a == u, axis=2)
+        idx[sel] = nstat + r
+    pal += reserved
+    lit = pal[:nstat] + [lit_of[u] for u in reserved]
+    tiles, tmap = {}, []
+    for cy in range(rows):
+        for cx in range(cols):
+            t = idx[cy * 8:cy * 8 + 8, cx * 8:cx * 8 + 8].astype(np.uint8).tobytes()
+            tmap.append((tiles.setdefault(t, len(tiles)), int(cell[cy, cx])))
+    out = {'W': W, 'H': H, 'cols': cols, 'rows': rows, 'bpp': bpp, 'pal': pal, 'lit': lit,
+           'tiles': list(tiles), 'map': tmap, 'dyn': dyn, 'shared': shared,
+           'tb': max(1, (len(tiles) - 1).bit_length()), 'eb': max(1, len(dyn).bit_length())}
+    out['image'] = Image.fromarray(np.array(pal, np.uint8)[idx], 'RGB')
+    return out
+
+
+def rom_bits(r):
+    m10k = lambda depth, width: -(-depth * width // 10240)
+    mb = len(r['map']) * (r['tb'] + r['eb'])
+    tb = len(r['tiles']) * 8 * 8 * r['bpp']
+    return mb, tb, m10k(len(r['map']), r['tb'] + r['eb']) + m10k(len(r['tiles']) * 8, 8 * r['bpp'])
+
+
+def emit_hdl(r, outdir, name, src):
+    os.makedirs(outdir, exist_ok=True)
+    tb, eb, bpp = r['tb'], r['eb'], r['bpp']
+    with open(f'{outdir}/{name}_panel_map.hex', 'w') as f:
+        for t, e in r['map']:
+            f.write(f'{(e << tb) | t:0{-(-(tb + eb) // 4)}x}\n')
+    with open(f'{outdir}/{name}_panel_tiles.hex', 'w') as f:
+        for t in r['tiles']:
+            for row in range(8):
+                v = 0
+                for x in range(8):
+                    v |= t[row * 8 + x] << (x * bpp)
+                f.write(f'{v:0{2 * bpp}x}\n')
+    n = 2 ** bpp
+
+    def packed(p):
+        return ',\n        '.join(f"24'h{c[0]:02x}{c[1]:02x}{c[2]:02x}" for c in reversed(p))
+    with open(f'{outdir}/{name}_panel.svh', 'w') as f:
+        f.write(f"""// Generated by modules/synthframe/tools/panel_art.py from {src}. Do not edit.
+// {r['W']} x {r['H']}: {r['cols']} x {r['rows']} cells, {len(r['tiles'])} tiles of {bpp} bits a pixel,
+// {len(r['dyn'])} dynamic elements ({r['shared']} cells shared by two elements).
+localparam int PANEL_W = {r['W']}, PANEL_H = {r['H']}, PANEL_COLS = {r['cols']}, PANEL_ROWS = {r['rows']};
+localparam int PANEL_NT = {len(r['tiles'])}, PANEL_TB = {tb}, PANEL_EB = {eb}, PANEL_BPP = {bpp};
+localparam int PANEL_NE = {len(r['dyn'])};
+// palette entry 0 in the low bits; PANEL_LIT differs only in the dynamic entries
+localparam logic [24*{n}-1:0] PANEL_PAL = {{
+        {packed(r['pal'])}}};
+localparam logic [24*{n}-1:0] PANEL_LIT = {{
+        {packed(r['lit'])}}};
+""")
+    with open(f'{outdir}/{name}_panel_state.svh', 'w') as f:
+        f.write(f'// Generated by modules/synthframe/tools/panel_art.py from {src}. Do not edit.\n'
+                f'// Element i lights (LED) or shows pressed (button) while its expression is 1.\n')
+        for i, k in enumerate(r['dyn'], 1):
+            f.write(f'assign panel_state[{i}] = {k[1]};   // {k[0]} at {k[2][0]},{k[2][1]}\n')
+        f.write(f"assign panel_state[0] = 1'b0;\n")
 
 
 def main():
@@ -282,6 +399,9 @@ def main():
     ap.add_argument('--lit', action='store_true')
     ap.add_argument('--pressed', action='store_true')
     ap.add_argument('--stats', action='store_true')
+    ap.add_argument('--hdl', metavar='DIR')
+    ap.add_argument('--name')
+    ap.add_argument('--bpp', type=int)
     ap.add_argument('--lcd-image', nargs=5, metavar=('PNG', 'X', 'Y', 'W', 'H'),
                     help='mock-up only: paste this region of a screenshot into the LCD')
     a = ap.parse_args()
@@ -290,18 +410,20 @@ def main():
         for e in spec['elements']:
             if e['type'] == 'lcd':
                 e['image'] = {'file': a.lcd_image[0], 'box': list(map(int, a.lcd_image[1:]))}
-    im, dyn = draw(spec, a.lit, a.pressed)
+    im, dyn = draw(spec, a.lit, a.pressed, base=os.path.dirname(os.path.abspath(a.panel)))
     if a.png:
         im.save(a.png)
-    if a.stats:
-        static, _ = draw(spec)
-        n, cells = tile_stats(static)
-        tbits = n * 64 * 4
-        mbits = cells * (10 + 6)
-        print(f'{a.panel}: {n} unique tiles of {cells}; tile ROM {tbits} bits, map {mbits} bits, '
-              f'~{-(-(tbits) // 10240) + -(-mbits // 10240)} M10K; '
-              f'{sum(1 for k in dyn if k[0] == "led")} LEDs, '
-              f'{sum(1 for k in dyn if k[0] == "button")} buttons')
+    base = os.path.dirname(os.path.abspath(a.panel))
+    if a.stats or a.hdl:
+        r = build_rom(spec, a.bpp or spec.get('bpp', 4), base)
+        mb, tb, m = rom_bits(r)
+        print(f'{a.panel}: {len(r["tiles"])} tiles, {r["bpp"]} bpp, {len(r["dyn"])} dynamic '
+              f'elements, {r["shared"]} shared cells; map {mb} + tiles {tb} bits, ~{m} M10K')
+        if a.hdl:
+            emit_hdl(r, a.hdl, a.name, os.path.relpath(os.path.abspath(a.panel),
+                                                        os.path.join(base, '../../..')))
+            if a.png:
+                r['image'].save(a.png.replace('.png', '_rom.png'))
 
 
 if __name__ == '__main__':
