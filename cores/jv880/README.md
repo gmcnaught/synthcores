@@ -52,7 +52,7 @@ The plan and the reference's differences from the SC-55 are in [`docs/plan.md`](
       returns to the play screen. This needs a fix to the reference's serial transmitter
       (`cores/sc55/ref/patch_ref.py` FIXES): without it the firmware stayed in its sending state
       and the panel took no keys until the core was reloaded (`MIDI-OUT-PLAN.md`).
-    - OSD **Diagnostics** shows a hex line under the status strip: MIDI bytes received, the
+    - OSD **Diagnostics** shows a hex line above the status strip: MIDI bytes received, the
       last 4 bytes, the PCM's peak, the output's peak, and the underrun count.
 4. **Output gain (OSD):** at 0 dB the PCM chip's 20-bit full scale is the 16-bit output's full
    scale, so the 16-bit conversion never clamps. +6 dB is the reference renderer's level (`>> 15`), which
