@@ -5,7 +5,8 @@
 # boot LCD lit; MIDI over the UART (master volume 60 by SysEx, then notes on part 1, which make
 # the firmware redraw: "vol: 60", as Nuked-MT32 shows for the same bytes) changes the LCD;
 # no audio underrun; status band "running". The Part 1 key (Q) changes the LCD
-# (Nuked-MT32 with mt32_ref --button shows "1|Slap Bass1|vol> 80" for the same input).
+# (Nuked-MT32 with mt32_ref --button shows "1|Slap Bass1|vol> 80" for the same input) and shows
+# pressed on the front panel. The MIDI MESSAGE LED's state in each screenshot is printed only.
 # MIDI out: two RQ1 requests (system area, patch temp) at 31,250 baud right after boot get the
 # DT1 replies Nuked-MT32 sends (tests/midi/rq1.txt, T lines of its trace), byte for byte; the same
 # requests at 9600 after the 9600-baud MIDI above (synthframe_midi_rx and _tx follow the HPS UART
@@ -62,6 +63,12 @@ python3 -I - "$OUT" <<'PY' | tee "$OUT/result.txt"
 import sys
 from PIL import Image
 out = sys.argv[1]
+# mt32_lcd_video.sv, 800 x 600 frame: the LCD (20 x 36 by 48, background 6cb030, dot 10300c) at
+# (40, 70); synthframe_status_strip at (40, 560): band at x 0-199, boxes at 220-259 (MIDI),
+# 280-319 (underrun: dark red seen, bright red now), 340-379 (lag); the front panel art around
+# them (cfg/panel.yaml): Part 1 (Q) button at (90, 226) 40 x 40, MIDI MESSAGE LED at (709, 147)
+# 22 x 6, lit ff3020. Screenshots come scaled; offsets are scaled by width / 800; the strip is
+# found by the band's colour.
 BAND = {(0x20, 0xc0, 0x40): "running", (0xe0, 0xa0, 0x20): "loading", (0x20, 0x60, 0xc0): "rom ok",
         (0xc0, 0x20, 0x20): "no rom"}
 def strip(im):
@@ -71,21 +78,31 @@ def strip(im):
             if px[x, y][:3] in BAND:
                 return x, y, BAND[px[x, y][:3]]
     return None
-def dots(im):   # LCD dots (0x10300c) inside the LCD background area
-    return sum(1 for c in im.getdata() if c[0] < 0x30 and 0x20 <= c[1] < 0x50 and c[2] < 0x30)
 ims = {n: Image.open(f"{out}/{n}.png").convert("RGB") for n in ("boot", "midi", "key")}
 s = strip(ims["midi"])
 if not s:
     print("band: not found"); sys.exit(1)
 k = ims["midi"].size[0] / 800
+def area(im, x, y, w, h):   # frame rectangle, relative to the strip at (40, 560)
+    x0, y0 = s[0] + int((x - 40) * k), s[1] + int((y - 560) * k)
+    return im.crop((x0, y0, x0 + int(w * k), y0 + int(h * k)))
+def lcd_im(im):
+    return area(im, 40, 70, 720, 48)
+def dots(im):   # LCD dots (0x10300c) inside the LCD
+    return sum(1 for c in lcd_im(im).getdata() if c[0] < 0x30 and 0x20 <= c[1] < 0x50 and c[2] < 0x30)
+def led(im):    # MIDI MESSAGE LED: red channel of its centre
+    return "lit" if area(im, 709, 147, 22, 6).resize((1, 1)).getpixel((0, 0))[0] > 0xa0 else "off"
+q_face = lambda im: area(im, 98, 234, 24, 24).tobytes()
 und = ims["midi"].getpixel((s[0] + int(300 * k), s[1] + int(10 * k)))[:3]
 und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(und, "?%02x%02x%02x" % und)
-lcd = lambda im: im.crop((0, int(240 * k), im.size[0], int(330 * k))).tobytes()
+lcd = lambda im: lcd_im(im).tobytes()
 print(f"band: {s[2]}")
 print(f"underrun: {und_s}")
 print(f"lcd_dots_boot: {dots(ims['boot'])}")
 print(f"midi_changed_lcd: {lcd(ims['midi']) != lcd(ims['boot'])}")
 print(f"key_changed_lcd: {lcd(ims['key']) != lcd(ims['midi'])}")
+print(f"key_pressed_on_panel: {q_face(ims['key']) != q_face(ims['midi'])}")
+print("midi_message_led: " + ", ".join(f"{n} {led(im)}" for n, im in ims.items()))
 # DT1 replies to the RQ1s, as Nuked-MT32 sends them (tests/midi/rq1.txt)
 SYS = bytes.fromhex("4a000503030a06040300000006010203040506070809") + bytes([0x64])
 def dt1(addr, data):
@@ -99,6 +116,7 @@ for b, w in want.items():
     mo[b] = got == w
     print(f"midi_out_{b}: {'as Nuked-MT32' if mo[b] else 'DIFFERENT'} ({len(got)} bytes: {got.hex(' ')})")
 ok = s[2] == "running" and und_s == "never" and dots(ims["boot"]) > 200 and lcd(ims["midi"]) != lcd(ims["boot"]) \
-     and lcd(ims["key"]) != lcd(ims["midi"]) and all(mo.values())
+     and lcd(ims["key"]) != lcd(ims["midi"]) and q_face(ims["key"]) != q_face(ims["midi"]) \
+     and all(mo.values())
 sys.exit(0 if ok else 1)
 PY

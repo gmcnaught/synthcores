@@ -261,7 +261,7 @@ wire hold = !ahead[15] && ahead >= 16'd8;
 wire [4:0] lcd_rd_addr, lcd_cg_addr, lcd_cursor;
 wire [7:0] lcd_rd_text;
 wire [4:0] lcd_cg_row;
-wire       lcd_cursor_on, lcd_display_on, core_ready;
+wire       lcd_cursor_on, lcd_display_on, core_ready, msg_led;
 
 mt32_core #(
 	.PCM_BASE(PCM_BASE),
@@ -280,7 +280,7 @@ mt32_core #(
 	.pcm_rsp_tag(c_rsp_tag),
 	.hold(hold), .at_hold(),
 	.midi_valid(mb_valid), .midi_byte(mb_data), .midi_full(),
-	.buttons(panel), .knob(knob), .tx_stb(tx_stb), .tx_byte(tx_byte),
+	.buttons(panel), .knob(knob), .tx_stb(tx_stb), .tx_byte(tx_byte), .msg_led(msg_led),
 	.sample_valid(sample_valid), .out_l(out_l), .out_r(out_r),
 	.lcd_rd_addr(lcd_rd_addr), .lcd_rd_text(lcd_rd_text), .lcd_cg_addr(lcd_cg_addr),
 	.lcd_cg_row(lcd_cg_row), .lcd_cursor(lcd_cursor), .lcd_cursor_on(lcd_cursor_on),
@@ -344,6 +344,7 @@ mt32_lcd_video #(.FONT_HEX("../hdl/mt32_lcd_font.hex")) video
 	.clk(clk_vid),
 	.text_addr(lcd_rd_addr), .text(lcd_rd_text), .cg_addr(lcd_cg_addr), .cg_row(lcd_cg_row),
 	.cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .display_on(lcd_display_on),
+	.buttons(panel), .msg_led(msg_led),
 	.rom_ok(rom_ok), .loading(ioctl_download), .running(core_ready && !core_reset),
 	.midi_led(LED_USER), .underrun_seen(underruns != 0),
 	.hs(hs), .vs(vs), .hblank(hblank), .vblank(vblank), .r(r), .g(g), .b(b)
