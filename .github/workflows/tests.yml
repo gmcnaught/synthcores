@@ -55,9 +55,11 @@ jobs:
               - 'modules/synthframe/ver/**'
             mt32:
               - 'cores/mt32/**'
+              - 'modules/synthframe/ver/**'
               - 'modules/nuked-mt32'
             p2k:
               - 'cores/p2k/**'
+              - 'modules/synthframe/ver/**'
               - 'cores/proteus/p2k/rtl/**'
       - id: pick
         shell: bash
@@ -122,8 +124,8 @@ jobs:
         if: matrix.core == 'proteus'
         run: CXX=g++-14 p2k/model/build.sh
 
-      - name: Panel renderer frame hashes (SC-55, JV-880, Proteus/1, CZ-101)
-        if: matrix.core == 'sc55' || matrix.core == 'proteus'
+      - name: Panel renderer frame hashes (SC-55, JV-880, Proteus/1, CZ-101, MT-32, P2K)
+        if: matrix.core == 'sc55' || matrix.core == 'proteus' || matrix.core == 'mt32' || matrix.core == 'p2k'
         run: python ../../modules/synthframe/ver/panel/test_panel.py
 
       - name: MIDI out serial line (synthframe_midi_tx; SC-55, JV-880, MT-32)
