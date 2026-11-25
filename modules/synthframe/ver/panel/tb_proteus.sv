@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Frame bench for the Proteus/1 display (cores/proteus/mister/rtl/display.sv) with its HD44780
 // controller: a seeded command sequence (function set, display control, CG RAM, both lines,
-// display shifts, cursor address), a seeded font in place of the ROM pack's, seeded LEDs and
-// voice levels. The C++ driver lets the sequence finish, then hashes every clock's outputs.
+// display shifts, cursor address), a seeded font in place of the ROM pack's, seeded LEDs,
+// pressed panel buttons and voice levels. The C++ driver lets the sequence finish, then hashes every clock's outputs.
 module tb_proteus (
     input  logic        clk,
     input  logic        load,
@@ -18,6 +18,7 @@ module tb_proteus (
     logic [5:0]  gap;
     logic [7:0]  font [4096];
     logic [7:0]  leds;
+    logic [3:0]  buttons;
     logic [31:0] lvl_seed;
     always_ff @(posedge clk) if (load) begin : gen
         logic [31:0] s;
@@ -43,6 +44,7 @@ module tb_proteus (
         seq_n <= 9'(n);
         s = xs(s);
         leds <= s[7:0];
+        buttons <= s[11:8] | s[15:12];                                // ~1/4 pressed
         lvl_seed <= xs(s);
     end
     logic        wr;
@@ -64,9 +66,9 @@ module tb_proteus (
     logic [2:0]  lcd_row;
     logic [7:0]  lcd_code, lcd_dout;
     logic [4:0]  lcd_cgbits;
-    logic [11:0] font_addr, font2_addr;
-    logic [7:0]  font_data, font2_data;
-    always_ff @(posedge clk) begin font_data <= font[font_addr]; font2_data <= font[font2_addr]; end
+    logic [11:0] font_addr;
+    logic [7:0]  font_data;
+    always_ff @(posedge clk) font_data <= font[font_addr];
 
     synthframe_hd44780 lcd (
         .clk, .reset(load), .cs(1'b1), .wr, .rd(1'b0), .rs, .din, .dout(lcd_dout),
@@ -79,10 +81,10 @@ module tb_proteus (
     logic [7:0] level;
     logic       ce_pix;
     assign level = 8'(xs(lvl_seed ^ {27'd0, voice}));
-    display dut (
+    display #(.PANEL_DIR(`PROTEUS_PANEL_DIR)) dut (
         .clk, .ce_pix, .hsync(hs), .vsync(vs), .hblank, .vblank, .r, .g, .b,
         .lcd_line, .lcd_pos, .lcd_row, .lcd_code, .lcd_cgbits, .lcd_is_cg, .lcd_cursor, .lcd_on,
-        .font_addr, .font_data, .font2_addr, .font2_data, .leds,
+        .font_addr, .font_data, .leds, .buttons,
         .voice, .level, .running(lvl_seed[0]));
     assign aux = {31'd0, ce_pix};
 endmodule

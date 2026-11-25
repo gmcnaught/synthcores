@@ -1,16 +1,21 @@
 # Proteus/1 panel (owner's manual p. 13) for the 320 x 240 output.
+# HDL expressions, in display.sv's scope: leds = the 0xB00001 latch (active low),
+# led_midi = its MIDI bit stretched to ~60 ms, buttons = MFP GPIP 3-0 (active low).
+# display.sv draws the LCD over the lcd rect (x 12-304, y 16-74; its dots at x 16-300,
+# y 20-70), the voice bars in the VOICES area (y 162-225) and the running bar at y 232-239.
 size: [320, 240]
+bpp: 4
 theme: {hint_style: inside, hint: '#e0b040', background: '#101828'}
 elements:
 - type: case
   rect: [0, 0, 320, 240]
   color: '#2a2c30'
 - type: lcd
-  rect: [16, 20, 288, 54]
-  color: '#2c4c2c'
-  bezel: 8
+  rect: [12, 16, 293, 59]
+  color: '#284628'
+  bezel: 5
 - type: label
-  at: [160, 8]
+  at: [160, 6]
   text: PROTEUS
   size: 8
   weight: Bold
@@ -26,7 +31,7 @@ elements:
   at: [42, 96]
   r: 3
   color: '#ff3020'
-  bit: 3
+  bit: led_midi
   label: MIDI
   lsize: 7
   label_at: [42, 106]
@@ -34,7 +39,7 @@ elements:
   at: [76, 88]
   r: 3
   color: '#30e040'
-  bit: 0
+  bit: '!leds[0]'
 - type: label
   at: [76, 96]
   text: MASTER
@@ -42,13 +47,13 @@ elements:
 - type: button
   rect: [64, 104, 26, 16]
   key: M
-  input: 0
+  input: '!buttons[0]'
   radius: 8
 - type: led
   at: [118, 88]
   r: 3
   color: '#30e040'
-  bit: 1
+  bit: '!leds[1]'
 - type: label
   at: [118, 96]
   text: EDIT
@@ -56,7 +61,7 @@ elements:
 - type: button
   rect: [106, 104, 26, 16]
   key: E
-  input: 1
+  input: '!buttons[1]'
   radius: 8
 - type: led
   at: [160, 88]
@@ -70,7 +75,7 @@ elements:
 - type: button
   rect: [148, 104, 26, 16]
   key: Ent
-  input: 3
+  input: '!buttons[3]'
   radius: 8
 - type: label
   at: [206, 96]
@@ -79,7 +84,7 @@ elements:
 - type: button
   rect: [193, 104, 26, 16]
   key: C
-  input: 2
+  input: '!buttons[2]'
   radius: 8
 - type: knob
   at: [248, 104]
