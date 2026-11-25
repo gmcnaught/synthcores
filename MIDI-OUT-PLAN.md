@@ -60,12 +60,17 @@ Unknown, to check in step 1:
   where the model starts its transmit time (the TDRE 1→0 clear) therefore loses every second
   byte. The byte definition used on both sides is: TDR written, then SSR written with TDRE 0.
   mk1 and the MT-32 are unaffected.
-- **JV-880 panel after an RQ1.** After the reply the reference leaves the LCD at "Now bulk se"
-  (cut off mid-word) and stops taking panel keys (SYSTEM, PATCH/PERFORM checked for 15 s). The
-  CPU keeps running. The core does the same, since it follows the reference, and it did so before
-  MIDI out existed. Unknown: whether the real unit does this. More likely the reference's SCI
-  model is missing something the firmware waits for. Not changed here: changing it would mean
-  departing from the reference.
+- **JV-880 panel after an RQ1.** After the reply the unpatched reference leaves the LCD at "Now
+  bulk se" (cut off mid-word) and stops taking panel keys (SYSTEM, PATCH/PERFORM checked for
+  15 s). The CPU keeps running. The cause is the reference's SCI transmitter. It holds TDRE at 0
+  for 3000 cycles after each clear, and requests TXI only at the moment TDRE sets. The H8/532's
+  SCI is double-buffered, and it requests TXI while TDRE and TIE are both 1. The firmware sends
+  from its TXI handler and sets TIE to start a transfer, so it never got the interrupt that ends
+  the reply. Fixed for the JV-880 in `ref/patch_ref.py` FIXES and in `sc55_mcu.sv`: the byte
+  time starts when TDRE sets, and an SCR write requests TXI = TIE && TDRE. Afterwards the reply
+  is the same 75 bytes, and the LCD returns to "Perf … I-01:Syn Lead" about 1 s later, with
+  SYSTEM working again (`tests/test_jv880_ref.py` `test_panel_after_rq1`). The SC-55 models keep
+  the reference's transmitter (no symptom).
 - **mk1:** no RQ1 reply in any variant; Active Sensing only.
 - **Clocks:** the boards run the reference at 600 ns a step of 12 cycles (20 MHz). An SCI byte
   is 150 µs of model time against 320 µs on the wire, so the FIFO holds the difference. The
@@ -157,7 +162,7 @@ MT-32 goes first: its reference replies cleanly and the wire is faster than the 
 | Core | Simulation | Quartus (winbuild, default seed) | MiSTer smoke |
 |---|---|---|---|
 | SC-55 | `mcu_lockstep`: mk1 Active Sensing, mk2 GS RQ1 → DT1, byte and cycle identical; `board_lockstep`: 4 (mk1) and 202 (mk2) bytes on `uart_txd` = the model's, none dropped; whole suite passes | 33,168 ALMs (main: 32,973); core setup slack +0.868 ns | mk2 pack: `F0 41 10 42 12 40 00 00 00 04 00 00 3C F7` on `/dev/ttyS1` = the model's; Active Sensing every ~21 ms, the model's sub-MCU rate |
-| JV-880 | `mcu_lockstep` (factory NVRAM, system RQ1): 75-byte DT1, byte and cycle identical; `jv880_board_bench`: the same 75 bytes on `uart_txd` | 28,703 ALMs; worst setup slack +0.265 ns (HDMI PLL), core +0.267 ns | the 75-byte DT1 = the model's; panel then at "Now bulk s", as the model |
+| JV-880 | `mcu_lockstep` (factory NVRAM, system RQ1): 75-byte DT1, byte and cycle identical; `jv880_board_bench`: the same 75 bytes on `uart_txd` | 28,703 ALMs; worst setup slack +0.265 ns (HDMI PLL), core +0.267 ns | the 75-byte DT1 = the model's; panel then at "Now bulk s", as the unpatched model (fixed since: see the JV-880 panel finding above) |
 | MT-32 | PR #39: `T` lines in the trace, 59 bytes (two DT1s) identical over 11,254,172 trace lines; corpus 7/7 | 18,666 ALMs (main 18,647, same run); core slack +0.466 ns | both DT1s = the model's at 31,250; at 9600 the same, master volume 60 after the smoke's MIDI |
 
 Findings from the hardware runs:

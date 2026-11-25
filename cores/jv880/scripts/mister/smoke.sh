@@ -17,11 +17,14 @@
 # data request (RQ1) for the system area (00 00 00 00, 16 bytes); ../sc55/scripts/mister/
 # tty_midi_xfer.py reads /dev/ttyS1 for 4 s (at 9600: synthframe_midi_tx follows the input's
 # speed). The reply must be one DT1 from 00 00 00 00, 75 bytes, with a valid checksum (with the
-# factory-preset NVRAM the reference sends REF_DT1 below). Writes OUTDIR/{boot,end,nv_before,nv_changed,nv_reloaded}.png and
+# factory-preset NVRAM the reference sends REF_DT1 below). 2 s after the reply the panel must show
+# the play screen again (as at boot), and SYSTEM must change it (ref/patch_ref.py FIXES, the SCI
+# transmitter). Writes OUTDIR/{boot,end,nv_before,nv_changed,nv_reloaded,midi_out,rq1_key}.png and
 # OUTDIR/result.txt: the status strip (band, underrun, lag; jv880_lcd_video.sv), the number of
 # lit LCD dots at boot (the panel shows text), the save file's size and whether the value came
 # back, and the MIDI out reply. Exit 1 if the core is not running, an underrun or lag box is set,
-# the LCD is blank, the NVRAM did not survive the reload, or the DT1 reply did not come out.
+# the LCD is blank, the NVRAM did not survive the reload, the DT1 reply did not come out, or the
+# panel did not come back after it.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR [SECONDS]}; PACK=${2:?}; OUT=${3:?}
@@ -65,16 +68,20 @@ $M shot jv880 "$OUT/nv_reloaded.png" >/dev/null
 keys text:e sleep:1
 echo "$SAV" > "$OUT/sav_size"
 
-# MIDI out, last: after answering an RQ1 the reference, and so the core, leaves the panel at
-# "Now bulk sending" and stops taking keys. Load again without the save file (the NVRAM step
-# changed the Unit number, the SysEx device ID), switch the input to 9600 again, send the RQ1.
+# MIDI out, last. Load again without the save file (the NVRAM step changed the Unit number, the
+# SysEx device ID), switch the input to 9600 again, send the RQ1. The LCD shows "Now bulk sending"
+# for about 1 s, then the play screen; then SYSTEM.
 $M sh "rm -f /media/fat/saves/JV-880/jv880_smoke.sav"
 $M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
 $M midi-off
 printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
 scp -q ../sc55/scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
 $M sh "python3 /tmp/tty_midi_xfer.py 4 f041104611000000000000001070f7" > "$OUT/midi_out.txt"
+sleep 2
 $M shot jv880 "$OUT/midi_out.png" >/dev/null
+keys text:e sleep:1
+$M shot jv880 "$OUT/rq1_key.png" >/dev/null
+keys text:e sleep:1
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
 # jv880_lcd_video.sv, 800 x 600 frame: the panel at (16, 196), 768 x 104, dot-on colour 0a1404;
 # the status strip 144 lines below the panel's top: boxes at x 0-199 (state band), 220-259 (MIDI),
@@ -142,5 +149,11 @@ msg = rx[i:rx.index(0xF7, i) + 1] if i >= 0 and 0xF7 in rx[i:] else b""
 midi_ok = len(msg) == 75 and sum(msg[5:-1]) % 128 == 0
 print(f"midi_out: {len(rx)} bytes; DT1 {len(msg)} bytes, checksum {'ok' if midi_ok else 'bad or missing'}, "
       f"{'= reference' if msg == REF_DT1 else 'differs from the reference (factory NVRAM)'}: {rx.hex(' ')}")
-sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and lit > 200 and nv_ok and midi_ok else 1)
+# the panel after the reply: back to the boot screen, then SYSTEM changes it
+after, key = panel("midi_out"), panel("rq1_key")
+panel_ok = after == panel("boot") and key != after
+print(f"panel_after_rq1: {'play screen' if after == panel('boot') else 'not the play screen'}, "
+      f"SYSTEM {'taken' if key != after else 'ignored'}")
+sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and lit > 200 and nv_ok and midi_ok
+         and panel_ok else 1)
 EOF

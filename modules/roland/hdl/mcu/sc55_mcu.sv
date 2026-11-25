@@ -737,7 +737,9 @@ module sc55_mcu #(
                                 dev[7'h68] <= v;
                             end else if (a16[6:0] == 7'h5c) begin
                                 // SSR: flag clears, then the whole register is overwritten (reference behaviour)
-                                if (!d[7] && ssr_rd[7]) begin uart_tx_delay <= cycles + 48'd3000; int_req[20] <= 1'b0; end
+                                // JV-880: the SCI is double-buffered, so the byte time starts when TDRE sets
+                                // (below), not here (ref/patch_ref.py FIXES)
+                                if (!d[7] && ssr_rd[7]) begin if (!jv880) uart_tx_delay <= cycles + 48'd3000; int_req[20] <= 1'b0; end
                                 // MIDI out: TDR written, then TDRE written 0 (the SCI is double-buffered;
                                 // patch_ref.py's tx hook)
                                 if (!d[7] && tdr_written) begin tx_stb <= 1'b1; tx_byte <= dev[7'h5b]; tdr_written <= 1'b0; end
@@ -749,6 +751,8 @@ module sc55_mcu #(
                             end else begin
                                 dev[a16[6:0]] <= d;
                                 if (a16[6:0] == 7'h5b) tdr_written <= 1'b1;
+                                // SCR, JV-880: TXI is requested while TIE and TDRE are both 1 (ref/patch_ref.py FIXES)
+                                if (a16[6:0] == 7'h5a && jv880) int_req[20] <= d[7] && dev[7'h5c][7];
                             end
                         end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
                         else if (a16 < 16'he000) ;                          // SRAM: write port below
@@ -874,6 +878,7 @@ module sc55_mcu #(
                         end else d = dev[7'h5c];
                         if (!mk2 && dev[7'h5a][5] && !d[7] && !(cycles < uart_tx_delay)) begin
                             d = d | 8'h80;
+                            if (jv880) uart_tx_delay <= cycles + 48'd3000;   // shift register busy one byte time
                             int_req[20] <= dev[7'h5a][7];
                         end
                         dev[7'h5c] <= d;

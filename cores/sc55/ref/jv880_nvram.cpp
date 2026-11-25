@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <fstream>
 #include <filesystem>
+#include <span>
 #include <string>
 
 // LCD_Write keeps no LCD state unless a backend is attached, so attach one that draws nothing
@@ -117,8 +118,9 @@ int main(int argc, char** argv)
     f.close();
     std::printf("saved %s\n", out.string().c_str());
 
-    // optional KEYS: comma-separated panel buttons (MCU_BUTTON_* numbers) or encoder steps
-    // (+ / -) pressed after the factory preset, printing the LCD after each
+    // optional KEYS: comma-separated panel buttons (MCU_BUTTON_* numbers), encoder steps (+ / -)
+    // or rq1 (the system-area RQ1 at device ID 17, then 2 s) after the factory preset, printing
+    // the LCD after each
     if (argc > 4)
     {
         std::string keys = argv[4];
@@ -128,7 +130,14 @@ int main(int argc, char** argv)
             size_t end = keys.find(',', at);
             std::string k = keys.substr(at, end == std::string::npos ? std::string::npos : end - at);
             at = end == std::string::npos ? keys.size() + 1 : end + 1;
-            if (k == "+" || k == "-")
+            if (k == "rq1")
+            {
+                static const uint8_t rq1[] = {0xf0, 0x41, 0x10, 0x46, 0x11, 0x00, 0x00, 0x00, 0x00,
+                                              0x00, 0x00, 0x00, 0x10, 0x70, 0xf7};
+                emu.PostMIDI(std::span<const uint8_t>(rq1));
+                run_ms(emu, 2000);
+            }
+            else if (k == "+" || k == "-")
             {
                 MCU_EncoderTrigger(emu.GetMCU(), k == "+" ? 1 : 0);
                 run_ms(emu, 300);
