@@ -16,7 +16,7 @@ on:
         required: false
         default: ''
       seed:
-        description: Fitter seed override (integer; blank = the QSF's; SC-55 and Synclavier)
+        description: Fitter seed override (integer; blank = the QSF's; SC-55, Synclavier, JV-880, MT-32)
         required: false
         default: ''
   # Releases only (a v* tag) and on demand: day-to-day builds run on the Windows build host
@@ -105,10 +105,12 @@ jobs:
           CORE: ${{ matrix.core }}
           SC55_SEED: ${{ github.event.inputs.seed }}
           SYNCLAVIER_SEED: ${{ github.event.inputs.seed }}
+          JV880_SEED: ${{ github.event.inputs.seed }}
+          MT32_SEED: ${{ github.event.inputs.seed }}
         run: |
           set -o pipefail
           tar -cf - --exclude=./.git . |
-            docker run --rm -i -e CORE -e SC55_SEED -e SYNCLAVIER_SEED raetro/quartus:17.0 bash -c '
+            docker run --rm -i -e CORE -e SC55_SEED -e SYNCLAVIER_SEED -e JV880_SEED -e MT32_SEED raetro/quartus:17.0 bash -c '
               mkdir -p /build && cd /build && tar -xf - || exit 2
               cd cores/$CORE
               if [ "$CORE" = proteus ]; then bash mister/build.sh 1>&2; else mister/build.sh _out 1>&2; fi
