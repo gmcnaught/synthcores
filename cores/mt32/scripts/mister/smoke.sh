@@ -53,9 +53,12 @@ scp -q "$OUT/midi.txt" "$MISTER:/tmp/mt32_midi.txt"
 $M sh "python3 /tmp/play_tty.py /tmp/mt32_midi.txt $SECS"
 sleep 1
 $M shot mt32 "$OUT/midi.png" >/dev/null
-keys down:q sleep:1
+# hold Q while the screenshot is taken: mister_keys.py's device goes away (and its keys come up)
+# when it exits, so it runs in the background for the whole shot
+$M sh "nohup python3 /tmp/mister_keys.py down:q sleep:20 up:q > /dev/null 2>&1 < /dev/null &"
+sleep 5
 $M shot mt32 "$OUT/key.png" >/dev/null
-keys up:q sleep:1
+$M sh "while pgrep -f mister_keys.py > /dev/null; do sleep 1; done"
 stop_midilink
 # zero bytes first (framing errors at 31250): synthframe_midi_rx is at 9600 before the requests
 $M sh "python3 /tmp/tty_midi_xfer.py 9600 2.5 0000000000000000 $RQ1" > "$OUT/midi_out_9600.txt"
