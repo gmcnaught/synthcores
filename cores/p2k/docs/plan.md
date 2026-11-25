@@ -148,6 +148,9 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
 3-clock cache hits passed it too):
 - Main screen as above, about 110 s after the MGL load. Most of that is the 36 MB SIMM download;
   the CPU restarts after it.
+- MIDI out (2026-11-25, `scripts/mister/midi_probe.py`): the universal identity request
+  `F0 7E 7F 06 01 F7` sent to the core gets `F0 7E 00 06 02 18 04 04 03 00 32 2E 32 36 F7` back on
+  the UART (E-mu, OS "2.26").
 - MIDI over the UART: the poly case's program changes show (`P2Ksy 070 rom:Click 909`) and the
   level meter moves.
 - The Master key opens MASTER TRANSPOSE. No late sample.
