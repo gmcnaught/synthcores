@@ -11,7 +11,10 @@
 //     STAGE_BASE itself (file byte k is byte k mod 8 of word STAGE_BASE + k / 8) and sends no
 //     bytes; ioctl_addr holds the file size while ioctl_download is high. When the download
 //     ends, the copier reads the staged file in bursts of 8 words and writes each word to its
-//     place with the bytes of every 16-bit lane swapped, and the font bytes to font_*;
+//     place with the bytes of every 16-bit lane swapped, and the font bytes to font_*. Each burst
+//     is read twice and written only when both reads agree, else read again (copy_retries
+//     counts it): on the MiSTer the first read after loading the core over a running P2K
+//     returned 8 words of the old core's sample data now and then;
 //   - bytes (no load address, e.g. an older Main_MiSTer): bytes arrive on ioctl_wr and are
 //     gathered into 64-bit words; ioctl_wait holds the download while a word is written.
 // pack_ok: a whole flash image and font arrived; big_words/baby_words: what each slot holds (a
@@ -51,6 +54,7 @@ module p2k_loader #(
     input  logic        ext_busy,
     output logic        want,
     output logic        hold,
+    output logic [7:0]  copy_retries,     // bursts read again (saturating; diagnostics)
 
     output logic        req_valid,
     input  logic        req_ready,
@@ -117,6 +121,7 @@ module p2k_loader #(
     logic [2:0]  c_j;                // word of the burst being placed
     logic [2:0]  c_k;                // font byte of the word
     logic [63:0] c_buf [8];
+    logic        c_vfy, c_diff;      // the second read of the burst; it differed from the first
     logic        c_req;
     logic [28:0] c_addr;
     logic [63:0] c_data;
@@ -174,6 +179,7 @@ module p2k_loader #(
             pack_ok <= 1'b0;
             c_st <= C_IDLE;
             c_req <= 1'b0;
+            copy_retries <= '0;
             for (int s = 0; s < 4; s++) begin
                 big_words[s] <= '0;
                 baby_words[s] <= '0;
@@ -237,6 +243,7 @@ module p2k_loader #(
                 case (c_st)
                     C_WAIT: if (!ext_busy && !g_valid) begin
                         c_w <= '0;
+                        c_vfy <= 1'b0;
                         c_n <= 23'((c_size + 27'd7) >> 3);
                         c_req <= 1'b1;
                         c_st <= C_RD;
@@ -244,14 +251,28 @@ module p2k_loader #(
                     C_RD: if (req_ready) begin
                         c_req <= 1'b0;
                         c_got <= '0;
+                        c_diff <= 1'b0;
                         c_st <= C_GET;
                     end
                     C_GET: if (rsp_valid) begin
-                        c_buf[c_got[2:0]] <= rsp_data;
+                        if (!c_vfy) c_buf[c_got[2:0]] <= rsp_data;
+                        else if (c_buf[c_got[2:0]] != rsp_data) c_diff <= 1'b1;
                         c_got <= c_got + 4'd1;
                         if (c_got == 4'd7) begin
-                            c_j <= '0;
-                            c_st <= C_PUT;
+                            if (!c_vfy) begin                 // read it again
+                                c_vfy <= 1'b1;
+                                c_req <= 1'b1;
+                                c_st <= C_RD;
+                            end else if (c_diff || c_buf[7] != rsp_data) begin
+                                c_vfy <= 1'b0;                // they differ: start the burst over
+                                c_req <= 1'b1;
+                                c_st <= C_RD;
+                                if (copy_retries != 8'hff) copy_retries <= copy_retries + 8'd1;
+                            end else begin
+                                c_vfy <= 1'b0;
+                                c_j <= '0;
+                                c_st <= C_PUT;
+                            end
                         end
                     end
                     C_PUT:

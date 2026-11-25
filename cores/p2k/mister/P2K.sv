@@ -167,6 +167,7 @@ assign UART_TXD = midi_txd;
 // downloads
 reg  [1:0]  x_owner = 2'd0;          // the memory client's owner: 0 none, 1 loader copier, 2 images (below)
 wire [63:0] x_rsp_data;
+wire  [7:0] copy_retries;            // loader bursts read again (diagnostics line, last byte)
 wire        font_we;
 wire [11:0] font_addr;
 wire  [7:0] font_data;
@@ -187,7 +188,7 @@ p2k_loader #(.SMP_BASE(SMP_BASE), .BABY_BASE(BABY_BASE), .CPU_BASE(CPU_BASE), .S
 	.pack_ok(pack_ok), .loading(loading), .pack_loading(pack_loading), .simm_loaded(simm_loaded),
 	.simm_start(simm_start), .slot_start(slot_start),
 	.big_words(ld_big), .baby_words(ld_baby),
-	.ext_busy(x_owner != 2'd1), .want(ld_want), .hold(ld_hold),
+	.ext_busy(x_owner != 2'd1), .want(ld_want), .hold(ld_hold), .copy_retries(copy_retries),
 	.req_valid(ld_req_valid), .req_ready(ld_req_ready), .req_we(ld_req_we), .req_addr(ld_req_addr),
 	.req_wdata(ld_req_wdata), .req_be(ld_req_be), .req_len(ld_req_len),
 	.rsp_valid(ld_rsp_valid), .rsp_data(x_rsp_data)
@@ -327,7 +328,7 @@ p2k_lcd_video video
 	.display_on(lcd_on), .cursor_on(lcd_cursor), .blink_on(lcd_blink), .leds(leds), .level(level),
 	.rom_ok(pack_ok), .loading(loading | slot_busy), .running(cpu_running), .midi_led(midi_stretch != 0), .late_seen(late),
 	.diag(status[8]),
-	.diag_hex({cpu_pc, cpu_addr, 3'd0, pack_ok, 3'd0, boot_hold, 3'd0, cpu_hold, 3'd0, lcd_on, 3'd0, late, 3'd0, flash_lock, 3'd0, rsp_extra, 4'd0}),
+	.diag_hex({cpu_pc, cpu_addr, 3'd0, pack_ok, 3'd0, boot_hold, 3'd0, cpu_hold, 3'd0, lcd_on, 3'd0, late, 3'd0, flash_lock, 3'd0, rsp_extra, copy_retries[3:0]}),
 	.hs(hs), .vs(vs), .hblank(hblank), .vblank(vblank), .r(r), .g(g), .b(b)
 );
 
