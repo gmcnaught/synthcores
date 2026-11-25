@@ -25,7 +25,8 @@ target_link_libraries(jv880_board_bench PRIVATE sc55_common_traced)   # ref_hook
 verilate(jv880_board_bench SOURCES ${JV880_SV}
          TOP_MODULE jv880_board PREFIX Vjv880_board INCLUDE_DIRS ${JV880_INC}
          VERILATOR_ARGS ${VFLAGS} -Wno-PINCONNECTEMPTY --public-flat-rw
-         "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\"")
+         "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\""
+         "-GPANEL_DIR=\"${HDL}/panel/\"")
 
 # synthframe_nvsave unit bench: a save with the core running, and the paused second pass after a write
 add_executable(nvsave_tb nvsave_tb.cpp)

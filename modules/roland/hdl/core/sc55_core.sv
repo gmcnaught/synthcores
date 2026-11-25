@@ -38,6 +38,7 @@ module sc55_core #(
     output logic        tx_valid,         // MIDI out byte (sc55_mcu: the SCI, or the mk2's sub-MCU)
     output logic [7:0]  tx_data,
     input  logic [31:0] buttons,
+    output logic [9:0]  jv_leds,          // JV-880 panel LEDs (sc55_mcu)
 
     output logic        rom_req,
     output logic [21:0] rom_addr,
@@ -76,7 +77,7 @@ module sc55_core #(
     sc55_mcu #(.RXBUF_BITS(RXBUF_BITS), .ROM2_AW(ROM2_AW), .JV880_RAMS(JV880_RAMS)) mcu (
         .clk, .rst, .mk2, .sc155, .jv880, .enc_we, .enc_dir, .rom2x_req, .rom2x_addr, .rom2x_ack, .rom2x_data, .run_step, .step_done, .reset_start, .reset_done, .ready(m_ready),
         .ld_we, .ld_sel, .ld_addr, .ld_data, .nv_dump_a, .nv_dump_d, .nv_wrote, .idle,
-        .midi_valid, .midi_data, .midi_full, .buttons,
+        .midi_valid, .midi_data, .midi_full, .buttons, .jv_leds,
         .tx_stb(mcu_tx_stb), .tx_byte(mcu_tx_byte), .sm_tx_stb(mcu_sm_tx_stb), .sm_tx_byte(mcu_sm_tx_byte),
         .pcm_req(p_req), .pcm_we(p_we), .pcm_addr(p_addr), .pcm_wdata(p_wdata), .pcm_rdata(p_rdata), .pcm_ack(p_ack),
         .pcm_tick(p_tick), .pcm_irq0(p_irq0), .pcm_irq_known(p_known),

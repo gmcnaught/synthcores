@@ -1,4 +1,8 @@
-# JV-880 panel (owner's manual pp. 9-10), rearranged for 800 x 600. The core models no LEDs.
+# JV-880 panel (owner's manual pp. 9-10), rearranged for 800 x 600.
+# HDL expressions, in jv880_lcd_video's scope: buttons = jv880_kbd's buttons (mcu.h
+# MCU_BUTTON_* for the JV-880; 1 = pressed), leds = sc55_mcu's jv_leds (the LEDs the
+# firmware drives: [4:0] UTILITY, RHYTHM, SYSTEM, EDIT, MIDI MESSAGE; [9:5] TONE SWITCH 4-1, PATCH).
+bpp: 4
 size: [800, 600]
 theme: {hint_style: inside, hint: '#e0b040'}
 elements:
@@ -26,7 +30,7 @@ elements:
 - type: button
   rect: [40, 292, 40, 18]
   key: P
-  input: 9
+  input: buttons[9]
   radius: 9
 - type: label
   at: [60, 322]
@@ -37,15 +41,18 @@ elements:
   at: [160, 230]
   r: 30
   label: DATA
-  key: ', .'
 - type: button
   rect: [140, 292, 40, 18]
   key: Tab
-  input: 4
+  input: buttons[4]
   radius: 9
 - type: label
-  at: [160, 336]
-  text: (data button)
+  at: [160, 282]
+  text: (PUSH)
+  size: 8
+- type: label
+  at: [160, 322]
+  text: 'turn: , .'
   size: 8
   color: '#8a8a90'
 - type: box
@@ -55,14 +62,14 @@ elements:
   title: ◀ CURSOR ▶
   bg: '#1e1e20'
 - type: button
-  rect: [226, 268, 46, 22]
+  rect: [224, 268, 48, 22]
   key: ←
-  input: 0
+  input: buttons[0]
   glyph: −
 - type: button
-  rect: [280, 268, 46, 22]
+  rect: [280, 268, 48, 22]
   key: →
-  input: 1
+  input: buttons[1]
   glyph: +
 - type: label
   at: [276, 308]
@@ -70,156 +77,174 @@ elements:
   size: 8
   color: '#8a8a90'
 - type: label
-  at: [392, 196]
+  at: [390, 192]
   text: ■ PATCH
   size: 9
   anchor: mm
   color: '#f0a040'
 - type: label
-  at: [392, 208]
+  at: [390, 204]
   text: □ PERFORM
   size: 9
   anchor: mm
   color: '#60a0ff'
 - type: button
-  rect: [362, 218, 60, 22]
+  rect: [360, 224, 60, 22]
   key: A
-  input: 10
-- type: area
-  rect: [384, 221, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[10]
+- type: led
+  at: [390, 219]
+  color: '#ff3020'
+  bit: leds[9]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [392, 262]
+  at: [390, 262]
   text: TONE
   size: 9
 - type: label
-  at: [392, 274]
+  at: [390, 274]
   text: SELECT
   size: 9
 - type: button
-  rect: [362, 282, 60, 22]
+  rect: [360, 288, 60, 22]
   key: Q
-  input: 2
+  input: buttons[2]
 - type: label
-  at: [476, 208]
+  at: [478, 204]
   text: EDIT
   size: 9
 - type: button
-  rect: [446, 218, 60, 22]
+  rect: [448, 224, 60, 22]
   key: W
-  input: 11
-- type: area
-  rect: [468, 221, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[11]
+- type: led
+  at: [478, 219]
+  color: '#ff3020'
+  bit: leds[3]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [542, 208]
+  at: [542, 204]
   text: SYSTEM
   size: 9
 - type: button
-  rect: [512, 218, 60, 22]
+  rect: [512, 224, 60, 22]
   key: E
-  input: 12
-- type: area
-  rect: [534, 221, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[12]
+- type: led
+  at: [542, 219]
+  color: '#ff3020'
+  bit: leds[2]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [608, 208]
+  at: [606, 204]
   text: RHYTHM
   size: 9
 - type: button
-  rect: [578, 218, 60, 22]
+  rect: [576, 224, 60, 22]
   key: R
-  input: 13
-- type: area
-  rect: [600, 221, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[13]
+- type: led
+  at: [606, 219]
+  color: '#ff3020'
+  bit: leds[1]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [674, 208]
+  at: [670, 204]
   text: UTILITY
   size: 9
 - type: button
-  rect: [644, 218, 60, 22]
+  rect: [640, 224, 60, 22]
   key: T
-  input: 8
-- type: area
-  rect: [666, 221, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[8]
+- type: led
+  at: [670, 219]
+  color: '#ff3020'
+  bit: leds[0]
+  shape: rect
+  size: [16, 3]
 - type: box
-  rect: [440, 262, 270, 62]
+  rect: [440, 260, 270, 72]
   radius: 6
   color: '#9a9aa2'
   title: TONE SWITCH
   bg: '#1e1e20'
 - type: label
-  at: [476, 274]
+  at: [478, 271]
   text: '1'
   size: 9
 - type: button
-  rect: [446, 282, 60, 22]
+  rect: [448, 288, 60, 22]
   key: S
-  input: 3
-- type: area
-  rect: [468, 285, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[3]
+- type: led
+  at: [478, 283]
+  color: '#ff3020'
+  bit: leds[8]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [476, 316]
+  at: [478, 322]
   text: MUTE
   size: 8
   color: '#60a0ff'
 - type: label
-  at: [542, 274]
+  at: [542, 271]
   text: '2'
   size: 9
 - type: button
-  rect: [512, 282, 60, 22]
+  rect: [512, 288, 60, 22]
   key: D
-  input: 5
-- type: area
-  rect: [534, 285, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[5]
+- type: led
+  at: [542, 283]
+  color: '#ff3020'
+  bit: leds[7]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [542, 316]
+  at: [542, 322]
   text: MONITOR
   size: 8
   color: '#60a0ff'
 - type: label
-  at: [608, 274]
+  at: [606, 271]
   text: '3'
   size: 9
 - type: button
-  rect: [578, 282, 60, 22]
+  rect: [576, 288, 60, 22]
   key: F
-  input: 6
-- type: area
-  rect: [600, 285, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[6]
+- type: led
+  at: [606, 283]
+  color: '#ff3020'
+  bit: leds[6]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [608, 316]
+  at: [606, 322]
   text: INFO/COMPARE
   size: 8
   color: '#f0a040'
 - type: label
-  at: [674, 274]
+  at: [670, 271]
   text: '4'
   size: 9
 - type: button
-  rect: [644, 282, 60, 22]
+  rect: [640, 288, 60, 22]
   key: G
-  input: 7
-- type: area
-  rect: [666, 285, 16, 3]
-  color: '#402010'
-  radius: 0
+  input: buttons[7]
+- type: led
+  at: [670, 283]
+  color: '#ff3020'
+  bit: leds[5]
+  shape: rect
+  size: [16, 3]
 - type: label
-  at: [674, 316]
+  at: [670, 322]
   text: ENTER
   size: 8
   color: '#e8e8e8'
@@ -243,7 +268,7 @@ elements:
   at: [754, 280]
   r: 4
   color: '#ff3020'
-  bit: null
+  bit: leds[4]
   label: MIDI MESSAGE
   shape: rect
   size: [24, 5]

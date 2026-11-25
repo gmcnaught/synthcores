@@ -70,12 +70,16 @@ Panel keys (PS/2 or USB keyboard, the reference frontend's map):
 | D | MONITOR |
 | F | COMPARE |
 | G | ENTER |
-| Tab | DATA |
+| Tab | DATA (pushing the DATA dial: hold it while turning for large steps) |
 | ← → | CURSOR |
-| , . or ↓ ↑ | the VALUE encoder |
+| , . or ↓ ↑ | turning the DATA dial |
 
 As on the unit, pressing a mode button (UTILITY, SYSTEM, RHYTHM, EDIT) again returns to play
 mode; PATCH/PERFORM switches between patch and performance play.
+
+The screen shows the front panel (`cfg/panel.yaml`) around the LCD: buttons show pressed while
+their keys are held, and the indicators (PATCH, EDIT, SYSTEM, RHYTHM, UTILITY, TONE SWITCH 1-4,
+MIDI MESSAGE) light as the firmware drives them.
 
 **NVRAM (the unit's battery-backed memory):** the core keeps it in `saves/JV-880/<pack>.sav`
 (32 KB, the reference's NVRAM layout).
