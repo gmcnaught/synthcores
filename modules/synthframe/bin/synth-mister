@@ -88,10 +88,12 @@ load)
 shot)
     core=${1:?shot CORE OUT}; out=${2:?shot CORE OUT}; d=$FAT/screenshots/$(shot_dir "$core")
     "${SSH[@]}" "rm -f $d/*.png"; mcmd screenshot
-    # Main_MiSTer creates the file empty and fills it later (30 s seen on 2026-11-23): wait up
-    # to 60 s for a non-empty file whose size holds for a second
+    # Main_MiSTer creates the file empty and fills it later (30 s seen on 2026-11-23), in pieces
+    # (a busy frame stopped at 24,576 bytes for over a second on 2026-11-25): wait up to 60 s
+    # for a file that ends with the PNG IEND chunk and whose size then holds for a second
     f=$("${SSH[@]}" "p=0; for i in \$(seq 120); do sleep 0.5; f=\$(ls -t $d/ 2>/dev/null | head -1);
-        [ -n \"\$f\" ] || continue; s=\$(stat -c %s $d/\$f); [ \$s -gt 0 ] && [ \$s = \$p ] && { echo \$f; break; }; p=\$s; done")
+        [ -n \"\$f\" ] || continue; s=\$(stat -c %s $d/\$f);
+        [ \$s -gt 0 ] && [ \$s = \$p ] && tail -c 12 $d/\$f | grep -q IEND && { echo \$f; break; }; p=\$s; done")
     [ -n "$f" ] || { echo "no screenshot" >&2; exit 1; }
     scp -q "$DEV:$d/$f" "$out"; echo "$out" ;;
 peek)
