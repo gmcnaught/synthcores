@@ -62,12 +62,12 @@ elements:
   title: ◀ CURSOR ▶
   bg: '#1e1e20'
 - type: button
-  rect: [226, 268, 46, 22]
+  rect: [224, 268, 48, 22]
   key: ←
   input: buttons[0]
   glyph: −
 - type: button
-  rect: [280, 268, 46, 22]
+  rect: [280, 268, 48, 22]
   key: →
   input: buttons[1]
   glyph: +
@@ -77,49 +77,49 @@ elements:
   size: 8
   color: '#8a8a90'
 - type: label
-  at: [392, 192]
+  at: [390, 192]
   text: ■ PATCH
   size: 9
   anchor: mm
   color: '#f0a040'
 - type: label
-  at: [392, 204]
+  at: [390, 204]
   text: □ PERFORM
   size: 9
   anchor: mm
   color: '#60a0ff'
 - type: button
-  rect: [362, 224, 60, 22]
+  rect: [360, 224, 60, 22]
   key: A
   input: buttons[10]
 - type: led
-  at: [392, 219]
+  at: [390, 219]
   color: '#ff3020'
   bit: leds[9]
   shape: rect
   size: [16, 3]
 - type: label
-  at: [392, 262]
+  at: [390, 262]
   text: TONE
   size: 9
 - type: label
-  at: [392, 274]
+  at: [390, 274]
   text: SELECT
   size: 9
 - type: button
-  rect: [362, 288, 60, 22]
+  rect: [360, 288, 60, 22]
   key: Q
   input: buttons[2]
 - type: label
-  at: [476, 204]
+  at: [478, 204]
   text: EDIT
   size: 9
 - type: button
-  rect: [446, 224, 60, 22]
+  rect: [448, 224, 60, 22]
   key: W
   input: buttons[11]
 - type: led
-  at: [476, 219]
+  at: [478, 219]
   color: '#ff3020'
   bit: leds[3]
   shape: rect
@@ -139,29 +139,29 @@ elements:
   shape: rect
   size: [16, 3]
 - type: label
-  at: [608, 204]
+  at: [606, 204]
   text: RHYTHM
   size: 9
 - type: button
-  rect: [578, 224, 60, 22]
+  rect: [576, 224, 60, 22]
   key: R
   input: buttons[13]
 - type: led
-  at: [608, 219]
+  at: [606, 219]
   color: '#ff3020'
   bit: leds[1]
   shape: rect
   size: [16, 3]
 - type: label
-  at: [674, 204]
+  at: [670, 204]
   text: UTILITY
   size: 9
 - type: button
-  rect: [644, 224, 60, 22]
+  rect: [640, 224, 60, 22]
   key: T
   input: buttons[8]
 - type: led
-  at: [674, 219]
+  at: [670, 219]
   color: '#ff3020'
   bit: leds[0]
   shape: rect
@@ -173,21 +173,21 @@ elements:
   title: TONE SWITCH
   bg: '#1e1e20'
 - type: label
-  at: [476, 271]
+  at: [478, 271]
   text: '1'
   size: 9
 - type: button
-  rect: [446, 288, 60, 22]
+  rect: [448, 288, 60, 22]
   key: S
   input: buttons[3]
 - type: led
-  at: [476, 283]
+  at: [478, 283]
   color: '#ff3020'
   bit: leds[8]
   shape: rect
   size: [16, 3]
 - type: label
-  at: [476, 322]
+  at: [478, 322]
   text: MUTE
   size: 8
   color: '#60a0ff'
@@ -211,40 +211,40 @@ elements:
   size: 8
   color: '#60a0ff'
 - type: label
-  at: [608, 271]
+  at: [606, 271]
   text: '3'
   size: 9
 - type: button
-  rect: [578, 288, 60, 22]
+  rect: [576, 288, 60, 22]
   key: F
   input: buttons[6]
 - type: led
-  at: [608, 283]
+  at: [606, 283]
   color: '#ff3020'
   bit: leds[6]
   shape: rect
   size: [16, 3]
 - type: label
-  at: [608, 322]
+  at: [606, 322]
   text: INFO/COMPARE
   size: 8
   color: '#f0a040'
 - type: label
-  at: [674, 271]
+  at: [670, 271]
   text: '4'
   size: 9
 - type: button
-  rect: [644, 288, 60, 22]
+  rect: [640, 288, 60, 22]
   key: G
   input: buttons[7]
 - type: led
-  at: [674, 283]
+  at: [670, 283]
   color: '#ff3020'
   bit: leds[5]
   shape: rect
   size: [16, 3]
 - type: label
-  at: [674, 322]
+  at: [670, 322]
   text: ENTER
   size: 8
   color: '#e8e8e8'

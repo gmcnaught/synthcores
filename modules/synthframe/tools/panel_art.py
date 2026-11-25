@@ -354,7 +354,14 @@ def build_rom(spec, bpp, base='.'):
 
 
 def rom_bits(r):
-    m10k = lambda depth, width: -(-depth * width // 10240)
+    def m10k(depth, width):
+        # Quartus 17 (Cyclone V) maps an inferred ROM in the shallowest M10K mode that holds its
+        # depth and slices the width (JV-880: 7500 x 15 took 15 blocks, 4176 x 32 took 32,
+        # 4072 x 32 took 16), so a tile ROM just past 4096 rows doubles
+        for d, w in ((256, 40), (512, 20), (1024, 10), (2048, 5), (4096, 2), (8192, 1)):
+            if depth <= d:
+                return -(-width // w)
+        return -(-depth // 8192) * width
     mb = len(r['map']) * (r['tb'] + r['eb'])
     tb = len(r['tiles']) * 8 * 8 * r['bpp']
     return mb, tb, m10k(len(r['map']), r['tb'] + r['eb']) + m10k(len(r['tiles']) * 8, 8 * r['bpp'])
