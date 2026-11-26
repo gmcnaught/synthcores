@@ -121,6 +121,11 @@ jobs:
         env:
           SC55_REF_BUILD: out/sim/ref
         run: |
+          if [ -f tests/ci.sh ]; then     # the ci-scripts job runs this core's tests (once, under pypy3)
+            echo "tests/ci.sh exists: test_*.py run there, not here"
+            echo "### tests (${{ matrix.core }}): run by tests/ci.sh (ci-scripts job)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           pass=0; skip=0; fail=0
           for t in tests/test_*.py tests/*/test_*.py; do
             [ -f "$t" ] || continue

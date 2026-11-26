@@ -16,6 +16,7 @@ runs:
         sudo apt-get update
         sudo apt-get install -y ninja-build cmake g++-14 pypy3 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
         python -m pip install pyyaml pillow
+        pypy3 --version     # apt's pypy3 (Python 3.9 on 24.04), on PATH as pypy3
         # pypy3 from apt has no pip: bootstrap it, then the same packages (best effort; a ci.sh
         # that needs them under pypy3 falls back to python3)
         if pypy3 -m ensurepip --user >/dev/null 2>&1 || pypy3 -m pip --version >/dev/null 2>&1; then
