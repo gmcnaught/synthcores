@@ -3,8 +3,9 @@
 // (hdl/sim/board_top.sv) share:
 //   boot_loader   stands in for the boot ROM: loads MONITOR from F0, or a
 //                 state image (tools/state_image.py, e.g. ORK-LM) from S2;
-//   sd_floppy     F0/F1 floppy images and the state image on the SD block
-//                 interface (hps_io, 3 drives);
+//   sd_floppy     the SD block interface (hps_io, 6 drives): F0/F1 floppy
+//                 images, the state image (S2), the SCSI disks W0/W1 (S3,
+//                 S4) and the digital STM source (S5);
 //   term_display  the system terminal (D50) as 80 x 24 text on video;
 //   ps2_ascii     the keyboard (hps_io ps2_key) as terminal input;
 //   midi_in       MIDI (UART, MidiLink) to the original keyboard and panel;

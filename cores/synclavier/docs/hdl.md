@@ -9,7 +9,7 @@ keyboard and panel, and the D160–D165 FM interface (registers,
 interpolators, wave memory). They agree with the Python devices value for
 value and nanosecond for nanosecond of simulated time, through MONITOR's
 boot and ORK-LM recalling a timbre and playing a note. The **voice engine**
-(`hdl/dev/fm_voices.sv`) produces the same integer audio samples as
+(`hdl/dev/dev_fm.sv`) produces the same integer audio samples as
 `sim/voice.py`, sample for sample. The **MiSTer core**
 (`hdl/core/`, `mister/`, Template_MiSTer: decision D4) boots Release L
 from an F0 floppy image in simulation from power-on and matches the
@@ -22,21 +22,24 @@ Behavioural, multi-cycle, one instruction per pass through:
 
 | State | Does | Cycles |
 |---|---|---|
-| FETCH | memory address = PC | 1 |
+| FETCH | memory address = PC; waits while `stall` (throttle, poly_box); a repeated instruction goes straight to DECODE | 1 + wait |
+| FWAIT | the instruction word from block RAM into `fbuf` | 1 |
+| CFETCH | Model D, PC in a page: the instruction word through the code cache (`cm_*`), held until `cm_ack` | 1 + wait |
 | DECODE | instruction word from memory; PC + 1; immediate/register source (with post-increment); memory address for a memory source | 1 |
 | SRCMEM / SRCIO | memory source data; or I/O read held until SYN (`io_ack`); or PSW read | 1 / 1 + wait |
+| CSRC | Model D, a PC literal in a page: the word through the code cache | 1 + wait |
 | EXEC | destination: ALU, test, shift, register, transfer, memory write, I/O write (held until SYN), PCW | 1 + wait |
 | TICK | `tick` strobe: devices advance by the instruction's time | 1 |
 | END | `HALT` request; interrupt entry (ION and PCS set and any request bit: ION = 0, PCS = 0) | 1 |
 
-About 5.5 clocks per instruction (ORK-LM: 5.62).
+About 5.5 clocks per instruction (ORK-LM: 5.62) before FWAIT was added; a fetched instruction now takes one clock more.
 
 **Real time.** `hdl/throttle.sv` holds the CPU before each fetch (and
 before retrying a held read) while simulated time is ahead of real time
 (`rt_enable`; 50 MHz assumed, `CLK_HZ`). It only adds wait clocks, so
 lockstep runs are unchanged with it on (`check --realtime`): the voice
 test program ends 74 ns and MONITOR's boot (1.04 s) 551 ns from real
-time. Credit when the CPU falls behind is capped at 10 µs.
+time. Credit when the CPU falls behind is capped at 200 µs (`CATCHUP_NS`).
 
 **Voice time (M14).** On the instrument the FM and poly voices run on their
 own clocks, and a disk load stops the CPU's main loop but not the voices
