@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Copy Nuked-MT32 (modules/nuked-mt32) into a build folder and add the reference's log hooks.
 
-    prepare_src.py SRC OUT
+    prepare_src.py SRC OUT [--no-hooks]
 
 Every edit is anchored on text from the pinned commit; a missing anchor stops the build, so an
 upstream change can't silently drop a hook. The hooks are calls through null function pointers
-(mt32_hooks.h): with no logging asked for, the audio is the upstream audio (checked by
-tests/test_ref.py against a build without hooks).
+(mt32_hooks.h): with no logging asked for, the audio is the upstream audio. --no-hooks copies
+the upstream sources with only the include-path fix; tests/ref_hooks_check.sh renders the corpus
+with that build and checks the hashes in tests/corpus.json.
 """
 import shutil
 import sys
@@ -16,6 +17,9 @@ from pathlib import Path
 FILES = ["mt32.cpp", "mt32.h", "la32.cpp", "la32.h", "rv2.cpp", "rv2.h", "lcd.cpp", "lcd_font.h",
          "mame/emu.h", "mame/mcs96.cpp", "mame/mcs96.h", "mame/mcs96.hxx", "mame/i8x9x.cpp",
          "mame/i8x9x.h", "mame/i8x9x.hxx"]
+
+# Windows include path only (--no-hooks).
+NO_HOOKS_EDIT = ("mame/emu.h", '#include "..\\mt32.h"', '#include "../mt32.h"', 1)
 
 # (file, anchor, replacement). The anchor must occur exactly `count` times.
 EDITS = [
@@ -109,9 +113,10 @@ EDITS = [
 
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
+    hooks = "--no-hooks" not in sys.argv[3:]
     (out / "mame").mkdir(parents=True, exist_ok=True)
     texts = {f: (src / f).read_text() for f in FILES}
-    for f, anchor, repl, count in EDITS:
+    for f, anchor, repl, count in (EDITS if hooks else [NO_HOOKS_EDIT]):
         n = texts[f].count(anchor)
         if n != count:
             sys.exit(f"prepare_src: {f}: anchor found {n} times, expected {count}: {anchor!r}")
