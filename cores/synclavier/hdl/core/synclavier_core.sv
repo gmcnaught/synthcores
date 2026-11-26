@@ -29,7 +29,7 @@
 //                 bytes appended to a capture file on SD drive 6 by
 //                 print_capture.
 // External memory (D60-D63: EXT_SECTORS sectors for a floppy boot, a
-// state image's own size otherwise, at most 4096) is a word port (xr_*):
+// state image's own size otherwise, at most 8192) is a word port (xr_*):
 // DDR3 on MiSTer (hdl/board/ddram_word.sv), a model in simulation.
 // Devices not in the HDL answer no SYN, which halts the CPU as on the real
 // machine.
@@ -182,7 +182,7 @@ module synclavier_core #(
     logic [24:0] w1_blocks;
     logic [1:0]  fd_protect;
     logic        w0_protect;
-    logic [12:0] state_blocks;
+    logic [16:0] state_blocks;
     logic [24:0] w0_blocks;
     wire  [1:0]  fd_present = sd_present[1:0];
     logic [10:0] fd_sectors0, fd_sectors1;

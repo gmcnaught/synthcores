@@ -134,14 +134,15 @@ module boot_loader (
     logic        cat_done;
     // state mode
     logic        smode;
-    logic [19:0] wp;                // next word of the image
+    logic [23:0] wp;                // next word of the image (up to 65536 blocks; at most
+                                    // 1 + 2048 + 16 + 256 + 8192 are used)
     logic [15:0] hw [36];           // header words 0-35
     logic [16:0] stored;            // external memory sectors in the image
     logic [15:0] n_ent;
     logic        pend_lo;           // second byte of a wave-memory word
     logic [7:0]  lo_byte;
     logic [12:0] lo_addr;
-    wire  [19:0] wp_block = (wp + 20'd255) & ~20'd255;     // next block boundary
+    wire  [23:0] wp_block = (wp + 24'd255) & ~24'd255;     // next block boundary
 
     // words in a catalog entry's file (tools/ned_disk.py file_words)
     function automatic logic [16:0] file_words(input logic [15:0] length, input logic [15:0] words);
@@ -366,10 +367,10 @@ module boot_loader (
             B_SHDR: begin                         // block 0: the header
                 if (fd_rd && fd_ack) begin
                     fd_rd <= 1'b0;
-                    if (wp < 20'd36) hw[wp[5:0]] <= fd_rdata;
-                    wp <= wp + 20'd1;
+                    if (wp < 24'd36) hw[wp[5:0]] <= fd_rdata;
+                    wp <= wp + 24'd1;
                 end else if (!fd_rd && !fd_ack) begin
-                    if (wp == 20'd256) begin
+                    if (wp == 24'd256) begin
                         if (hw[0] != 16'h5359 || hw[1] != 16'h4e43 || hw[2] != 16'h5354 ||
                             hw[3] != 16'h4154 || (hw[4] != 16'd1 && hw[4] != 16'd2) ||
                             hw[5] == 16'd0 || hw[5] > 16'd8192 ||
@@ -389,7 +390,7 @@ module boot_loader (
                             state <= B_SENT;
                         end
                     end else begin
-                        fd_addr <= {2'd2, 4'd0, wp};
+                        fd_addr <= {2'd2, wp};
                         fd_rd <= 1'b1;
                     end
                 end
@@ -401,7 +402,7 @@ module boot_loader (
                     ent[n[2:0]] <= fd_rdata;
                     fd_wait <= n[2:0] == 3'd7;
                     n <= n + 17'd1;
-                    wp <= wp + 20'd1;
+                    wp <= wp + 24'd1;
                 end else if (fd_wait) begin       // the 8th word has landed
                     fd_wait <= 1'b0;
                     if (ent[0] == 16'd0) begin
@@ -417,7 +418,7 @@ module boot_loader (
                         n <= '0;
                         state <= B_SWAVE;
                     end else begin
-                        fd_addr <= {2'd2, 4'd0, wp};
+                        fd_addr <= {2'd2, wp};
                         fd_rd <= 1'b1;
                     end
                 end
@@ -431,7 +432,7 @@ module boot_loader (
                     pend_lo <= 1'b1;
                     lo_addr <= {n[11:0], 1'b1}; lo_byte <= fd_rdata[7:0];
                     n <= n + 17'd1;
-                    wp <= wp + 20'd1;
+                    wp <= wp + 24'd1;
                 end else if (pend_lo) begin
                     pend_lo <= 1'b0;
                     ld_dev_we <= 1'b1; ld_dev_sel <= 3'd6;
@@ -441,7 +442,7 @@ module boot_loader (
                         n <= '0;
                         state <= B_SMEM;
                     end else begin
-                        fd_addr <= {2'd2, 4'd0, wp};
+                        fd_addr <= {2'd2, wp};
                         fd_rd <= 1'b1;
                     end
                 end
@@ -452,13 +453,13 @@ module boot_loader (
                     fd_rd <= 1'b0;
                     ld_mem_we <= 1'b1; ld_mem_addr <= n[15:0]; ld_mem_data <= fd_rdata;
                     n <= n + 17'd1;
-                    wp <= wp + 20'd1;
+                    wp <= wp + 24'd1;
                 end else if (!fd_rd && !fd_ack) begin
                     if (n == 17'd65536) begin
                         xn <= '0;
                         state <= B_SXM;
                     end else begin
-                        fd_addr <= {2'd2, 4'd0, wp};
+                        fd_addr <= {2'd2, wp};
                         fd_rd <= 1'b1;
                     end
                 end
@@ -474,7 +475,7 @@ module boot_loader (
                     end
                     if (hw[35] != 16'd0 && xn == {8'd0, hw[35] + 16'd1} && printer)
                         xm_wdata <= 16'o6000;
-                    wp <= wp + 20'd1;
+                    wp <= wp + 24'd1;
                 end else if (xm_wr && xm_ack) begin
                     xm_wr <= 1'b0;
                     xn <= xn + 24'd1;
@@ -485,7 +486,7 @@ module boot_loader (
                     end else if ({1'b0, xn} >= {stored, 8'd0}) begin
                         xm_addr <= xn; xm_wdata <= '0; xm_wr <= 1'b1;
                     end else begin
-                        fd_addr <= {2'd2, 4'd0, wp};
+                        fd_addr <= {2'd2, wp};
                         fd_rd <= 1'b1;
                     end
                 end

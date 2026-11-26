@@ -828,6 +828,43 @@ def test_sd_word_arb():
     print("  " + [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0])
 
 
+def big_state_image(sectors=8192, entries=40):
+    """A version 2 state image (tools/state_image.py's format) with all
+    `sectors` of external memory stored: 1 + entry blocks + 16 + 256 +
+    sectors blocks, over 4096 for the default 8192. Memory words are a
+    pattern of their address; entries are device writes (D57 = word i)."""
+    import struct
+    hdr = b"SYNCSTAT" + struct.pack(">HHHH", 2, sectors, entries, sectors)
+    hdr += struct.pack(">16HH", *[(0o1000 + 37 * r) & 0xFFFF for r in range(16)], 0)
+    hdr += struct.pack(">10H", 1, 0, 0o1000, 0, 0, 0, 0, 0, 0, 0) + struct.pack(">H", 0)
+    out = bytearray(hdr.ljust(512, b"\0"))
+    ent = b"".join(struct.pack(">HHHHQ", 0, 0, 0o57, 0, i) for i in range(entries))
+    out += ent.ljust(-(-len(ent) // 512) * 512, b"\0")
+    out += bytes(32 * 256)                                        # wave memory
+    out += struct.pack(">65536H", *[(i * 5 ^ 0x1234) & 0xFFFF for i in range(65536)])
+    out += struct.pack(">%dH" % (sectors * 256),
+                       *[(i * 7 + (i >> 8) * 13 + 1) & 0xFFFF for i in range(sectors * 256)])
+    return bytes(out)
+
+
+def test_boot_loader_big_state_image():
+    """The boot loader loads a state image of 8465 blocks (8192 external
+    memory sectors, the most the header check accepts): every external
+    memory word lands where it belongs (review 2026-11-26 sync-hdl #3: a
+    20-bit word pointer wrapped at 4096 blocks)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".sst", delete=False) as f:
+        f.write(big_state_image())
+        path = f.name
+    try:
+        out = _testbench("boot_loader", "hdl/core/boot_loader.sv", args=["+image=" + path])
+        print("  " + [ln for ln in out.splitlines() if "boot_loader OK" in ln][0])
+    finally:
+        os.unlink(path)
+
+
 def vpk_stimulus(path, seed=1, ops=4000):
     """Stimulus for hdl/sim/dev_vpk_tb.sv from sim/devices/synth.py
     VelocityKeyboard: KEYBOARD.CHECK, KCR reads, key scans with velocity
