@@ -11,10 +11,13 @@
 //                        [--out FILE] [--reset-steps N] [--rom-latency N]
 //        JV-880 (--romset jv880-v1.0.1): [--nvram FILE] for both; --smf then reproduces the
 //        renderer's jv880 test (no reset message, still the 24 M reset steps).
+//        [--cycle-base B] starts the HDL's and the model's time counters at B (common/cycle_base.h),
+//        to run across a counter wrap.
 #include "Vsc55_core.h"
 #include "Vsc55_core___024root.h"
 #include "verilated.h"
 
+#include "../common/cycle_base.h"
 #include "../common/midi_demo.h"
 #include "emu.h"
 #include "mcu.h"
@@ -45,6 +48,7 @@ int main(int argc, char** argv)
     std::string nvram_in;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
+    uint64_t    cycle_base = 0;
     bool        rom_backpressure = false;
     std::mt19937_64 bp_rng(7);
     for (int i = 1; i < argc; ++i)
@@ -61,6 +65,7 @@ int main(int argc, char** argv)
         else if (a == "--rom-latency" && i + 1 < argc) rom_latency = std::atoi(argv[++i]);
         else if (a == "--rom-backpressure") rom_backpressure = true;
         else if (a == "--nvram" && i + 1 < argc) nvram_in = argv[++i];
+        else if (a == "--cycle-base" && i + 1 < argc) { cycle_base = std::strtoull(argv[++i], nullptr, 0); if (!cycle_base_ok(cycle_base)) return 2; }
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -162,6 +167,12 @@ int main(int argc, char** argv)
     t->reset_start = 1; tick(); t->reset_start = 0;
     for (int g = 0; g < 1000 && !t->reset_done; ++g) tick();
     if (!t->reset_done) { fprintf(stderr, "HDL reset did not finish\n"); return 1; }
+    if (cycle_base)
+    {
+        model_cycle_base(m, p, mk2, cycle_base);
+        HDL_MCU_CYCLE_BASE(RR, sc55_core__DOT__mcu__DOT__, mk2, cycle_base);
+        CB_POKE(RR, sc55_core__DOT__pcm__DOT__pcm_cycles, cycle_base);
+    }
 
     auto post = [&](uint8_t b) { emu.PostMIDI(b); midi_q.push_back(b); };
 

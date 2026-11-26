@@ -31,7 +31,7 @@ module sc55_pcm (
 
     // PCM_Update(target)
     input  logic        run,
-    input  logic [47:0] target,
+    input  logic [63:0] target,
     output logic        done,
 
     output logic        irq0,               // INTERRUPT_SOURCE_IRQ0 request (= irq_assert)
@@ -78,7 +78,7 @@ module sc55_pcm (
     logic [13:0] er_wa, er_ra;
     logic [15:0] er_wd, er_rd;
     logic [1:0]  er_wait;
-    logic [47:0] pcm_cycles;
+    logic [63:0] pcm_cycles;
     logic [31:0] voice_mask, voice_mask_pending, write_latch, read_latch, wave_read_address;
     logic [15:0] tv_counter;
     logic [7:0]  wave_byte_latch, config_reg_3c, config_reg_3d, irq_channel;
@@ -103,77 +103,77 @@ module sc55_pcm (
     wire         nm1 = mk2 || jv880;          // not the mk1: plain filter arithmetic
     // a frame's cycles: (reg_slots + 1) * 25, times 25/29 on the JV-880 (truncated each frame)
     // (a table, not a divider: reg_slots is 6 bits, and frame_len feeds the IRQ look-ahead, a short path)
-    function automatic logic [47:0] jv_frame_len(input logic [5:0] rs);
+    function automatic logic [63:0] jv_frame_len(input logic [5:0] rs);
         case (rs)
-            6'd0: return 48'd21;
-            6'd1: return 48'd43;
-            6'd2: return 48'd64;
-            6'd3: return 48'd86;
-            6'd4: return 48'd107;
-            6'd5: return 48'd129;
-            6'd6: return 48'd150;
-            6'd7: return 48'd172;
-            6'd8: return 48'd193;
-            6'd9: return 48'd215;
-            6'd10: return 48'd237;
-            6'd11: return 48'd258;
-            6'd12: return 48'd280;
-            6'd13: return 48'd301;
-            6'd14: return 48'd323;
-            6'd15: return 48'd344;
-            6'd16: return 48'd366;
-            6'd17: return 48'd387;
-            6'd18: return 48'd409;
-            6'd19: return 48'd431;
-            6'd20: return 48'd452;
-            6'd21: return 48'd474;
-            6'd22: return 48'd495;
-            6'd23: return 48'd517;
-            6'd24: return 48'd538;
-            6'd25: return 48'd560;
-            6'd26: return 48'd581;
-            6'd27: return 48'd603;
-            6'd28: return 48'd625;
-            6'd29: return 48'd646;
-            6'd30: return 48'd668;
-            6'd31: return 48'd689;
-            6'd32: return 48'd711;
-            6'd33: return 48'd732;
-            6'd34: return 48'd754;
-            6'd35: return 48'd775;
-            6'd36: return 48'd797;
-            6'd37: return 48'd818;
-            6'd38: return 48'd840;
-            6'd39: return 48'd862;
-            6'd40: return 48'd883;
-            6'd41: return 48'd905;
-            6'd42: return 48'd926;
-            6'd43: return 48'd948;
-            6'd44: return 48'd969;
-            6'd45: return 48'd991;
-            6'd46: return 48'd1012;
-            6'd47: return 48'd1034;
-            6'd48: return 48'd1056;
-            6'd49: return 48'd1077;
-            6'd50: return 48'd1099;
-            6'd51: return 48'd1120;
-            6'd52: return 48'd1142;
-            6'd53: return 48'd1163;
-            6'd54: return 48'd1185;
-            6'd55: return 48'd1206;
-            6'd56: return 48'd1228;
-            6'd57: return 48'd1250;
-            6'd58: return 48'd1271;
-            6'd59: return 48'd1293;
-            6'd60: return 48'd1314;
-            6'd61: return 48'd1336;
-            6'd62: return 48'd1357;
-            6'd63: return 48'd1379;
-            default: return 48'd0;
+            6'd0: return 64'd21;
+            6'd1: return 64'd43;
+            6'd2: return 64'd64;
+            6'd3: return 64'd86;
+            6'd4: return 64'd107;
+            6'd5: return 64'd129;
+            6'd6: return 64'd150;
+            6'd7: return 64'd172;
+            6'd8: return 64'd193;
+            6'd9: return 64'd215;
+            6'd10: return 64'd237;
+            6'd11: return 64'd258;
+            6'd12: return 64'd280;
+            6'd13: return 64'd301;
+            6'd14: return 64'd323;
+            6'd15: return 64'd344;
+            6'd16: return 64'd366;
+            6'd17: return 64'd387;
+            6'd18: return 64'd409;
+            6'd19: return 64'd431;
+            6'd20: return 64'd452;
+            6'd21: return 64'd474;
+            6'd22: return 64'd495;
+            6'd23: return 64'd517;
+            6'd24: return 64'd538;
+            6'd25: return 64'd560;
+            6'd26: return 64'd581;
+            6'd27: return 64'd603;
+            6'd28: return 64'd625;
+            6'd29: return 64'd646;
+            6'd30: return 64'd668;
+            6'd31: return 64'd689;
+            6'd32: return 64'd711;
+            6'd33: return 64'd732;
+            6'd34: return 64'd754;
+            6'd35: return 64'd775;
+            6'd36: return 64'd797;
+            6'd37: return 64'd818;
+            6'd38: return 64'd840;
+            6'd39: return 64'd862;
+            6'd40: return 64'd883;
+            6'd41: return 64'd905;
+            6'd42: return 64'd926;
+            6'd43: return 64'd948;
+            6'd44: return 64'd969;
+            6'd45: return 64'd991;
+            6'd46: return 64'd1012;
+            6'd47: return 64'd1034;
+            6'd48: return 64'd1056;
+            6'd49: return 64'd1077;
+            6'd50: return 64'd1099;
+            6'd51: return 64'd1120;
+            6'd52: return 64'd1142;
+            6'd53: return 64'd1163;
+            6'd54: return 64'd1185;
+            6'd55: return 64'd1206;
+            6'd56: return 64'd1228;
+            6'd57: return 64'd1250;
+            6'd58: return 64'd1271;
+            6'd59: return 64'd1293;
+            6'd60: return 64'd1314;
+            6'd61: return 64'd1336;
+            6'd62: return 64'd1357;
+            6'd63: return 64'd1379;
+            default: return 64'd0;
         endcase
     endfunction
-    wire  [47:0] frame_cyc = ({42'h0, reg_slots} + 48'd1) * 48'd25;
-    wire  [47:0] frame_len = jv880 ? jv_frame_len(reg_slots) : frame_cyc;
+    wire  [63:0] frame_cyc = ({58'h0, reg_slots} + 64'd1) * 64'd25;
+    wire  [63:0] frame_len = jv880 ? jv_frame_len(reg_slots) : frame_cyc;
     wire         caught_up = (pcm_cycles >= target);
     assign irq0 = irq_assert | (pre_done & pre_hit);
     assign irq_known = (ps == P_IDLE && caught_up) || (pre_done && (pcm_cycles + frame_len >= target));
@@ -516,7 +516,7 @@ module sc55_pcm (
             ps <= P_CLEAR;
             clr_a <= 14'd0;
             for (int i = 0; i < 32; i++) pitch[i] <= 16'h0;
-            pcm_cycles <= 48'd0;
+            pcm_cycles <= 64'd0;
             voice_mask <= 32'h0; voice_mask_pending <= 32'h0; write_latch <= 32'h0; read_latch <= 32'h0;
             wave_read_address <= 32'h0; tv_counter <= 16'h0; wave_byte_latch <= 8'h0;
             select_channel <= 5'h0; config_reg_3c <= 8'h0; config_reg_3d <= 8'h0; irq_channel <= 8'h0;

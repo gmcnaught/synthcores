@@ -56,7 +56,7 @@ module sc55_core #(
     output logic [7:0]  lcd_data,
     output logic        lcd_enable,
 
-    output logic [47:0] cycles,
+    output logic [63:0] cycles,
     output logic [15:0] dbg_pc,
     output logic [7:0]  dbg_cp,
     output logic [15:0] dbg_sr

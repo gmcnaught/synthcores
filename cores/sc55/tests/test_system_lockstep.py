@@ -93,6 +93,24 @@ def test_mk2_system_loud():
     ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "6000000", "--rom-latency", "10", "--rom-backpressure")
 
 
+
+WRAP_48 = (2**48 - 12 * 5_000_000) // (3 << 20) * (3 << 20)   # sim/common/cycle_base.h
+
+
+def test_cycles_wrap_48():
+    """review 2026-11-26 roland.md #10: mcu.cycles and pcm.cycles cross 2^48 at step 5,068,117,
+    during loud MIDI; CPU and every sample as the model (64-bit counters)."""
+    need_roms()
+    exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
+    ok_line(exe, "--roms", str(ROM_DIR), "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
+
+
+def test_mk2_cycles_wrap_48():
+    need_roms("mk2-v1.01")
+    exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
+    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "5500000",
+            "--cycle-base", str(WRAP_48))
+
 def test_mk2_upstream_hash():
     """avmidi 0A.mid through the mk2 HDL = jcmoyer's own integration hash (test/integration/CMakeLists.txt)."""
     need_roms("mk2-v1.01")
