@@ -18,11 +18,12 @@
 # Prints one line per case and "board: N passed"; exits 1 on any failure.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PY="$(command -v pypy3 || command -v python3)"   # comparison scripts run under pypy3 when present
 BENCH="${CZ101_BENCH:-$HERE/out/sim/cz101_bench}"
 W="${BOARD_WORK:-$HERE/out/board}"
 [ -x "$BENCH" ] || { echo "board: FAIL: no $BENCH (build cores/cz101/sim)"; exit 1; }
 rm -rf "$W"; mkdir -p "$W"
-python3 - "$BENCH" "$W" <<'PY'
+"$PY" - "$BENCH" "$W" <<'PY'
 import os, re, subprocess, sys
 bench, w = sys.argv[1:3]
 CLOCKS = 300000

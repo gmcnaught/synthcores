@@ -21,10 +21,11 @@ out="${UPD933_OUT:-$core/out/sim}"     # build dir of cores/cz101/sim (shared wi
 secs="${SECONDS_PER_STIM:-40}"
 py="$(command -v pypy3 || command -v python3)"
 if command -v sha256sum >/dev/null; then sha() { sha256sum "$@"; }; else sha() { shasum -a 256 "$@"; }; fi
-jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
+jobs="${CZ101_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}"
 
 gen=()
 command -v ninja >/dev/null && gen=(-G Ninja)
+command -v ccache >/dev/null && gen+=(-DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
 cmake -Wno-dev -S "$core/sim" -B "$out" "${gen[@]}" -DCMAKE_BUILD_TYPE=Release >/dev/null
 cmake --build "$out" -j "$jobs" --target upd933_tables upd933_stimgen upd933_replay upd933_bench >/dev/null
 
