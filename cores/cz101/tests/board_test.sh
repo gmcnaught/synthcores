@@ -33,8 +33,10 @@ def prog(name, code):
     os.makedirs(d, exist_ok=True)
     img = bytearray(0x8000)
     img[:len(code)] = bytes(code)
-    open(os.path.join(d, "hn613256ps40.bin"), "wb").write(img)
-    open(os.path.join(d, "init_ram.bin"), "wb").write(b"\xff" * 0x1000)
+    with open(os.path.join(d, "hn613256ps40.bin"), "wb") as f:
+        f.write(img)
+    with open(os.path.join(d, "init_ram.bin"), "wb") as f:
+        f.write(b"\xff" * 0x1000)
     return d
 
 def run(name, rom, **env):
@@ -125,13 +127,15 @@ else:
 
 # serial: 00 55 00 offered at cycle 0; the line falls at each start bit
 rom = prog("serial", JR_SELF)
-open(os.path.join(w, "serial.bytes"), "w").write("0 00\n0 55\n0 00\n")
+with open(os.path.join(w, "serial.bytes"), "w") as f:
+    f.write("0 00\n0 55\n0 00\n")
 log = os.path.join(w, "serial.rxline")
 r, err = run("serial", rom, CZ_MIDI_BYTES=os.path.join(w, "serial.bytes"), CZ_RX_LINE_LOG=log)
 if r is None:
     check("serial", False, err)
 else:
-    ch = [tuple(map(int, l.split())) for l in open(log)]
+    with open(log) as f:
+        ch = [tuple(map(int, l.split())) for l in f]
     falls = [k for k, lv in ch if lv == 0]
     # start bits: byte 0 and 2 have one fall each; 0x55 = 1,0,1,0,... LSB first falls 4 more times
     starts = [falls[0], falls[1], falls[6]] if len(falls) == 7 else []
