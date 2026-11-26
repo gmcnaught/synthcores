@@ -31,6 +31,11 @@ h = [(int(x, 16) ^ 0x20000) - 0x20000 for x in open(hexf).read().split()]
 xs = [tuple(map(int, l.split())) for l in open(fin)]
 want = list(zip(model(h, L, M, T, [x[0] for x in xs]), model(h, L, M, T, [x[1] for x in xs])))
 got = [tuple(map(int, l.split())) for l in open(fout)]
+# at least the outputs that L/M of the inputs make, less the filter's start-up
+need = len(xs) * L // M - 2 * T
+if len(want) < need or not got:
+    print(f"gap {gap}: FAIL: {len(got)} outputs from the HDL, {len(want)} from the model, need {need}")
+    sys.exit(1)
 bad = next((i for i in range(max(len(want), len(got))) if i >= len(want) or i >= len(got) or want[i] != got[i]), None)
 if bad is not None:
     print(f"gap {gap}: FAIL at output {bad} of {len(want)}: model {want[bad] if bad < len(want) else None} HDL {got[bad] if bad < len(got) else None}")
