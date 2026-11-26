@@ -612,9 +612,10 @@ class RandomDevice(Device):
     """Answers every device number with pseudo-random data and drives
     pseudo-random interrupt requests (for random-program lockstep runs)."""
 
-    def __init__(self, seed):
+    def __init__(self, seed, irq_mask=0xFFFF):
         self.rng = random.Random(seed)
         self.irq = 0
+        self.irq_mask = irq_mask
 
     def read(self, dev):
         return random_value(self.rng)
@@ -628,7 +629,7 @@ class RandomDevice(Device):
                                         self.rng.randrange(0x10000)))
 
     def irq_bits(self):
-        return self.irq
+        return self.irq & self.irq_mask
 
 
 def random_cpu(seed, model="B", ext_sectors=2048):
@@ -660,6 +661,45 @@ def random_cpu(seed, model="B", ext_sectors=2048):
         cpu.pcs = True
         cpu.page = rng.randrange(1, ext_sectors // 256 + 1) << 8
         cpu.d57 = random_value(rng)
+    return cpu
+
+
+def random_system(seed, ext_sectors=2048):
+    """Model D on the system top: sim.system's HDL devices (D3, D4-D7,
+    D50/D51, D60-D63, D100-D104, D130/D131, D160-D165, compared by the bench) with random memory, registers
+    and external memory, starting in a code page; every other device number
+    random (answered from the trace). External memory is the D60-D63 device
+    and the code pages at once, so random D62/D63 writes can change code.
+    Pages past `ext_sectors` read 177777 (sim/cpu.py _code_read)."""
+    from .system import make_system
+    rng = random.Random(seed)
+    # every device the system top has in HDL (D100-D104, D130/D131,
+    # D160-D165 too) has its Python model, so the bench compares them all
+    cpu = make_system(ext_sectors=ext_sectors, model="D", floppy=True, synth=True, strict=False)
+    free = [n for n in range(0o200) if n != 1 and n not in cpu.bus.devices]
+    # the random interrupt bits leave out D3's and D50/D51's (the HDL's own)
+    cpu.bus.attach(RandomDevice(seed + 1, irq_mask=0xFFFF & ~0o500), free)
+    from .decode import D_IO, DST_TABLE, S_IO, SRC_TABLE
+    # code words that read a device that stops the run (no SYN: D6, D7,
+    # D104, D164, D165; D50 waits for input) or write the floppy command
+    # registers are drawn again, so a run lasts thousands of instructions
+    stop_rd = {0o6, 0o7, 0o50, 0o104, 0o164, 0o165}
+
+    def word():
+        while True:
+            w = rng.randrange(0x10000)
+            sk, sv = SRC_TABLE[w & 0o377]
+            dk, da, _ = DST_TABLE[w >> 8]
+            if not (sk == S_IO and sv in stop_rd) and not (dk == D_IO and 0o100 <= da <= 0o104):
+                return w
+    cpu.mem = [word() for _ in range(0x10000)]
+    xm = cpu.extmem
+    for i in range(len(xm.data)):
+        xm.data[i] = word()
+    cpu.r = [random_value(rng) for _ in range(16)]
+    cpu.z, cpu.c, cpu.m = (rng.random() < 0.5 for _ in range(3))
+    cpu.pcs, cpu.ion = True, rng.random() < 0.5
+    cpu.page = rng.randrange(1, ext_sectors // 256 + 1) << 8
     return cpu
 
 

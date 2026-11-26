@@ -72,6 +72,41 @@ def test_random_programs_model_d():
     assert paged > 10_000 and beyond > 1000 and switches > 30, (paged, beyond, switches)
 
 
+def test_random_programs_model_d_system():
+    """Model D on the system top (hdl/able_system.sv: code fetch through
+    code_cache from external memory, D60-D63 writes to the same memory, the
+    HDL devices), random programs: sim.lockstep.random_system. Pages past
+    the installed external memory (2048 sectors: pages 1-8) must read
+    177777 as in sim/cpu.py _code_read.
+
+    KNOWN FAILURE until able_system.sv checks the installed size on code
+    fetches (review 2026-11-26; reported to sync-hdl, which owns the fix):
+    seeds that fetch from such a page differ, e.g. 4003 at instruction 530
+    "HDL completed 166563 163700, Python 166563 177777"."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    from sim.lockstep import random_system
+    paged = beyond = switches = 0
+    bad = []
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "s.trace")
+        for seed in range(4000, 4016):
+            cpu = random_system(seed)
+            installed = len(cpu.extmem.data)
+            pages = []
+            cpu.trace = lambda c, pc, w: pages.append(c.page)
+            assert record(cpu, path, 3000) == 3000, (seed, cpu.halted)
+            ok, text = check(path, top="system")
+            if not ok:
+                bad.append("seed %d: %s" % (seed, text.strip().splitlines()[0]))
+            base = [p >> 8 << 16 for p in pages]
+            paged += sum(1 for b in base if 0 < b < installed)
+            beyond += sum(1 for b in base if b >= installed)
+            switches += sum(1 for a, b in zip(pages, pages[1:]) if a != b)
+    assert paged > 10_000 and beyond > 10_000 and switches > 10, (paged, beyond, switches)
+    assert not bad, "%d of 16 seeds differ:\n%s" % (len(bad), "\n".join(bad))
+
+
 # A short program that never reads R5, D2 or memory 7000-7777 back: a
 # difference there shows only in the per-instruction register check ('D')
 # or the end state ('M'). Stops on a read of D6, which has no SYN.
