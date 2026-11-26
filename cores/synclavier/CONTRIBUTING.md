@@ -27,11 +27,14 @@
 
 ## Releases
 
-Versions are build dates, as for MiSTer-devel cores: a release is a
-`Release YYYYMMDD.` commit on `main` adding `releases/Synclavier_YYYYMMDD.rbf`,
-made by the **Release** workflow from a **Build RBF** run on `main`
-(see [`mister/README.md`](mister/README.md#releases)). Do not commit RBFs by
-hand or put other files in `releases/`.
+Versions are build dates, as for MiSTer-devel cores. A release is built by
+the monorepo's **Build RBF** workflow on `main`, smoke-tested on a MiSTer
+(Release 5.3 and Release L boot), tagged `synclavier-YYYYMMDD` in
+synthcores, and published to the release-only repository
+[synclavierii](https://github.com/gmcnaught/synclavierii) as
+`releases/Synclavier_YYYYMMDD.rbf` with a GitHub release `vYYYYMMDD`.
+Do not commit RBFs here. The MGLs shipped with it live in
+[`release/`](release/).
 
 ## Licence (decision D1)
 

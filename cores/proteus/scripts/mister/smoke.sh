@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Hardware smoke test of a Proteus/1 XR RBF on a MiSTer (SESSION-PLAN iteration 1).
 #
-#   MISTER=root@<address> tools/mister_smoke.sh RBF OUTDIR [SECONDS]
+#   MISTER=root@<address> scripts/mister/smoke.sh RBF OUTDIR [SECONDS]
 #
 # Installs RBF (synth-mister install; run 'synth-mister backup' once first), loads it through
 # /media/fat/Proteus.mgl with the system image already on the card, waits BOOT seconds (default
@@ -14,8 +14,8 @@
 # Screenshots come scaled; offsets are scaled by height / 240. boot_sha is for information only:
 # it changes with the LCD cursor's blink phase and with the program the last soak left selected.
 set -euo pipefail
-cd "$(dirname "$0")/.."
-RBF=${1:?usage: mister_smoke.sh RBF OUTDIR [SECONDS]}; OUT=${2:?usage: mister_smoke.sh RBF OUTDIR [SECONDS]}
+cd "$(dirname "$0")/../.."
+RBF=${1:?usage: smoke.sh RBF OUTDIR [SECONDS]}; OUT=${2:?usage: smoke.sh RBF OUTDIR [SECONDS]}
 SECS=${3:-60}
 M=../../modules/synthframe/bin/synth-mister
 mkdir -p "$OUT"
