@@ -10,6 +10,8 @@
 #   irqtimer   a DCA step with direction and target on the wrong side (MAME's remaining time
 #              wraps: 390,427,742 samples, 3.25e10 CPU cycles), then /CS rises: the IRQ timer is
 #              more than 2^31 cycles ahead and must not fire during the run.
+#   serial     three MIDI bytes queued for the live-MIDI serializer: each byte (start, 8 data,
+#              stop) takes 1,280 SCK edges, back to back.
 # Prints one line per case and "board: N passed"; exits 1 on any failure.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -95,6 +97,21 @@ else:
     check("irqtimer", r["arms"] >= 1 and r["arm_n"] == N_EXPECT and r["irq_rises"] == 0,
           f"timer armed {r['arms']} time(s), n {r['arm_n']} (expected {N_EXPECT}); "
           f"uPD933 IRQ rises {r['irq_rises']} in {r['cycles']} cycles (expected 0)")
+
+# serial: 00 55 00 offered at cycle 0; the line falls at each start bit
+rom = prog("serial", JR_SELF)
+open(os.path.join(w, "serial.bytes"), "w").write("0 00\n0 55\n0 00\n")
+log = os.path.join(w, "serial.rxline")
+r, err = run("serial", rom, CZ_MIDI_BYTES=os.path.join(w, "serial.bytes"), CZ_RX_LINE_LOG=log)
+if r is None:
+    check("serial", False, err)
+else:
+    ch = [tuple(map(int, l.split())) for l in open(log)]
+    falls = [k for k, lv in ch if lv == 0]
+    # start bits: byte 0 and 2 have one fall each; 0x55 = 1,0,1,0,... LSB first falls 4 more times
+    starts = [falls[0], falls[1], falls[6]] if len(falls) == 7 else []
+    gaps = [b - a for a, b in zip(starts, starts[1:])]
+    check("serial", gaps == [1280, 1280], f"{len(falls)} falls, start-bit spacing {gaps} SCK edges (expected [1280, 1280])")
 
 npass = sum(results)
 print(f"board: {npass} passed, {len(results) - npass} failed")

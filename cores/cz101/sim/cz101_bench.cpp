@@ -16,6 +16,8 @@
 // halt or be powered down); exit status 0.
 // CZ_TICK_BASE=B: start the board's 10 MHz tick time at B instead of 0 (the 40-bit tick counter
 // wraps after 2^40 ticks, about 30.5 h); trace and samples must not change.
+// CZ_RX_LINE_LOG=FILE: the CPU's serial input line, "EDGE LEVEL" per change (EDGE = index of
+// the next 2 MHz SCK edge).
 // CZ_POWER=FILE: power switch changes, lines "CYCLE LEVEL" (decimal; 1 = on, as at time 0).
 // Last line: "board: ..." with the final time (cycles), the power-down state, the samples made
 // after a power-down, the uPD933 IRQ rises and the last IRQ timer arming.
@@ -105,6 +107,8 @@ int main(int argc, char **argv) {
     int tx_last = 1;
     FILE *lcdlog = getenv("CZ_LCD_LOG") ? fopen(getenv("CZ_LCD_LOG"), "w") : nullptr;
     std::string lcd_last;
+    FILE *rxline = getenv("CZ_RX_LINE_LOG") ? fopen(getenv("CZ_RX_LINE_LOG"), "w") : nullptr;
+    int rxline_last = 1;
 
     Verilated::commandArgs(argc, argv);
     auto *c = new Vcz101_board;
@@ -165,6 +169,10 @@ int main(int argc, char **argv) {
             irq_last = irq;
             if (r->cz101_board__DOT__t_arm) { arms++; arm_n = r->cz101_board__DOT__t_n; }
             if (c->sample_valid && c->powered_down) down_samples++;
+            if (rxline && r->cz101_board__DOT__rx_line != rxline_last) {
+                rxline_last = r->cz101_board__DOT__rx_line;
+                fprintf(rxline, "%u %d\n", r->cz101_board__DOT__sck_k, rxline_last);
+            }
         }
         if (txlog && c->midi_tx != tx_last) { tx_last = c->midi_tx; fprintf(txlog, "%u %d\n", c->cycles, tx_last); }
         if (lcdlog && (clk & 4095) == 0) {
@@ -196,6 +204,7 @@ int main(int argc, char **argv) {
     if (smp) fclose(smp);
     if (lcdlog) fclose(lcdlog);
     if (txlog) fclose(txlog);
+    if (rxline) fclose(rxline);
     if (const char *nf = getenv("CZ_NV_OUT")) {
         FILE *f = fopen(nf, "wb");
         if (!f) { perror(nf); exit(1); }

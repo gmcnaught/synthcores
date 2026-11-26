@@ -520,14 +520,13 @@ module cz101_board #(
                     sck_edge <= 1'b1;
                     sck_level <= sck_lvl_next;
                     sck_lvl_next <= !sck_lvl_next;
-                    if (ser_active) begin
+                    // a byte's 10 bits take 1,280 edges; the edge that ends a stop bit starts
+                    // the next queued byte
+                    if (ser_active && !(ser_cnt == 7'd127 && ser_left == 4'd0)) begin
                         if (ser_cnt == 7'd127) begin
-                            if (ser_left == 4'd0) ser_active <= 1'b0;   // stop bit sent
-                            else begin
-                                rx_line <= ser_sh[0];
-                                ser_sh <= {1'b1, ser_sh[8:1]};
-                                ser_left <= ser_left - 4'd1;
-                            end
+                            rx_line <= ser_sh[0];
+                            ser_sh <= {1'b1, ser_sh[8:1]};
+                            ser_left <= ser_left - 4'd1;
                         end
                         ser_cnt <= ser_cnt + 7'd1;
                     end else if (midi_valid && !midi_pop) begin
@@ -537,7 +536,7 @@ module cz101_board #(
                         ser_cnt <= 7'd0;
                         ser_active <= 1'b1;
                         midi_pop <= 1'b1;
-                    end
+                    end else ser_active <= 1'b0;                      // stop bit sent, idle
                     if (sck_rem + E_U >= P_U) begin
                         sck_rem <= sck_rem + E_U - P_U;
                         sck_cyc <= sck_cyc + 32'd1;
