@@ -32,13 +32,24 @@ def need_file(path: pathlib.Path, what: str) -> pathlib.Path:
 
 
 def run(namespace: dict) -> None:
+    """Run every test_* in `namespace`. Prints a summary; exits 1 if any test failed, 77 if every
+    test skipped (missing ROMs or benches: not a pass), else 0."""
+    import traceback
     tests = [(k, v) for k, v in sorted(namespace.items()) if k.startswith("test_") and callable(v)]
-    passed = skipped = 0
+    passed = skipped = failed = 0
     for name, fn in tests:
         try:
             fn()
             passed += 1
         except Skip as e:
             skipped += 1
-            print(f"  skip {name}: {e}")
-    print(f"{passed} passed, {skipped} skipped")
+            print(f"  SKIP: {name}: {e}")
+        except Exception:
+            failed += 1
+            print(f"  FAIL: {name}")
+            traceback.print_exc()
+    print(f"{passed} passed, {skipped} skipped, {failed} failed")
+    if failed:
+        sys.exit(1)
+    if skipped and not passed:
+        sys.exit(77)
