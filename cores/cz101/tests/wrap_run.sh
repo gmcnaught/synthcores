@@ -14,10 +14,8 @@ N="${1:-2000000}"
 [ -n "${CZ101_ROM_DIR:-}" ] && [ -f "$CZ101_ROM_DIR/hn613256ps40.bin" ] || { echo "SKIP: CZ101_ROM_DIR (MAME's cz101 set) not set or empty"; exit 77; }
 [ -x "$BENCH" ] || { echo "FAIL: no $BENCH (build cores/cz101/sim)"; exit 1; }
 W="${WRAP_WORK:-$HERE/out/wrap}"; rm -rf "$W"; mkdir -p "$W"
-"$BENCH" "$CZ101_ROM_DIR" "$N" "$W/base.trace" "$W/base.s32" > "$W/base.txt" & p1=$!
-CZ_TICK_BASE=$(( (1 << 40) - 20000000 )) "$BENCH" "$CZ101_ROM_DIR" "$N" "$W/wrap.trace" "$W/wrap.s32" > "$W/wrap.txt" & p2=$!
-wait $p1
-wait $p2
+"$BENCH" "$CZ101_ROM_DIR" "$N" "$W/base.trace" "$W/base.s32" > "$W/base.txt"
+CZ_TICK_BASE=$(( (1 << 40) - 20000000 )) "$BENCH" "$CZ101_ROM_DIR" "$N" "$W/wrap.trace" "$W/wrap.s32" > "$W/wrap.txt"
 head -1 "$W/base.txt"; head -1 "$W/wrap.txt"
 "$PY" - "$W" <<'PY'
 import hashlib, sys
