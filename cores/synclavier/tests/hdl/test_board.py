@@ -900,6 +900,49 @@ def test_midi_out():
         print("  " + [ln for ln in out.splitlines() if "midi_out OK" in ln][0])
 
 
+PAGED_MAIN = """
+        PCI TO D11          ; page 1 (external memory words 200000-377777): the
+        DATA 400            ; next fetch, R17 = 2, is from there
+"""
+
+PAGED_CODE = """
+        PCI TO R4           ; a literal from the page
+        DATA 12345
+        R4 TO R3
+        IM(1) TO SUB3
+        PCI TO D11          ; page 4: beyond 1024 installed sectors
+        DATA 2000
+"""
+
+
+def test_model_d_fetch_beyond_memory():
+    """Model D code from a page of external memory, then from a page beyond
+    the installed 1024 sectors, on the system top in lockstep with sim/cpu.py:
+    those words read 177777 as D62/D63 do there (review 2026-11-26, Model D
+    fetch with no installed-size check, found by the sync-py agent)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    from sim.asm import assemble
+    from sim.system import make_system
+    cpu = make_system(model="D", ext_sectors=1024)
+    words, _ = assemble(PAGED_MAIN)
+    cpu.load(words)
+    code, _ = assemble(PAGED_CODE)
+    for i, w in enumerate(code):                 # at R17 = 2 on page 1
+        cpu.extmem.data[0o200000 + 2 + i] = w
+    with tempfile.NamedTemporaryFile(suffix=".trace", delete=False) as f:
+        path = f.name
+    try:
+        n = record(cpu, path, 200)
+        ok, text = check(path, top="system")
+    finally:
+        os.unlink(path)
+    assert ok, text
+    assert cpu.page == 0o2000 and n > 10, (oct(cpu.page), n)
+    print("  %d instructions, the last from page 4 (%s)" % (n, cpu.halted.reason if cpu.halted else "running"))
+
+
 def test_term_rx_mux():
     """Terminal input from the board simulation, the VT640 read-back and the
     keyboard, often on the same clock: every byte arrives once and in order
