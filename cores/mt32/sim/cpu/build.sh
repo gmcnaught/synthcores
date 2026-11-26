@@ -9,14 +9,15 @@ here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)
 root=$(cd "$core/../.." && pwd)
 out=${1:-$core/build/cosim}
+mkdir -p "$out"
+out=$(cd "$out" && pwd)
 src=$out/src
 python3 "$core/ref/prepare_src.py" "$root/modules/nuked-mt32" "$src"
 cp "$here/i8x9x.h" "$src/mame/i8x9x.h"
 verilator --cc --exe --build -O3 -j 4 --top-module mcs96 \
     -Wno-fatal -Wno-WIDTH -Wno-UNUSED \
     "-DMCS96_DECODE_HEX=\"$core/hdl/mcs96/mcs96_decode.hex\"" \
-    -I"$core/hdl/mcs96" \
-    "$core/hdl/mcs96/mcs96.sv" "$core/hdl/mcs96/mcs96_core.sv" "$core/hdl/mcs96/mcs96_periph.sv" \
+    -F "$core/sim/files.f" \
     "$src/mt32.cpp" "$src/la32.cpp" "$src/rv2.cpp" "$src/lcd.cpp" \
     "$core/ref/mt32_ref.cpp" "$here/mcs96_shim.cpp" \
     -CFLAGS "-std=c++17 -O2 -w -I$src -I$src/mame" \

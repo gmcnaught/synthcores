@@ -106,9 +106,9 @@ module mt32_lcd_video #(
     `include "mt32_panel.svh"
     logic [2**PANEL_EB-1:0] panel_state;
     `include "mt32_panel_state.svh"
-    generate if (PANEL_NE + 1 < 2**PANEL_EB)
+    generate if (PANEL_NE + 1 < 2**PANEL_EB) begin : g_state_pad
         assign panel_state[2**PANEL_EB-1:PANEL_NE+1] = '0;
-    endgenerate
+    end endgenerate
     logic [23:0] art;
     synthframe_panel_art #(.W(PANEL_W), .H(PANEL_H), .BPP(PANEL_BPP), .TB(PANEL_TB), .EB(PANEL_EB),
                            .NT(PANEL_NT), .PAL(PANEL_PAL), .LIT(PANEL_LIT),

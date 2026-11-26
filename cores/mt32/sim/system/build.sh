@@ -14,10 +14,7 @@ verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mt32_core ${VDEFS:
     -Wno-fatal -Wno-WIDTH -Wno-UNUSED -Wno-DECLFILENAME -Wno-BLKSEQ \
     "-DMCS96_DECODE_HEX=\"$h/mcs96/mcs96_decode.hex\"" \
     -GPOW_HEX="\"$h/la32/mt32_la32_pow.hex\"" -GLOGSIN_HEX="\"$h/la32/mt32_la32_logsin.hex\"" \
-    -I"$h/mcs96" \
-    "$h/mcs96/mcs96_core.sv" "$h/mcs96/mcs96_periph.sv" "$h/mcs96/mcs96.sv" \
-    "$h/la32/mt32_la32.sv" "$h/rv2/mt32_rv2.sv" "$h/mt32_mix.sv" "$h/mt32_sound.sv" \
-    "$h/mt32_lcd.sv" "$h/mt32_board.sv" "$h/mt32_core.sv" "$here/mt32_sys_bench.cpp" \
+    -F "$core/sim/files.f" "$here/mt32_sys_bench.cpp" \
     -CFLAGS "-O2 -std=c++17" -MAKEFLAGS "OPT_FAST=-O2 OPT_SLOW=-O1" \
     --Mdir "$out/obj" -o mt32_sys_bench > "$out/build.log" 2>&1 || { grep -E "%Error" "$out/build.log" | head -30; tail -20 "$out/build.log"; exit 1; }
 rm -f "$out/mt32_sys_bench"; cp "$out/obj/mt32_sys_bench" "$out/mt32_sys_bench"
