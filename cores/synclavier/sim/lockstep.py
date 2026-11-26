@@ -78,17 +78,17 @@ hdl/sim/lockstep.cpp the bench's; tests/hdl/test_lockstep.py checks they agree):
     'E'           end of trace
 
 Usage:
-  python3 -m sim.lockstep random OUT.trace [--instructions N] [--seed S]
-  python3 -m sim.lockstep monitor IMAGE OUT.trace [--instructions N]
-  python3 -m sim.lockstep ork-lm IMAGE OUT.trace [--instructions N]
-  python3 -m sim.lockstep ork-lm-note IMAGE OUT.trace   (timbre recall + C4 held)
-  python3 -m sim.lockstep w0boot W0-53.IMG OUT.trace   (Release 5.3 from the
+  pypy3 -m sim.lockstep random OUT.trace [--instructions N] [--seed S]
+  pypy3 -m sim.lockstep monitor IMAGE OUT.trace [--instructions N]
+  pypy3 -m sim.lockstep ork-lm IMAGE OUT.trace [--instructions N]
+  pypy3 -m sim.lockstep ork-lm-note IMAGE OUT.trace   (timbre recall + C4 held)
+  pypy3 -m sim.lockstep w0boot W0-53.IMG OUT.trace   (Release 5.3 from the
                                     state tools/w0_image.py stores: MONITOR,
                                     PROFILE, PLAY SYN-5.3 over SCSI)
-  python3 -m sim.lockstep syn53 W0IMAGE OUT.trace [--skip N]
+  pypy3 -m sim.lockstep syn53 W0IMAGE OUT.trace [--skip N]
                                     (Release 5.3: boot W0, CREATE USER, PLAY
                                      SYN-5.3, skip N instructions, record)
-  python3 -m sim.lockstep check OUT.trace [--top cpu|system]
+  pypy3 -m sim.lockstep check OUT.trace [--top cpu|system]
 """
 import os
 import random

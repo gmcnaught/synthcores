@@ -4,7 +4,7 @@ sim/devices/digstm.py, tools/stm_source.py and, with SYNCLAVIER_W0 set (the
 W0-53.IMG of tools/w0_image.py), SYN-5.3 recording a source on its STM
 screen into poly memory bit for bit.
 
-Run:  python3 tests/sim/test_digstm.py
+Run:  pypy3 tests/sim/test_digstm.py
 """
 import contextlib
 import io

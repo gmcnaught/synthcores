@@ -4,7 +4,7 @@
 Each device is driven the way NED's loaders and Model B runtime drive it
 (see the evidence notes in sim/devices/*.py).
 
-Run:  python3 tests/sim/test_devices.py
+Run:  pypy3 tests/sim/test_devices.py
 """
 import os
 import sys

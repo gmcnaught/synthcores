@@ -10,7 +10,7 @@ shows the same text as the terminal.
 
 Needs Verilator (skipped otherwise).
 
-Run:  python3 tests/hdl/test_board.py
+Run:  pypy3 tests/hdl/test_board.py
 """
 import os
 import shutil

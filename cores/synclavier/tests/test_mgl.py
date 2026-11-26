@@ -3,7 +3,7 @@
 the RBF in the synclavierii release repository) load the released core and mount each image
 in an S slot of CONF_STR whose extension matches.
 
-Run:  python3 tests/test_mgl.py
+Run:  pypy3 tests/test_mgl.py
 """
 import glob
 import os

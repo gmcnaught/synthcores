@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for sim/fm.py (FM register semantics, M3.1a). Stdlib only.
 
-Run:  python3 tests/sim/test_fm.py
+Run:  pypy3 tests/sim/test_fm.py
 """
 import math
 import os

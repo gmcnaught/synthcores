@@ -5,7 +5,7 @@ provenance"). Checks the files git tracks.
 Built cores are not committed here: released RBFs go to the synclavierii
 release repository.
 
-Run:  python3 tests/test_repo_hygiene.py
+Run:  pypy3 tests/test_repo_hygiene.py
 """
 import os
 import re

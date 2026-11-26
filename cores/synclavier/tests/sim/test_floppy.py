@@ -6,7 +6,7 @@ do: restore, load the track register, seek through D103, set and verify
 the sector register, issue read (210), and assemble words from byte pairs
 with BSOR while polling DRQ.
 
-Run:  python3 tests/sim/test_floppy.py
+Run:  pypy3 tests/sim/test_floppy.py
 """
 import os
 import sys

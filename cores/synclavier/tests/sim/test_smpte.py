@@ -3,7 +3,7 @@
 subsystem 8 on the MIDI card's bus) and, with SYNCLAVIER_W0 set, SYN-5.3's
 sequencer chasing MTC through it.
 
-Run:  python3 tests/sim/test_smpte.py
+Run:  pypy3 tests/sim/test_smpte.py
 """
 import os
 import sys

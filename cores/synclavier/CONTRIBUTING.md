@@ -12,8 +12,8 @@
 ## Conventions
 
 * Tests use the Python standard library only and run as scripts
-  (`python3 tests/test_<name>.py`), so CI needs no dependencies. The
-  simulator tests run the same way: `python3 tests/sim/test_cpu.py`.
+  (`pypy3 tests/test_<name>.py`), so CI needs no dependencies. The
+  simulator tests run the same way: `pypy3 tests/sim/test_cpu.py`.
 * New facts go into the relevant `docs/` file and into
   `docs/research-log.md`, with their source (see `docs/sources.md`).
 * Tag uncertain hardware claims **[STD]**, **[OBS]** or **[HYP]** as in

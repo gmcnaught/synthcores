@@ -16,11 +16,11 @@ Milestone M1 in [`plan.md`](plan.md). This page covers what exists so far:
 | `sim/bus.py` | `Bus` and the `Device` base class for I/O devices 000–177 |
 | `sim/devices/` | Device models: `extmem.py` (D60–D63), `terminal.py` (D50/D51), `rtc.py` (D3), `muldiv.py` (D4567), `floppy.py` (D100–D104), `synth.py` (D130/D131 original keyboard, D160–D163 FM interface and old-panel inputs, D164/D165 control voltages; see [`devices/`](devices/)), `digstm.py` (M18: the digital STM native routines 64–76 that `sim/cpu.py` calls through `cpu.native` on `PCI TO RTNV` + n; [`devices/digital-stm.md`](devices/digital-stm.md)), `stubs.py` (`ProbeDevice` for M2 exploration). Each file starts with its evidence. |
 | `sim/system.py` | `make_system()`: a CPU with the devices attached (`floppy=True`, `synth=True` add the floppy controller and the stubs) |
-| `sim/boot.py` | Boot: `MONITOR` staged in external memory, started through the `.LD-6` loader's ECOPY entry; floppies from the `.simg` in F0/F1; console CLI `python3 -m sim.boot IMAGE` |
-| `sim/rtp.py` | Starts a Release L real-time program (`ORK-LM`, `ORK-LFM`) through MONITOR's RUN hand-off and the loader; logs device accesses (`python3 -m sim.rtp IMAGE --log out.csv`) (M2.1) |
+| `sim/boot.py` | Boot: `MONITOR` staged in external memory, started through the `.LD-6` loader's ECOPY entry; floppies from the `.simg` in F0/F1; console CLI `pypy3 -m sim.boot IMAGE` |
+| `sim/rtp.py` | Starts a Release L real-time program (`ORK-LM`, `ORK-LFM`) through MONITOR's RUN hand-off and the loader; logs device accesses (`pypy3 -m sim.rtp IMAGE --log out.csv`) (M2.1) |
 | `sim/fm.py` | FM register semantics: pitch, envelope/index interpolators, `ISHC`, wave memory ([`fm-voice.md`](fm-voice.md)) |
 | `sim/lockstep.py` | Records traces for checking the HDL CPU against this simulator, and runs the Verilator check ([`hdl.md`](hdl.md)) (M4.3) |
-| `sim/voice.py` | Integer FM voice model: replays the D162 write log and renders stereo audio (`render`, `write_wav`; `python3 -m sim.voice LOG.csv OUT.wav`) (M3.2) |
+| `sim/voice.py` | Integer FM voice model: replays the D162 write log and renders stereo audio (`render`, `write_wav`; `pypy3 -m sim.voice LOG.csv OUT.wav`) (M3.2) |
 | `sim/trace.py` | `Debugger`: instruction history, device-access log, breakpoints, stop on input wait, halt report, memory inspect (M1.7) |
 | `sim/asm.py` | Small assembler in NED syntax (`SRC TO DST`, `DATA`, `IM()`, `RE(label)`), for tests and experiments |
 | `tests/sim/` | `test_decode.py` (tables, assembler round trip over all 65,536 words), `test_cpu.py` (42 instruction-level tests), `test_devices.py` (17 device tests, mostly small programs written like NED's loaders and runtime), `test_floppy.py` (7), `test_synth.py` (8), `test_fm.py` (7), `test_voice.py` (8), `test_trace.py` (5), `test_boot.py` (3; boots the real MONITOR to `Ready >` and runs `CATALOG` when `SYNCLAVIER_RELEASE_L` names the image) and `test_rtp.py` (5; with the image: runs ORK-LM, checks the `.STAB-6` pointer, recalls a timbre, checks C4's pitch, renders it and checks the note's end) |
@@ -77,8 +77,8 @@ The image is not in the repository; download it yourself (see
 (`*.simg` is ignored).
 
 ```bash
-python3 -m sim.boot IMAGE.simg --f1 18-UTILS                       # interactive console
-python3 -m sim.boot IMAGE.simg --f1 18-UTILS --input 'CATALOG\r'   # scripted
+pypy3 -m sim.boot IMAGE.simg --f1 18-UTILS                       # interactive console
+pypy3 -m sim.boot IMAGE.simg --f1 18-UTILS --input 'CATALOG\r'   # scripted
 ```
 
 ```
@@ -119,7 +119,7 @@ How the boot works: [`boot-and-loaders.md`](boot-and-loaders.md) §4.
 holds keys, and renders what the FM voices play (M3.2):
 
 ```bash
-python3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
+pypy3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
     --keys 36,40,43 --hold 1 --wav chord.wav --fm-log chord.csv
 ```
 
@@ -127,7 +127,7 @@ python3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
 loads are included) through `sim/voice.py` and writes 48 kHz 16-bit stereo
 from the key press to the end of the run (0.5 s after release). Rendering
 takes about 1 s of host time per voice-second. The CSV holds only the
-writes during the panel actions, so `python3 -m sim.voice chord.csv
+writes during the panel actions, so `pypy3 -m sim.voice chord.csv
 out.wav` renders it correctly only if the wave memories were loaded in that
 window (a timbre recall does load them). What the model fixes and what it
 chooses: [`fm-voice.md`](fm-voice.md#voice-model-m32).

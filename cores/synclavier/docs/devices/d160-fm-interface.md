@@ -95,7 +95,7 @@ fault in the simulator's RTP hand-off: MONITOR's `PLAY` file pointers were
 not set, so ORK-LM loaded floppy sectors 0–12 instead of `.STAB-6` as its
 tables. `sim.rtp` now runs `SET RTP` + `PLAY` first.
 
-`python3 -m sim.rtp IMAGE --swap-f0 06-TIMBD --buttons bank.0,timb.0
+`pypy3 -m sim.rtp IMAGE --swap-f0 06-TIMBD --buttons bank.0,timb.0
 --keys 48 --fm-log out.csv` records every write with its time.
 
 ## Evidence

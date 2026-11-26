@@ -4,7 +4,7 @@
 SYNCLAVIER_W0 set, SYN-5.3 printing: the Recorder Display's screen dump
 (G, h) and the Music Notation Display's hardcopy (VT640, K, H).
 
-Run:  python3 tests/sim/test_printer.py
+Run:  pypy3 tests/sim/test_printer.py
 """
 import os
 import struct

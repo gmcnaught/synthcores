@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for sim/trace.py (M1.7 debug tooling), stdlib only.
 
-Run:  python3 tests/sim/test_trace.py
+Run:  pypy3 tests/sim/test_trace.py
 """
 import os
 import sys

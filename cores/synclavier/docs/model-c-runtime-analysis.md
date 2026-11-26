@@ -27,7 +27,7 @@ SCSI loader (`Able/LOADER/SCSI.LST`, kept as a test fixture):
   label. This confirms that **target = address of the next word + the
   6-bit immediate**.
 
-Run it with `python3 tests/test_able_disasm.py`.
+Run it with `pypy3 tests/test_able_disasm.py`.
 
 ## 2. Feature counts per model
 

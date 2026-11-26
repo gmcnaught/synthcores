@@ -7,7 +7,7 @@ This page covers **M2.1** (running it and logging every device access).
 ## Run it
 
 ```bash
-python3 -m sim.rtp IMAGE.simg --seconds 10 --log out/ork-lm-io.csv
+pypy3 -m sim.rtp IMAGE.simg --seconds 10 --log out/ork-lm-io.csv
 ```
 
 About 20 s of wall time for 10 simulated seconds. Terminal output (VT100)
@@ -104,7 +104,7 @@ access.
 ## Playing a note
 
 ```bash
-python3 -m sim.rtp IMAGE.simg --seconds 8 --swap-f0 06-TIMBD \
+pypy3 -m sim.rtp IMAGE.simg --seconds 8 --swap-f0 06-TIMBD \
     --buttons bank.0,timb.0 --keys 48 --fm-log out/ork-lm-c4.csv
 ```
 

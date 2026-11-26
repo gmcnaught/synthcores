@@ -8,7 +8,7 @@ If SYNCLAVIER_RELEASE_L points to the user-supplied Release L .simg, the
 real MONITOR is booted as well (skipped otherwise; the image is not in the
 repository).
 
-Run:  python3 tests/sim/test_boot.py
+Run:  pypy3 tests/sim/test_boot.py
 """
 import os
 import sys

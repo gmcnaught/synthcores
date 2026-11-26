@@ -5,7 +5,7 @@ Needs Verilator (skipped otherwise). Random programs with random device
 data and interrupts; with SYNCLAVIER_RELEASE_L set, also MONITOR's boot
 and CATALOG.
 
-Run:  python3 tests/hdl/test_lockstep.py
+Run:  pypy3 tests/hdl/test_lockstep.py
 """
 import os
 import re

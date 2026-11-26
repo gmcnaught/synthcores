@@ -62,7 +62,7 @@ grew after 1986, and four FM timbres stay silent. The logs from these
 timbres are therefore not yet calibration data.
 
 ```bash
-python3 -m sim.rtp IMAGE.simg --seconds 8 --swap-f0 06-TIMBD \
+pypy3 -m sim.rtp IMAGE.simg --seconds 8 --swap-f0 06-TIMBD \
     --bank-file 'timbres/Original-NED-Sample-Patch-Libraries/TOMDTA43/*NEWDATA.stmb' \
     --buttons bank.0,timb.3 --keys 48 --hold 0.5 --fm-log out/tomdta43-t3-c4.csv
 ```

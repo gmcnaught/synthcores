@@ -95,7 +95,7 @@ does not have (>= its outputs) is "none" [CHOICE].
 6. A voice with no input found counts as an error; the info file is
    written only without errors. No output found: `MULTI.THERE = 0`.
 
-Run [OBS, `tests/sim/test_multi.py`, `python3 -m sim.lockstep w0boot ...
+Run [OBS, `tests/sim/test_multi.py`, `pypy3 -m sim.lockstep w0boot ...
 --multi N`]: the analysis runs from 4.06 s to 4.48 s of simulated time;
 `MULTI.THERE` (word 0o54725) = 1 and `MULTI.MAX` (0o54726) = 8 or 16 as
 configured; every FM and poly voice side is found (129 positive reads with
@@ -167,8 +167,8 @@ the item has no effect.
 |---|---|
 | `tools/w0_image.py --multi 8\|16` | state image with D51 bit 0x0800 and the outputs (device 3 index 16), name `-MC8`/`-MC16` |
 | `sim/system.py make_system(multi=N)`, `sim/boot.py boot_from_w0(multi=N)` | `cpu.multi` |
-| `python3 -m sim.lockstep w0boot ... --multi N [--outputs n]` | with `--poly --vpk`: `w0_multi_actions` (FM timbre, keyboard to outputs 3-4, a note, back to 1-2, a note); `--outputs` the pair in the `--audio` samples |
-| `python3 -m sim.lockstep check ... --outputs n` | the board's OSD Outputs (`LOCKSTEP_OUTPUTS`) |
+| `pypy3 -m sim.lockstep w0boot ... --multi N [--outputs n]` | with `--poly --vpk`: `w0_multi_actions` (FM timbre, keyboard to outputs 3-4, a note, back to 1-2, a note); `--outputs` the pair in the `--audio` samples |
+| `pypy3 -m sim.lockstep check ... --outputs n` | the board's OSD Outputs (`LOCKSTEP_OUTPUTS`) |
 | OSD | Outputs (multichannel): Stereo mix, 1-2 … 13-14 |
 
 The distributor has no load port: a state image must have it at power-on

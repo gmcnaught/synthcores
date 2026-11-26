@@ -3,7 +3,7 @@
 reference (tools/vt100.py Terminal(vt640=True)) and, with SYNCLAVIER_W0
 set, SYN-5.3 configured for a VT640 with a mouse.
 
-Run:  python3 tests/sim/test_mouse.py
+Run:  pypy3 tests/sim/test_mouse.py
 """
 import os
 import sys

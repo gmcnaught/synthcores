@@ -2,7 +2,7 @@
 """The MIDI subsystem card model (sim/devices/midi.py, D70-D73) and, with
 SYNCLAVIER_W0 set, SYN-5.3 detecting it and reading MIDI through it.
 
-Run:  python3 tests/sim/test_midi.py
+Run:  pypy3 tests/sim/test_midi.py
 """
 import os
 import sys

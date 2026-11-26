@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tests for sim/voice.py (M3.2: integer FM voice model and audio).
 
-Run:  python3 tests/sim/test_voice.py
+Run:  pypy3 tests/sim/test_voice.py
 """
 import math
 import os

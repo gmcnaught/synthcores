@@ -3,7 +3,7 @@
 name-group resolution, and the PT.TRA correction rules. Standard library
 only; no sound files.
 
-Run:  python3 tests/test_sample_pitch.py
+Run:  pypy3 tests/test_sample_pitch.py
 """
 import math
 import os

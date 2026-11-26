@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Self-test for tools/able_disasm.py (stdlib only).
 
-Run:  python3 tests/test_able_disasm.py
+Run:  pypy3 tests/test_able_disasm.py
 """
 import os
 import re

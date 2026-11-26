@@ -5,7 +5,7 @@ The multi-floppy file format is tested on a synthetic image. If
 SYNCLAVIER_RELEASE_L points to the user-supplied Release L .simg, ORK-LM is
 started and run for 9 simulated seconds as well (skipped otherwise).
 
-Run:  python3 tests/sim/test_rtp.py
+Run:  pypy3 tests/sim/test_rtp.py
 """
 import os
 import sys

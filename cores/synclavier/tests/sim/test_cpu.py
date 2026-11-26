@@ -5,7 +5,7 @@ One test per source and destination class, flag edge cases, conditional and
 relative transfers, PSW/PCW, interrupts and halts. References (§n) are to
 docs/instruction-set.md.
 
-Run:  python3 tests/sim/test_cpu.py
+Run:  pypy3 tests/sim/test_cpu.py
 """
 import os
 import sys

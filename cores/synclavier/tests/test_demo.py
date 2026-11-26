@@ -4,7 +4,7 @@ hdl/core/midi_vpk.sv takes, the keys hdl/core/ps2_ascii.sv sends), the
 board player's event list and the simulator's input mapping. Standard
 library only; no disk images.
 
-Run:  python3 tests/test_demo.py
+Run:  pypy3 tests/test_demo.py
 """
 import os
 import sys

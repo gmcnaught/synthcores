@@ -2,7 +2,7 @@
 """The simulator's decode tables agree with tools/able_disasm.py, and the
 test assembler is the exact inverse of the disassembler (stdlib only).
 
-Run:  python3 tests/sim/test_decode.py
+Run:  pypy3 tests/sim/test_decode.py
 """
 import os
 import sys

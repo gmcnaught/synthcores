@@ -7,7 +7,7 @@ redistributable), also: W0:CLARA3 (mono) and W0:CLARA4 (stereo) exported to
 WAV and imported again give the original samples and header, except the
 words listed in test_w0_sound_files_round_trip.
 
-Run:  python3 tests/test_sound_import.py
+Run:  pypy3 tests/test_sound_import.py
 """
 import math
 import os

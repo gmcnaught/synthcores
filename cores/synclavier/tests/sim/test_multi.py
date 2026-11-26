@@ -3,7 +3,7 @@
 with SYNCLAVIER_W0 set, SYN-5.3's "Analyzing Multi-Channel Connections"
 finding 8 and 16 outputs.
 
-Run:  python3 tests/sim/test_multi.py
+Run:  pypy3 tests/sim/test_multi.py
 """
 import os
 import sys

@@ -4,7 +4,7 @@ W0 boot: SYNCLAVIER_W0_RAW = Synclavier3's "W0 Disk Image.simg" (stops at
 MONITOR's "Ready >"), or SYNCLAVIER_W0 = a tools/w0_image.py image (its
 PROFILE starts SYN-5.3).
 
-Run:  python3 tests/sim/test_scsi.py
+Run:  pypy3 tests/sim/test_scsi.py
 """
 import os
 import sys

@@ -4,7 +4,7 @@
 The programs follow NED's 05-BUTT:076-OLDI drivers and MONITOR's
 CLEAR.KEYBOARD, with the register sequences seen in Release L ORK-LM.
 
-Run:  python3 tests/sim/test_synth.py
+Run:  pypy3 tests/sim/test_synth.py
 """
 import os
 import sys
