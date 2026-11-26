@@ -44,9 +44,11 @@ for p in $points; do
         bench=$core/build/system_wrap_$p/mt32_sys_bench
     fi
     "$ref" "${args[@]}" --start "$la32_start:$cpu_start" --out "$tmp/ref.raw" --lcd-log "$tmp/ref.lcd" &
-    "$bench" "${args[@]}" --out "$tmp/hdl.raw" --lcd-log "$tmp/hdl.lcd" --stats 2> "$tmp/stats.txt"
+    rc=0
+    "$bench" "${args[@]}" --out "$tmp/hdl.raw" --lcd-log "$tmp/hdl.lcd" --stats 2> "$tmp/stats.txt" || rc=$?
     wait
     cat "$tmp/stats.txt"
+    if [ "$rc" != 0 ]; then echo "wrap_check: FAIL ($p): the system bench exited $rc"; exit 1; fi
     end=$(sed -n "s/^end: .*$field \([0-9]*\).*/\1/p" "$tmp/stats.txt")
     if ! python3 -c "import sys; sys.exit(not ($wrap < int(sys.argv[1] or 0) < $wrap + 10**9))" "$end"; then
         echo "wrap_check: FAIL ($p): the run ended at $field ${end:-?}, not just past $wrap (preset not built in?)"
