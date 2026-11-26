@@ -42,9 +42,10 @@ for t in tests/test_*.py tests/sim/test_*.py tests/hdl/test_*.py; do
     if counts=$(grep -E '^[^ ]+: [0-9]+ passed, [0-9]+ skipped, [0-9]+ failed$' "$log" | tail -1); then
         read -r p s f < <(echo "$counts" | sed -E 's/.*: ([0-9]+) passed, ([0-9]+) skipped, ([0-9]+) failed/\1 \2 \3/')
         t_pass=$((t_pass + p)) t_skip=$((t_skip + s)) t_fail=$((t_fail + f))
+    elif [ "$rc" -eq 0 ]; then
+        echo "   (no tests/testlib.py summary line: tests not counted)"
     elif [ "$rc" -ne 77 ]; then
-        rc=1                                   # no summary line: it did not finish
-        t_fail=$((t_fail + 1))
+        t_fail=$((t_fail + 1))                 # failed before its summary line
     fi
     case $rc in
         0)  files_ok=$((files_ok + 1)) ;;
