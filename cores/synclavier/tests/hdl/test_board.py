@@ -689,6 +689,108 @@ def test_dev_poly():
         os.unlink(path)
 
 
+# Voice time 8.21 ms before 2^48 ns (78.2 h, the old 48-bit wrap), a multiple
+# of 49.5 ms: the rate (9900 ns), envelope (40 us) and 768 kHz instant grids
+# fall on it as they fall on 0, so the benches see the same deadlines as a
+# core that has run 78 h since reset (review 2026-11-26 sync-hdl #1).
+VOICE_T0_WRAP = (2 ** 48 - 1_000_000) // 49_500_000 * 49_500_000
+
+
+def test_dev_poly_wrap():
+    """dev_poly started 8 ms before the old 48-bit wrap of its ns clock: every
+    register read and P(m) of the random register stream still matches
+    sim/devices/poly.py (64 ms of voice time)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_stimulus(path)
+        out = _testbench("dev_poly", "hdl/dev/dev_poly.sv",
+                         args=["+stim=" + path, "+voice_t0=%d" % VOICE_T0_WRAP])
+        print("  t0 2^48 - %d ns: %s" % (2 ** 48 - VOICE_T0_WRAP,
+                                         [ln for ln in out.splitlines() if "dev_poly OK" in ln][0]))
+    finally:
+        os.unlink(path)
+
+
+def test_poly_box_wrap():
+    """poly_box started 8 ms before the old 48-bit wrap: the x' at 9000
+    instants (11.7 ms) still match sim/pcm.py PolyBox."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_box_stimulus(path, seed=6, instants=9000)
+        out = _testbench("poly_box", "hdl/dev/poly_box.sv",
+                         args=["+stim=" + path, "+voice_t0=%d" % VOICE_T0_WRAP])
+        print("  t0 2^48 - %d ns: %s" % (2 ** 48 - VOICE_T0_WRAP,
+                                         [ln for ln in out.splitlines() if "poly_box OK" in ln][0]))
+    finally:
+        os.unlink(path)
+
+
+def poly_wrap_writes(path):
+    """Register writes for hdl/sim/poly_wrap_tb.sv: POLY.CHECK-style init of
+    bin 0, a sine table at word 1000 and four looping voices with open
+    envelopes and volumes, so P(m) is not zero."""
+    import math
+    out = []
+
+    def fc(ch, f, *words):
+        out.append("W 1 %d" % ch)
+        out.append("W 2 %d" % f)
+        out.extend("W 3 %d" % (x & 0xFFFF) for x in words)
+
+    def two(v):
+        v &= 0xFFFFFFF
+        return [v >> 8 & 0xFFFF, (v >> 24) << 8 | v & 0xFF]
+
+    for ch in range(64):
+        fc(ch, 0, 0xFFFF, 0xFFFF, 0, 255, 0xFFFF, 0xFFFF, 0, 0, 255, 0, 0)
+        if ch < 32:
+            fc(ch, 33, 4095, 4095, 1, 4095, 4095, 0, 0)
+            fc(ch, 40, 0, 0, 0, 0)
+    fc(0, 16, *two(1000), *[int(20000 * math.sin(i / 7.0)) for i in range(3000)])
+    for ch, (inc, mod) in enumerate(((1, 1), (3, 7), (5, 11), (200, 256))):
+        fc(ch, 10, 0)
+        fc(ch, 0, *(two(-2900) + two(1000) + two(-250) + two(1)), inc - 1, 256 - mod, 3)
+        fc(ch, 33, 4095, 4000, 1 + 20 * ch, 4095, 4095, 4095, 4095)
+        fc(ch, 40, 4095, 4095, 3000, 2000)
+    with open(path, "w") as f:
+        f.write("\n".join(out) + "\n")
+
+
+def test_poly_wrap():
+    """dev_poly + poly_box across the old 48-bit wrap, in both voice clock
+    modes: on CPU time (poly_box's stall stops voice time: the 48-bit clocks
+    hung the core here) and on real time (rate passes stopped, P held). The
+    output from 8 ms before 2^48 ns must equal the output from 0."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_wrap_writes(path)
+        for hold in (1, 0):
+            res = []
+            for t0 in (0, VOICE_T0_WRAP):
+                out = _testbench("poly_wrap", ("hdl/dev/dev_poly.sv", "hdl/dev/poly_box.sv"),
+                                 args=["+stim=" + path, "+hold=%d" % hold, "+run_ns=12000000",
+                                       "+voice_t0=%d" % t0])
+                res.append([ln for ln in out.splitlines() if "poly_wrap OK" in ln][0])
+            assert res[0] == res[1], "voice time from 0 and from 2^48 - %d ns differ:\n  %s\n  %s" % (
+                2 ** 48 - VOICE_T0_WRAP, res[0], res[1])
+            assert " 0 non-zero" not in res[0], res[0]
+            print("  " + res[0])
+    finally:
+        os.unlink(path)
+
+
 def vpk_stimulus(path, seed=1, ops=4000):
     """Stimulus for hdl/sim/dev_vpk_tb.sv from sim/devices/synth.py
     VelocityKeyboard: KEYBOARD.CHECK, KCR reads, key scans with velocity
