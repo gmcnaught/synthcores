@@ -53,11 +53,14 @@ M0–M15, with acceptance criteria and results, are in
 
 ## Using the core
 
+Step-by-step instructions for users are in the release repository,
+[synclavierii](https://github.com/gmcnaught/synclavierii). In short:
+
 Download the newest `Synclavier_YYYYMMDD.rbf` and the two MGLs
 (`Synclavier-5.3.mgl`, `Synclavier-ReleaseL.mgl`) from the
 [synclavierii releases](https://github.com/gmcnaught/synclavierii/releases)
-(the version is the build date; the OSD shows `vYYMMDD`), and copy them all
-to `_Devices/` on the SD card. The disk images the MGLs mount are not included; you build them from
+(the version is the build date; the OSD shows `vYYMMDD`). Copy the RBF to
+`_Devices/` and the MGLs to the top of the SD card. The disk images the MGLs mount are not included; you build them from
 your own NED images.
 
 [`mister/README.md`](mister/README.md) has the build, the image tools and

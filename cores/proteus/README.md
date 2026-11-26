@@ -32,7 +32,10 @@ python3 tools/build_image.py \
 The script checks every input by SHA-1 and needs only Python 3.
 
 ## Install
-- `Proteus_<date>.rbf` → `/media/fat/_Devices/`
+Step-by-step instructions for users are in the release repository,
+[emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer). In short:
+
+- `Proteus_<date>.rbf` (from its [releases](https://github.com/gmcnaught/emu-proteus-xr-MiSTer/releases)) → `/media/fat/_Devices/`
 - `proteus_system.bin` → `/media/fat/games/Proteus/`
 - optional `Proteus.mgl` (`release/Proteus.mgl`; loads the core and the image in one step):
   ```xml
