@@ -10,6 +10,9 @@
 #   irqtimer   a DCA step with direction and target on the wrong side (MAME's remaining time
 #              wraps: 390,427,742 samples, 3.25e10 CPU cycles), then /CS rises: the IRQ timer is
 #              more than 2^31 cycles ahead and must not fire during the run.
+#   nmi        timer 0 interrupts every 20 cycles while the Power switch toggles every 13 cycles:
+#              /NMI reaches the CPU between instructions, so no interrupt's vector changes while
+#              the CPU pushes PSW and PC for it (MAME picks the vector once, before the pushes).
 #   serial     three MIDI bytes queued for the live-MIDI serializer: each byte (start, 8 data,
 #              stop) takes 1,280 SCK edges, back to back.
 # Prints one line per case and "board: N passed"; exits 1 on any failure.
@@ -39,6 +42,7 @@ def run(name, rom, **env):
     out = p.stdout + p.stderr
     if p.returncode != 0:
         return None, f"bench exit {p.returncode}: {out.strip()[-300:]}"
+    c = re.search(r"cpu: interrupts (\d+), NMI (\d+), vector changed during the push (\d+)", out)
     m = re.search(r"(\d+) instructions, \d+ cycles, (\d+) samples", out)
     b = re.search(r"board: cycles (\d+), powered_down (\d) at (-?\d+), samples after power-down (\d+), "
                   r"lcd_power (\d), uPD933 IRQ rises (\d+) \(first at (-?\d+)\), timer armed (\d+) \(last n (\d+)\)", out)
@@ -46,7 +50,8 @@ def run(name, rom, **env):
         return None, "no result line: " + out.strip()[-300:]
     r = dict(insns=int(m[1]), samples=int(m[2]), cycles=int(b[1]), down=int(b[2]), down_at=int(b[3]),
              down_samples=int(b[4]), lcd_power=int(b[5]), irq_rises=int(b[6]), irq_first=int(b[7]),
-             arms=int(b[8]), arm_n=int(b[9]))
+             arms=int(b[8]), arm_n=int(b[9]), irqs=int(c[1]) if c else -1, nmis=int(c[2]) if c else -1,
+             vec_changes=int(c[3]) if c else -1)
     return r, ""
 
 def near(got, want, tol=3):
@@ -97,6 +102,25 @@ else:
     check("irqtimer", r["arms"] >= 1 and r["arm_n"] == N_EXPECT and r["irq_rises"] == 0,
           f"timer armed {r['arms']} time(s), n {r['arm_n']} (expected {N_EXPECT}); "
           f"uPD933 IRQ rises {r['irq_rises']} in {r['cycles']} cycles (expected 0)")
+
+# nmi: vectors 0004 (NMI), 0008 (T0) and the rest RETI; T0 every 5 x 4 cycles, EI, JR $
+code = [0x54, 0x00, 0x01] + [0x00] * (0x100 - 3)       # JMP 0100
+for v in (0x04, 0x08, 0x10, 0x18, 0x20, 0x28):
+    code[v] = 0x62                                     # RETI
+code += MVI_A(0x05) + [0x4D, 0xDA]                     # MOV TM0,A
+code += MVI_A(0x00) + [0x4D, 0xC7]                     # MOV MKL,A: all unmasked
+code += MVI_A(0x80) + [0x4D, 0xCD]                     # MOV TMM,A: T0 counts cycles / 4, T1 stopped
+code += [0xAA] + JR_SELF                               # EI; JR $
+rom = prog("nmi", code)
+with open(os.path.join(w, "nmi.power"), "w") as f:
+    for k in range(1, 15000):
+        f.write(f"{100 + 13 * k} {k & 1 ^ 1}\n")
+r, err = run("nmi", rom, CZ_POWER=os.path.join(w, "nmi.power"))
+if r is None:
+    check("nmi", False, err)
+else:
+    check("nmi", r["nmis"] > 100 and r["irqs"] > 2 * r["nmis"] and r["vec_changes"] == 0,
+          f"{r['irqs']} interrupts, {r['nmis']} NMI, {r['vec_changes']} vector changes during the push (expected 0)")
 
 # serial: 00 55 00 offered at cycle 0; the line falls at each start bit
 rom = prog("serial", JR_SELF)

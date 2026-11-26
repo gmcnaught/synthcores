@@ -12,6 +12,7 @@
 //     P = 14,999,997, so the edge cycles are generated exactly by a remainder counter.
 //   - uPD933 IRQ changes caused by the CPU's own accesses (MAME queues them through
 //     synchronize(): applied at the next boundary).
+//   - the Power switch's /NMI (an input change between MAME's timeslices).
 // The uPD933 runs on 10 MHz ticks: an access at cycle a is at tick floor(a P / 1e11)
 // = 3a - ceil(3a / 5,000,000).
 
@@ -108,6 +109,7 @@ module cz101_board #(
     logic        at_boundary, ev_done;
     logic        cpu_reset;          // power-down holds the CPU in reset (MAME INPUT_LINE_RESET)
     logic        rx_line;            // m_midi_rx
+    logic        nmi_ev;             // /NMI (Power switch off), changed at instruction boundaries
 
     upd7811 #(.DECODE_HEX(DECODE_HEX)) cpu (
         .clk, .reset(reset || cpu_reset), .cyc_ce,
@@ -118,7 +120,7 @@ module cz101_board #(
         .pa_out, .pb_out, .pc_out, .pd_out, .pf_out,
         .pa_we, .pb_we, .pc_we, .pd_we, .pf_we,
         .an, .rxd(rx_line), .txd(midi_tx), .sck_edge, .sck_level,
-        .nmi_line(!power_on), .int1_line, .int1_rise, .pa_rd, .int2_line(1'b0),
+        .nmi_line(nmi_ev), .int1_line, .int1_rise, .pa_rd, .int2_line(1'b0),
         .vcyc, .acc_time, .at_boundary, .ev_done,
         .insn_done, .insn_cc, .insn_pc, .insn_op, .insn_op2, .halt_cycle, .irq_taken,
         .irq_taken_vec, .r_v, .r_a, .r_b, .r_c, .r_d, .r_e, .r_h, .r_l, .r_ea, .r_sp, .r_pc,
@@ -495,7 +497,7 @@ module cz101_board #(
             // first edge at 250 ns: c_1 = floor(E / P) = 0, remainder E
             sck_cyc <= 32'd0; sck_rem <= E_U; sck_lvl_next <= 1'b1; sck_k <= 32'd1;
             rx_line <= 1'b1;
-            irq_prev <= 1'b0; irq_seen_rise <= 1'b0; int1_line <= 1'b0;
+            irq_prev <= 1'b0; irq_seen_rise <= 1'b0; int1_line <= 1'b0; nmi_ev <= 1'b0;
             ev_done <= 1'b0; t_fire <= 1'b0; fire_wait <= 2'd0;
         end else begin
             if (s_irq && !irq_prev) irq_seen_rise <= 1'b1;
@@ -512,6 +514,10 @@ module cz101_board #(
                     int1_rise <= irq_seen_rise;
                     int1_line <= s_irq;
                     irq_seen_rise <= 1'b0;
+                end else if (nmi_ev != !power_on) begin
+                    // MAME power_w changes INPUT_LINE_NMI between timeslices, so the CPU sees it
+                    // before an instruction, never while it pushes for an interrupt it took
+                    nmi_ev <= !power_on;
                 end else if (rx_valid && !rx_pop && !rx_ahead[31] && (!sck_due || rx_before[31])) begin
                     rx_line <= rx_level;
                     rx_pop <= 1'b1;

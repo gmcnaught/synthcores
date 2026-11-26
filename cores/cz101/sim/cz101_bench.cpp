@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
         r->cz101_board__DOT__snd__DOT__next_bnd = tick_base & ((1ull << 40) - 1);
         r->cz101_board__DOT__sim_tick_base = tick_base & ((1ull << 40) - 1);
     }
-    uint64_t down_samples = 0, irq_rises = 0, arms = 0;
+    uint64_t down_samples = 0, irq_rises = 0, arms = 0, irqs_taken = 0, nmis_taken = 0;
     int64_t down_at = -1, irq_first = -1;
     uint32_t arm_n = 0;
     int irq_last = 0;
@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
             count++;
         }
         if (c->halt_cycle) cyc++;
-        if (c->irq_taken) fprintf(out, "I %04X\n", c->irq_taken_vec);
+        if (c->irq_taken) { fprintf(out, "I %04X\n", c->irq_taken_vec); irqs_taken++; nmis_taken += c->irq_taken_vec == 0x0004; }
         if (c->sample_valid) { samples++; if (smp) { int32_t s = ((int32_t)(c->sample_sum << 13)) >> 13; fwrite(&s, 4, 1, smp); } }
     }
     fclose(out);
@@ -226,6 +226,9 @@ int main(int argc, char **argv) {
            "uPD933 IRQ rises %llu (first at %lld), timer armed %llu (last n %u)\n",
            c->cycles, c->powered_down, (long long)down_at, (unsigned long long)down_samples, c->lcd_power,
            (unsigned long long)irq_rises, (long long)irq_first, (unsigned long long)arms, arm_n);
+    printf("cpu: interrupts %llu, NMI %llu, vector changed during the push %u\n",
+           (unsigned long long)irqs_taken, (unsigned long long)nmis_taken,
+           c->rootp->cz101_board__DOT__cpu__DOT__core__DOT__sim_vec_changes);
     delete c;
     return (clocks || count == n) ? 0 : 1;
 }
