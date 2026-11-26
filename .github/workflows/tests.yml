@@ -68,6 +68,7 @@ jobs:
               - 'cores/p2k/**'
               - 'modules/synthframe/ver/**'
               - 'cores/proteus/p2k/rtl/**'
+              - 'cores/proteus/tools/p2k_*'
       - id: pick
         shell: bash
         run: |

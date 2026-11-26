@@ -1,6 +1,7 @@
 name: Simulation tools
 description: >
-  apt build tools, g++-14, pypy3, Python 3.12 with PyYAML and Pillow, and Verilator 5.048
+  apt build tools, g++-14, pypy3 (with PyYAML and Pillow when pip works there), Python 3.12 with
+  PyYAML and Pillow, and Verilator 5.048
   (built once and cached; Ubuntu's 5.020 cannot compile non-blocking array writes in loops,
   which the SC-55 HDL uses). Used by tests.yml.
 runs:
@@ -15,6 +16,13 @@ runs:
         sudo apt-get update
         sudo apt-get install -y ninja-build cmake g++-14 pypy3 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
         python -m pip install pyyaml pillow
+        # pypy3 from apt has no pip: bootstrap it, then the same packages (best effort; a ci.sh
+        # that needs them under pypy3 falls back to python3)
+        if pypy3 -m ensurepip --user >/dev/null 2>&1 || pypy3 -m pip --version >/dev/null 2>&1; then
+          pypy3 -m pip install --user pyyaml pillow || echo "::warning title=pypy3::pip install pyyaml pillow failed"
+        else
+          echo "::warning title=pypy3::no pip for pypy3; PyYAML and Pillow only under python3"
+        fi
     - name: Cache Verilator
       id: verilator-cache
       uses: actions/cache@v4
