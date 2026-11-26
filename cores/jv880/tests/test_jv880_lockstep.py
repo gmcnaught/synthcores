@@ -8,8 +8,8 @@ ROM-free:
 Need the jv880-v1.0.1 ROMs (JV880_ROM_DIR or SC55_ROM_DIR; skip otherwise):
 * mcu: sc55_mcu with the jv880 model through boot, ending in a P9DR read (cfg bit 1 as the model)
 * pcm: sc55_pcm with the jv880 bank map, 25/29 clock and filter, sample for sample
-* system: sc55_core from the factory NVRAM with loud MIDI, sample for sample; and the same with the
-  time counters started 5 M steps before 2^48 (the 48-bit wrap of #10)
+* system: sc55_core from the factory NVRAM with MIDI, sample for sample; and the same with the
+  time counters started 9 M steps before 2^48 (the 48-bit wrap of #10), during the MIDI
 * board: jv880_board from power-on (pack over ioctl, DDR3 model), sample for sample, with a
   "Save NVRAM" in the middle that must write the model's NVRAM through the SD model
 * render (SC55_LONG=1, about an hour): the system bench renders jv880.mid from the factory NVRAM
@@ -40,8 +40,11 @@ ROMSET = "jv880-v1.0.1"
 NVRAM_SHA = "d5da784546f9fd482c82beb366c527f313e8ea81bc9039dbb8c531197aa6d207"
 RENDER_SHA = "73feda3c5d7153e2ae04eb3a12e3b4a08e0a0e8eeebb39a77159b45385d3bbbc"
 MIDI = SC55_ROOT / "third_party" / "nuked-sc55" / "test" / "integration" / "jv880" / "jv880.mid"
-# a multiple of 3 * 2^20 (sim/common/cycle_base.h), 5,068,117 steps of 12 cycles before 2^48
-WRAP_48 = (2**48 - 12 * 5_000_000) // (3 << 20) * (3 << 20)
+# the unit takes MIDI from about 8 M steps on (before that the firmware is still starting up)
+MIDI_START = "8000000"
+# a multiple of 3 * 2^20 (sim/common/cycle_base.h): cycles crosses 2^48 at step 9,068,117
+WRAP_48 = (2**48 - 12 * 9_000_000) // (3 << 20) * (3 << 20)
+SILENT = "peak -999.0 dBFS"
 
 
 def rom_dir() -> pathlib.Path:
@@ -98,23 +101,26 @@ def test_pcm_loud():
     roms = rom_dir()
     exe = need_file(SC55_SIM / "pcm_lockstep", "PCM lockstep bench")
     out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-                  "--midi-loud", "1", "--steps", "6000000", "--rom-latency", "7")
-    assert " 0 non-zero" not in out, out
+                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "7")
+    assert "(0 non-zero" not in out, out
 
 
 def test_system_loud():
     roms = rom_dir()
     exe = need_file(SC55_SIM / "system_lockstep", "system bench")
-    ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-            "--midi-loud", "1", "--steps", "6000000", "--rom-latency", "10", "--rom-backpressure")
+    out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
+                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "10",
+                  "--rom-backpressure")
+    assert SILENT not in out, out
 
 
 def test_system_cycle_wrap():
-    """#10: mcu.cycles and pcm.cycles cross 2^48 at step 5,068,117, during the MIDI."""
+    """#10: mcu.cycles and pcm.cycles cross 2^48 at step 9,068,117, during the MIDI."""
     roms = rom_dir()
     exe = need_file(SC55_SIM / "system_lockstep", "system bench")
-    ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-            "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
+    out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
+                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "9500000", "--cycle-base", str(WRAP_48))
+    assert SILENT not in out, out
 
 
 def test_board_from_power_on_with_save():
@@ -125,9 +131,9 @@ def test_board_from_power_on_with_save():
         pack = pathlib.Path(d) / "jv880.rom"
         pack.write_bytes(romset.pack(roms, ROMSET, factory_nvram().read_bytes()))
         sav = pathlib.Path(d) / "jv880.sav"
-        out = ok_line(exe, "--roms", str(roms), "--pack", str(pack), "--midi-demo", "1", "--steps", "5000000",
-                      "--sav", str(sav), "--save-at", "4500000")
-        assert "1 saves identical" in out, out
+        out = ok_line(exe, "--roms", str(roms), "--pack", str(pack), "--midi-demo", "1", "--midi-start", MIDI_START,
+                      "--steps", "10000000", "--sav", str(sav), "--save-at", "9500000")
+        assert "1 saves identical" in out and SILENT not in out, out
 
 
 def test_render_hash():

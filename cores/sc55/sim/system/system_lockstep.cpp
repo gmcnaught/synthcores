@@ -8,7 +8,7 @@
 // s16 stream, so its SHA-256 can be compared with `sc55-render --stdout`.
 //
 // Usage: system_lockstep --roms DIR (--smf FILE | --midi-demo S | --midi-loud S --steps N)
-//                        [--out FILE] [--reset-steps N] [--rom-latency N]
+//                        [--out FILE] [--reset-steps N] [--rom-latency N] [--midi-start STEP (default 4 M)]
 //        JV-880 (--romset jv880-v1.0.1): [--nvram FILE] for both; --smf then reproduces the
 //        renderer's jv880 test (no reset message, still the 24 M reset steps).
 //        [--cycle-base B] starts the HDL's and the model's time counters at B (common/cycle_base.h),
@@ -44,7 +44,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 int main(int argc, char** argv)
 {
     std::string rom_dir, smf_path, out_path, romset = "mk1-v1.21";
-    uint64_t    steps = 0, reset_steps = 24'000'000;
+    uint64_t    steps = 0, reset_steps = 24'000'000, midi_start = 4'000'000;
     std::string nvram_in;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         rom_latency = 3;
@@ -62,6 +62,7 @@ int main(int argc, char** argv)
         else if (a == "--reset-steps" && i + 1 < argc) reset_steps = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--midi-loud" && i + 1 < argc) loud_seed = std::strtoll(argv[++i], nullptr, 0);
+        else if (a == "--midi-start" && i + 1 < argc) midi_start = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--rom-latency" && i + 1 < argc) rom_latency = std::atoi(argv[++i]);
         else if (a == "--rom-backpressure") rom_backpressure = true;
         else if (a == "--nvram" && i + 1 < argc) nvram_in = argv[++i];
@@ -278,7 +279,7 @@ int main(int argc, char** argv)
         size_t pos = 0;
         for (uint64_t s = 0; s < steps; ++s)
         {
-            if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && pos < midi.size()) post(midi[pos++]);
+            if (!midi.empty() && s >= midi_start && (s % 600) == 0 && pos < midi.size()) post(midi[pos++]);
             if (!step()) return 1;
         }
     }

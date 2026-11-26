@@ -8,7 +8,7 @@
 // at the end.
 //
 // Usage: jv880_board_bench --roms DIR --pack FILE [--romset jv880-v1.0.1] [--steps N]
-//            [--smf FILE [--reset-steps N] [--out FILE]] [--midi-demo S] [--seed S]
+//            [--smf FILE [--reset-steps N] [--out FILE]] [--midi-demo S [--midi-start STEP]] [--seed S]
 //            [--ddr-busy N] [--ddr-lat MIN MAX] [--sav FILE] [--save-at N]... [--sav-out FILE]
 //   --sav mounts FILE as the save file (hps_io SD slot 0, as Main_MiSTer at the end of the
 //   download; an empty or missing file mounts with size 0); the model starts from its NVRAM when
@@ -65,7 +65,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 int main(int argc, char** argv)
 {
     std::string rom_dir, pack_path, romset = "jv880-v1.0.1", smf_path, out_path;
-    uint64_t    steps = 6'000'000, seed = 1, reset_steps = 24'000'000;
+    uint64_t    steps = 6'000'000, seed = 1, reset_steps = 24'000'000, midi_start = 4'000'000;
     int64_t     midi_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     std::string sav_path, sav_out;
@@ -88,6 +88,7 @@ int main(int argc, char** argv)
         else if (a == "--reset-steps" && i + 1 < argc) reset_steps = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--out" && i + 1 < argc) out_path = argv[++i];
         else if (a == "--midi-demo" && i + 1 < argc) midi_seed = std::strtoll(argv[++i], nullptr, 0);
+        else if (a == "--midi-start" && i + 1 < argc) midi_start = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--seed" && i + 1 < argc) seed = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
@@ -467,7 +468,7 @@ int main(int argc, char** argv)
         if (midi_seed >= 0) midi = make_midi_demo((uint64_t)midi_seed);
         for (uint64_t s = 0; s < steps; ++s)
         {
-            if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && midi_bytes < midi.size()) post(midi[midi_bytes++]);
+            if (!midi.empty() && s >= midi_start && (s % 600) == 0 && midi_bytes < midi.size()) post(midi[midi_bytes++]);
             else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0) { post(sched.front().second); sched.pop_front(); }
             if (!presses.empty())
             {

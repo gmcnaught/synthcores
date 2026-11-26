@@ -102,14 +102,18 @@ def test_cycles_wrap_48():
     during loud MIDI; CPU and every sample as the model (64-bit counters)."""
     need_roms()
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
-    ok_line(exe, "--roms", str(ROM_DIR), "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
+    line = ok_line(exe, "--roms", str(ROM_DIR), "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
+    assert "peak -999.0" not in line, line
 
 
 def test_mk2_cycles_wrap_48():
+    """The mk2 sets up its PCM only after about 10 M steps: cross 2^48 at step 11,621,717, while it sounds."""
     need_roms("mk2-v1.01")
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
-    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "5500000",
-            "--cycle-base", str(WRAP_48))
+    base = (2**48 - 12 * 11_500_000) // (3 << 20) * (3 << 20)
+    line = ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "12000000",
+                   "--cycle-base", str(base))
+    assert "peak -999.0" not in line, line
 
 
 def test_board_end_of_run_count():
