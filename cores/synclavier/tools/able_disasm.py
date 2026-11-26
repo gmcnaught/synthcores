@@ -77,7 +77,7 @@ def decode_dst(d, model="C"):
     r = d & 0o17
     if d & 0o20:
         if r == 0o12 and model in ("C", "D"):
-            return "MR12D", "mem"  # Model C+: push (pre-decrement R12)
+            return "MR12D", "mem"  # Model C+: push (store, then decrement R12)
         return "MR%sI" % octal(r), "mem"
     return "MR" + octal(r), "mem"
 
