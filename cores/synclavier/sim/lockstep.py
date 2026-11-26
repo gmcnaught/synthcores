@@ -11,8 +11,9 @@ stops at the first difference. Two HDL tops:
           values, interrupt bits and timing are compared; any other device
           is answered from the trace.
 
-Trace format v2 (little-endian):
-  b"ABLT2\\0\\0\\0"
+Trace format v3 (little-endian; iter_trace() below is the Python reader,
+hdl/sim/lockstep.cpp the bench's; tests/hdl/test_lockstep.py checks they agree):
+  b"ABLT3\\0\\0\\0"
   16 x u16 registers, u8 flags {pcs, ion, m, c, z} (bit 4 .. bit 0)
   65536 x u16 internal memory
   header sections, then 'B':
@@ -47,8 +48,14 @@ Trace format v2 (little-endian):
     'Q' u16       interrupt bits at the end of an instruction with ION and
                   PCS set (the interrupt is taken if nonzero)
     'I' u16 u16   instruction completed: pc, word
+    'D' u16 mask u8 flags, popcount(mask) x u16
+                  registers after the preceding 'I': the registers whose bit
+                  is set in mask (ascending) changed to these values; the
+                  flags in full. After every 'I' except one that halts, so
+                  all registers and flags are compared every instruction
     'S' 16 x u16 u8 u64   registers, flags and simulated ns since the start,
-                  after the preceding instruction
+                  after the preceding instruction (every `snapshot_every`
+                  instructions and after the last; time is compared here)
     'T' u32 u16 bytes   terminal input, fed after this many held steps of
                   the current read (0: before the next instruction)
     'A' i64 i64   audio sample (sim/voice.py FMSynth.sample_int: left, right)
@@ -61,6 +68,12 @@ Trace format v2 (little-endian):
                   two's complement; board top); 10 a MIDI in byte for the
                   SMPTE reader (index 0, byte; board top)
     'H' u8        halted: 1 no SYN on read, 2 no SYN on write, 3 HALT
+    'M' 65536 x u16 internal memory, u32 n, n x u16 external memory words
+        0..n-1 (n = 0: no external memory), u8 c, then if c: u16 page
+        u16 ppc u8 rpt_next u8 rpt_left u16 rpt_word u16 rpt_pc u16 d2
+        u8 shadow (Model C/D CPU state)
+                  the state at the end of the trace, just before 'E' (the
+                  bench compares it unless it stopped early at a maximum)
     'E'           end of trace
 
 Usage:
@@ -84,8 +97,13 @@ import subprocess
 from .bus import BUS_WAIT, NO_SYN, Device
 
 M16 = 0xFFFF
-MAGIC = b"ABLT2\0\0\0"
+MAGIC = b"ABLT3\0\0\0"
 HALT_CODES = {"no SYN on read": 1, "no SYN on write": 2, "HALT": 3}
+HEADER_START = len(MAGIC) + 33 + 131072   # magic, registers and flags, internal memory
+# fixed payload sizes of the events (after the kind byte); 'T', 'D' and 'M'
+# are variable (iter_trace)
+EVENT_SIZES = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
+               b"w": 4, b"K": 4, b"A": 16}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD_DIR = os.path.join(ROOT, "out", "hdl-lockstep")
 BAUDS = (300, 1200, 2400, 4800, 9600, 19200, 38400, 76800)
@@ -243,6 +261,21 @@ def _device_header(cpu):
     return out
 
 
+def end_state(cpu):
+    """'M': internal memory, external memory and the Model C/D CPU state at
+    the end of a trace."""
+    out = bytearray(b"M") + struct.pack("<65536H", *cpu.mem)
+    xm = getattr(cpu, "extmem", None)
+    words = xm.data.tobytes() if xm is not None else b""
+    out += struct.pack("<I", len(words) // 2) + words
+    if cpu.model == "B":
+        out += b"\0"
+    else:
+        out += struct.pack("<BHHBBHHHB", 1, cpu.page, cpu.ppc, cpu.rpt_next, cpu.rpt_left,
+                           cpu.rpt_word, cpu.rpt_pc, cpu.d2, cpu.int_shadow)
+    return out
+
+
 OSC_NUM, OSC_D = 656_000_000, 123_000_000_000    # sim/voice.py OSC_CLOCK = NUM / D per ns (32 MHz / 6, #83)
 SAMPLE_RATE = 768_000                             # render instants: 48 kHz x 16 (sim/pcm.py)
 
@@ -289,7 +322,7 @@ class _Audio:
 
 
 def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait=10_000,
-           on_wait=None, actions=(), audio=False):
+           on_wait=None, actions=(), audio=False, regs_every=1):
     """Run `cpu` for `instructions` completed instructions, writing a trace
     to `path`. Stops early if the CPU halts, or if a read stays held for
     `max_wait` steps (a program waiting for terminal input) and
@@ -297,12 +330,20 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
     return True to go on). `actions`: (ns after the start, callable(cpu))
     host actions on devices the HDL does not model (panel buttons, keys),
     run between instructions. audio=True also records the voice engine's
-    samples (sim/voice.py), for the system top. Returns the number recorded."""
+    samples (sim/voice.py), for the system top. regs_every: a 'D' record
+    (registers and flags, compared by the bench) after every this many
+    instructions (1: every instruction, the default; 0: none, only the 'S'
+    snapshots every `snapshot_every`). Returns the number recorded."""
     actions = sorted(actions, key=lambda a: a[0])
     out = bytearray(MAGIC)
     out += struct.pack("<16HB", *cpu.r, _flags(cpu))
     out += struct.pack("<65536H", *cpu.mem)
-    out += _device_header(cpu)
+    dev = _device_header(cpu)
+    out += dev
+    if not dev and cpu.extmem is not None:
+        # CPU top, Model D: the external memory the code pages map onto
+        xm = cpu.extmem
+        out += struct.pack("<cI", b"X", xm.sectors) + xm.data.tobytes()
     if cpu.model != "B":
         term = getattr(cpu, "terminal", None)
         out += struct.pack("<cBHHHHBBHHHB", b"C", "ABCD".index(cpu.model), cpu.d57,
@@ -398,6 +439,20 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
     def snapshot(time_ns=None):
         t = cpu.time_ns if time_ns is None else time_ns
         return b"S" + struct.pack("<16HBQ", *cpu.r, _flags(cpu), t - t0)
+    prev = list(cpu.r)
+    d_fmt = [struct.Struct("<cHB%dH" % k) for k in range(17)]
+
+    def delta():
+        """'D': the registers this instruction changed, and the flags."""
+        r = cpu.r
+        mask, vals = 0, []
+        for i in range(16):
+            v = r[i]
+            if v != prev[i]:
+                mask |= 1 << i
+                vals.append(v)
+                prev[i] = v
+        return d_fmt[len(vals)].pack(b"D", mask, _flags(cpu), *vals)
     t_done = t0                   # time at the end of the last completed instruction
     mark = 0                      # end of its events in `ev`; later ones are dropped
     snap_at_mark = False
@@ -447,6 +502,8 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
                 t_done = cpu.time_ns
                 ev += struct.pack("<cHH", b"I", pc, word)
                 n += 1
+                if regs_every and n % regs_every == 0:
+                    ev += delta()
                 snap_at_mark = n % snapshot_every == 0
                 i_end = None
                 if snap_at_mark:
@@ -470,6 +527,7 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
                     ev[i_end:i_end] = snapshot(t_done)
                 else:
                     ev += snapshot(t_done)
+            ev += end_state(cpu)
             ev += b"E"
             f.write(ev)
     finally:
@@ -693,41 +751,87 @@ def expected_wav(trace_path, wav_path):
     """The WAV pcm_out.sv gives for the audio samples in a trace: sim/pcm.py's
     decimator from the trace start. Returns the frame count."""
     from . import pcm
-    frames = pcm.frames(list(_trace_audio(trace_path)))
+    frames = pcm.frames(list(trace_audio(trace_path)))
     pcm.write_wav(wav_path, frames)
     return len(frames)
 
 
-def _trace_audio(path):
-    """The 'A' samples of a trace, in order."""
-    b = open(path, "rb").read()
-    p = len(MAGIC) + 33 + 131072
-    while True:
-        k = b[p:p + 1]
-        p += 1
-        if k == b"B":
-            break
-        if k == b"X":
-            p += 4 + struct.unpack_from("<I", b, p)[0] * 512
-        elif k == b"F":
-            p += 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
-        elif k == b"V":
-            p += 7
-        elif k == b"O":
-            p += 12 + 4 * b[p + 11]
-        elif k == b"C":
-            p += 18
-    sizes = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
-             b"w": 4, b"K": 4, b"A": 16}
+def _header_size(b, p, k):
+    """Payload size of header section `k` whose payload starts at b[p]."""
+    if k == b"X":
+        return 4 + struct.unpack_from("<I", b, p)[0] * 512
+    if k == b"F":
+        return 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
+    if k == b"V":
+        return 7
+    if k == b"O":
+        return 12 + 4 * b[p + 11]
+    if k == b"C":
+        return 18
+    raise ValueError("bad header section %r at byte %d" % (k, p - 1))
+
+
+def _event_size(b, p, k):
+    """Payload size of event `k` whose payload starts at b[p]."""
+    n = EVENT_SIZES.get(k)
+    if n is not None:
+        return n
+    if k == b"T":
+        return 6 + struct.unpack_from("<H", b, p + 4)[0]
+    if k == b"D":
+        return 3 + 2 * bin(struct.unpack_from("<H", b, p)[0]).count("1")
+    if k == b"M":
+        n = struct.unpack_from("<I", b, p + 131072)[0]
+        q = p + 131072 + 4 + 2 * n
+        return q + 1 + (13 if b[q] else 0) - p      # c, then 13 bytes of Model C/D state
+    raise ValueError("bad event %r at byte %d" % (k, p - 1))
+
+
+def iter_trace(data):
+    """The records of a trace (a path or its bytes), in order: (kind, payload)
+    for each header section, (b"B", b"") at the end of the header, then each
+    event up to and including 'E'. kind is a 1-byte bytes, payload a
+    memoryview. Raises ValueError on a bad magic, an unknown section or event
+    kind, a truncated record, or a trace that does not end with 'E'."""
+    b = data if isinstance(data, (bytes, bytearray)) else open(data, "rb").read()
+    if b[:len(MAGIC)] != MAGIC:
+        raise ValueError("not a lockstep trace (%r)" % bytes(b[:len(MAGIC)]))
+    m = memoryview(b)
+    p = HEADER_START
+    in_header = True
     while p < len(b):
-        k = b[p:p + 1]
+        k = bytes(b[p:p + 1])
         p += 1
-        if k == b"T":
-            p += 6 + struct.unpack_from("<H", b, p + 4)[0]
+        if in_header and k == b"B":
+            in_header = False
+            yield k, m[p:p]
             continue
+        n = _header_size(b, p, k) if in_header else _event_size(b, p, k)
+        if p + n > len(b):
+            raise ValueError("record %r at byte %d runs past the end" % (k, p - 1))
+        yield k, m[p:p + n]
+        p += n
+        if k == b"E" and not in_header:
+            if p != len(b):
+                raise ValueError("%d bytes after 'E'" % (len(b) - p))
+            return
+    raise ValueError("trace ends without 'E'" if not in_header else "trace ends in the header")
+
+
+def trace_audio(path):
+    """The 'A' samples of a trace, in order, as (left, right)."""
+    for k, v in iter_trace(path):
         if k == b"A":
-            yield struct.unpack_from("<qq", b, p)
-        p += sizes[k]
+            yield struct.unpack("<qq", v)
+
+
+def trace_counts(path):
+    """How many records of each kind a trace holds ({kind: count}, header
+    sections included; b"V" counts device-state entries)."""
+    c = {}
+    for k, _ in iter_trace(path):
+        c[k] = c.get(k, 0) + 1
+    return c
 
 
 def ork_lm_note_actions(cpu, dbg, image):
@@ -957,6 +1061,9 @@ def main(argv=None):
     ap.add_argument("args", nargs="+", help="[IMAGE] TRACE")
     ap.add_argument("--instructions", type=int, default=1_000_000)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--regs-every", type=int, default=1,
+                    help="registers and flags compared after every N instructions (0: only "
+                         "at the 256-instruction snapshots)")
     ap.add_argument("--model", default="B")
     ap.add_argument("--top", choices=tuple(TOPS), default="cpu", help="HDL top for check")
     ap.add_argument("--audio", action="store_true", help="also record voice engine samples")
@@ -1108,7 +1215,7 @@ def main(argv=None):
         actions.append((11_000_000_000, lambda c: c.terminal.feed(text)))
     n = record(cpu, path, a.instructions,
                on_wait=on_wait if a.mode == "monitor" or (a.mode == "w0boot" and a.commands) else None,
-               actions=actions, audio=a.audio)
+               actions=actions, audio=a.audio, regs_every=a.regs_every)
     if a.mode == "monitor" or (a.mode == "w0boot" and a.commands):
         print(cpu.terminal.text()[-600:], file=sys.stderr)
     if a.mode == "w0boot" and a.dig_stm:

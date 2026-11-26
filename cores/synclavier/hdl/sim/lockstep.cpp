@@ -9,8 +9,10 @@
 //     writes, interrupt bits and timing are compared with the trace. Any
 //     other device is answered from the trace.
 // Each I/O transfer, PSW read, interrupt check and completed instruction
-// must match; register snapshots (and, for the system, simulated time)
-// are compared every 256 instructions.
+// must match; all registers and flags are compared after every
+// instruction ('D'), simulated time (system) at each 'S' snapshot, and at
+// the end the internal memory, the external memory (system and board) and
+// the Model C/D CPU state ('M').
 //
 //   board_top (-DBOARD): the MiSTer core (synclavier_core) from power-on.
 //     Nothing is loaded: the bench plays the HPS (the trace's floppies as
@@ -82,6 +84,11 @@ void tick() {
 }
 
 uint16_t reg(int i) { return (top->regs_flat[i / 2] >> ((i & 1) * 16)) & 0xFFFF; }
+
+// The state Python says the registers hold after the last instruction
+// (header, then each 'D' / 'S').
+uint16_t want_r[16];
+uint8_t want_flags_now = 0;
 
 [[noreturn]] void fail(uint64_t n, const char* fmt, ...) {
     std::fprintf(stderr, "MISMATCH at instruction %llu (cycle %llu): ",
@@ -212,8 +219,8 @@ void board_tick() {
 // state it leaves with the trace's start state.
 void board_start(Trace& t, bool& audio_trace) {
     uint16_t want_regs[16];
-    for (int i = 0; i < 16; i++) want_regs[i] = t.u16();
-    uint8_t want_flags = t.u8();
+    for (int i = 0; i < 16; i++) want_r[i] = want_regs[i] = t.u16();
+    uint8_t want_flags = want_flags_now = t.u8();
     std::vector<uint16_t> want_mem(65536), want_xm;
     std::vector<uint8_t> want_wave(8192, 0);       // the header's wave-memory entries
     uint32_t poly_units = 256, poly_bins = 1;
@@ -417,8 +424,8 @@ int main(int argc, char** argv) {
     if (!f) { std::perror(argv[1]); return 2; }
     for (int ch; (ch = std::fgetc(f)) != EOF;) t.b.push_back((uint8_t)ch);
     std::fclose(f);
-    if (t.b.size() < 8 || std::memcmp(t.b.data(), "ABLT2\0\0\0", 8) != 0) {
-        std::fprintf(stderr, "%s: not a lockstep trace (v2)\n", argv[1]);
+    if (t.b.size() < 8 || std::memcmp(t.b.data(), "ABLT3\0\0\0", 8) != 0) {
+        std::fprintf(stderr, "%s: not a lockstep trace (v3)\n", argv[1]);
         return 2;
     }
     t.p = 8;
@@ -459,14 +466,17 @@ int main(int argc, char** argv) {
     top->dev_ack = top->dev_nosyn = top->dev_hold = top->halt_req = 0;
     top->dev_irq = 0;
     top->cpu_model = 1; top->cpu_d57 = 0;          // Model B unless the trace says ('C')
+#ifndef SYSTEM
+    top->ext_words = 0;                            // no external memory unless 'X'
+#endif
 #ifdef SYSTEM
     top->fd_present = top->fd_protect = 0;
     top->term_bits = 01000;                        // D60 present
 #endif
     for (int i = 0; i < 16; i++) {
-        top->dbg_we = 1; top->dbg_addr = i; top->dbg_wdata = t.u16(); tick();
+        top->dbg_we = 1; top->dbg_addr = i; top->dbg_wdata = want_r[i] = t.u16(); tick();
     }
-    top->dbg_addr = 16; top->dbg_wdata = t.u8(); tick();
+    top->dbg_addr = 16; top->dbg_wdata = want_flags_now = t.u8(); tick();
     for (int i = 17; i <= 23; i++) {               // Model C/D state: zero unless 'C' says
         top->dbg_addr = i; top->dbg_wdata = 0; tick();
     }
@@ -484,6 +494,8 @@ int main(int argc, char** argv) {
             if (sectors > 8192) { std::fprintf(stderr, "external memory > 8192 sectors\n"); return 2; }
 #ifdef SYSTEM
             top->ext_sectors = sectors;
+#else
+            top->ext_words = sectors * 256;
 #endif
             for (uint32_t a = 0; a < sectors * 256; a++) {
                 top->ld_xm_we = 1; top->ld_xm_addr = a; top->ld_xm_data = t.u16(); tick();
@@ -569,10 +581,10 @@ int main(int argc, char** argv) {
     cycles = 0;
 #endif
 
-    uint64_t n = 0, time_ns = 0, clear_cycles = 0;
+    uint64_t n = 0, time_ns = 0, clear_cycles = 0, regs_checked = 0;
     uint32_t held = 0;                 // held-read clocks in the current read
-    bool check_snapshot = false;
-    uint16_t snap[16]; uint8_t snap_flags = 0; uint64_t snap_time = 0;
+    bool check_regs = false, check_time = false;
+    uint64_t snap_time = 0;
     std::deque<uint8_t> rx;            // terminal input still to push
     std::deque<std::pair<int64_t, int64_t>> want_audio;   // Python samples not yet matched
     uint64_t samples = 0, stall_samples = 0, stall_nonzero = 0, rt_compared = 0, rt_differ = 0;
@@ -632,18 +644,19 @@ int main(int argc, char** argv) {
         top->term_rx_valid = 0;
 #endif
 
-        if (check_snapshot) {                    // state after the last instruction's END
+        if (check_regs) {                        // state after the last instruction's END
             for (int i = 0; i < 16; i++)
-                if (reg(i) != snap[i]) fail(n, "R%o = %06o, Python %06o", i, reg(i), snap[i]);
-            if (top->flags != snap_flags) fail(n, "flags %02o, Python %02o", top->flags, snap_flags);
+                if (reg(i) != want_r[i]) fail(n, "R%o = %06o, Python %06o", i, reg(i), want_r[i]);
+            if (top->flags != want_flags_now) fail(n, "flags %02o, Python %02o", top->flags, want_flags_now);
 #ifdef SYSTEM_DEVICES
-            if (time_ns != snap_time)
+            if (check_time && time_ns != snap_time)
                 fail(n, "time %llu ns, Python %llu ns", (unsigned long long)time_ns,
                      (unsigned long long)snap_time);
 #else
             (void)snap_time;
 #endif
-            check_snapshot = false;
+            check_regs = check_time = false;
+            regs_checked++;
         }
         if (top->halted) {
             if (t.peek() != 'H') fail(n, "HDL halted (reason %d), Python did not", top->halt_reason);
@@ -652,7 +665,7 @@ int main(int argc, char** argv) {
             if (why != top->halt_reason) fail(n, "halt reason %d, Python %d", top->halt_reason, why);
             break;
         }
-        if (t.peek() == 'E') break;
+        if (t.peek() == 'E' || t.peek() == 'M') break;
 
 #ifdef SYSTEM_DEVICES
         top->kb_host_we = 0;
@@ -776,12 +789,20 @@ int main(int argc, char** argv) {
             if (pc != top->instr_pc || w != top->instr_word)
                 fail(n, "HDL completed %06o %06o, Python %06o %06o", top->instr_pc, top->instr_word, pc, w);
             n++;
+            if (t.peek() == 'D') {               // the registers it changed, and the flags
+                t.u8();
+                uint16_t mask = t.u16();
+                want_flags_now = t.u8();
+                for (int i = 0; i < 16; i++)
+                    if (mask >> i & 1) want_r[i] = t.u16();
+                check_regs = true;
+            }
             if (t.peek() == 'S') {
                 t.u8();
-                for (int i = 0; i < 16; i++) snap[i] = t.u16();
-                snap_flags = t.u8();
+                for (int i = 0; i < 16; i++) want_r[i] = t.u16();
+                want_flags_now = t.u8();
                 snap_time = t.u64();
-                check_snapshot = true;
+                check_regs = check_time = true;
             }
         }
 #ifdef SYSTEM
@@ -803,6 +824,55 @@ int main(int argc, char** argv) {
         if (cycles > 64 * (n + 1000) + 64ull * held + time_ns / 10 + clear_cycles + stalled || held > 10'000'000)
             fail(n, "HDL stuck (state does not advance)");
     }
+    // 'M': the state at the end of the trace (not when stopped at max_n)
+    bool end_checked = false;
+    if (t.peek() == 'M' && n < max_n) {
+        t.u8();
+        top->clk = 0; top->eval();
+        int bad = 0;
+        auto differs = [&](const char* what, unsigned long a, unsigned hdl, unsigned py) {
+            if (bad++ < 16)
+                std::fprintf(stderr, "end state: %s %06lo = %06o, Python %06o\n", what, a, hdl, py);
+        };
+        for (uint32_t a = 0; a < 65536; a++) {
+            uint16_t py = t.u16();
+#ifdef BOARD
+            uint16_t hdl = top->rootp->board_top->core->sys->mem[a];
+#else
+            top->dbg_rd_addr = a; top->eval();
+            uint16_t hdl = top->dbg_mem_rdata;
+#endif
+            if (hdl != py) differs("memory", a, hdl, py);
+        }
+        uint32_t xn = t.u32();
+        for (uint32_t a = 0; a < xn; a++) {
+            uint16_t py = t.u16();
+#if defined(BOARD)
+            uint16_t hdl = ddr.word(a);
+#elif defined(SYSTEM)
+            top->dbg_rd_addr = a; top->eval();
+            uint16_t hdl = top->dbg_xm_rdata;
+#else
+            uint16_t hdl = py;                     // D60-D63 are answered from the trace
+#endif
+            if (hdl != py) differs("external word", a, hdl, py);
+        }
+        if (t.u8()) {                              // Model C/D CPU state
+            const char* names[] = {"page", "ppc", "rpt_next/left", "rpt_word", "rpt_pc", "d2", "shadow"};
+            uint16_t py[7];
+            py[0] = t.u16(); py[1] = t.u16();
+            { uint8_t nx = t.u8(), left = t.u8(); py[2] = (uint16_t)(nx << 8 | left); }
+            py[3] = t.u16(); py[4] = t.u16(); py[5] = t.u16(); py[6] = t.u8();
+            uint16_t hdl[7] = {top->st_page, top->st_ppc, top->st_rpt, top->st_rpt_word,
+                               top->st_rpt_pc, top->st_d2, top->st_shadow};
+            for (int i = 0; i < 7; i++)
+                if (hdl[i] != py[i]) differs(names[i], 0, hdl[i], py[i]);
+        }
+        if (bad) fail(n, "end state differs (%d)", bad);
+        end_checked = true;
+    }
+    if (t.peek() != 'E' && n < max_n && !top->halted)
+        fail(n, "trace continues with '%c' after the HDL stopped", t.peek());
 #ifdef SYSTEM_DEVICES
     // the last samples finish mixing a few clocks after the trace ends, and
     // pcm_out's last sums (512 clocks each) after that; the CPU is held so no
@@ -889,6 +959,8 @@ int main(int argc, char** argv) {
 #endif
     std::printf("lockstep OK: %llu instructions, %llu cycles, %llu ns simulated",
                 (unsigned long long)n, (unsigned long long)cycles, (unsigned long long)time_ns);
+    std::printf(", registers checked %llu times, end state %s",
+                (unsigned long long)regs_checked, end_checked ? "checked" : "not checked");
     if (samples) std::printf(", %llu audio samples", (unsigned long long)samples);
 #ifdef BOARD
     std::printf(", %llu SD reads, %zu DDR3 reads in flight at most", (unsigned long long)sd.reads,

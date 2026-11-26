@@ -15,7 +15,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-from sim.lockstep import check, expected_wav, random_cpu, record  # noqa: E402
+from sim.lockstep import (HEADER_START, check, expected_wav, iter_trace, random_cpu,  # noqa: E402
+                          record, trace_audio, trace_counts)
 
 HAVE_VERILATOR = shutil.which("verilator") is not None
 
@@ -46,6 +47,103 @@ def test_random_programs_model_c():
         raise unittest.SkipTest("verilator not found")
     for seed in range(40):
         assert _check(random_cpu(2000 + seed, "C"), 3000) == 3000
+
+
+# A short program that never reads R5, D2 or memory 7000-7777 back: a
+# difference there shows only in the per-instruction register check ('D')
+# or the end state ('M'). Stops on a read of D6, which has no SYN.
+QUIET_PROGRAM = """
+        IM(1) TO R0
+        IM(2) TO R1
+        IM(3) TO R2
+        IM(4) TO R3
+        IM(5) TO R4
+        IM(6) TO R6
+        IM(7) TO R5         ; R5 overwritten here
+        IM(1) TO R0
+        D6 TO R0            ; no SYN: halt
+"""
+
+
+def _quiet_trace(path, model="B", system=False):
+    from sim.asm import assemble
+    if system:
+        from sim.system import make_system
+        cpu = make_system(ext_sectors=16, model=model)
+    else:
+        from sim.cpu import CPU
+        cpu = CPU()
+        cpu.model = model
+    words, _ = assemble(QUIET_PROGRAM)
+    cpu.load(words)
+    n = record(cpu, path, 100)
+    assert cpu.halted and n == 8, (cpu.halted, n)
+    return cpu
+
+
+def _record_offsets(path, kind):
+    """Payload offsets in the trace file of each record of this kind."""
+    out, p = [], HEADER_START
+    for k, v in iter_trace(path):
+        p += 1
+        if k == kind:
+            out.append(p)
+        p += len(v)
+    return out
+
+
+def _patched_check(path, offset, value, top="cpu"):
+    """Overwrite the u16 at `offset` of a trace, then run the bench."""
+    import struct
+    b = bytearray(open(path, "rb").read())
+    struct.pack_into("<H", b, offset, value)
+    p2 = path + ".patched"
+    with open(p2, "wb") as f:
+        f.write(b)
+    try:
+        return check(p2, top=top)
+    finally:
+        os.unlink(p2)
+
+
+def test_lockstep_checks_every_instruction_and_end_state():
+    """Review 2026-11-26 sync-py #1: a register that is wrong for a few
+    instructions and then overwritten, internal or external memory that is
+    never read back, and Model C/D state (D2) are all compared. Each case
+    starts the HDL from a header that differs from Python's in one word."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "q.trace")
+        _quiet_trace(path, model="C")
+        ok, text = check(path)
+        assert ok and "registers checked 8 times, end state checked" in text, text
+        # Python says instruction 1 set R0 to 55 (the HDL: 1); instruction 8
+        # sets R0 to 1 again, so the last snapshot alone would not see it
+        d0 = _record_offsets(path, b"D")[0]
+        import struct
+        raw = open(path, "rb").read()
+        assert struct.unpack_from("<H", raw, d0)[0] == 0o100001          # R0 and R17 (PC)
+        assert struct.unpack_from("<H", raw, d0 + 3)[0] == 1
+        ok, text = _patched_check(path, d0 + 3, 0o55)
+        assert not ok and "MISMATCH at instruction 1" in text and "R0 = 000001, Python 000055" in text, text
+        # internal memory 7000, never read or written
+        ok, text = _patched_check(path, 8 + 33 + 2 * 0o7000, 0o4567)
+        assert not ok and "end state: memory 007000 = 004567, Python 000000" in text, text
+        # Model C/D state: D2 ('C' header section, payload offset 15)
+        kinds = [k for k, _ in iter_trace(path)]
+        assert kinds[0] == b"C", kinds[:3]
+        ok, text = _patched_check(path, HEADER_START + 1 + 15, 0o777)
+        assert not ok and "end state: d2" in text, text
+        # system top: external memory word 100 (never accessed)
+        _quiet_trace(path, model="B", system=True)
+        ok, text = check(path, top="system")
+        assert ok and "end state checked" in text, text
+        x = next(i for i, (k, _) in enumerate(iter_trace(path)) if k == b"X")
+        assert x == 0
+        ok, text = _patched_check(path, HEADER_START + 1 + 4 + 2 * 0o100, 0o1111, top="system")
+        assert not ok and "end state: external word 000100 = 001111" in text, text
+
 
 
 DEVICE_PROGRAM = """
@@ -636,36 +734,120 @@ def test_system_voice_clock_32_voices():
 
 
 def _nonzero_samples(path):
-    """Audio samples in a trace that are not (0, 0)."""
+    """Audio samples in a trace that are not (0, 0) (sim.lockstep's parser)."""
+    return sum(1 for v in trace_audio(path) if v != (0, 0))
+
+
+_OK = re.compile(r"lockstep OK: (\d+) instructions, .*registers checked (\d+) times, end state checked"
+                 r"(?:, (\d+) audio samples)?")
+
+
+def _bench_counts(path, top):
+    """Run the bench; return (instructions, register checks, audio samples) it read."""
+    ok, text = check(path, top=top)
+    assert ok, text
+    m = _OK.search(text)
+    assert m, text
+    return int(m.group(1)), int(m.group(2)), int(m.group(3) or 0)
+
+
+def _python_counts(path):
+    """The same counts from sim.lockstep.iter_trace, and the header kinds."""
+    kinds = []
+    n = checks = audio = 0
+    last = None
+    for k, _ in iter_trace(path):
+        kinds.append(k)
+        if k == b"I":
+            n += 1
+        elif k in (b"D", b"S") and last == b"I":
+            checks += 1
+        elif k == b"A":
+            audio += 1
+        if k not in (b"A",):
+            last = k
+    return (n, checks, audio), set(kinds[:kinds.index(b"B")])
+
+
+def test_trace_parsers_agree():
+    """Review 2026-11-26 sync-py #5: sim.lockstep.iter_trace (used by
+    trace_audio / expected_wav and the tests) and the C++ bench read the
+    same records from traces with every header section (X, V, F, O, C) and
+    every event kind (P R W Q I D S T K A w H M E)."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    import random as _random
+    from sim.asm import assemble
+    from sim.devices.floppy import Media
+    from sim.devices.synth import button_number
+    from sim.system import make_system
+    seen = set()
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "t.trace")
+
+        def both(top):
+            want, header = _python_counts(path)
+            assert _bench_counts(path, top) == want, (top, want)
+            seen.update(header)
+            seen.update(k for k, _ in iter_trace(path))
+        record(random_cpu(2001, "C"), path, 3000)                     # 'C'
+        both("cpu")
+        cpu = make_system()                                          # 'T', 'w', 'P', 'Q'
+        cpu.load(assemble(DEVICE_PROGRAM)[0])
+        fed = []
+
+        def on_wait(c):
+            if len(fed) == 3:
+                return False
+            fed.append(1)
+            c.terminal.feed("xyz")
+            return True
+        record(cpu, path, 200_000, on_wait=on_wait)
+        both("system")
+        rng = _random.Random(5)                                      # 'F'
+        cpu = make_system(floppy=True)
+        cpu.floppy.insert(0, Media([rng.randrange(0x10000) for _ in range(40 * 256)]))
+        cpu.load(assemble(_expand_waits(FLOPPY_PROGRAM))[0])
+        cpu.load([rng.randrange(0x10000) for _ in range(256)], 0o10000)
+        record(cpu, path, 20_000)
+        both("system")
+        cpu = make_system(synth=True)                                # 'K'
+        cpu.load(assemble(SYNTH_PROGRAM)[0])
+        kb = cpu.keyboard
+        record(cpu, path, 60_000, actions=[(1_000_000, lambda c: kb.press_button(button_number("timb.3"))),
+                                           (2_000_000, lambda c: kb.press_key(52))])
+        both("system")
+        cpu = make_system(synth=True)                                # 'O', 'A'
+        cpu.load(assemble(VOICE_PROGRAM)[0])
+        record(cpu, path, 30_000, audio=True)
+        both("system")
+    missing = {b"X", b"V", b"F", b"O", b"C", b"B", b"P", b"R", b"W", b"Q", b"I", b"D", b"S",
+               b"T", b"K", b"A", b"w", b"H", b"M", b"E"} - seen
+    assert missing <= {b"H"}, missing          # 'H' (halts) is covered by the quiet trace test
+
+
+def test_nonzero_samples_header_with_section_bytes():
+    """Review 2026-11-26 sync-py #4: an 'O' section is 12 + 4n bytes (n
+    channels) and its bytes can equal a section letter ('B' = 0x42). The
+    old test helper skipped 75 bytes whatever n was, then scanned for 'B'
+    byte by byte (on this trace it ran past the end and never returned)."""
     import struct
-    b = open(path, "rb").read()
-    p = 8 + 33 + 131072
-    while True:
-        k = b[p:p + 1]
-        p += 1
-        if k == b"B":
-            break
-        if k == b"X":
-            p += 4 + struct.unpack_from("<I", b, p)[0] * 512
-        elif k == b"F":
-            p += 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
-        elif k == b"V":
-            p += 7
-        elif k == b"O":
-            p += 11 + 64
-    sizes = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
-             b"w": 4, b"K": 4, b"A": 16}
-    count = 0
-    while p < len(b):
-        k = b[p:p + 1]
-        p += 1
-        if k == b"T":
-            p += 6 + struct.unpack_from("<H", b, p + 4)[0]
-            continue
-        if k == b"A" and struct.unpack_from("<qq", b, p) != (0, 0):
-            count += 1
-        p += sizes[k]
-    return count
+    from sim.lockstep import MAGIC
+    b = bytearray(MAGIC) + bytes(33 + 131072)
+    b += struct.pack("<cQHBB", b"O", 0, 0, 0, 8)
+    for ch in range(8):                       # acc 0x4242: 'B' bytes in the section
+        b += struct.pack("<HBB", 0x4242, 0x42, 0x42)
+    b += b"B"
+    for v in ((0, 0), (5, -5), (0, 0), (1, 2)):
+        b += struct.pack("<cqq", b"A", *v)
+    b += b"E"
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "o.trace")
+        with open(path, "wb") as f:
+            f.write(b)
+        assert list(trace_audio(path)) == [(0, 0), (5, -5), (0, 0), (1, 2)]
+        assert _nonzero_samples(path) == 2
+        assert trace_counts(path)[b"O"] == 1
 
 
 def test_sine_rom_matches_python():
