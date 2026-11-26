@@ -110,7 +110,7 @@ module mcs96_periph (
     logic        u_from_reg;       // the update was called from an SFR write
 
     // register-access FSM
-    typedef enum logic [2:0] { A_IDLE, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD, A_ACK } a_t;
+    typedef enum logic [2:0] { A_IDLE, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD } a_t;
     a_t as;
     logic [7:0] a_q;
 
@@ -399,7 +399,6 @@ module mcs96_periph (
                 as <= A_IDLE;
             end
             A_UPD: if (us == U_DONE) begin r_ack <= 1'b1; as <= A_IDLE; end
-            A_ACK: begin r_ack <= 1'b1; as <= A_IDLE; end
             default: as <= A_IDLE;
             endcase
         end

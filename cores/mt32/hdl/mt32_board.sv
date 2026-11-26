@@ -146,7 +146,7 @@ module mt32_board #(
     // ---------------------------------------------------------------- external bus
     typedef enum logic [2:0] { B_IDLE, B_READ, B_LCD } b_t;
     b_t bs;
-    logic [7:0] rsel;                   // read source
+    logic [2:0] rsel;                   // read source: 0 FF, 1 ROM, 2 RAM, 3 LA32, 4 LCD busy, 5 buttons
     wire [8:0] hi = ext_addr[15:7];
 
 
@@ -237,26 +237,26 @@ module mt32_board #(
                         default: ;
                     endcase
                 end else begin
-                    if (hi >= 9'h020 && hi < 9'h100) rsel <= 8'd1;
-                    else if (hi >= 9'h180) rsel <= 8'd2;
-                    else if (hi >= 9'h100) rsel <= reg_bank[4] ? 8'd2 : 8'd1;
+                    if (hi >= 9'h020 && hi < 9'h100) rsel <= 3'd1;
+                    else if (hi >= 9'h180) rsel <= 3'd2;
+                    else if (hi >= 9'h100) rsel <= reg_bank[4] ? 3'd2 : 3'd1;
                     else if (hi >= 9'h018 && hi < 9'h020) begin
-                        rsel <= 8'd3;
+                        rsel <= 3'd3;
                         la_addr <= ext_addr[8:0];        // the LA32 decodes the read's own address
                     end
-                    else if (hi == 9'd7) rsel <= 8'd4;
-                    else if (hi == 9'd4) rsel <= 8'd5;
-                    else rsel <= 8'd0;
+                    else if (hi == 9'd7) rsel <= 3'd4;
+                    else if (hi == 9'd4) rsel <= 3'd5;
+                    else rsel <= 3'd0;
                     bs <= B_READ;
                 end
             end
             B_READ: begin
                 case (rsel)
-                    8'd1: ext_rdata <= rom_q;
-                    8'd2: ext_rdata <= ram_q;
-                    8'd3: ext_rdata <= la_rdata;
-                    8'd4: ext_rdata <= {7'h0, lcd_busy};
-                    8'd5: begin
+                    3'd1: ext_rdata <= rom_q;
+                    3'd2: ext_rdata <= ram_q;
+                    3'd3: ext_rdata <= la_rdata;
+                    3'd4: ext_rdata <= {7'h0, lcd_busy};
+                    3'd5: begin
                         logic [3:0] sc;
                         logic [7:0] r;
                         sc = ext_addr[4:1];

@@ -73,6 +73,7 @@ module mcs96 #(
     logic        upd_fast;
     logic [44:0] tq;           // totalcycles / 24, kept as it advances
     logic [4:0]  tr;           // totalcycles % 24
+    logic        c_is_fetch;   // the instruction just done was a fetch (declared before the core uses it)
 
     mcs96_core #(.DECODE_HEX(DECODE_HEX)) core (
         .clk, .rst,
@@ -121,7 +122,6 @@ module mcs96 #(
     sc_t sc;
     logic ev_moved;
     wire  c_was_fetch = (c_ncyc == 7'd0) && c_is_fetch;
-    logic c_is_fetch;
 
     always_ff @(posedge clk) begin
         c_exec <= 1'b0;
