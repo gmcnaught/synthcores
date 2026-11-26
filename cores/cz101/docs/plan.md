@@ -81,8 +81,9 @@ construction.
     - `cores/cz101/hdl/upd7810/` (CPU and peripherals);
     - `cores/cz101/hdl/upd933/`.
   If a later core needs the uPD7810 (Juno-106, TR-909 per brief §2), it moves to `modules/`.
-- From synthframe: `midi_rx` is not needed (MIDI enters the CPU's own serial port as bits);
-  `audio_fifo`, `nvsave` (RAM and cartridge to the SD card).
+- From synthframe: `midi_rx` (the MiSTer UART's bytes, which the board's serializer sends to
+  the CPU's own serial port as bits; see "MIDI in"), `audio_fifo`, `nvsave` (RAM and cartridge
+  to the SD card).
 - HD44780: `modules/synthframe/hdl/panel/synthframe_hd44780.sv` (MIT, MAME's hd44780) with
   the busy flag in CPU cycles; `hdl/cz101_lcd.sv` is the pin side (port A data, port C
   E/RW/RS). The LCD is drawn with `synthframe_charlcd` and `synthframe_vtiming`.

@@ -72,7 +72,7 @@ keypad):
 | ← / → | Cursor | End / Home | Env. Step down / up |
 | Insert | Env. Point Sustain | Delete | Env. Point End |
 
-The 49 music keys and the pitch wheel are not mapped; play notes over MIDI.
+The 49 music keys are not mapped; play notes over MIDI. The pitch wheel is on the joystick (step 4).
 
 OSD switches: **Power** (off asserts /NMI and the firmware powers down; on again resets the
 board with the RAM kept), **RA-3 cartridge**, **Memory protect**, **Auto power off**.
