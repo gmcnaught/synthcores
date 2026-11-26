@@ -258,7 +258,8 @@ module cz101_board #(
     // now_tick = ticks(vcyc), kept incrementally: 3 tv = 5,000,000 tq + tr, where tv follows
     // vcyc one clock late (vcyc moves by at most an instruction's cycle count a clock); the
     // tick of any time a = tv + e (0 <= e < 512: vcyc, an access time) comes from that state.
-    // Unlike ticks(), it keeps counting when the 32-bit vcyc wraps (after 21 minutes).
+    // Unlike ticks(), it keeps counting when the 32-bit vcyc wraps (after 21 minutes). The 40-bit
+    // tick time wraps after 30.5 h; the uPD933 compares ticks modulo 2^40.
     localparam logic [22:0] T_DIV = 23'd5000000;
     logic [31:0] tv;               // vcyc the state belongs to
     logic [39:0] t3;               // 3 vcyc (not wrapped)
@@ -289,8 +290,9 @@ module cz101_board #(
     endfunction
     always_comb now_tick = tick_at(vcyc);
     // synthesis translate_off
+    logic [39:0] sim_tick_base = 40'h0;   // cz101_bench CZ_TICK_BASE: tick time at reset (t3 and the uPD933 start there)
     always_ff @(posedge clk) if (!reset && !cpu_reset) begin
-        if (now_tick != ticks(vcyc)) $fatal(1, "now_tick %0d != ticks(%0d)", now_tick, vcyc);
+        if (now_tick - sim_tick_base != ticks(vcyc)) $fatal(1, "now_tick %0d != base + ticks(%0d)", now_tick, vcyc);
         if (32'(acc_time - tv) >= 32'd512 || tdv >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
     end
     // synthesis translate_on

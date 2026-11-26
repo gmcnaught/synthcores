@@ -2,12 +2,16 @@
 // license:BSD-3-Clause
 // uPD933 HDL against the C++ reference (MAME's model) on the same event lists.
 //
-//   upd933_bench [--real N] [--lead L] [--out DIR] FILE.ev...
+//   upd933_bench [--real N] [--lead L] [--ext] [--base B] [--out DIR] FILE.ev...
 //     default ("fast"): now_tick jumps to each request's order tick (the CPU's logical time).
 //     --real N: now_tick advances one tick every N clocks (a 10 MHz counter at N x 10 MHz),
 //               clamped to the next request's order tick; requests are presented up to L ticks
 //               early (default 30).
 //     --out DIR: write DIR/<name>.s32 (HDL samples, int32 LE) for hashing.
+//     --base B: add B (mod 2^40) to every tick the HDL sees, from reset on (now_tick, req_tick,
+//               req_order, timer_fire_tick), and subtract it from the IRQ ticks it reports. With
+//               B close to 2^40 the 40-bit tick counter wraps during the run (after about
+//               30.5 h on the board); the results must not change.
 //     --ext: ext_timer = 1; the bench plays the board: on timer_arm it computes the expiry as the
 //            reference does (arming request's tick + timer_n * 250), forgets it on timer_cancel,
 //            and pulses timer_fire before the first request whose order tick reaches it.
@@ -44,8 +48,10 @@ int op_code(char op)
 	}
 }
 
-HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool ext)
+HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool ext, u64 base)
 {
+	constexpr u64 TICK_MASK = (u64(1) << 40) - 1;
+	auto at = [&](u64 t) { return (t + base) & TICK_MASK; };
 	HdlResult h;
 	auto ctx = std::make_unique<VerilatedContext>();
 	auto top = std::make_unique<Vupd933>(ctx.get());
@@ -55,11 +61,11 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 		top->clk = 1; top->eval();
 		h.cycles++;
 		if (top->sample_valid) h.samples.push_back(s32(top->sample_sum << 13) >> 13);
-		if (top->irq_evt) h.irq.push_back({top->irq_evt_tick, u8(top->irq), 0});
+		if (top->irq_evt) h.irq.push_back({(top->irq_evt_tick - base) & TICK_MASK, u8(top->irq), 0});
 	};
 
-	top->rst = 1; top->req_valid = 0; top->now_tick = 0;
-	top->ext_timer = ext; top->timer_fire = 0; top->timer_fire_tick = 0;
+	top->rst = 1; top->req_valid = 0; top->now_tick = at(0);
+	top->ext_timer = ext; top->timer_fire = 0; top->timer_fire_tick = at(0);
 	bool b_armed = false;       // --ext: the board's copy of the timer
 	u64 b_deadline = 0;
 	for (int i = 0; i < 16; i++) clock();
@@ -92,13 +98,13 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 		}
 		else
 			now = limit;
-		top->now_tick = now;
+		top->now_tick = at(now);
 
 		const bool fire_due = ext && b_armed && !pending && b_deadline <= (e ? e->order : end_tick);
 		if (fire_due)
 		{
 			top->timer_fire = 1;
-			top->timer_fire_tick = b_deadline;
+			top->timer_fire_tick = at(b_deadline);
 			b_armed = false;
 		}
 		else if (!pending && e && (!real_n || rc + lead >= e->order))
@@ -106,8 +112,8 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 			top->req_valid = 1;
 			top->req_op = op_code(e->op);
 			top->req_data = u8(e->arg);
-			top->req_tick = e->tick;
-			top->req_order = e->order;
+			top->req_tick = at(e->tick);
+			top->req_order = at(e->order);
 			pending = true;
 		}
 		clock();
@@ -146,6 +152,7 @@ int main(int argc, char **argv)
 	u64 lead = 30;
 	std::string outdir;
 	bool ext = false;
+	u64 base = 0;
 	std::vector<std::string> files;
 	for (int i = 1; i < argc; i++)
 	{
@@ -154,9 +161,10 @@ int main(int argc, char **argv)
 		else if (a == "--lead" && i + 1 < argc) lead = std::strtoull(argv[++i], nullptr, 0);
 		else if (a == "--out" && i + 1 < argc) outdir = argv[++i];
 		else if (a == "--ext") ext = true;
+		else if (a == "--base" && i + 1 < argc) base = std::strtoull(argv[++i], nullptr, 0);
 		else files.push_back(a);
 	}
-	if (files.empty()) { fprintf(stderr, "usage: %s [--real N] [--lead L] [--ext] [--out DIR] FILE.ev...\n", argv[0]); return 2; }
+	if (files.empty()) { fprintf(stderr, "usage: %s [--real N] [--lead L] [--ext] [--base B] [--out DIR] FILE.ev...\n", argv[0]); return 2; }
 
 	int fails = 0;
 	for (const std::string &f : files)
@@ -165,7 +173,7 @@ int main(int argc, char **argv)
 		std::string err;
 		if (!load_events(f, ev, err)) { fprintf(stderr, "%s\n", err.c_str()); return 2; }
 		const RunResult ref = run(ev);
-		const HdlResult hdl = run_hdl(ev, real_n, lead, ext);
+		const HdlResult hdl = run_hdl(ev, real_n, lead, ext, base);
 
 		std::string why;
 		char buf[512];
@@ -213,8 +221,8 @@ int main(int argc, char **argv)
 		u64 irqs = 0, nonzero = 0;
 		for (const auto &q : ref.irq) irqs += q.state;
 		for (s32 s : ref.samples) nonzero += s != 0;
-		printf("%s %s%s: %zu samples (%llu non-zero), %zu IRQ changes (%llu rising), %zu reads, %llu clk%s%s\n",
-			why.empty() ? "MATCH" : "DIFF ", f.c_str(), ext ? " (ext timer)" : "", ref.samples.size(), (unsigned long long)nonzero,
+		printf("%s %s%s%s: %zu samples (%llu non-zero), %zu IRQ changes (%llu rising), %zu reads, %llu clk%s%s\n",
+			why.empty() ? "MATCH" : "DIFF ", f.c_str(), ext ? " (ext timer)" : "", base ? (" (tick base " + std::to_string(base) + ")").c_str() : "", ref.samples.size(), (unsigned long long)nonzero,
 			ref.irq.size(), (unsigned long long)irqs, ref.reads.size(), (unsigned long long)hdl.cycles,
 			why.empty() ? "" : "\n      first divergence: ", why.c_str());
 		if (!why.empty()) fails++;
