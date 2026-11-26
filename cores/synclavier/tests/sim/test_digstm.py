@@ -13,6 +13,7 @@ import struct
 import sys
 import tempfile
 import wave
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -248,8 +249,7 @@ def test_syn53_records_the_source():
     for bit (left, right interleaved), and its header says stereo, 44.1 kHz."""
     image = os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_syn53_records_the_source (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     from sim.boot import boot_from_w0
     x = 12345
     samples = []
@@ -287,7 +287,6 @@ def test_syn53_records_the_source():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

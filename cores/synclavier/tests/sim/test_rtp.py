@@ -9,6 +9,7 @@ Run:  python3 tests/sim/test_rtp.py
 """
 import os
 import sys
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from sim.rtp import rtp_words  # noqa: E402
@@ -74,8 +75,7 @@ def test_replace_bank():
 def test_release_l_ork_lm_runs():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image:
-        print("  skip test_release_l_ork_lm_runs (SYNCLAVIER_RELEASE_L not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_RELEASE_L not set")
     from sim.rtp import start_rtp
     cpu, dbg, lay = start_rtp(image, "ORK-LM")
     assert lay["rtp_words"] == 673 * S
@@ -94,8 +94,7 @@ def test_release_l_ork_lm_runs():
 def test_release_l_ork_lm_plays_a_note():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image:
-        print("  skip test_release_l_ork_lm_plays_a_note (SYNCLAVIER_RELEASE_L not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_RELEASE_L not set")
     from sim.boot import insert_floppy
     from sim.devices.synth import button_number
     from sim.rtp import run_seconds, start_rtp
@@ -146,7 +145,6 @@ def test_release_l_ork_lm_plays_a_note():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

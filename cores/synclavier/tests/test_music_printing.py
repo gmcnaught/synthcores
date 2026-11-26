@@ -9,6 +9,7 @@ import os
 import struct
 import sys
 import tempfile
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from tools import music_printing, print_render  # noqa: E402
@@ -30,8 +31,7 @@ def test_patches_on_ned_source():
     DISPLAY_MUSIC."""
     sw = os.environ.get("NED_SOFTWARE")
     if not sw:
-        print("  skip test_patches_on_ned_source (NED_SOFTWARE not set)")
-        return
+        raise unittest.SkipTest("NED_SOFTWARE not set")
     with tempfile.TemporaryDirectory() as d:
         for name in {n for n, _o, _n in music_printing.PATCHES}:
             with open(os.path.join(d, name), "wb") as _f: _f.write(open(os.path.join(sw, "Able", "MPLT", name), "rb").read())
@@ -57,8 +57,7 @@ def test_install_on_w0():
     type-7 .SYSTEM catalog: 128 entries), and puts the given data in."""
     raw = os.environ.get("SYNCLAVIER_W0_RAW")
     if not raw:
-        print("  skip test_install_on_w0 (SYNCLAVIER_W0_RAW not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0_RAW not set")
     out = os.environ.get("MUSIC_PRINTING_OUT")
     if out:
         files = music_printing.mplt_files(out)
@@ -89,7 +88,6 @@ def test_install_on_w0():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

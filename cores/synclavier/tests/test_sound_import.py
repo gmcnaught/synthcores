@@ -14,6 +14,7 @@ import os
 import struct
 import sys
 import tempfile
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from tools import sound_import as si  # noqa: E402
@@ -288,8 +289,7 @@ def test_cli_create_and_export():
 def test_w0_sound_files_round_trip():
     raw = os.environ.get("SYNCLAVIER_W0_RAW")
     if not raw:
-        print("  skip test_w0_sound_files_round_trip (SYNCLAVIER_W0_RAW not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0_RAW not set")
     W = load_bytes(open(raw, "rb").read())
     # header/symbol words that legitimately differ after export -> import:
     #   CLARA3 19-20  sf.octave: another encoding of 3.09 (034078 034187 vs
@@ -325,7 +325,6 @@ def test_w0_sound_files_round_trip():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

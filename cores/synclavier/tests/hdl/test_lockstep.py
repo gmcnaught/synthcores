@@ -12,6 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from sim.lockstep import check, expected_wav, random_cpu, record  # noqa: E402
@@ -33,8 +34,7 @@ def _check(cpu, n, **kw):
 
 def test_random_programs():
     if not HAVE_VERILATOR:
-        print("  skip test_random_programs (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     for seed in range(60):
         assert _check(random_cpu(1000 + seed), 3000) == 3000   # Model B: ADC/SBB are no-ops
 
@@ -43,8 +43,7 @@ def test_random_programs_model_c():
     """Model C extensions (D10 repeat/link, D2, R12 stack, ADC/SBB and the
     interrupt delays after PCW writes and jumps) on random programs."""
     if not HAVE_VERILATOR:
-        print("  skip test_random_programs_model_c (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     for seed in range(40):
         assert _check(random_cpu(2000 + seed, "C"), 3000) == 3000
 
@@ -117,8 +116,7 @@ def test_system_devices_program():
     """The HDL devices (D3, D4567, D50/D51, D60-D63) against Python on a
     program that uses them all with interrupts, a held read and a halt."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_devices_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.system import make_system
     cpu = make_system()
@@ -238,8 +236,7 @@ def test_system_floppy_program():
     sector, read it back, record not found, write protect, steps, index
     pulses, and the D104 read that has no SYN."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_floppy_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     import random as _random
     from sim.asm import assemble
     from sim.devices.floppy import Media
@@ -340,8 +337,7 @@ def test_system_synth_devices_program():
     polled through D160 bit 0, wave memory loads, A/D and clock, keys and
     buttons from the host, lights, display, and a D161 read that halts."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_synth_devices_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.devices.synth import button_number
     from sim.system import make_system
@@ -485,8 +481,7 @@ def test_system_voice_engine():
     index ramp and shift, pan, VOL, a loaded wave memory, pitch and octave
     changes while sounding, a release."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_engine (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.system import make_system
     cpu = make_system(synth=True)
@@ -517,8 +512,7 @@ def test_system_voice_engine_32_voices():
     FM): all 32 voices mixed every sample, sample for sample with
     sim/voice.py; channels 48+ answer present (D160 bit 0)."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_engine_32_voices (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     import re
     from sim.asm import assemble
     from sim.system import make_system
@@ -630,16 +624,14 @@ def test_system_voice_clock():
     """M14: the voices on real time (voice_clock.sv) keep sounding while the
     CPU is held, as on the instrument; on CPU time they stop."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_clock (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     _check_voice_clock(8, 0, exact=False, tol=0.02)   # sample-exact before M23; now 0.4 % rms
 
 
 def test_system_voice_clock_32_voices():
     """M14 with the 32-voice engine (channels 48-63)."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_clock_32_voices (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     _check_voice_clock(32, 48, exact=False, tol=0.2)
 
 
@@ -684,8 +676,7 @@ def test_sine_rom_matches_python():
 def test_release_l_monitor_boot_and_catalog():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_release_l_monitor_boot_and_catalog (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.boot import boot_from_image
     cpu, _ = boot_from_image(image, "03-SYSTD", f1="18-UTILS")
     lines = ["CATALOG\r"]
@@ -708,7 +699,6 @@ def test_release_l_monitor_boot_and_catalog():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

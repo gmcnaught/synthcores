@@ -55,7 +55,6 @@ def test_assembler_round_trip():
 
 
 if __name__ == "__main__":
-    test_source_table()
-    test_destination_table()
-    test_assembler_round_trip()
-    print("OK")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

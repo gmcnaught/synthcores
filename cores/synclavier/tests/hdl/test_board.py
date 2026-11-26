@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -76,8 +77,7 @@ def test_audio_fifo():
     """Samples arriving with jitter play at a steady rate, in order; a stall
     is one underrun with the last sample held."""
     if not HAVE_VERILATOR:
-        print("  skip test_audio_fifo (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("audio_fifo", "../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv")
 
 
@@ -137,15 +137,13 @@ def test_term_display_vt100():
     for a stream with every handled sequence and (with the image) the
     bytes ORK-LM sends for its welcome menu."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vt100 (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     t = _vt100_check(VT100_STREAM, "synthetic")
     # four lines scrolled: the titles are now rows 2-4
     assert t.text()[2].startswith("    BIG TITLE") and t.attr[2:5] == [1, 2, 3], (t.text(), t.attr)
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image:
-        print("  skip ORK-LM welcome menu (needs SYNCLAVIER_RELEASE_L)")
-        return
+        raise unittest.SkipTest("synthetic stream passed; ORK-LM welcome menu needs SYNCLAVIER_RELEASE_L")
     from sim.rtp import run_seconds, start_rtp
     out = bytearray()
     cpu, dbg, _ = start_rtp(image, "ORK-LM")
@@ -183,8 +181,7 @@ VT640_STREAM = (
 def test_term_display_vt640():
     """VT640 mode: the picture equals tools/vt100.py Terminal(vt640=True)."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vt640 (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _vt640_check(VT640_STREAM, "vt640")
     # a clear and the same again: identical
     _vt640_check(VT640_STREAM + b"\x1d\x1b\x0c\x18" + VT640_STREAM, "vt640 twice")
@@ -219,8 +216,7 @@ def test_term_display_readback():
     equal tools/vt100.py readback_reply for every line of a drawn screen
     sampled, after the drawing and between drawings."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_readback (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     from tools.vt100 import Terminal
     cmds = b"".join(b"\x1b\"0;%d;128c" % y for y in (479, 470, 400, 333, 250, 100, 12, 0))
     data = (VT640_STREAM + b"\x1d" + cmds + b"\x1b\"0;600;128c\x1b\"0;5;7c\x1b\"0;5;100C"
@@ -244,8 +240,7 @@ def test_term_display_readback():
 def test_panel_mouse():
     """Mouse packets -> pointer (clamped) and panel button presses."""
     if not HAVE_VERILATOR:
-        print("  skip test_panel_mouse (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("panel_mouse", "hdl/core/panel_mouse.sv")
 
 
@@ -253,8 +248,7 @@ def test_term_display_panel():
     """One clock per pixel (the MiSTer setting): terminal text, lit buttons
     shown inverted, display digits with the decimal point, the pointer."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_panel (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     from tools.gen_font import glyphs
     from tools.gen_panel_labels import labels
     tmp = tempfile.mkdtemp()
@@ -286,8 +280,7 @@ def test_term_display_stall_view():
     """The status line's stall view (stall_view = 1): lag by cause, seven
     fields of 11 columns (able_system.sv STALL_* order)."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_stall_view (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     tmp = tempfile.mkdtemp()
     try:
         frame = os.path.join(tmp, "frame.pgm")
@@ -306,8 +299,7 @@ def test_term_display_vpk():
     the 160 labels by PBN; a lit label (state 1, and 3) inverted in both
     blink phases, a blinking one (state 2) only in the second."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     tmp = tempfile.mkdtemp()
     try:
         frames = [os.path.join(tmp, "frame%d.pgm" % i) for i in (1, 2)]
@@ -333,8 +325,7 @@ def test_dev_scsi():
     """The SCSI host and disk (hdl/dev/dev_scsi.sv): the sequences of
     tests/sim/test_scsi.py, including MONITOR 5.3's manual last byte."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_scsi (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("dev_scsi", "hdl/dev/dev_scsi.sv")
 
 
@@ -539,8 +530,7 @@ def test_poly_box():
     """M26: the poly output at the 768 kHz instants (hdl/dev/poly_box.sv)
     against sim/pcm.py PolyBox and x_in, at each OSD FM/Poly level (#76)."""
     if not HAVE_VERILATOR:
-        print("  skip test_poly_box (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -588,8 +578,7 @@ def pcm_limit_stimulus(path, seed=1, n=6000):
 def test_pcm_limit():
     """#76: the output limiter (hdl/dev/pcm_limit.sv) against sim/pcm.py Limiter."""
     if not HAVE_VERILATOR:
-        print("  skip test_pcm_limit (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -644,8 +633,7 @@ def pcm_reverb_stimulus(path, seed=1, n=30000):
 def test_pcm_reverb():
     """The output reverb (hdl/dev/pcm_reverb.sv) against sim/pcm.py Reverb."""
     if not HAVE_VERILATOR:
-        print("  skip test_pcm_reverb (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -662,8 +650,7 @@ def test_dev_poly():
     """The poly synth (hdl/dev/dev_poly.sv) against sim/devices/poly.py:
     every register read and P(m) of a random register stream."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_poly (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -768,8 +755,7 @@ def vpk_stimulus(path, seed=1, ops=4000):
 def test_dev_vpk():
     """The velocity keyboard (hdl/dev/dev_vpk.sv) against sim/devices/synth.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -836,8 +822,7 @@ def midi_stimulus(path, seed=1, ops=6000):
 def test_dev_midi():
     """The MIDI subsystem card (hdl/dev/dev_midi.sv) against sim/devices/midi.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_midi (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -939,8 +924,7 @@ def test_dig_stm():
     """The digital STM handler (hdl/core/dig_stm.sv) against
     sim/devices/digstm.py: results, D157 writes, frame timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_dig_stm (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1040,8 +1024,7 @@ def smpte_stimulus(path, seed=1, runs=24):
 def test_dev_smpte():
     """The SMPTE reader (hdl/dev/dev_smpte.sv) against sim/devices/smpte.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_smpte (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1134,8 +1117,7 @@ def test_print_capture():
     hdl/core/print_capture.sv) against sim/devices/printer.py and the
     capture file format of tools/print_render.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_print_capture (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1153,31 +1135,27 @@ def test_crt_adjust():
     """CRT Adjust: Off is a passthrough; H-Size resamples each line about its
     centre; H-Position / V-Shift move only the sync pulses."""
     if not HAVE_VERILATOR:
-        print("  skip test_crt_adjust (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("crt_adjust", "hdl/core/crt_adjust.sv")
 
 
 def test_ps2_ascii():
     if not HAVE_VERILATOR:
-        print("  skip test_ps2_ascii (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("ps2_ascii", "hdl/core/ps2_ascii.sv")
 
 
 def test_midi_vpk():
     """MIDI messages -> velocity keyboard host ops; knob pulse and tap timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_vpk", "hdl/core/midi_vpk.sv")
 
 
 def test_midi_in():
     """MIDI bytes -> clavier/panel words; program change button timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_in (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_in", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv"))
 
 
@@ -1186,8 +1164,7 @@ def test_midi_card():
     receives (panel controls kept back); MIDI out (midi_uart_tx) at 31250
     and 9600 baud."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_card (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_card", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_card_feed.sv",
                              "hdl/dev/dev_midi.sv"))
 
@@ -1228,8 +1205,7 @@ def expected_panel(display="    ", units=0, vpk=False, lit=(), status=None):
 def test_board_boots_release_l():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_board_boots_release_l (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.boot import boot_from_image
     cpu, _ = boot_from_image(image, "03-SYSTD", f1="18-UTILS")
     lines = ["CATALOG\r"]
@@ -1273,8 +1249,7 @@ def test_board_state_image_ork_lm():
     every audio sample included; the panel shows the lights and display."""
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_board_state_image_ork_lm (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.lockstep import ork_lm_note_actions
     from sim.rtp import start_rtp
     from tools.state_image import state_bytes
@@ -1303,7 +1278,6 @@ def test_board_state_image_ork_lm():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

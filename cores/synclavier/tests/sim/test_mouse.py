@@ -7,6 +7,7 @@ Run:  python3 tests/sim/test_mouse.py
 """
 import os
 import sys
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -72,8 +73,7 @@ def test_tek_reference():
 def test_syn53_vt640_mouse():
     image = os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_syn53_vt640_mouse (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     from sim.boot import boot_from_w0
     cpu, _ = boot_from_w0(image, disk_mb=30, terminal="vt640", mouse=True)
 
@@ -102,7 +102,6 @@ def test_syn53_vt640_mouse():
 
 
 if __name__ == "__main__":
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
-    for name, fn in tests:
-        fn()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

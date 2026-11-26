@@ -12,6 +12,7 @@ Run:  python3 tests/sim/test_boot.py
 """
 import os
 import sys
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from sim.asm import assemble  # noqa: E402
@@ -79,8 +80,7 @@ def test_boot_runs_loader_ecopy_and_starts_program():
 def test_release_l_monitor_ready_and_catalog():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image:
-        print("  skip test_release_l_monitor_ready_and_catalog (SYNCLAVIER_RELEASE_L not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_RELEASE_L not set")
     from sim.trace import STOP_INPUT, Debugger
     cpu, lay = boot_from_image(image, "03-SYSTD", f1="18-UTILS")
     assert lay["mem_siz"] == 0o160000            # 03-SYSTD is configured for 56K
@@ -99,7 +99,6 @@ def test_release_l_monitor_ready_and_catalog():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())
