@@ -7,7 +7,8 @@
 // CZ_MIDI_BYTES=FILE: live MIDI as the MiSTer core feeds it, lines "CYCLE BYTE" (decimal, hex):
 // each byte is offered to the board's serializer once vcyc reaches CYCLE.
 // CZ_KEYS=FILE: panel and music keys, lines "CYCLE ROW BIT DOWN" (decimal): from vcyc CYCLE, key
-// matrix row ROW (kc0-kc15) bit BIT is pressed (DOWN 1) or released (0).
+// matrix row ROW (kc0-kc15) bit BIT is pressed (DOWN 1) or released (0), from the access time
+// (as MAME's keys_r(): the end of a prefixed instruction).
 // CZ_NV_OUT=FILE: the battery RAM and cartridge (8 KB, as the MiSTer save file) at the end.
 // CZ_LCD_LOG=FILE: "CYCLE [line 1] [line 2]" each time the LCD text changes.
 // CZ_WHEEL=FILE: pitch wheel (AN1) changes, lines "CYCLE VALUE" (decimal; 127 = centre).
@@ -153,7 +154,10 @@ int main(int argc, char **argv) {
         } else c->rx_valid = 0;
         if (mbi < mb.size() && mb[mbi].cycle <= c->cycles) { c->midi_valid = 1; c->midi_byte = mb[mbi].b; }
         else c->midi_valid = 0;
-        while (ki < keys.size() && keys[ki].cycle <= c->cycles) {
+        // MAME's keys_r() sees the schedule at total_cycles(): the instruction's end during a
+        // prefixed opcode, its start otherwise; the board's acc_time is the same time
+        const uint32_t key_time = c->rootp->cz101_board__DOT__acc_time;
+        while (ki < keys.size() && keys[ki].cycle <= key_time) {
             if (keys[ki].down) c->keys[keys[ki].row] &= ~(1u << keys[ki].bit);
             else c->keys[keys[ki].row] |= 1u << keys[ki].bit;
             ki++;
