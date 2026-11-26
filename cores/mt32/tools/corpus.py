@@ -7,7 +7,8 @@
     corpus.py check --case NAME ...       only these cases
 
 The renderer is build/ref/mt32_ref by default; the HDL benches take the same options
-(--roms --midi --samples --out). ROMs come from MT32_ROM_DIR.
+(--roms --midi --samples --out). ROMs come from MT32_ROM_DIR; without it the script prints SKIP
+and exits 77. `check` fails when no case was compared.
 """
 import argparse
 import hashlib
@@ -59,10 +60,13 @@ def main():
     a = ap.parse_args()
     roms = os.environ.get("MT32_ROM_DIR")
     if not roms:
-        sys.exit("corpus.py: set MT32_ROM_DIR")
+        print("SKIP: corpus.py: MT32_ROM_DIR not set")
+        sys.exit(77)
     cases = sorted(MIDI.glob("*.txt"))
     if a.case:
         cases = [c for c in cases if c.stem in a.case]
+    if not cases:
+        sys.exit("corpus.py: no cases to render")
     with tempfile.TemporaryDirectory() as tmp, ThreadPoolExecutor(a.jobs) as ex:
         results = dict(zip([c.stem for c in cases], ex.map(lambda c: render(a.renderer, roms, c, tmp), cases)))
     if a.mode == "record":
@@ -78,6 +82,7 @@ def main():
         ok = db.get(k) == v
         bad += not ok
         print(f"{k:12} {'identical' if ok else 'DIFFERENT'} {v['sha256'][:16]}")
+    print(f"corpus: {len(results) - bad} identical, {bad} different")
     sys.exit(1 if bad else 0)
 
 
