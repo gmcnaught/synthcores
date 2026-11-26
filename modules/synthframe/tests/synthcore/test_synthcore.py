@@ -111,6 +111,13 @@ class Generate(Tmp):
 
 
 class Committed(unittest.TestCase):
+    def test_deps(self):
+        """winbuild ships these directories beside cores/<core> and modules/."""
+        deps = {d.parent.name: sc.Core(d).deps() for d in sc.find_cores([])}
+        self.assertEqual(deps["p2k"], ["cores/proteus/p2k/rtl/cpu", "cores/proteus/p2k/rtl/cpu/tg68k",
+                                       "cores/proteus/p2k/rtl/snd"])
+        self.assertEqual(deps["sc55"], [])
+
     def test_cores_match(self):
         cores = sc.find_cores([])
         self.assertGreaterEqual(len(cores), 5)

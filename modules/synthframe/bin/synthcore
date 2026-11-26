@@ -5,6 +5,9 @@
     synthcore [gen] [CORE...]     write mister/<name>.qpf, mister/<name>.qsf, mister/files.qip
                                   and sim/files.f
     synthcore check [CORE...]     exit 1 if a written file would differ from the committed one
+    synthcore deps CORE           print the repo directories outside cores/CORE and modules/
+                                  that CORE's files.yaml uses (one a line), for build hosts and
+                                  CI path filters that ship or watch only part of the repo
 
 With no CORE, every core with a cores/<core>/cfg/core.yaml.
 
@@ -118,6 +121,21 @@ class Core:
             raise CfgError(f"{self.dir}/cfg/files.yaml: {p} does not exist")
         return Path(os.path.relpath(full, base)).as_posix()
 
+    def deps(self):
+        """Repo-relative directories outside this core and modules/ that files.yaml uses."""
+        out = set()
+        for key in ("search", "files", "mister"):
+            for p in self._list(key):
+                self._resolve(p, ROOT)
+                if p.startswith("modules/"):
+                    continue
+                full = (self.dir / p).resolve()
+                if self.dir.resolve() in full.parents:
+                    continue
+                d = full if key == "search" else full.parent
+                out.add(d.relative_to(ROOT).as_posix())
+        return sorted(out)
+
     def qpf(self):
         return f'QUARTUS_VERSION = "17.0"\nPROJECT_REVISION = "{self.name}"\n'
 
@@ -187,12 +205,15 @@ def find_cores(names):
 
 def main(argv):
     cmd = "gen"
-    if argv and argv[0] in ("gen", "check"):
+    if argv and argv[0] in ("gen", "check", "deps"):
         cmd, argv = argv[0], argv[1:]
-    if any(a.startswith("-") for a in argv):
+    if any(a.startswith("-") for a in argv) or (cmd == "deps" and len(argv) != 1):
         print(__doc__.strip().split("\n\n")[1], file=sys.stderr)
         return 2
     try:
+        if cmd == "deps":
+            print("".join(d + "\n" for d in Core(find_cores(argv)[0]).deps()), end="")
+            return 0
         cores = [Core(d) for d in find_cores(argv)]
         bad = 0
         for core in cores:
