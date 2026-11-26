@@ -25,9 +25,9 @@ module mcs96 #(
     output logic        ready,
 
     input  logic        run,
-    input  logic [47:0] target,
+    input  logic [63:0] target,
     output logic        busy,
-    output logic [47:0] total_cycles,
+    output logic [63:0] total_cycles,
 
     // external bus (mt32_t::cpu_read / cpu_write), one byte per request
     output logic        ext_req,
@@ -69,9 +69,9 @@ module mcs96 #(
     logic        r_ack;
     logic [7:0]  r_rdata;
     logic        upd_req, upd_ack, ev_valid;
-    logic [47:0] upd_time, ev_time;
+    logic [63:0] upd_time, ev_time;
     logic        upd_fast;
-    logic [44:0] tq;           // totalcycles / 24, kept as it advances
+    logic [60:0] tq;           // totalcycles / 24, kept as it advances
     logic [4:0]  tr;           // totalcycles % 24
     logic        c_is_fetch;   // the instruction just done was a fetch (declared before the core uses it)
 
@@ -104,17 +104,17 @@ module mcs96 #(
     assign dbg_data = m_wdata;
 
     // ---------------------------------------------------------------- scheduler
-    logic [47:0] tc, tgt;
+    logic [63:0] tc, tgt;
     logic [5:0]  step;
     logic signed [15:0] icount;
     logic [31:0] bcount;
-    wire  [47:0] slice_end = tc + {42'h0, step};
+    wire  [63:0] slice_end = tc + {58'h0, step};
     // registered: every reader comes at least two clocks after tc, step or icount changes
-    always_ff @(posedge clk) total_cycles <= tc + {42'h0, step} - {{32{icount[15]}}, icount};
+    always_ff @(posedge clk) total_cycles <= tc + {58'h0, step} - {{48{icount[15]}}, icount};
 
     // recompute_bcount(event): event at or past the slice end (or 0) -> 0
-    function automatic logic [31:0] bc(input logic [47:0] se, input logic [47:0] ev);
-        if (ev == 48'h0 || ev >= se) return 32'h0;
+    function automatic logic [31:0] bc(input logic [63:0] se, input logic [63:0] ev);
+        if (ev == 64'h0 || ev >= se) return 32'h0;
         return 32'(se - ev);
     endfunction
 
@@ -131,12 +131,12 @@ module mcs96 #(
 `ifdef MCS96_SIM_TC_START
             // sim only: start the time base at this cycle (tests/wrap_check.sh; the reference
             // starts at the same cycle with ref/mt32_ref --start)
-            tc <= 48'd `MCS96_SIM_TC_START;
-            tq <= 45'((48'd `MCS96_SIM_TC_START) / 48'd24);
-            tr <= 5'((48'd `MCS96_SIM_TC_START) % 48'd24);
+            tc <= 64'd `MCS96_SIM_TC_START;
+            tq <= 61'((64'd `MCS96_SIM_TC_START) / 64'd24);
+            tr <= 5'((64'd `MCS96_SIM_TC_START) % 64'd24);
 `else
-            tc <= 48'h0;
-            tq <= 45'h0;
+            tc <= 64'h0;
+            tq <= 61'h0;
             tr <= 5'd0;
 `endif
             step <= 6'd0;
@@ -153,10 +153,10 @@ module mcs96 #(
                 busy <= 1'b0;
                 sc <= SC_IDLE;
             end else begin
-                logic [47:0] d;
+                logic [63:0] d;
                 logic [5:0]  s;
                 d = tgt - tc;
-                s = (d < 48'd4) ? 6'd4 : (d > 48'd33) ? 6'd33 : d[5:0];
+                s = (d < 64'd4) ? 6'd4 : (d > 64'd33) ? 6'd33 : d[5:0];
                 step <= s;
                 icount <= {10'h0, s};
                 upd_time <= tc;
@@ -170,7 +170,7 @@ module mcs96 #(
                 ev_moved <= 1'b0;
                 sc <= SC_EXEC;
             end else if (bcount != 32'h0) begin
-                upd_time <= slice_end - {16'h0, bcount};
+                upd_time <= slice_end - {32'h0, bcount};
                 upd_fast <= 1'b0;
                 upd_req <= 1'b1;
                 sc <= SC_EVUPD;
@@ -178,8 +178,8 @@ module mcs96 #(
                 logic [6:0] r;
                 tc <= slice_end;
                 r = {2'b00, tr} + {1'b0, step};
-                if (r >= 7'd48)      begin tr <= 5'(r - 7'd48); tq <= tq + 45'd2; end
-                else if (r >= 7'd24) begin tr <= 5'(r - 7'd24); tq <= tq + 45'd1; end
+                if (r >= 7'd48)      begin tr <= 5'(r - 7'd48); tq <= tq + 61'd2; end
+                else if (r >= 7'd24) begin tr <= 5'(r - 7'd24); tq <= tq + 61'd1; end
                 else                       tr <= 5'(r);
                 sc <= SC_TOP;
             end

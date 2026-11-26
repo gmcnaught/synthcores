@@ -71,7 +71,7 @@ module mt32_board #(
     output logic        lcd_display_on,
 
     // trace (bench)
-    output logic [47:0] cpu_cycles,
+    output logic [63:0] cpu_cycles,
     output logic        dbg_fetch, dbg_irq, dbg_regw,
     output logic [2:0]  dbg_level,
     output logic [15:0] dbg_pc, dbg_fpc, dbg_psw,
@@ -111,7 +111,7 @@ module mt32_board #(
 
     // ---------------------------------------------------------------- CPU
     logic        c_run, c_busy, c_ready, ext_req, ext_we, ext_ack, serial_in, sh3;
-    logic [47:0] c_target;
+    logic [63:0] c_target;
     logic [15:0] ext_addr;
     logic [7:0]  ext_wdata, ext_rdata, serial_byte;
 
@@ -139,7 +139,7 @@ module mt32_board #(
     // ---------------------------------------------------------------- MIDI queue
     logic [7:0] mq [256];
     logic [7:0] mq_wp, mq_rp;
-    logic [47:0] uart_cycles;
+    logic [63:0] uart_cycles;
     assign midi_full = (mq_wp + 8'd1) == mq_rp;
     always_ff @(posedge clk) if (midi_valid && !midi_full) mq[mq_wp] <= midi_byte;
 
@@ -171,7 +171,7 @@ module mt32_board #(
             ts <= T_IDLE;
             reg_bank <= 5'd0;
             mq_wp <= 8'd0; mq_rp <= 8'd0;
-            uart_cycles <= 48'h0;
+            uart_cycles <= 64'h0;
             sh3 <= 1'b0;
             clearing <= 1'b1; clr_a <= 16'h0;
             ready <= 1'b0;
@@ -188,9 +188,9 @@ module mt32_board #(
             case (ts)
             T_IDLE: if (cpu_turn) begin
                 slot <= turn_slot;
-                // 57-bit product: exact while la32_cycle < 2^48 (1.09 years). A 48-bit product
+                // 64 bits as Nuked-MT32's uint64_t: (la32_cycles * 375) >> 8. A 48-bit product
                 // wrapped at la32_cycle = 2^48 / 375 (25.45 h) and stopped the CPU for good.
-                c_target <= 48'(({9'h0, la32_cycle[47:0]} * 57'd375) >> 8);
+                c_target <= (la32_cycle * 64'd375) >> 8;
                 ts <= T_HOLD;
             end
             T_HOLD: if (!(hold && slot == 5'd0)) begin
@@ -200,13 +200,13 @@ module mt32_board #(
             T_RUN: ts <= T_WAIT;                       // busy rises the clock after run
             T_WAIT: if (!c_busy && !c_run) ts <= T_MIDI;
             T_MIDI: begin
-                if ((uart_cycles == 48'h0 || uart_cycles < cpu_cycles) && mq_rp != mq_wp) begin
+                if ((uart_cycles == 64'h0 || uart_cycles < cpu_cycles) && mq_rp != mq_wp) begin
                     serial_in <= 1'b1;
                     serial_byte <= mq[mq_rp];
                     dbg_midi <= 1'b1;
                     dbg_mbyte <= mq[mq_rp];
                     mq_rp <= mq_rp + 8'd1;
-                    uart_cycles <= cpu_cycles + 48'd3840;
+                    uart_cycles <= cpu_cycles + 64'd3840;
                 end
                 if (slot == 5'd15 || slot == 5'd31) sh3 <= (slot == 5'd31);
                 cpu_done <= 1'b1;

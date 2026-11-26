@@ -13,7 +13,7 @@ module mt32_lcd (
     input  logic        wr,            // CPU write to 0300-037F (cmd = 0) or 0380-03FF (cmd = 1)
     input  logic        cmd,
     input  logic [7:0]  data,
-    input  logic [47:0] now,           // CPU total_cycles() at the write / read
+    input  logic [63:0] now,           // CPU total_cycles() at the write / read
     output logic        busy,          // read value bit 0 at 0380: now < lcd_cycles
     output logic        done,          // pulse: the write (and any replay) is finished
     output logic        cmd_done,      // pulse with done after a 0380 write (trace: LCD text)
@@ -34,7 +34,7 @@ module mt32_lcd (
     logic [4:0]  cg [32];
     logic [7:0]  q [20];
     logic [4:0]  qn, qi;
-    logic [47:0] lcd_cycles;
+    logic [63:0] lcd_cycles;
     logic [4:0]  cgram_addr_r;          // 2 bits used
     logic [2:0]  cgram_row;
     logic        dir, replay;
@@ -46,9 +46,9 @@ module mt32_lcd (
 
     // one lcd_write(a, d)
     task automatic lcd_write(input logic a, input logic [7:0] d);
-        logic [47:0] c;
-        c = lcd_cycles + 48'd100;
-        if (c < now + 48'd100) c = now + 48'd100;
+        logic [63:0] c;
+        c = lcd_cycles + 64'd100;
+        if (c < now + 64'd100) c = now + 64'd100;
         lcd_cycles <= c;
         if (!a) begin
             if (d[7]) begin
@@ -106,7 +106,7 @@ module mt32_lcd (
             cursor_on <= 1'b0;
             for (int i = 0; i < 32; i++) cg[i] <= 5'h0;
             for (int i = 0; i < 20; i++) text[i] <= 8'h0;
-            lcd_cycles <= 48'h0;
+            lcd_cycles <= 64'h0;
             qn <= 5'd0;
             replay <= 1'b0;
         end else if (replay) begin

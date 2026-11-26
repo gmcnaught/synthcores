@@ -57,7 +57,7 @@ module mt32_core #(
     output logic        lcd_display_on,
 
     // trace
-    output logic [47:0] cpu_cycles,
+    output logic [63:0] cpu_cycles,
     output logic [63:0] la32_cycle,
     output logic        dbg_fetch, dbg_irq, dbg_regw, dbg_busw, dbg_midi, dbg_lcd, bad_op,
     output logic        unsupported,    // HSO command 0F ran: not modelled as MAME does (bench check)
