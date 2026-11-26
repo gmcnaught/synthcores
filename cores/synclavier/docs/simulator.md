@@ -221,7 +221,12 @@ Everything follows [`instruction-set.md`](instruction-set.md). In short:
   25000`): a READ's block i arrives (i + 1) × block_ns after the command,
   plus seek_ns first when the READ does not start where the target's last
   READ or WRITE ended. SYN-5.3's driver polls D25 for REQ meanwhile, with
-  interrupts running, as NED's `SCSICODE` does on the instrument. In the
+  interrupts running, as NED's `SCSICODE` does on the instrument.
+  A board lockstep against such an image needs a trace recorded with the
+  same times (`sim/lockstep.py w0boot ... --disk-us 500 --seek-us 25000`,
+  or both 0): w0boot's default is 0, and against a timed image the run
+  diverges where SYN-5.3 first polls D25 for REQ before the HDL's block has
+  arrived (`tests/hdl/test_board.py` `test_board_w0_syn53_disk_time`). In the
   core the seek is when the SD card delivers the READ's first 16 KB line
   (`dev_scsi` asks `sd_floppy` for it at the command), so a load no
   longer stops simulated time while the SD card answers.

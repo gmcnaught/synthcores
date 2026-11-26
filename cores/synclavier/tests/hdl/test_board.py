@@ -943,6 +943,51 @@ def test_model_d_fetch_beyond_memory():
     print("  %d instructions, the last from page 4 (%s)" % (n, cpu.halted.reason if cpu.halted else "running"))
 
 
+def _state_scsi_time(path):
+    """(disk ns per block, seek ns) in a state image's device entries (device 3
+    indices 11 and 12; 0 when absent)."""
+    import struct
+    with open(path, "rb") as f:
+        b = f.read()
+    got = {11: 0, 12: 0}
+    for i in range(struct.unpack_from(">H", b, 12)[0]):
+        kind, sel, addr, _, data = struct.unpack_from(">HHHHQ", b, 512 + 16 * i)
+        if kind == 0 and sel == 3 and addr in got:
+            got[addr] = data
+    return got[11], got[12]
+
+
+def test_board_w0_syn53_disk_time():
+    """Release 5.3 from W0 on the board top in lockstep with Python: SYN-5.3
+    (poly, VPK, 8 FM voices) from tools/w0_image.py's state image, with its
+    default SCSI disk time (500 us a block) and seek time (25 ms), 300,000
+    instructions. The trace must be recorded with the same disk and seek
+    time as the state image: a trace without them (w0boot's default) against
+    this image diverges at instruction 143102, where SYN-5.3 polls D25 for
+    REQ that the HDL's disk has not raised yet (review 2026-11-26 follow-up).
+    Needs SYNCLAVIER_W0_RAW (Synclavier3's "W0 Disk Image.simg")."""
+    import unittest
+    raw = os.environ.get("SYNCLAVIER_W0_RAW")
+    if not raw or not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs SYNCLAVIER_W0_RAW and verilator")
+    tmp = tempfile.mkdtemp()
+    try:
+        subprocess.run([sys.executable, os.path.join(ROOT, "tools", "w0_image.py"), raw, tmp,
+                        "--fm-voices", "8"], check=True, capture_output=True, cwd=ROOT)
+        img, state = os.path.join(tmp, "W0-53.IMG"), os.path.join(tmp, "W0-53-FM8.SST")
+        disk_ns, seek_ns = _state_scsi_time(state)
+        assert (disk_ns, seek_ns) == (500_000, 25_000_000), (disk_ns, seek_ns)
+        trace = os.path.join(tmp, "w0.trace")
+        subprocess.run([sys.executable, "-m", "sim.lockstep", "w0boot", img, trace, "--poly", "--vpk",
+                        "--instructions", "300000", "--disk-us", str(disk_ns // 1000),
+                        "--seek-us", str(seek_ns // 1000)], check=True, capture_output=True, cwd=ROOT)
+        ok, text = check(trace, top="board", state=state, w0=img)
+        assert ok, text
+        print("  " + [ln for ln in text.splitlines() if "lockstep OK" in ln][0])
+    finally:
+        shutil.rmtree(tmp)
+
+
 def test_term_rx_mux():
     """Terminal input from the board simulation, the VT640 read-back and the
     keyboard, often on the same clock: every byte arrives once and in order
