@@ -14,10 +14,18 @@ exit 77 separately).
 """
 import os
 import sys
+import time
 import traceback
 import unittest
 
 SKIP_EXIT = 77
+
+
+def _cpu():
+    """CPU seconds of this process and its finished children (Verilator
+    builds, benches): comparable across machine loads, unlike wall time."""
+    t = os.times()
+    return t.user + t.system + t.children_user + t.children_system
 
 
 def run_tests(namespace, argv=None):
@@ -33,6 +41,7 @@ def run_tests(namespace, argv=None):
         tests = [(k, v) for k, v in tests if k in argv]
     passed, skipped, failed = [], [], []
     for name, fn in tests:
+        t0, c0 = time.time(), _cpu()
         try:
             fn()
         except unittest.SkipTest as e:
@@ -44,6 +53,7 @@ def run_tests(namespace, argv=None):
             failed.append(name)
         else:
             passed.append(name)
+            print("ok: %s (%.1f s, cpu %.1f s)" % (name, time.time() - t0, _cpu() - c0))
         sys.stdout.flush()
     path = namespace.get("__file__", "tests")
     print("%s: %d passed, %d skipped, %d failed" % (
