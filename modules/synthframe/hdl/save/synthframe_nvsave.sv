@@ -14,6 +14,12 @@
 //     and new bytes, so it is written again with pause up, once the core reports idle (no step
 //     in progress): the second pass is always consistent;
 //   - writes nothing to a read-only file.
+// rst (power-on, MiSTer RESET, a user reset) stops a transfer in progress and holds the core
+// (boot_hold) until any restore still owed for the last image download is done; it keeps the
+// mounted file, so saves keep working after a reset, and it does not read the file again (the
+// RAM keeps its contents through a reset, as battery-backed RAM does). Only a new image
+// download (loading rising) forgets the mount and restores again. A transfer the HPS has begun
+// (sd_ack high) runs to its end after rst; the next request waits for it.
 // The file is the RAM's bytes in address order, 2**AW bytes, moved in requests of up to 16 KB
 // (hps_io's limit; sd_blk_cnt + 1 blocks of 512 bytes).
 module synthframe_nvsave #(
@@ -71,7 +77,14 @@ module synthframe_nvsave #(
     st_t st;
     assign mem_we = (st == S_RD || st == S_RD_ACK) && sd_ack && sd_buff_wr;
 
-    logic mounted, ro, have, save_d, osd_d, loading_d, dirty;
+    // power-up values, not reset by rst (see the header)
+    /* verilator lint_off PROCASSINIT */
+    logic mounted = 1'b0, ro = 1'b0, have = 1'b0;
+    logic owed = 1'b0;                     // the restore for the last download is still to do
+    logic rest = 1'b0;                     // restored
+    /* verilator lint_on PROCASSINIT */
+    assign restored = rest;
+    logic save_d, osd_d, loading_d, dirty;
     logic [3:0] quiet;
 
     always_ff @(posedge clk) begin
@@ -83,11 +96,14 @@ module synthframe_nvsave #(
             ro <= img_readonly;
             have <= img_size >= 64'(1 << AW);
         end
-        if (rst || (loading && !loading_d)) begin
+        if (loading && !loading_d) begin              // a new image: a new mount, restore again
             mounted <= 1'b0;
             have <= 1'b0;
+            owed <= 1'b1;
+            rest <= 1'b0;
+        end
+        if (rst || (loading && !loading_d)) begin
             boot_hold <= 1'b1;
-            restored <= 1'b0;
             st <= S_IDLE;
             sd_rd <= 1'b0;
             sd_wr <= 1'b0;
@@ -97,14 +113,20 @@ module synthframe_nvsave #(
             if (saving && mem_written) dirty <= 1'b1;
             case (st)
                 S_IDLE:
-                    if (boot_hold) begin
+                    // a request starts only with sd_ack low: rst does not stop a transfer the
+                    // HPS has already begun, so let it finish first
+                    if (sd_ack) begin
+                    end else if (boot_hold) begin
                         if (!loading && image_ok) begin
-                            if (mounted && have) begin
+                            if (mounted && have && owed) begin
                                 chunk <= '0;
                                 sd_lba <= '0;
                                 sd_rd <= 1'b1;
                                 st <= S_RD;
-                            end else boot_hold <= 1'b0;
+                            end else begin
+                                boot_hold <= 1'b0;
+                                owed <= 1'b0;
+                            end
                         end
                     end else if (image_ok && !loading && mounted && !ro &&
                                  ((save_req && !save_d) || (autosave && osd_open && !osd_d))) begin
@@ -122,7 +144,8 @@ module synthframe_nvsave #(
                     if (!sd_ack) begin
                         if (chunk == 20'(NCH - 1)) begin
                             boot_hold <= 1'b0;
-                            restored <= 1'b1;
+                            rest <= 1'b1;
+                            owed <= 1'b0;
                             st <= S_IDLE;
                         end else begin
                             chunk <= chunk + 20'd1;
