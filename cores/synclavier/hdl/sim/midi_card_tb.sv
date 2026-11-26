@@ -1,5 +1,6 @@
 // Self-checking test of hdl/core/midi_card_feed.sv (with midi_in.sv in
-// front) and midi_uart_tx (hdl/dev/dev_midi.sv), verilator --binary.
+// front) and the MIDI out line (synthframe_midi_tx as synclavier_core wires
+// it: ready while idle), verilator --binary.
 // 1 MHz clock, 31250 baud (32 clocks a bit).
 module midi_card_tb;
     localparam longint HZ = 1_000_000;
@@ -54,13 +55,15 @@ module midi_card_tb;
         got.delete(); panels = 0;
     endtask
 
-    // MIDI out: midi_uart_tx into a receiver at the same speed
+    // MIDI out: synthframe_midi_tx into a receiver at the same speed
     logic       t_valid = 0, t_ready, txd, l_alt = 0;
     logic [7:0] t_data = 0;
     logic       lv_std, le_std, lv_alt, le_alt;
     logic [7:0] ld_std, ld_alt;
-    midi_uart_tx #(.CLK_HZ(HZ)) tx (.clk, .rst, .alt(l_alt), .valid(t_valid), .data(t_data),
-                                    .ready(t_ready), .txd);
+    logic       t_busy;
+    synthframe_midi_tx #(.CLK_HZ(HZ), .DEPTH_BITS(1)) tx (.clk, .rst, .alt(l_alt), .valid(t_valid && t_ready),
+                                                        .data(t_data), .txd, .busy(t_busy), .dropped());
+    assign t_ready = !t_busy;
     synthframe_midi_uart_rx #(.CLK_HZ(HZ), .BAUD(31_250)) l_std (.clk, .rst, .rxd(txd), .valid(lv_std),
                                                       .data(ld_std), .ferr(le_std));
     synthframe_midi_uart_rx #(.CLK_HZ(HZ), .BAUD(9_600)) l_alt_rx (.clk, .rst, .rxd(txd), .valid(lv_alt),

@@ -886,6 +886,20 @@ def test_boot_loader_big_state_image():
         os.unlink(path)
 
 
+def test_midi_out():
+    """The MIDI out line (synthframe_midi_tx, ready while idle, as
+    synclavier_core wires it to dev_midi): every byte and every bit's width at
+    31250 and 9600 baud, `alt` sampled per byte (review 2026-11-26 sync-hdl #5).
+    +alt_idle: alt changes only between bytes, where the old midi_uart_tx
+    gave the same line."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    for args in ([], ["+alt_idle=1"]):
+        out = _testbench("midi_out", "../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv", args)
+        print("  " + [ln for ln in out.splitlines() if "midi_out OK" in ln][0])
+
+
 def test_term_rx_mux():
     """Terminal input from the board simulation, the VT640 read-back and the
     keyboard, often on the same clock: every byte arrives once and in order
@@ -1402,13 +1416,13 @@ def test_midi_in():
 
 def test_midi_card():
     """MIDI bytes -> midi_in -> midi_card_feed: the bytes the MIDI card
-    receives (panel controls kept back); MIDI out (midi_uart_tx) at 31250
+    receives (panel controls kept back); MIDI out (synthframe_midi_tx) at 31250
     and 9600 baud."""
     if not HAVE_VERILATOR:
         print("  skip test_midi_card (needs verilator)")
         return
     _testbench("midi_card", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_card_feed.sv",
-                             "hdl/dev/dev_midi.sv"))
+                             "../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv"))
 
 
 def read_frame(path):

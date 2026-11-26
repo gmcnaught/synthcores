@@ -583,10 +583,13 @@ module synclavier_core #(
         .rdata(smpte_rdata), .tick, .tick_ns,
         .rx_valid(smpte_host_we || (midi_byte && card)), .rx_data(smpte_host_we ? smpte_host_byte : midi_data)
     );
-    midi_uart_tx #(.CLK_HZ(CLK_HZ)) midi_out (
-        .clk, .rst, .alt(midi_alt), .valid(card_tx_valid), .data(card_tx_data),
-        .ready(card_tx_ready), .txd(midi_txd)
+    // one byte at a time (dev_midi queues the rest): ready while idle
+    logic midi_tx_busy;
+    synthframe_midi_tx #(.CLK_HZ(CLK_HZ), .DEPTH_BITS(1)) midi_out (
+        .clk, .rst, .alt(midi_alt), .valid(card_tx_valid && card_tx_ready), .data(card_tx_data),
+        .txd(midi_txd), .busy(midi_tx_busy), .dropped()
     );
+    assign card_tx_ready = !midi_tx_busy;
     wire midi_keys = !card || card_panel || midi_kind == 3'd2;   // message also for the keyboard
 
     midi_vpk #(.CLK_HZ(CLK_HZ)) midi_to_vpk (
