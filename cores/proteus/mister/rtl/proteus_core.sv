@@ -110,6 +110,7 @@ wire [7:0]  nv_wdata, nv_rdata;
 wire       macro_active, macro_rst, macro_done;
 wire [7:0] macro_gpio;
 reg        macro_start;
+reg        macro_pend = 0;  // a macro run is due; it starts when no save is in progress
 reg        post_init_save;
 reg [28:0] post_init_cnt;
 reg        boot_hold_d, factory_d;
@@ -121,6 +122,7 @@ nv_ctrl nv
 	.sd_lba(sd_lba), .sd_blk_cnt(sd_blk_cnt), .sd_rd(sd_rd), .sd_wr(sd_wr), .sd_ack(sd_ack),
 	.sd_buff_addr(sd_buff_addr), .sd_buff_dout(sd_buff_dout), .sd_buff_wr(sd_buff_wr), .sd_buff_din(sd_buff_din),
 	.save_req(save_req | post_init_save), .osd_open(osd_open), .autosave(autosave),
+	.inhibit(macro_pend | macro_start | macro_active),
 	.nv_active(nv_active), .nv_we(nv_we), .nv_addr(nv_addr), .nv_wdata(nv_wdata), .nv_rdata(nv_rdata),
 	.boot_hold(boot_hold), .cpu_pause(cpu_pause), .saving(saving), .restored(restored)
 );
@@ -134,10 +136,18 @@ always @(posedge clk) begin
 	boot_hold_d <= boot_hold;
 	factory_d   <= factory_reset;
 	macro_start <= 0;
-	// first boot from a blank-RAM image without a save file, or OSD "Factory Reset Presets"
+	// first boot from a blank-RAM image without a save file, or OSD "Factory Reset Presets".
+	// The macro and a save never overlap: nv_ctrl starts no save while a run is due or
+	// active, and a run that falls due during a save waits for it (the save pauses the CPU,
+	// which would make the macro's timed knob pulses and ENTER presses miss).
 	if ((boot_hold_d && !boot_hold && loaded && init_flag && !restored) ||
 	    (factory_reset && !factory_d && loaded && !boot_hold && !macro_active))
+		macro_pend <= 1;
+	if (macro_pend && !saving && !macro_active) begin
+		macro_pend  <= 0;
 		macro_start <= 1;
+	end
+	if (loading) macro_pend <= 0;
 	// save the initialised presets once the firmware has rebooted (4 s)
 	post_init_save <= 0;
 	if (macro_done) post_init_cnt <= 29'd320_000_000;
@@ -165,6 +175,7 @@ wire        snd_wr, snd_pan, snd_wr_full, snd_rb, snd_rb_done;
 wire  [4:0] snd_voice;
 wire  [3:0] snd_word;
 wire [15:0] snd_data, snd_mask, snd_rb_data, snd_raw;
+wire        snd_raw_ok;
 wire        lcd_line, lcd_is_cg, lcd_cursor, lcd_on;
 wire  [3:0] lcd_pos;
 wire  [2:0] lcd_row;
@@ -180,7 +191,7 @@ proteus_sys sys
 	.cpu_pause(cpu_pause),
 	.nv_active(nv_active), .nv_we(nv_we), .nv_addr(nv_addr), .nv_wdata(nv_wdata), .nv_rdata(nv_rdata),
 	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
-	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
+	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw), .snd_raw_ok(snd_raw_ok),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(lcd_row), .lcd_code(lcd_code), .lcd_cgbits(lcd_cgbits),
 	.lcd_is_cg(lcd_is_cg), .lcd_cursor(lcd_cursor), .lcd_on(lcd_on), .font_addr(font_addr), .font_data(font_data),
 	.leds(leds),
@@ -197,7 +208,7 @@ snd_ctrl snd_ctrl
 	.clk(clk), .reset(cpu_reset), .loading(loading), .tone_en(tone_en),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
 	.cpu_wr(snd_wr), .cpu_pan(snd_pan), .cpu_voice(snd_voice), .cpu_word(snd_word), .cpu_data(snd_data), .cpu_mask(snd_mask),
-	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw),
+	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw), .cpu_raw_ok(snd_raw_ok),
 	.out_l(out_l), .out_r(out_r), .sample_strobe(dbg_sample),
 	.disp_voice(disp_voice), .disp_level(disp_level),
 	.DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR), .DDRAM_DOUT(DDRAM_DOUT),
