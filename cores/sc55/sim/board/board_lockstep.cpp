@@ -128,9 +128,12 @@ int main(int argc, char** argv)
     }
     std::ifstream pf(pack_path, std::ios::binary);
     std::vector<uint8_t> pack((std::istreambuf_iterator<char>(pf)), {});
-    // pack v2 (tools/romset.py, hdl/board/rom_loader.sv)
+    // pack v2, or v3 (wave ROMs as dumped, unscrambled by the loader) (tools/romset.py, hdl/board/rom_loader.sv)
     const size_t ROM1_AT = 0x100, ROM2_AT = 0x8100, SM_AT = 0x88100, WAVE_AT = 0x89100;
-    if (pack.size() != 0x489100 || pack[4] != 2) { fprintf(stderr, "pack %s: %zu bytes, not a v2 pack\n", pack_path.c_str(), pack.size()); return 2; }
+    if (pack.size() != 0x489100 || (pack[4] != 2 && pack[4] != 3)) { fprintf(stderr, "pack %s: %zu bytes, not a v2 or v3 pack\n", pack_path.c_str(), pack.size()); return 2; }
+    const bool v3 = pack[4] == 3;
+    // the wave ROM image DDR3 must hold after the load: the pack's (v2), or the model's unscrambled ROMs (v3)
+    std::vector<uint8_t> wave(pack.begin() + WAVE_AT, pack.begin() + WAVE_AT + 0x400000);
 
     common::LoadRomsetResult load;
     common::RomOverrides     ov{};
@@ -149,7 +152,8 @@ int main(int argc, char** argv)
     emu.SetSampleCallback(sample_cb, nullptr);
     mcu_t& m = emu.GetMCU();
     {
-        // the pack must hold the wave ROMs as the model has them (unscrambled)
+        // a v2 pack must hold the wave ROMs as the model has them (unscrambled); for a v3 pack
+        // the loader must put them in DDR3 that way
         pcm_t& pm = emu.GetPCM();
         const bool mk2p = !m.is_mk1;
         if (pack[5] != (uint8_t)((mk2p ? 2 : 0) | (m.is_sc155 ? 1 : 0))) { fprintf(stderr, "pack model %d does not match %s\n", pack[5], romset.c_str()); return 2; }
@@ -157,7 +161,8 @@ int main(int argc, char** argv)
         {
             uint8_t want = mk2p ? (i < 0x200000 ? pm.waverom1[i] : pm.waverom2[i - 0x200000])
                                 : (i < 0x100000 ? pm.waverom1[i] : i < 0x200000 ? pm.waverom2[i - 0x100000] : pm.waverom3[i - 0x200000]);
-            if (pack[WAVE_AT + i] != want) { fprintf(stderr, "pack wave byte %06x: %02x, model %02x\n", i, pack[WAVE_AT + i], want); return 2; }
+            if (v3) wave[i] = want;
+            else if (pack[WAVE_AT + i] != want) { fprintf(stderr, "pack wave byte %06x: %02x, model %02x\n", i, pack[WAVE_AT + i], want); return 2; }
         }
         for (uint32_t i = 0; i < 0x8000; ++i) if (pack[ROM1_AT + i] != m.rom1[i]) { fprintf(stderr, "pack ROM1 differs at %x\n", i); return 2; }
         for (uint32_t i = 0; i <= m.rom2_mask; ++i) if (pack[ROM2_AT + i] != m.rom2[i]) { fprintf(stderr, "pack ROM2 differs at %x\n", i); return 2; }
@@ -229,10 +234,10 @@ int main(int argc, char** argv)
             if (romcheck.empty()) { fprintf(stderr, "wave ROM: data without a request at clock %" PRIu64 " (rst %d core_rst %d running %d)\n", clocks, t->rst, R->sc55_board__DOT__core_rst, t->running); exit(1); }
             uint32_t a = romcheck.front();
             romcheck.pop_front();
-            if (R->sc55_board__DOT__rom_data != pack[WAVE_AT + a])
+            if (R->sc55_board__DOT__rom_data != wave[a])
             {
-                fprintf(stderr, "wave ROM byte %06x: got %02x, pack %02x (clock %" PRIu64 ")\n", a, R->sc55_board__DOT__rom_data,
-                        pack[WAVE_AT + a], clocks);
+                fprintf(stderr, "wave ROM byte %06x: got %02x, want %02x (clock %" PRIu64 ")\n", a, R->sc55_board__DOT__rom_data,
+                        wave[a], clocks);
                 exit(1);
             }
         }
@@ -278,8 +283,8 @@ int main(int argc, char** argv)
     for (uint32_t w = 0; w < 0x88000; ++w)
     {
         uint64_t want = 0;
-        size_t at = w < 0x80000 ? WAVE_AT + (size_t)w * 8 : ROM2_AT + 0x40000 + (size_t)(w - 0x80000) * 8;
-        for (int b = 0; b < 8; ++b) want |= (uint64_t)pack[at + b] << (8 * b);
+        for (int b = 0; b < 8; ++b)
+            want |= (uint64_t)(w < 0x80000 ? wave[(size_t)w * 8 + b] : pack[ROM2_AT + 0x40000 + (size_t)(w - 0x80000) * 8 + b]) << (8 * b);
         if (ddr[w] != want) { fprintf(stderr, "DDR3 word %x after load: %016" PRIx64 ", pack %016" PRIx64 "\n", w, ddr[w], want); return 1; }
     }
 

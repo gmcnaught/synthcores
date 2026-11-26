@@ -11,6 +11,12 @@
 //   0x089100  wave ROMs as the PCM addresses them (4 MB)
 //   0x489100  JV-880 only: NVRAM (32 KB) to the MCU (ld_sel 5), always (zeros when flags bit 0
 //             is clear: the core then starts with an empty NVRAM, as a unit whose battery ran down)
+// Pack v3: the v2 layout with the wave ROMs as dumped (version byte 3), so that a MiSTer MRA can
+// assemble the pack from a MAME zip. Roland's wave ROMs are address- and data-scrambled; the loader
+// unscrambles each byte on its way to DDR3 (the reference's rom_io.cpp unscramble, as
+// tools/romset.py does for v2): the byte at offset a of each 1 MB block goes to offset i with
+// i[b] = a[ADDR_BITS[b]], and data bit j is the dump's bit DATA_BITS[j]
+// (ADDR_BITS 2,0,3,4,1,9,13,10,18,17,6,15,11,16,8,5,12,7,14,19; DATA_BITS 2,0,4,5,7,6,3,1).
 // Pack v1 (mk1 only): "SC55", 1; ROM1 0x100, ROM2 0x8100 (256 KB), waves 0x48100 (3 MB).
 // DDR3 (wave_ddr byte offsets): waves at 0, ROM2's upper half at 0x400000.
 // `ok` says a pack with a known header was loaded completely; `model` is its model.
@@ -52,7 +58,16 @@ module rom_loader (
     assign ioctl_wait = pend || wave_busy;
     assign loading = ioctl_download;
 
-    wire v2 = version == 8'd2;
+    wire v2  = version == 8'd2 || version == 8'd3;   // the v2 layout
+    wire scr = version == 8'd3;                     // wave ROMs as dumped
+
+    function automatic logic [19:0] unscr_addr(input logic [19:0] a);
+        return {a[19], a[14], a[7], a[12], a[5], a[8], a[16], a[11], a[15], a[6],
+                a[17], a[18], a[10], a[13], a[9], a[1], a[4], a[3], a[0], a[2]};
+    endfunction
+    function automatic logic [7:0] unscr_data(input logic [7:0] d);
+        return {d[1], d[3], d[6], d[7], d[5], d[4], d[0], d[2]};
+    endfunction
     wire [26:0] rom2_end = v2 ? V2_SM_AT : V1_WAVE_AT;
     wire [26:0] wave_at  = v2 ? V2_WAVE_AT : V1_WAVE_AT;
     wire        jv = v2 && model_b == 8'd4;
@@ -99,14 +114,15 @@ module rom_loader (
                 end else if (jv && ioctl_addr >= JV_NV_AT && ioctl_addr < JV_END) begin
                     ld_we <= 1'b1; ld_sel <= 3'd5; ld_addr <= 19'(ioctl_addr - JV_NV_AT); ld_data <= ioctl_dout;
                 end else if (ioctl_addr >= wave_at && ioctl_addr < (jv ? JV_NV_AT : end_at)) begin
-                    wave_addr <= 23'(ioctl_addr - wave_at);
-                    wave_data <= ioctl_dout;
+                    o = ioctl_addr - wave_at;
+                    wave_addr <= scr ? {o[22:20], unscr_addr(o[19:0])} : 23'(o);
+                    wave_data <= scr ? unscr_data(ioctl_dout) : ioctl_dout;
                     pend <= 1'b1;
                 end
             end
             if (!ioctl_download && dl_d) begin
-                ok <= magic == "SC55" && (version == 8'd1 || (version == 8'd2 && model_b <= 8'd4)) && seen >= end_at;
-                model <= (version == 8'd2) ? model_b[2:0] : 3'd0;
+                ok <= magic == "SC55" && (version == 8'd1 || (v2 && model_b <= 8'd4)) && seen >= end_at;
+                model <= v2 ? model_b[2:0] : 3'd0;
             end
         end
     end

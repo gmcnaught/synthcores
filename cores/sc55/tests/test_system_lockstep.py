@@ -73,6 +73,20 @@ def test_mk2_board_from_power_on():
         ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--pack", str(pack), "--midi-loud", "1", "--steps", "8000000")
 
 
+
+def test_board_pack_v3():
+    """Pack v3 (wave ROMs as dumped, as the MRAs send them): the loader unscrambles them. The bench
+    checks all of DDR3 after the load against the model's wave ROMs, then runs sample for sample."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import romset
+    exe = need_file(SIM_BUILD / "board_lockstep", "board bench")
+    for rs, steps in (("mk1-v1.21", "3000000"), ("mk2-v1.01", "3000000")):
+        need_roms(rs)
+        with tempfile.TemporaryDirectory() as d:
+            pack = pathlib.Path(d) / "boot.rom"
+            pack.write_bytes(romset.pack(ROM_DIR, rs, v3=True))
+            ok_line(exe, "--roms", str(ROM_DIR), "--romset", rs, "--pack", str(pack), "--midi-loud", "1", "--steps", steps)
+
 def test_mk2_system_loud():
     need_roms("mk2-v1.01")
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")

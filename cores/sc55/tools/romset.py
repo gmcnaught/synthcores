@@ -10,10 +10,14 @@ it is the same table the reference renderer uses.
                            write the core's ROM pack (modules/roland/hdl/board/rom_loader.sv):
                            copy it to the MiSTer as games/SC-55/boot.rom (games/JV-880/boot.rom
                            for a jv880 romset; --nvram adds a 32 KB JV-880 NVRAM image, e.g. the
-                           factory preset from ref/jv880_nvram.cpp)
+                           factory preset from ref/jv880_nvram.cpp); --v3 keeps the wave ROMs
+                           as dumped (pack v3, the layout the MRAs assemble)
+  romset.py mra OUTDIR     write the MiSTer MRAs (one per model in MAME_SETS): each assembles a
+                           pack v3 from MAME's zip in games/mame, picking each chip by CRC32
 """
 import argparse
 import hashlib
+import zlib
 import pathlib
 import re
 import sys
@@ -104,6 +108,8 @@ def unscramble(src: bytes) -> bytes:
 #             at 0, 1 MB, 2 MB; mk2 waverom1 (2 MB) at 0, waverom2 at 2 MB; JV-880
 #             waverom1 and waverom2 (2 MB each) at 0 and 2 MB
 #   0x489100  JV-880 only: NVRAM (32 KB; zeros without --nvram)
+# Pack v3: the v2 layout with the wave ROMs as dumped (scrambled); rom_loader.sv unscrambles them
+# as they go to DDR3. The MRAs assemble this from MAME's zips, which hold the dumps.
 # (Pack v1 was the mk1 layout ROM1 0x100, ROM2 0x8100, waves 0x48100; the
 # loader still reads it.)
 MODELS = {"mk1": 0, "sc155": 1, "mk2": 2, "sc155mk2": 3, "jv880": 4}
@@ -120,13 +126,13 @@ def model_of(romset: str) -> int:
     raise LookupError(f"{romset}: the cores support mk1, SC-155, mk2, SC-155mk2 and JV-880 romsets")
 
 
-def pack(directory: pathlib.Path, romset: str, nvram: bytes | None = None) -> bytes:
+def pack(directory: pathlib.Path, romset: str, nvram: bytes | None = None, v3: bool = False) -> bytes:
     model = model_of(romset)
     jv = model == MODELS["jv880"]
     mk2 = model in (MODELS["mk2"], MODELS["sc155mk2"])
     files = find_romset(directory, romset)
     out = bytearray(JV880_PACK_SIZE if jv else PACK_SIZE)
-    out[0:7] = b"SC55" + bytes([2, model, 1 if (jv and nvram is not None) else 0])
+    out[0:7] = b"SC55" + bytes([3 if v3 else 2, model, 1 if (jv and nvram is not None) else 0])
     if nvram is not None:
         if not jv or len(nvram) != 0x8000:
             raise LookupError("--nvram: a 32 KB image, for a jv880 romset only")
@@ -136,7 +142,7 @@ def pack(directory: pathlib.Path, romset: str, nvram: bytes | None = None) -> by
         data = files[loc].read_bytes()
         if len(data) not in sizes:
             raise LookupError(f"{loc}: {len(data)} bytes, expected {sizes}")
-        if loc.startswith("WAVEROM"):
+        if loc.startswith("WAVEROM") and not v3:
             data = unscramble(data)
         out[off:off + len(data)] = data
 
@@ -155,6 +161,103 @@ def pack(directory: pathlib.Path, romset: str, nvram: bytes | None = None) -> by
     return bytes(out)
 
 
+# MAME's sets of the SC-55 models (src/mame/roland/roland_sc55.cpp, roland_sc55mk2.cpp): the zip
+# (a clone's zip first, then its parent's, for split sets), and each chip's name and CRC32 there.
+# The CRC32s are those of Nuked-SC55's romsets (tests/test_romset.py checks them against local
+# dumps found by SHA-256). The MRA picks each chip by CRC32, so the names inside the zip do not
+# matter. MAME has no other SC-55 firmware versions; those need tools/romset.py pack.
+_MK1_WAVES = {
+    "WAVEROM1": ("roland-gss.a_r15209276.ic28", "1ac774d3"),
+    "WAVEROM2": ("roland-gss.b_r15209277.ic27", "8dcc592a"),
+    "WAVEROM3": ("roland-gss.c_r15209281.ic26", "e21ebc04"),
+}
+_MK2 = {
+    "ROM1": ("r15199858_main_mcu.bin", "9b66631f"),
+    "ROM2": ("r00233567_control.bin", "fcee1e8e"),
+    "SMROM": ("r15199880_secondary_mcu.bin", "702c0a82"),
+    "WAVEROM1": ("r15209359_pcm_1.bin", "1519d3b3"),
+    "WAVEROM2": ("r15279813_pcm_2.bin", "0f826c7f"),
+}
+# romset: (MRA name, MAME setname, zips, {location: (name, crc32)})
+MAME_SETS = {
+    "mk1-v1.21": ("SC-55", "sc55", "sc55.zip", {
+        "ROM1": ("roland_r15199778_6435328a97f.ic30", "4ed0d171"),
+        "ROM2": ("roland_r15209363.ic23", "2dc58549"), **_MK1_WAVES}),
+    "sc155-rev1": ("SC-155", "sc155", "sc155.zip|sc55.zip", {
+        "ROM1": ("roland_r15199799.ic30", "a160da90"),
+        "ROM2": ("roland_r15209361.ic15", "e19d4a52"), **_MK1_WAVES}),
+    "mk2-v1.01": ("SC-55mk2", "sc55mk2", "sc55mk2.zip", _MK2),
+    "sc155mk2-v1.01": ("SC-155mk2", "sc55mk2", "sc55mk2.zip", _MK2),
+}
+# MD5 of each MRA's assembled pack (checked by romset.py mra --roms and tests/test_romset.py):
+# Main_MiSTer reports a mismatch when the zip holds other files.
+MRA_MD5 = {
+    "mk1-v1.21": "e38ef33b7d925ea49b8c0f3f8e4700a5",
+    "sc155-rev1": "2bb38e9147a9493bd35bb6c5797b9073",
+    "mk2-v1.01": "207ad7a76b6b043d4b25747cf7cadd59",
+    "sc155mk2-v1.01": "a96281f6357c96c64d8b1fc2ae65b2c0",
+}
+
+
+def mra_parts(romset: str):
+    """The MRA's parts in order: ("data", bytes) or ("file", location, size)."""
+    model = model_of(romset)
+    mk2 = model in (MODELS["mk2"], MODELS["sc155mk2"])
+    head = b"SC55" + bytes([3, model, 0]) + bytes(ROM1_AT - 7)
+    if mk2:
+        return [("data", head), ("file", "ROM1", 0x8000), ("file", "ROM2", 0x80000), ("file", "SMROM", 0x1000),
+                ("file", "WAVEROM1", 0x200000), ("file", "WAVEROM2", 0x100000), ("data", bytes(0x100000))]
+    return [("data", head), ("file", "ROM1", 0x8000), ("file", "ROM2", 0x40000), ("data", bytes(0x40000 + 0x1000)),
+            ("file", "WAVEROM1", 0x100000), ("file", "WAVEROM2", 0x100000), ("file", "WAVEROM3", 0x100000),
+            ("data", bytes(0x100000))]
+
+
+def mra(romset: str, md5: str) -> str:
+    """The MRA text for one romset. md5: of the assembled pack (romset.py pack --v3)."""
+    name, setname, zips, chips = MAME_SETS[romset]
+    lines = [
+        "<misterromdescription>",
+        f"    <name>{name}</name>",
+        f"    <setname>{setname}</setname>",
+        "    <rbf>SC55</rbf>",
+        f"    <!-- Generated by cores/sc55/tools/romset.py mra (gmcnaught/synthcores). Assembles the",
+        f"         core's ROM pack v3 for romset {romset} from MAME's {setname} set: put the zip in",
+        f"         games/mame/. Each chip is picked by CRC32, whatever its name in the zip. -->",
+        f'    <rom index="0" zip="{zips}" md5="{md5}">',
+    ]
+    for part in mra_parts(romset):
+        if part[0] == "file":
+            loc = part[1]
+            lines.append(f'        <part name="{chips[loc][0]}" crc="{chips[loc][1]}"/> <!-- {loc} -->')
+        elif any(part[1]):
+            lines.append(f"        <part>{part[1][:7].hex(' ')}</part> <!-- header: SC55, pack v3, model, flags -->")
+            lines.append(f'        <part repeat="{len(part[1]) - 7}">00</part>')
+        else:
+            assert len(part[1]) % 0x100 == 0
+            lines.append(f'        <part repeat="{len(part[1]) // 0x100}">{bytes(0x100).hex(" ")}</part>'
+                         f" <!-- {len(part[1]):#x} zero bytes -->")
+    lines += ["    </rom>", "</misterromdescription>", ""]
+    return "\n".join(lines)
+
+
+def assemble_mra(romset: str, directory: pathlib.Path) -> bytes:
+    """What the MRA sends, from the dumps in DIR (found by CRC32, as Main_MiSTer finds them)."""
+    by_crc = {}
+    for p in sorted(directory.rglob("*")):
+        if p.is_file() and p.stat().st_size <= 16 << 20:
+            by_crc.setdefault("%08x" % zlib.crc32(p.read_bytes()), p)
+    chips = MAME_SETS[romset][3]
+    out = bytearray()
+    for part in mra_parts(romset):
+        if part[0] == "data":
+            out += part[1]
+        else:
+            data = by_crc[chips[part[1]][1]].read_bytes()
+            assert len(data) == part[2], (part, len(data))
+            out += data
+    return bytes(out)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -165,12 +268,29 @@ def main() -> int:
     pk.add_argument("out", type=pathlib.Path)
     pk.add_argument("--romset", default="mk1-v1.21")
     pk.add_argument("--nvram", type=pathlib.Path, help="JV-880: a 32 KB NVRAM image for the pack")
+    pk.add_argument("--v3", action="store_true", help="pack v3: the wave ROMs as dumped")
+    mr = sub.add_parser("mra")
+    mr.add_argument("outdir", type=pathlib.Path)
+    mr.add_argument("--roms", type=pathlib.Path, help="dumps to check the MRAs against (by assembling them)")
     args = ap.parse_args()
 
     if args.cmd == "pack":
-        data = pack(args.directory, args.romset, args.nvram.read_bytes() if args.nvram else None)
+        data = pack(args.directory, args.romset, args.nvram.read_bytes() if args.nvram else None, args.v3)
         args.out.write_bytes(data)
         print(f"wrote {args.out} ({len(data)} bytes, {args.romset})")
+        return 0
+
+    if args.cmd == "mra":
+        args.outdir.mkdir(parents=True, exist_ok=True)
+        for rs in MAME_SETS:
+            md5 = MRA_MD5[rs]
+            if args.roms:
+                built = assemble_mra(rs, args.roms)
+                assert built == pack(args.roms, rs, v3=True), rs
+                assert hashlib.md5(built).hexdigest() == md5, (rs, hashlib.md5(built).hexdigest())
+            out = args.outdir / f"{MAME_SETS[rs][0]}.mra"
+            out.write_text(mra(rs, md5))
+            print(f"wrote {out}")
         return 0
 
     table = load_table()
