@@ -20,7 +20,9 @@ runs:
         sudo apt-get install -y ninja-build cmake g++-14 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
         python -m pip install pyyaml pillow
         pypy3 --version
-        pypy3 -m pip install pyyaml pillow
+        # Pillow stopped shipping PyPy 3.10 wheels after 11.3 (12.x would build from source and
+        # fail): pin a wheel for pypy3
+        pypy3 -m pip install --only-binary pillow pyyaml "pillow==11.3.0"
     - name: Cache Verilator
       id: verilator-cache
       uses: actions/cache@v4
