@@ -1,8 +1,12 @@
 name: tests
 
-# Runs each core's test suite (Verilator benches, lockstep against the reference models,
-# repo hygiene) for the cores a change touches. A change to synthframe's HDL or to this file runs
-# every core. The JV-880 has no suite of its own yet; a change to it runs the SC-55 job (shared
+# ci-scripts runs every cores/*/tests/ci.sh and modules/*/tests/ci.sh on every change: each
+# core's and module's ROM-free tests behind one entry point (exit 0 pass, 77 skipped, anything
+# else failed). The skip and pass counts go to the run's summary page.
+#
+# The test job runs each core's test suite (Verilator benches, lockstep against the reference
+# models, repo hygiene) for the cores a change touches. A change to synthframe's HDL, cmake or
+# tools, or to this file, runs every core. The JV-880 has no suite of its own yet; a change to it runs the SC-55 job (shared
 # modules) and the panel frame test. The CZ-101's lockstep needs MAME and ROMs and runs locally;
 # a change to its HDL runs the Proteus job for the panel frame test. ROM-dependent tests skip
 # without ROMs. Proteus runs the P2K sound/flash model unit tests (no ROMs needed); its MAME
@@ -40,7 +44,10 @@ jobs:
           filters: |
             shared:
               - 'modules/synthframe/hdl/**'
+              - 'modules/synthframe/cmake/**'
+              - 'modules/synthframe/tools/**'
               - '.github/workflows/tests.yml'
+              - '.github/actions/**'
             sc55:
               - 'cores/sc55/**'
               - 'cores/jv880/**'
@@ -86,33 +93,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install build tools
-        working-directory: .
-        run: sudo apt-get update && sudo apt-get install -y ninja-build g++-14 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
-
-      # Ubuntu's Verilator (5.020) cannot compile non-blocking array writes in loops, which the
-      # SC-55 HDL uses; build the version used locally (5.048), cached.
-      - name: Cache Verilator
-        id: verilator-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/verilator
-          key: verilator-v5.048-ubuntu-24.04
-      - name: Build Verilator
-        if: steps.verilator-cache.outputs.cache-hit != 'true'
-        working-directory: .
-        run: |
-          git clone --depth 1 --branch v5.048 https://github.com/verilator/verilator /tmp/verilator-src
-          cd /tmp/verilator-src && autoconf && ./configure --prefix=$HOME/verilator && make -j$(nproc) && make install
-      - name: Verilator on PATH
-        working-directory: .
-        run: |
-          echo "$HOME/verilator/bin" >> $GITHUB_PATH
-          echo "VERILATOR_ROOT=$HOME/verilator/share/verilator" >> $GITHUB_ENV
-          $HOME/verilator/bin/verilator --version
+      - uses: ./.github/actions/setup-sim
 
       - name: Build reference model and Verilator benches (SC-55)
         if: matrix.core == 'sc55'
@@ -132,13 +113,106 @@ jobs:
         if: matrix.core == 'sc55' || matrix.core == 'mt32'
         run: python ../../modules/synthframe/ver/midi/test_midi_tx.py
 
+      # A test that cannot run (no ROMs) exits 77, or (the SC-55's testlib suites) prints
+      # "N passed, M skipped" / unittest's skipped=M: both are counted as skips, shown as warnings and on the summary page.
       - name: Run tests
+        shell: bash
         env:
           SC55_REF_BUILD: out/sim/ref
         run: |
-          set -e
+          pass=0; skip=0; fail=0
           for t in tests/test_*.py tests/*/test_*.py; do
             [ -f "$t" ] || continue
             echo "== $t"
-            python "$t"
+            rc=0; python "$t" 2>&1 | tee /tmp/test.log || rc=$?
+            n=$(grep -oE '[0-9]+ skipped|skipped=[0-9]+' /tmp/test.log | tail -1 | grep -oE '[0-9]+' || true)
+            if [ "$rc" = 77 ]; then
+              skip=$((skip + 1)); echo "::warning title=skipped::$t: $(grep -m1 '^SKIP' /tmp/test.log || echo skipped)"
+            elif [ "$rc" = 0 ]; then
+              pass=$((pass + 1))
+              if [ -n "$n" ] && [ "$n" != 0 ]; then
+                skip=$((skip + n)); echo "::warning title=skipped::$t: $n test(s) skipped (no ROMs on the runner)"
+              fi
+            else
+              fail=$((fail + 1)); echo "::error title=failed::$t exited $rc"
+            fi
           done
+          echo "### tests (${{ matrix.core }}): $pass passed, $skip skipped, $fail failed" >> "$GITHUB_STEP_SUMMARY"
+          [ "$fail" = 0 ]
+
+  ci-list:
+    runs-on: ubuntu-24.04
+    outputs:
+      scripts: ${{ steps.list.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        shell: bash
+        run: |
+          shopt -s nullglob
+          echo "scripts=$(printf '%s\n' cores/*/tests/ci.sh modules/*/tests/ci.sh | jq -R . | jq -cs 'map(select(. != ""))')" >> "$GITHUB_OUTPUT"
+
+  ci-scripts:
+    needs: ci-list
+    if: ${{ needs.ci-list.outputs.scripts != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        script: ${{ fromJSON(needs.ci-list.outputs.scripts) }}
+    name: ci.sh (${{ matrix.script }})
+    runs-on: ubuntu-24.04
+    env:
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./.github/actions/setup-sim
+      - name: Run
+        shell: bash
+        env:
+          SCRIPT: ${{ matrix.script }}
+        run: |
+          rc=0; bash "$SCRIPT" 2>&1 | tee /tmp/ci.log || rc=$?
+          last=$(grep -v '^[[:space:]]*$' /tmp/ci.log | tail -1 | tr '|\t' '/ ' || true)
+          mkdir -p /tmp/result
+          case "$rc" in
+            0)  r=pass ;;
+            77) r=skip; echo "::warning title=skipped::$SCRIPT: $(grep -m1 '^SKIP' /tmp/ci.log || echo "$last")" ;;
+            *)  r=fail; echo "::error title=failed::$SCRIPT exited $rc" ;;
+          esac
+          printf '%s\t%s\t%s\n' "$r" "$SCRIPT" "$last" > /tmp/result/result.tsv
+          echo "| $r | \`$SCRIPT\` | $last |" >> "$GITHUB_STEP_SUMMARY"
+          [ "$r" != fail ]
+      - name: Keep the result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-result-${{ strategy.job-index }}
+          path: /tmp/result/result.tsv
+          if-no-files-found: ignore
+
+  ci-summary:
+    needs: ci-scripts
+    if: always() && needs.ci-scripts.result != 'skipped'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ci-result-*
+          path: results
+          merge-multiple: false
+      - name: Counts
+        shell: bash
+        run: |
+          shopt -s nullglob
+          cat results/*/result.tsv > all.tsv 2>/dev/null || : > all.tsv
+          p=$(grep -c '^pass' all.tsv || true); s=$(grep -c '^skip' all.tsv || true); f=$(grep -c '^fail' all.tsv || true)
+          {
+            echo "### ci.sh: $p passed, $s skipped, $f failed"
+            echo
+            echo "| result | script | last line |"
+            echo "|---|---|---|"
+            sort all.tsv | awk -F'\t' '{ printf "| %s | `%s` | %s |\n", $1, $2, $3 }'
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$f" = 0 ]

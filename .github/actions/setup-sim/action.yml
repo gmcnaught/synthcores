@@ -1,0 +1,35 @@
+name: Simulation tools
+description: >
+  apt build tools, g++-14, pypy3, Python 3.12 with PyYAML and Pillow, and Verilator 5.048
+  (built once and cached; Ubuntu's 5.020 cannot compile non-blocking array writes in loops,
+  which the SC-55 HDL uses). Used by tests.yml.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install build tools
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build cmake g++-14 pypy3 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
+        python -m pip install pyyaml pillow
+    - name: Cache Verilator
+      id: verilator-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/verilator
+        key: verilator-v5.048-ubuntu-24.04
+    - name: Build Verilator
+      if: steps.verilator-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        git clone --depth 1 --branch v5.048 https://github.com/verilator/verilator /tmp/verilator-src
+        cd /tmp/verilator-src && autoconf && ./configure --prefix=$HOME/verilator && make -j$(nproc) && make install
+    - name: Verilator on PATH
+      shell: bash
+      run: |
+        echo "$HOME/verilator/bin" >> $GITHUB_PATH
+        echo "VERILATOR_ROOT=$HOME/verilator/share/verilator" >> $GITHUB_ENV
+        $HOME/verilator/bin/verilator --version
