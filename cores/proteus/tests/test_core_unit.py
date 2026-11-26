@@ -26,7 +26,7 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="proteus_unit_")
     try:
-        out = os.path.join(tmp, "build")
+        out = os.path.join(CORE, "build", "sim", "unit")   # kept: incremental rebuilds
         tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "unit", out],
                             check=True, stdout=subprocess.PIPE, text=True).stdout.strip().splitlines()[-1]
         fails = 0

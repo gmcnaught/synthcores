@@ -15,6 +15,8 @@
 # fx68k reads microrom.mem / nanorom.mem and display.sv rtl/panel/*.hex from the working
 # directory; they are copied next to the executable, so run the CPU benches from OUTDIR. fx68k needs -Wno-BLKANDNBLK (its
 # microcode latch mixes blocking and non-blocking writes, fx68k.sv:293).
+# Builds are incremental in OUTDIR (keep it between runs) and use ccache when it is installed
+# (OBJCACHE); BUILD_JOBS sets the parallel jobs (default 1).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORE="$HERE/.."
@@ -23,8 +25,9 @@ MEM="$CORE/../../modules/synthframe/hdl/mem"
 BENCH=${1:?usage: sim/build.sh snd|mfp|unit|core|sys [OUTDIR]}
 OUT="${2:-$CORE/build/sim/$BENCH}"
 mkdir -p "$OUT"
+if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE=ccache; fi
 FLAGS=(-O3 -Wno-fatal -Wno-lint -Wno-style -Wno-BLKANDNBLK -Wno-TIMESCALEMOD -Wno-INITIALDLY
-       -Wno-PINMISSING --x-assign fast --x-initial fast -CFLAGS "-O2 -std=c++17" -j 8)
+       -Wno-PINMISSING --x-assign fast --x-initial fast -CFLAGS "-O2 -std=c++17" -j "${BUILD_JOBS:-1}")
 
 case "$BENCH" in
   snd)  SRC=("$RTL/interp_rom.sv" "$RTL/proteus_snd.sv" "$MEM/synthframe_mem_ddr3.sv" "$MEM/synthframe_mem_arb.sv"

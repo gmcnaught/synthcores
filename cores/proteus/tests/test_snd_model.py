@@ -36,7 +36,7 @@ def main():
     py = "pypy3" if shutil.which("pypy3") else sys.executable
     tmp = tempfile.mkdtemp(prefix="proteus_snd_")
     try:
-        tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(tmp, "build")],
+        tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(CORE, "build", "sim", "snd")],
                             check=True, stdout=subprocess.PIPE, text=True).stdout.strip().splitlines()[-1]
         fails = 0
         for seed, gen, bench in CASES:
@@ -66,7 +66,7 @@ def main():
                 print(f"ok   {name}: {SAMPLES} samples bit-identical")
         # status words under overload: SAMPLE_DIV=128 misses most ticks (review #16)
         env = dict(os.environ, VFLAGS="-GSAMPLE_DIV=128")
-        tb2 = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(tmp, "build128")],
+        tb2 = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(CORE, "build", "sim", "snd128")],
                              check=True, stdout=subprocess.PIPE, text=True, env=env).stdout.strip().splitlines()[-1]
         img = os.path.join(tmp, f"rand{CASES[0][0]}.bin")
         r = subprocess.run([tb2, img, os.path.join(tmp, "st.raw"), "24576", "1", "--status-test"], cwd=tmp,

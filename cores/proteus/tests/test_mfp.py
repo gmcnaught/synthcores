@@ -23,7 +23,7 @@ def main():
         return 77
     tmp = tempfile.mkdtemp(prefix="proteus_mfp_")
     try:
-        tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "mfp", os.path.join(tmp, "build")],
+        tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "mfp", os.path.join(CORE, "build", "sim", "mfp")],
                             check=True, stdout=subprocess.PIPE, text=True).stdout.strip().splitlines()[-1]
         fails = 0
         for name in TESTS:

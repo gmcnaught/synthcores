@@ -20,7 +20,11 @@
 set -euo pipefail
 CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$CORE"
-PY=${PYTHON:-python3}
+# Python tests and models run under pypy3 when present (CLAUDE.md); smoke_gate.py needs Pillow
+if [ -z "${PYTHON:-}" ] && command -v pypy3 >/dev/null; then PY=pypy3; else PY=${PYTHON:-python3}; fi
+PIL_PY=${PIL_PYTHON:-python3}
+# Verilator benches build incrementally under build/sim with ccache, one job by default
+if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE=ccache; fi
 pass=0; skip=0; fail=0; failed=()
 
 run() {   # run NAME CMD...
@@ -41,7 +45,7 @@ for t in tests/test_*.py tests/*/test_*.py; do
   [ -f "$t" ] || continue
   run "$t" "$PY" "$t"
 done
-run "tests/smoke_gate.py" "$PY" tests/smoke_gate.py
+run "tests/smoke_gate.py" "$PIL_PY" tests/smoke_gate.py
 if [ -x p2k/tests/ci.sh ]; then run "p2k/tests/ci.sh" p2k/tests/ci.sh; fi
 
 summary="proteus ci: $pass passed, $skip skipped, $fail failed"
