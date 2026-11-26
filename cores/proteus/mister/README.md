@@ -77,10 +77,13 @@ DDR3 (physical): `0x30000000` samples (8 MB), `0x31000000` output capture ring (
 - With the MAME fixes in patch 0001 (2026-11-23), 6 s from power-on: sound-chip (770) and other
   I/O writes still equal; the firmware's stored volume (0xFFF98E) is 0xCA on all 188 measurements
   in both (the previous MAME stored one 0xCF, from a timer B catch-up burst).
-- `sim/sim_main.cpp` (sound chip only): bit-exact with `tools/proteus_model.py`.
+- `tests/test_snd_model.py` (sound subsystem: `snd_ctrl` with its write FIFO, the synthframe DDR3
+  port and `proteus_snd`; `sim/snd_tb.cpp`): bit-exact with `tools/proteus_model.py` on random
+  sample data and random register, byte-lane and pan writes. Runs in CI (`tests/ci.sh`).
 - Earlier event-replay demo build: hardware capture bit-exact with the model for 66 s.
+
+Benches are built with `sim/build.sh snd|mfp|unit|core|sys [OUTDIR]` (Verilator 5.048); the
+script lists what each one checks and which need the ROMs. `tests/ci.sh` runs the ROM-free ones.
 
 ## Build
 `bash mister/build.sh` with Quartus Lite 17.0, or the `Build RBF` GitHub workflow.
-The event-replay demo (`rtl/demo_ctrl.sv`, `rtl/level_display.sv`) is kept for the sound-chip
-testbench but is not in the core.

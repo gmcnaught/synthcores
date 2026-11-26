@@ -28,7 +28,6 @@ mister/build.log
 mister/build_id.v
 mister/*.qws
 sim/obj_sys/
-sim/sys_build.log
 sim/panel/obj_dir/
 sim/panel/build.log
 sim/obj_core/

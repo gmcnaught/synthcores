@@ -39,6 +39,7 @@ proteus_sys sys
 	.clk(clk), .reset(reset), .loading(loading),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
 	.midi_in(midi_in), .midi_out(midi_out), .buttons(gpio), .volume(8'd255),
+	.cpu_pause(1'b0), .nv_active(1'b0), .nv_we(1'b0), .nv_addr(16'd0), .nv_wdata(8'd0), .nv_rdata(), .leds(),
 	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
 	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(3'd0), .lcd_code(lcd_code), .lcd_cgbits(), .lcd_is_cg(), .lcd_cursor(), .lcd_on(),
