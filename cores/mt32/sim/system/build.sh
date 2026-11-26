@@ -1,6 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build the MT-32 system bench (hdl/mt32_core.sv): sim/system/build.sh [OUTDIR] (default build/system)
+# VDEFS adds Verilator options, such as the sim-only time presets (tests/wrap_check.sh).
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)
@@ -8,7 +9,8 @@ out=${1:-$core/build/system}
 mkdir -p "$out"
 out=$(cd "$out" && pwd)
 h=$core/hdl
-verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mt32_core \
+# shellcheck disable=SC2086
+verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mt32_core ${VDEFS:-} \
     -Wno-fatal -Wno-WIDTH -Wno-UNUSED -Wno-DECLFILENAME -Wno-BLKSEQ \
     "-DMCS96_DECODE_HEX=\"$h/mcs96/mcs96_decode.hex\"" \
     -GPOW_HEX="\"$h/la32/mt32_la32_pow.hex\"" -GLOGSIN_HEX="\"$h/la32/mt32_la32_logsin.hex\"" \

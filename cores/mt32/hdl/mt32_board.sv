@@ -150,7 +150,6 @@ module mt32_board #(
     // ---------------------------------------------------------------- turn sequencing
     typedef enum logic [2:0] { T_IDLE, T_HOLD, T_RUN, T_WAIT, T_MIDI, T_DONE } t_t;
     t_t ts;
-    logic [47:0] la32c;                 // la32_cycles after the slot
     logic [4:0]  slot;
 
     always_ff @(posedge clk) begin
@@ -170,7 +169,6 @@ module mt32_board #(
             reg_bank <= 5'd0;
             mq_wp <= 8'd0; mq_rp <= 8'd0;
             uart_cycles <= 48'h0;
-            la32c <= 48'h0;
             sh3 <= 1'b0;
             clearing <= 1'b1; clr_a <= 16'h0;
             ready <= 1'b0;
@@ -187,8 +185,9 @@ module mt32_board #(
             case (ts)
             T_IDLE: if (cpu_turn) begin
                 slot <= turn_slot;
-                la32c <= la32_cycle[47:0];
-                c_target <= (la32_cycle[47:0] * 48'd375) >> 8;
+                // 57-bit product: exact while la32_cycle < 2^48 (1.09 years). A 48-bit product
+                // wrapped at la32_cycle = 2^48 / 375 (25.45 h) and stopped the CPU for good.
+                c_target <= 48'(({9'h0, la32_cycle[47:0]} * 57'd375) >> 8);
                 ts <= T_HOLD;
             end
             T_HOLD: if (!(hold && slot == 5'd0)) begin

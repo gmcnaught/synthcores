@@ -128,13 +128,21 @@ module mcs96 #(
         upd_req <= 1'b0;
         if (rst) begin
             sc <= SC_IDLE;
+`ifdef MCS96_SIM_TC_START
+            // sim only: start the time base at this cycle (tests/wrap_check.sh; the reference
+            // starts at the same cycle with ref/mt32_ref --start)
+            tc <= 48'd `MCS96_SIM_TC_START;
+            tq <= 45'((48'd `MCS96_SIM_TC_START) / 48'd24);
+            tr <= 5'((48'd `MCS96_SIM_TC_START) % 48'd24);
+`else
             tc <= 48'h0;
+            tq <= 45'h0;
+            tr <= 5'd0;
+`endif
             step <= 6'd0;
             icount <= 16'sd0;
             bcount <= 32'h0;
             busy <= 1'b0;
-            tq <= 45'h0;
-            tr <= 5'd0;
             upd_fast <= 1'b0;
         end else begin
             // an internal_update called from an SFR write (HSO, A/D) moves the next event
