@@ -7,7 +7,7 @@ planned. The layout follows jotego's jtcores and JTFRAME.
 
 | Core | Folder | Status | Release | Licence |
 |---|---|---|---|---|
-| Roland SC-55 / SC-55mk2 / SC-155 | [`cores/sc55`](cores/sc55) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55 | [sc55-MiSTer](https://github.com/gmcnaught/sc55-MiSTer/releases) v20261126 | GPL-2.0-or-later |
+| Roland SC-55 / SC-55mk2 / SC-155 | [`cores/sc55`](cores/sc55) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55 | [sc55-MiSTer](https://github.com/gmcnaught/sc55-MiSTer/releases) v20261126b | GPL-2.0-or-later |
 | Roland JV-880 | [`cores/jv880`](cores/jv880) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55's `jv880` model | [JV-880-MiSTer](https://github.com/gmcnaught/JV-880-MiSTer/releases) v20261125b | GPL-2.0-or-later |
 | Roland MT-32 (second generation) | [`cores/mt32`](cores/mt32) | plays MIDI on the MiSTer; instruction- and sample-exact against Nuked-MT32 | [MT-32-MiSTer](https://github.com/gmcnaught/MT-32-MiSTer/releases) v20261125 | GPL-2.0-or-later (8098 CPU MIT) |
 | Casio CZ-101 | [`cores/cz101`](cores/cz101) | plays MIDI on the MiSTer; instruction- and sample-exact against MAME | [CZ-101-MiSTer](https://github.com/gmcnaught/CZ-101-MiSTer/releases) v20261125 | MIT (MAME's BSD-3-Clause notice in its `NOTICE`) |
