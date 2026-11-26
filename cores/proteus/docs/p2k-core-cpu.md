@@ -80,6 +80,12 @@ Accesses counted over boot + demo playback in MAME [O]:
   the TxEMT-on-disable behaviour, parallel port with input pins, latch-only registers) and
   `p2k/rtl/cpu/p2k_cpu.sv` (kernel + MBAR decode, autovectored IPL). The testbench honours the
   kernel's `skipFetch` (no bus cycle for the read half of CLR on 68010+, as the TG68K wrapper).
+- Peripheral register access on the clock of a timer or UART event (review 2026-11-26): the
+  event stays. A receive-buffer read pops only a byte that was there (an empty read returns 0, as
+  MAME's 68681); a TER write-1-to-clear keeps a reference event set on the same clock; a TMR write
+  with RST 1 → 0 resets the timer (TMR/TCN/TER 0, TRR 0xFFFF) as MAME's `coldfire_timer_device`;
+  reset restores the registers MAME's `init_regs` sets (CSCR0 0x3C1F, CSAR0, CSMR0, DRAM
+  controller, DMCR). ROM-free bench: `cores/p2k/sim/periph_tb.cpp` (`cores/p2k/tests`).
 - Verified: the first 5.2 M data word accesses of the boot (25.6 M MAME records, boot block and
   DRAM tests) match MAME exactly.
 - Verified (2026-11-22, iteration 11): reset to the OS 2.26 main screen. Replay mode
