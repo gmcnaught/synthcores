@@ -55,7 +55,7 @@ module cz101_board #(
     output logic [7:0]  nv_rdata,
     output logic        nv_written,     // the CPU wrote the battery RAM or cartridge this clock
     output logic        powered_down,   // the firmware switched the power off (CPU in reset)
-    output logic [31:0] cycles,         // vcyc: machine cycles of virtual time
+    output logic [31:0] cycles,         // vt: machine cycles of virtual time (vcyc while the CPU runs)
 
     // outputs
     output logic [15:0] leds,           // MAME m_leds[0..15]
@@ -164,6 +164,7 @@ module cz101_board #(
     // port latches as MAME's driver sees them
     logic [7:0] port_b;             // m_port_b (key row select, uPD933 /CS)
     logic       power;              // m_power
+    logic       power_on_q;
 
     // ------------------------------------------------------------------ uPD933
     logic        s_req, s_ack, s_settled, s_irq, s_irq_evt, s_late, s_busy;
@@ -255,9 +256,27 @@ module cz101_board #(
         return t - (t + 40'd4999999) / 40'd5000000;
     endfunction
 
-    // now_tick = ticks(vcyc), kept incrementally: 3 tv = 5,000,000 tq + tr, where tv follows
-    // vcyc one clock late (vcyc moves by at most an instruction's cycle count a clock); the
-    // tick of any time a = tv + e (0 <= e < 512: vcyc, an access time) comes from that state.
+    // Board time vt: vcyc while the CPU runs. A firmware power-down (PC3 = 0) holds the CPU in
+    // reset, which returns vcyc to 0; MAME's machine time goes on and its uPD933 stream keeps
+    // running (silence). vt then continues from the last vcyc, one cycle per cyc_ce while the
+    // uPD933 is settled (as the CPU would wait for it at a boundary). Only a board reset (the
+    // MiSTer's Power on) ends a power-down, so vt = vcyc whenever the CPU runs.
+    logic        down_q;           // cpu_reset one clock late: vcyc is still valid in the first clock
+    logic [31:0] vdown;
+    wire  [31:0] vt = down_q ? vdown : vcyc;
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            down_q <= 1'b0; vdown <= 32'h0;
+        end else begin
+            down_q <= cpu_reset;
+            if (!down_q) vdown <= vcyc;
+            else if (cyc_ce && s_settled) vdown <= vdown + 32'd1;
+        end
+    end
+
+    // now_tick = ticks(vt), kept incrementally: 3 tv = 5,000,000 tq + tr, where tv follows
+    // vt one clock late (vt moves by at most an instruction's cycle count a clock); the
+    // tick of any time a = tv + e (0 <= e < 512: vt, an access time) comes from that state.
     // Unlike ticks(), it keeps counting when the 32-bit vcyc wraps (after 21 minutes). The 40-bit
     // tick time wraps after 30.5 h; the uPD933 compares ticks modulo 2^40.
     localparam logic [22:0] T_DIV = 23'd5000000;
@@ -265,14 +284,14 @@ module cz101_board #(
     logic [39:0] t3;               // 3 vcyc (not wrapped)
     logic [39:0] tq;
     logic [22:0] tr;
-    wire  [31:0] tdv = vcyc - tv;
+    wire  [31:0] tdv = vt - tv;
     always_ff @(posedge clk) begin
-        if (reset || cpu_reset) begin
+        if (reset) begin
             tv <= 32'h0; t3 <= 40'h0; tq <= 40'h0; tr <= 23'h0;
         end else if (tdv != 32'h0) begin
             logic [23:0] r;
             r = {1'b0, tr} + 24'(3 * tdv[8:0]);
-            tv <= vcyc;
+            tv <= vt;
             t3 <= t3 + 40'(3 * tdv[8:0]);
             if (r >= {1'b0, T_DIV}) begin tr <= 23'(r - {1'b0, T_DIV}); tq <= tq + 40'd1; end
             else tr <= r[22:0];
@@ -288,12 +307,13 @@ module cz101_board #(
         if (r >= {1'b0, T_DIV}) begin r = r - {1'b0, T_DIV}; q = q + 40'd1; end
         return t3 + 40'(3 * e) - q - ((r != 24'h0) ? 40'd1 : 40'd0);
     endfunction
-    always_comb now_tick = tick_at(vcyc);
+    always_comb now_tick = tick_at(vt);
     // synthesis translate_off
     logic [39:0] sim_tick_base = 40'h0;   // cz101_bench CZ_TICK_BASE: tick time at reset (t3 and the uPD933 start there)
-    always_ff @(posedge clk) if (!reset && !cpu_reset) begin
-        if (now_tick - sim_tick_base != ticks(vcyc)) $fatal(1, "now_tick %0d != base + ticks(%0d)", now_tick, vcyc);
-        if (32'(acc_time - tv) >= 32'd512 || tdv >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
+    always_ff @(posedge clk) if (!reset) begin
+        if (now_tick - sim_tick_base != ticks(vt)) $fatal(1, "now_tick %0d != base + ticks(%0d)", now_tick, vt);
+        if (tdv >= 32'd512) $fatal(1, "vt %0d tv %0d", vt, tv);
+        if (!cpu_reset && !down_q && 32'(acc_time - tv) >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
     end
     // synthesis translate_on
 
@@ -313,7 +333,7 @@ module cz101_board #(
     assign pa_in = lcd_db;
     assign lcd_power = power;
     assign powered_down = cpu_reset;
-    assign cycles = vcyc;
+    assign cycles = vt;
 
     // ------------------------------------------------------------------ external bus
     typedef enum logic [2:0] { B_IDLE, B_MEM, B_SND, B_SND_WAIT, B_DONE } bus_t;
@@ -335,11 +355,15 @@ module cz101_board #(
             s_req <= 1'b0;
             port_b <= 8'h00;
             power <= 1'b0;
+            power_on_q <= 1'b0;
             cpu_reset <= 1'b0;
             led_latch[0] <= 8'hFF; led_latch[1] <= 8'hFF; led_latch[2] <= 8'hFF; led_latch[3] <= 8'hFF;
             pb_pending <= 1'b0; rst_pending <= 1'b0;
         end else begin
-            if (power_on) power <= 1'b1;
+            // MAME power_w: m_power = 1 when the switch turns on (the first clock after reset
+            // counts as that edge: CZ_POWER_ON). A power-down clears it until the next edge.
+            power_on_q <= power_on;
+            if (power_on && !power_on_q) power <= 1'b1;
 
             // port writes (MAME port_b_w / port_c_w), in the clock the CPU performs them
             if (pb_we) begin

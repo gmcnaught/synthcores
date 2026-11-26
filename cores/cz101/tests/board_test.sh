@@ -5,6 +5,8 @@
 #   loop       JR $ from reset: the uPD933 makes one (silent) sample per 250 ticks of CPU time.
 #   wrap       the same with the tick time started 10,000 cycles before the 40-bit tick counter
 #              wraps (CZ_TICK_BASE; on the board after about 30.5 h): samples continue.
+#   power      PC3 = 0 (firmware power-down) with the power switch on: the CPU is held in reset,
+#              the LCD is dark (MAME m_power = 0) and the uPD933 keeps making samples.
 # Prints one line per case and "board: N passed"; exits 1 on any failure.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,6 +49,7 @@ def near(got, want, tol=3):
 
 JR_SELF = [0xFF]                                   # JR $
 MVI_A = lambda v: [0x69, v]
+MOV_MC_A, MOV_PC_A = [0x4D, 0xD4], [0x4D, 0xC2]
 
 results = []
 def check(name, ok, detail):
@@ -62,6 +65,19 @@ for name, base in (("loop", 0), ("wrap", (1 << 40) - 30000)):
     want = r["cycles"] * 3 // 250 + 1          # samples at ticks 0, 250, ... up to ticks(cycles)
     check(name, r["cycles"] > CLOCKS // 10 and near(r["samples"], want),
           f"{r['samples']} samples in {r['cycles']} cycles (expected {want})")
+
+# power
+rom = prog("power", MVI_A(0x00) + MOV_MC_A + MOV_PC_A + JR_SELF)
+r, err = run("power", rom)
+if r is None:
+    check("power", False, err)
+else:
+    span = r["cycles"] - r["down_at"] if r["down"] else 0
+    want = span * 3 // 250
+    check("power", r["down"] == 1 and r["lcd_power"] == 0 and span > CLOCKS // 10
+          and near(r["down_samples"], want),
+          f"powered down at cycle {r['down_at']}, lcd_power {r['lcd_power']}, {r['down_samples']} samples "
+          f"in the {span} cycles after (expected {want})")
 
 npass = sum(results)
 print(f"board: {npass} passed, {len(results) - npass} failed")
