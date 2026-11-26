@@ -111,6 +111,22 @@ def test_mk2_cycles_wrap_48():
     ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "5500000",
             "--cycle-base", str(WRAP_48))
 
+
+def test_board_end_of_run_count():
+    """review 2026-11-26 roland.md #3: the board bench fails when the HDL's last samples are
+    missing (self-test: --drop-hdl-from discards them)."""
+    need_roms()
+    exe = need_file(SIM_BUILD / "board_lockstep", "board bench")
+    sys.path.insert(0, str(ROOT / "tools"))
+    import romset
+    with tempfile.TemporaryDirectory() as d:
+        pack = pathlib.Path(d) / "boot.rom"
+        pack.write_bytes(romset.pack(ROM_DIR, "mk1-v1.21"))
+        r = subprocess.run([str(exe), "--roms", str(ROM_DIR), "--pack", str(pack), "--steps", "3000000",
+                            "--drop-hdl-from", "2999000"], capture_output=True, text=True)
+    assert r.returncode != 0 and "MISMATCH at the end" in r.stderr, r.stdout[-1000:] + r.stderr[-1000:]
+    print("    ", r.stderr.strip().splitlines()[-1][:150])
+
 def test_mk2_upstream_hash():
     """avmidi 0A.mid through the mk2 HDL = jcmoyer's own integration hash (test/integration/CMakeLists.txt)."""
     need_roms("mk2-v1.01")

@@ -493,7 +493,12 @@ int main(int argc, char** argv)
     }
     for (int g = 0; g < 2'000'000 && compared + hdl.size() < g_model.size(); ++g) tick();
     if (!drain()) return 1;
-    if (compared + 64 < g_model.size()) { fprintf(stderr, "HDL produced %" PRIu64 " samples, model %zu\n", compared, g_model.size()); return 1; }
+    // every model sample compared with an HDL one, none left over on either side
+    if (compared != g_model.size() || !hdl.empty() || compared == 0)
+    {
+        fprintf(stderr, "HDL produced %" PRIu64 " samples, model %zu\n", compared + hdl.size(), g_model.size());
+        return 1;
+    }
 
     // MIDI out: let the line finish, then the bytes must be the model's
     for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * 1600 &&
