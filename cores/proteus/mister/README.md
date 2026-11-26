@@ -63,7 +63,7 @@ the OSD rewrote the save; reloading the core came back on `003 BigCityBrass`.
 | Top | `Proteus.sv` | 80 MHz `clk_sys`; `UART31250,MIDI` in CONF_STR enables MidiLink |
 | System | `rtl/proteus_sys.sv` | fx68k at 10 MHz (phi enables every 4 clocks), MAME `proteusxr` memory map, ROM/RAM/font block RAM (`rtl/bram.sv`), volume one-shot, IACK |
 | MFP | `rtl/mfp68901.sv` | MC68901 subset modelled on MAME (interrupts, timers incl. pulse-width, 8N1 USART) |
-| LCD | `rtl/hd44780.sv`, `rtl/display.sv` | HD44780 modelled on MAME incl. busy timing; 2×16 LCD, front panel art (`rtl/panel/`) + 32 voice bars on 320×240 |
+| LCD | `modules/synthframe/hdl/panel/synthframe_hd44780.sv`, `rtl/display.sv` | HD44780 modelled on MAME incl. busy timing; 2×16 LCD, front panel art (`rtl/panel/`) + 32 voice bars on 320×240 |
 | Sound | `rtl/snd_ctrl.sv`, `rtl/proteus_snd.sv` | CPU write FIFO drained between samples, +0x18 read-back, DDR3 samples, capture ring |
 | CPU | `rtl/fx68k/` | fx68k by Jorge Cwik (GPL-3), unmodified |
 

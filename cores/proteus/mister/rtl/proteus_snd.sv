@@ -10,7 +10,7 @@
 //  voice is computed. `done` pulses with the new sample on out_l/out_r.
 //
 //  Register writes (`wr`) and pan writes (`pan_wr`) must not overlap a
-//  sample computation (the demo controller only issues them between samples).
+//  sample computation (snd_ctrl drains its write FIFO only between samples).
 //
 //  Interpolation: 7 points centred on the nearest word (E-mu patent US 5,111,727);
 //  8 words addr+1..addr+8 around the position addr + 4 + frac are read and the
