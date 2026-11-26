@@ -320,3 +320,13 @@ image explorer), e-dumper (P2K/CS preset/pattern/song loader), e-sysex, e-sds, e
   P2K fit [I]: the OS addresses above 16 MB (flash 0x02000000, MBAR 0x20000000), uses movec for
   MBAR/RAMBAR/CACR (V2 control registers) and needs the MCF5206e SIM, timers and UARTs, which
   would be written in HDL whichever core is used.
+
+## Added 2026-11-26
+- haxorhax.com "E-MU Sysex Archival" (https://haxorhax.com/emu-sysex-archive/): factory preset
+  SysEx for every P2K-family expansion, from a Command Station; `CMPSR.zip` = the 1024 Composer
+  presets, one closed-loop preset dump per file (56 common parameters, ROM ID 4 in the header).
+  Local copy `roms/_src/p2k/sysex/CMPSR.zip`. Used by `tools/p2k_build_composer.py` (`p2k-composer.md`).
+- Proteus 2000 Operations Manual Rev E (FrameMaker PDF, 2002) on archive.org
+  (https://archive.org/details/synthmanual-emu-proteus-2000-owners-manual): Preset Listing and the
+  Instrument Listing (1173 Composer instruments by number). Local copy
+  `roms/_src/p2k/manual/proteus2000_opman_revE.pdf`, parsed to `composer_instruments.tsv`.
