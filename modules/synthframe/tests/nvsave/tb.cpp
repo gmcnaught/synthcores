@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
-// synthframe_nvsave against a model of hps_io's SD slot 0 (reads and writes) and a 1-clock RAM:
+// synthframe_nvsave against a model of hps_io's SD slot 0 (reads and writes) and a RAM with a
+// registered read port:
 //   restore at an image load; a save with the core running (one pass), and with a RAM write
 //   during it (a second, paused pass); a user reset (rst) after the load: saves still work and
 //   the file is not read again; rst during a restore: the restore finishes after it; a
 //   read-only file is never written; a load with no file leaves the RAM alone.
-//   tb [SEED]       (AW from the build, -GAW=N)
+//   With SHADOW (the default build), a save with the firmware writing the RAM all the time (as
+//   the CZ-101's does, ~56,000 writes a second): one pass, the file equal to the RAM at one
+//   instant (while paused), and no pause longer than 2**AW + 64 clocks.
+//   tb [SEED]       (AW and SHADOW from the build: -GAW=N -GSHADOW=N, -DAW=N -DSHADOW=N)
 #include "Vsynthframe_nvsave.h"
 #include "verilated.h"
 
@@ -18,7 +22,12 @@ static std::vector<uint8_t> ram, file;
 static std::mt19937 rng;
 static long clk_n, fails;
 static int rd_reqs, wr_reqs;
-static bool core_writes;                  // the core writes the RAM now and then
+#ifndef SHADOW
+#define SHADOW 1
+#endif
+static int write_every;                   // the core writes the RAM about every N clocks (0: never)
+static long pause_run, pause_max;         // clocks pause has been up; the longest run
+static std::vector<uint8_t> snapshot;     // the RAM when pause last came down
 
 // hps_io: on sd_rd / sd_wr, ack after a delay, then (sd_blk_cnt + 1) x 512 bytes, a few clocks
 // each (reads: sd_buff_wr pulses with the file's bytes; writes: sd_buff_din sampled), then ack low
@@ -68,17 +77,21 @@ static void tick()
     t->core_idle = running ? (clk_n % 4 != 0) : 1;
     t->mem_written = 0;
     uint32_t cw = 0;
-    if (core_writes && running && rng() % 500 == 0) { cw = rng() % ram.size(); t->mem_written = 1; }
+    if (write_every && running && rng() % write_every == 0) { cw = rng() % ram.size(); t->mem_written = 1; }
     const uint32_t a = t->mem_addr;
     const bool we = t->mem_we;
     const uint8_t wd = t->mem_wdata;
     t->clk = 0; t->eval();
     t->clk = 1; t->eval();
+    // a registered read port, as the cores' (nv_rdata <= ram[nv_addr]): the byte at the
+    // address before the edge
+    t->mem_rdata = ram.at(a);
     if (we) ram.at(a) = wd;
     if (cw || t->mem_written) ram[cw] ^= 0x5a;   // the CPU's write lands with mem_written
-    t->mem_rdata = ram.at(t->mem_addr);
     t->eval();
     ++clk_n;
+    if (t->pause) { if (++pause_run > pause_max) pause_max = pause_run; }
+    else if (pause_run) { pause_run = 0; snapshot = ram; }
 }
 static void run(int n) { for (int i = 0; i < n; ++i) tick(); }
 static bool until(bool (*f)(), long limit) { for (long i = 0; i < limit; ++i) { if (f()) return true; tick(); } return false; }
@@ -128,11 +141,27 @@ int main(int argc, char** argv)
     puts("save with the core running");
     fill(ram);
     check(save() == chunks && same(), "one pass, file = RAM");
-    core_writes = true;
+#if SHADOW
+    puts("save with the firmware writing the RAM all the time (~56,000 a second at 50 MHz)");
+    const long limit = (1L << AW) + 64;
+    for (int i = 0; i < 3; ++i)
+    {
+        fill(ram); write_every = 900; pause_max = 0;
+        const int n = save();
+        write_every = 0; run(100);
+        char what[120];
+        snprintf(what, sizeof what, "pass %d: one pass, file = RAM while paused, RAM changed after", i + 1);
+        check(n == chunks && file == snapshot && ram != file, what);
+        snprintf(what, sizeof what, "pass %d: longest pause %ld clocks (limit %ld)", i + 1, pause_max, limit);
+        check(pause_max <= limit, what);
+    }
+#else
+    write_every = 500;
     int n = 0, tries = 0;
     do { fill(ram); n = save(); } while (n == chunks && ++tries < 20);
-    core_writes = false; run(100);
+    write_every = 0; run(100);
     check(n == 2 * chunks && same(), "RAM written during the pass: a second pass, file = RAM");
+#endif
 
     puts("user reset (rst) after the load");
     fill(ram);

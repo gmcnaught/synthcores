@@ -8,11 +8,17 @@
 //     2**AW bytes, reads it into the RAM through mem_we/mem_addr/mem_wdata; boot_hold keeps
 //     the core in reset until then (a missing or short file leaves the RAM as it is);
 //   - save: on a rising save_req, or when the OSD opens with autosave set, writes the RAM to the
-//     file, reading mem_rdata at mem_addr (the byte one clock after the address), from a copy
-//     of the RAM with its own read port, while the core keeps running (no audio dropout). If
-//     the core writes the RAM (mem_written) during that pass, the file may hold a mix of old
-//     and new bytes, so it is written again with pause up, once the core reports idle (no step
-//     in progress): the second pass is always consistent;
+//     file, reading mem_rdata at mem_addr (the byte one clock after the address) from a copy of
+//     the RAM with its own read port.
+//     SHADOW = 1 (default): pause goes up until the core reports idle (no step in progress)
+//     for 8 clocks, the RAM is copied into a shadow block RAM in 2**AW + 1 clocks, pause comes
+//     down, and the shadow goes to the file while the core runs. One pass; the file is the RAM
+//     at one instant; the core stops for about 2**AW clocks (164 us for 8 KB at 50 MHz), less
+//     than a sound FIFO holds. Costs 2**AW bytes of block RAM (8 KB = 8 M10K).
+//     SHADOW = 0: the RAM goes to the file while the core keeps running. If the core writes the
+//     RAM (mem_written) during that pass, the file may hold a mix of old and new bytes, so it
+//     is written again with pause up for the whole pass, once the core reports idle: the
+//     second pass is consistent, but the core stops for the whole SD write (tens of ms);
 //   - writes nothing to a read-only file.
 // rst (power-on, MiSTer RESET, a user reset) stops a transfer in progress and holds the core
 // (boot_hold) until any restore still owed for the last image download is done; it keeps the
@@ -23,7 +29,8 @@
 // The file is the RAM's bytes in address order, 2**AW bytes, moved in requests of up to 16 KB
 // (hps_io's limit; sd_blk_cnt + 1 blocks of 512 bytes).
 module synthframe_nvsave #(
-    parameter int AW = 15                 // RAM size 2**AW bytes, 9 .. 20
+    parameter int AW = 15,                // RAM size 2**AW bytes, 9 .. 20
+    parameter bit SHADOW = 1'b1           // 1: copy to a shadow RAM while paused, then write it
 ) (
     input  logic          clk,
     input  logic          rst,
@@ -69,12 +76,32 @@ module synthframe_nvsave #(
 
     assign sd_blk_cnt = 6'((1 << (CAW - 9)) - 1);
     logic [19:0] chunk;                                    // request number
-    assign mem_addr  = AW'({chunk, sd_buff_addr[CAW-1:0]} );
-    assign mem_wdata = sd_buff_dout;
-    assign sd_buff_din = mem_rdata;
+    wire [AW-1:0] sd_addr = AW'({chunk, sd_buff_addr[CAW-1:0]});
 
-    typedef enum logic [2:0] { S_IDLE, S_RD, S_RD_ACK, S_WAIT, S_WR, S_WR_ACK } st_t;
+    typedef enum logic [2:0] { S_IDLE, S_RD, S_RD_ACK, S_WAIT, S_WR, S_WR_ACK, S_COPY } st_t;
     st_t st;
+    logic [AW:0] cp_n;                                     // S_COPY: next RAM address to read
+
+    assign mem_addr  = (SHADOW && st == S_COPY) ? cp_n[AW-1:0] : sd_addr;
+    assign mem_wdata = sd_buff_dout;
+
+    // the shadow: written from mem_rdata during S_COPY (the byte read the clock before),
+    // read at the SD position one clock after it, as mem_rdata is
+    if (SHADOW) begin : g_shadow
+        logic [7:0]    shadow [1 << AW];
+        logic [7:0]    shadow_q;
+        logic          cp_v;
+        logic [AW-1:0] cp_a;
+        always_ff @(posedge clk) begin
+            cp_v <= st == S_COPY && !cp_n[AW];
+            cp_a <= cp_n[AW-1:0];
+            if (cp_v) shadow[cp_a] <= mem_rdata;
+            shadow_q <= shadow[sd_addr];
+        end
+        assign sd_buff_din = shadow_q;
+    end else begin : g_direct
+        assign sd_buff_din = mem_rdata;
+    end
     assign mem_we = (st == S_RD || st == S_RD_ACK) && sd_ack && sd_buff_wr;
 
     // power-up values, not reset by rst (see the header)
@@ -130,13 +157,18 @@ module synthframe_nvsave #(
                         end
                     end else if (image_ok && !loading && mounted && !ro &&
                                  ((save_req && !save_d) || (autosave && osd_open && !osd_d))) begin
-                        // first pass with the core running; dirty = written since the pass began
                         saving <= 1'b1;
-                        dirty <= mem_written;
-                        chunk <= '0;
-                        sd_lba <= '0;
-                        sd_wr <= 1'b1;
-                        st <= S_WR;
+                        if (SHADOW) begin               // pause, wait for idle, copy (S_WAIT)
+                            pause <= 1'b1;
+                            quiet <= '0;
+                            st <= S_WAIT;
+                        end else begin                  // first pass with the core running;
+                            dirty <= mem_written;       // dirty = written since it began
+                            chunk <= '0;
+                            sd_lba <= '0;
+                            sd_wr <= 1'b1;
+                            st <= S_WR;
+                        end
                     end
                 // restore
                 S_RD: if (sd_ack) begin sd_rd <= 1'b0; st <= S_RD_ACK; end
@@ -154,11 +186,26 @@ module synthframe_nvsave #(
                             st <= S_RD;
                         end
                     end
-                // second pass: the core idle for 8 clocks with pause up (no step can have started)
+                // the core idle for 8 clocks with pause up (no step can have started): then the
+                // copy (SHADOW) or the second pass
                 S_WAIT:
                     if (!core_idle) quiet <= '0;
                     else if (quiet != 4'd8) quiet <= quiet + 4'd1;
+                    else if (SHADOW) begin
+                        cp_n <= '0;
+                        st <= S_COPY;
+                    end else begin
+                        chunk <= '0;
+                        sd_lba <= '0;
+                        sd_wr <= 1'b1;
+                        st <= S_WR;
+                    end
+                // read every RAM address (the last byte lands in the shadow as cp_n reaches
+                // 2**AW), then write the shadow with the core running
+                S_COPY:
+                    if (!cp_n[AW]) cp_n <= cp_n + 1'd1;
                     else begin
+                        pause <= 1'b0;
                         chunk <= '0;
                         sd_lba <= '0;
                         sd_wr <= 1'b1;
@@ -167,7 +214,7 @@ module synthframe_nvsave #(
                 S_WR: if (sd_ack) begin sd_wr <= 1'b0; st <= S_WR_ACK; end
                 S_WR_ACK:
                     if (!sd_ack) begin
-                        if (chunk == 20'(NCH - 1) && !pause && (dirty || mem_written)) begin
+                        if (!SHADOW && chunk == 20'(NCH - 1) && !pause && (dirty || mem_written)) begin
                             pause <= 1'b1;             // written during the pass: again, paused
                             quiet <= '0;
                             st <= S_WAIT;
