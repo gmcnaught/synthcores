@@ -106,12 +106,13 @@ else:
           f"timer armed {r['arms']} time(s), n {r['arm_n']} (expected {N_EXPECT}); "
           f"uPD933 IRQ rises {r['irq_rises']} in {r['cycles']} cycles (expected 0)")
 
-# nmi: vectors 0004 (NMI), 0008 (T0) and the rest RETI; T0 every 5 x 4 cycles, EI, JR $
+# nmi: every vector EI; RETI (taking an interrupt clears IFF and RETI does not restore it);
+# T0 every 5 x 4 cycles; EI; JR $
 code = [0x54, 0x00, 0x01] + [0x00] * (0x100 - 3)       # JMP 0100
 for v in (0x04, 0x08, 0x10, 0x18, 0x20, 0x28):
-    code[v] = 0x62                                     # RETI
+    code[v:v + 2] = [0xAA, 0x62]                       # EI; RETI
 code += MVI_A(0x05) + [0x4D, 0xDA]                     # MOV TM0,A
-code += MVI_A(0x00) + [0x4D, 0xC7]                     # MOV MKL,A: all unmasked
+code += MVI_A(0x04) + [0x4D, 0xC7]                     # MOV MKL,A: T1 masked (so T0 clears its IRR bit)
 code += MVI_A(0x80) + [0x4D, 0xCD]                     # MOV TMM,A: T0 counts cycles / 4, T1 stopped
 code += [0xAA] + JR_SELF                               # EI; JR $
 rom = prog("nmi", code)
@@ -122,7 +123,7 @@ r, err = run("nmi", rom, CZ_POWER=os.path.join(w, "nmi.power"))
 if r is None:
     check("nmi", False, err)
 else:
-    check("nmi", r["nmis"] > 100 and r["irqs"] > 2 * r["nmis"] and r["vec_changes"] == 0,
+    check("nmi", r["nmis"] > 100 and r["irqs"] - r["nmis"] > 100 and r["vec_changes"] == 0,
           f"{r['irqs']} interrupts, {r['nmis']} NMI, {r['vec_changes']} vector changes during the push (expected 0)")
 
 # serial: 00 55 00 offered at cycle 0; the line falls at each start bit
