@@ -49,7 +49,7 @@ class Macros(Tmp):
         self.assertEqual(sc.load_macros(p, "xcau15p"), {"A": "1", "B": "2", "C": "1"})
 
     def test_rejects(self):
-        for text in ("A\n", "[nope]\nA\n", "[mister]\nlower\n"):
+        for text in ("A\n", "[nope]\nA\n", "[mister]\nlower\n", "[all]\nA=0\n", "[mister]\nA = 0\n"):
             with self.subTest(text=text), self.assertRaises(sc.CfgError):
                 sc.load_macros(self.write("m.def", text), "mister")
 
@@ -84,6 +84,14 @@ class Generate(Tmp):
         self.assertEqual(body, ["+incdir+../hdl", "../hdl/b.v", rel, "../hdl/a.sv"])
         with self.assertRaises(sc.CfgError):          # .sdc belongs in mister:
             self.core("files:\n  - mister/T.sdc\n").verilator_f()
+
+    def test_verilator_f_macros(self):
+        """[all] macros reach Verilator; [mister] and [xcau15p] ones do not."""
+        f = self.core(self.FILES, "[all]\nFEATURE\nDEPTH=4\n[mister]\nMISTER_DISABLE_ALSA\n[xcau15p]\nX\n").verilator_f()
+        body = [ln for ln in f.splitlines() if not ln.startswith("//")]
+        self.assertEqual(body[:3], ["+define+FEATURE=1", "+define+DEPTH=4", "+incdir+../hdl"])
+        self.assertNotIn("MISTER_DISABLE_ALSA", f)
+        self.assertNotIn("+define+X", f)
 
     def test_qpf(self):
         self.assertEqual(self.core(self.FILES).qpf(), 'QUARTUS_VERSION = "17.0"\nPROJECT_REVISION = "T"\n')
