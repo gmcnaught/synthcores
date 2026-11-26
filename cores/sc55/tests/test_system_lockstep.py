@@ -15,9 +15,12 @@ import subprocess
 import sys
 import tempfile
 
-from testlib import MIDI_DIR, REF_BUILD, ROM_DIR, ROOT, Skip, need_file, need_roms, run
+from testlib import MIDI_DIR, REF_BUILD, ROM_DIR, ROOT, Skip, need_file, need_roms, require_sound, run
 
 SIM_BUILD = pathlib.Path(os.environ.get("SC55_SIM_BUILD", ROOT / "out" / "sim"))
+# The benches send MIDI from 4 M steps; the mk1 sounds soon after. The mk2 firmware sets up its PCM only after
+# about 10 M steps, so an mk2 run must reach 12 M to compare anything but silence.
+MK2_SOUNDING = "12000000"
 
 
 def ok_line(exe, *args):
@@ -25,6 +28,7 @@ def ok_line(exe, *args):
     ok = [l for l in r.stdout.splitlines() if l.startswith("OK:")]
     assert r.returncode == 0 and ok, f"{args}:\n{r.stdout[-2000:]}\n{r.stderr[-3000:]}"
     print("   ", ok[0][:160])
+    require_sound(ok[0])   # every system and board run must sound, not only match
     return ok[0]
 
 
@@ -70,7 +74,7 @@ def test_mk2_board_from_power_on():
     with tempfile.TemporaryDirectory() as d:
         pack = pathlib.Path(d) / "boot.rom"
         pack.write_bytes(romset.pack(ROM_DIR, "mk2-v1.01"))
-        ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--pack", str(pack), "--midi-loud", "1", "--steps", "8000000")
+        ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--pack", str(pack), "--midi-loud", "1", "--steps", MK2_SOUNDING)
 
 
 
@@ -80,7 +84,7 @@ def test_board_pack_v3():
     sys.path.insert(0, str(ROOT / "tools"))
     import romset
     exe = need_file(SIM_BUILD / "board_lockstep", "board bench")
-    for rs, steps in (("mk1-v1.21", "3000000"), ("mk2-v1.01", "3000000")):
+    for rs, steps in (("mk1-v1.21", "5000000"), ("mk2-v1.01", MK2_SOUNDING)):
         need_roms(rs)
         with tempfile.TemporaryDirectory() as d:
             pack = pathlib.Path(d) / "boot.rom"
@@ -90,7 +94,7 @@ def test_board_pack_v3():
 def test_mk2_system_loud():
     need_roms("mk2-v1.01")
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
-    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "6000000", "--rom-latency", "10", "--rom-backpressure")
+    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", MK2_SOUNDING, "--rom-latency", "10", "--rom-backpressure")
 
 
 
@@ -102,8 +106,7 @@ def test_cycles_wrap_48():
     during loud MIDI; CPU and every sample as the model (64-bit counters)."""
     need_roms()
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
-    line = ok_line(exe, "--roms", str(ROM_DIR), "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
-    assert "peak -999.0" not in line, line
+    ok_line(exe, "--roms", str(ROM_DIR), "--midi-loud", "1", "--steps", "5500000", "--cycle-base", str(WRAP_48))
 
 
 def test_mk2_cycles_wrap_48():
@@ -111,9 +114,8 @@ def test_mk2_cycles_wrap_48():
     need_roms("mk2-v1.01")
     exe = need_file(SIM_BUILD / "system_lockstep", "system bench")
     base = (2**48 - 12 * 11_500_000) // (3 << 20) * (3 << 20)
-    line = ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "12000000",
-                   "--cycle-base", str(base))
-    assert "peak -999.0" not in line, line
+    ok_line(exe, "--roms", str(ROM_DIR), "--romset", "mk2-v1.01", "--midi-loud", "1", "--steps", "12000000",
+            "--cycle-base", str(base))
 
 
 def test_board_end_of_run_count():

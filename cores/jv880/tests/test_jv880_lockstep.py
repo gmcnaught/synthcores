@@ -32,7 +32,7 @@ SC55_ROOT = JV_ROOT.parent / "sc55"
 sys.path.insert(0, str(SC55_ROOT / "tests"))
 sys.path.insert(0, str(SC55_ROOT / "tools"))
 
-from testlib import REF_BUILD, Skip, need_file, run  # noqa: E402
+from testlib import REF_BUILD, Skip, need_file, require_sound, run  # noqa: E402
 
 SC55_SIM = pathlib.Path(os.environ.get("SC55_SIM_BUILD", SC55_ROOT / "out" / "sim"))
 JV_SIM = pathlib.Path(os.environ.get("JV880_SIM_BUILD", JV_ROOT / "out" / "sim"))
@@ -44,7 +44,6 @@ MIDI = SC55_ROOT / "third_party" / "nuked-sc55" / "test" / "integration" / "jv88
 MIDI_START = "8000000"
 # a multiple of 3 * 2^20 (sim/common/cycle_base.h): cycles crosses 2^48 at step 9,068,117
 WRAP_48 = (2**48 - 12 * 9_000_000) // (3 << 20) * (3 << 20)
-SILENT = "peak -999.0 dBFS"
 
 
 def rom_dir() -> pathlib.Path:
@@ -80,6 +79,8 @@ def ok_line(exe: pathlib.Path, *args: str) -> str:
     ok = [l for l in r.stdout.splitlines() if l.startswith("OK")]
     assert r.returncode == 0 and ok, f"{exe.name} {' '.join(args)}:\n{r.stdout[-2000:]}\n{r.stderr[-3000:]}"
     print("   ", exe.name, ok[0][:150])
+    if "peak" in ok[0]:
+        require_sound(ok[0])   # PCM, system and board runs must sound, not only match
     return r.stdout
 
 
@@ -100,27 +101,24 @@ def test_mcu_boot_and_p9dr():
 def test_pcm_loud():
     roms = rom_dir()
     exe = need_file(SC55_SIM / "pcm_lockstep", "PCM lockstep bench")
-    out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "7")
-    assert "(0 non-zero" not in out, out
+    ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
+            "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "7")
 
 
 def test_system_loud():
     roms = rom_dir()
     exe = need_file(SC55_SIM / "system_lockstep", "system bench")
-    out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "10",
-                  "--rom-backpressure")
-    assert SILENT not in out, out
+    ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
+            "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "10000000", "--rom-latency", "10",
+            "--rom-backpressure")
 
 
 def test_system_cycle_wrap():
     """#10: mcu.cycles and pcm.cycles cross 2^48 at step 9,068,117, during the MIDI."""
     roms = rom_dir()
     exe = need_file(SC55_SIM / "system_lockstep", "system bench")
-    out = ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
-                  "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "9500000", "--cycle-base", str(WRAP_48))
-    assert SILENT not in out, out
+    ok_line(exe, "--roms", str(roms), "--romset", ROMSET, "--nvram", str(factory_nvram()),
+            "--midi-demo", "1", "--midi-start", MIDI_START, "--steps", "9500000", "--cycle-base", str(WRAP_48))
 
 
 def test_board_from_power_on_with_save():
@@ -133,7 +131,7 @@ def test_board_from_power_on_with_save():
         sav = pathlib.Path(d) / "jv880.sav"
         out = ok_line(exe, "--roms", str(roms), "--pack", str(pack), "--midi-demo", "1", "--midi-start", MIDI_START,
                       "--steps", "10000000", "--sav", str(sav), "--save-at", "9500000")
-        assert "1 saves identical" in out and SILENT not in out, out
+        assert "1 saves identical" in out, out
 
 
 def test_render_hash():
