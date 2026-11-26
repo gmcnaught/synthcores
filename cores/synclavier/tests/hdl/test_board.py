@@ -815,6 +815,19 @@ def test_poly_wrap():
         os.unlink(path)
 
 
+def test_sd_word_arb():
+    """The SD word port (hdl/core/sd_word_arb.sv + sd_floppy.sv): floppy and
+    SCSI words, most SCSI requests starting on the clock a floppy word
+    is acked; every read returns its own drive's word (review 2026-11-26
+    sync-hdl #2: the SCSI host took the floppy's ack and data)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("sd_word_arb", ("hdl/core/sd_floppy.sv", "hdl/core/sd_word_arb.sv"),
+                     args=["+ops=3000"])
+    print("  " + [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0])
+
+
 def vpk_stimulus(path, seed=1, ops=4000):
     """Stimulus for hdl/sim/dev_vpk_tb.sv from sim/devices/synth.py
     VelocityKeyboard: KEYBOARD.CHECK, KCR reads, key scans with velocity

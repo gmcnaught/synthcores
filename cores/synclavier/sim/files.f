@@ -20,6 +20,7 @@
 ../hdl/dev/pcm_limit.sv
 ../hdl/dev/pcm_reverb.sv
 ../hdl/core/sd_floppy.sv
+../hdl/core/sd_word_arb.sv
 ../hdl/dev/dev_scsi.sv
 ../hdl/dev/dev_poly.sv
 ../hdl/dev/dev_midi.sv

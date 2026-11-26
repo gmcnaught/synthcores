@@ -39,6 +39,7 @@ module sd_floppy (
     input  logic [15:0] wdata,
     output logic [15:0] rdata,
     output logic        ack,
+    output logic [2:0]  ack_drive,      // the acked word's drive (sd_word_arb routes the ack by it)
     output logic [5:0]  present,
     output logic [1:0]  protect,
     output logic        protect3,
@@ -221,6 +222,7 @@ module sd_floppy (
             // ---- the CPU side: a hit
             if (serve) begin
                 ack <= 1'b1;                          // read data: q next clock
+                ack_drive <= drive;
                 mru <= hb;
                 if (wr) begin
                     dirty <= 1'b1; dbuf <= hb; dblk <= blk;

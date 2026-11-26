@@ -173,6 +173,8 @@ module synclavier_core #(
     // ------------------------------------------------------------ floppies
     logic [34:0] m_addr;                         // {drive[2:0], block[23:0], word[7:0]}
     logic        m_rd, m_wr, m_ack;
+    logic [2:0]  m_ack_drive;                   // the acked word's drive
+    logic        a_fd_ack, a_scsi_ack, a_stm_ack; // sd_word_arb: m_ack by requester
     logic [15:0] m_wdata, m_rdata;
     logic [5:0]  sd_present;
     logic [16:0] stm_blocks;
@@ -193,7 +195,7 @@ module synclavier_core #(
     assign sd_wr = {prn_wr, media_wr};
     sd_floppy media (
         .clk, .rst(rst_hard),
-        .addr(m_addr), .rd(m_rd), .wr(m_wr), .wdata(m_wdata), .rdata(m_rdata), .ack(m_ack),
+        .addr(m_addr), .rd(m_rd), .wr(m_wr), .wdata(m_wdata), .rdata(m_rdata), .ack(m_ack), .ack_drive(m_ack_drive),
         .present(sd_present), .protect(fd_protect), .sectors0(fd_sectors0), .sectors1(fd_sectors1),
         .blocks2(state_blocks), .protect3(w0_protect), .blocks3(w0_blocks),
         .protect4(w1_protect), .blocks4(w1_blocks), .blocks5(stm_blocks),
@@ -308,7 +310,7 @@ module synclavier_core #(
         .fd_present, .fd_protect, .fd_sectors0, .fd_sectors1,
         .fd_spt0(FD_SPT), .fd_spt1(FD_SPT), .fd_sides0(FD_SIDES), .fd_sides1(FD_SIDES),
         .fd_addr(s_fd_addr), .fd_rd(s_fd_rd), .fd_wr(s_fd_wr), .fd_wdata(s_fd_wdata),
-        .fd_rdata(m_rdata), .fd_ack(m_ack && !scsi_m && !stm_own),
+        .fd_rdata(m_rdata), .fd_ack(a_fd_ack),
         .kb_host_we(kb_host_we || h_we),
         .kb_host_panel(kb_host_we ? kb_host_panel : h_panel),
         .kb_host_index(kb_host_we ? kb_host_index : h_index),
@@ -414,7 +416,7 @@ module synclavier_core #(
         .present(sd_present[3]), .protect(w0_protect), .blocks(w0_blocks),
         .present1(sd_present[4]), .protect1(w1_protect), .blocks1(w1_blocks), .d_unit(scsi_unit),
         .d_addr(scsi_addr), .d_rd(scsi_rd), .d_wr(scsi_wr), .d_wdata(scsi_wdata),
-        .d_rdata(m_rdata), .d_ack(m_ack && (scsi_rd || scsi_wr) && !stm_own)
+        .d_rdata(m_rdata), .d_ack(a_scsi_ack)
     );
     // D154-D157 poly synth (dev_poly.sv), on when D51 has the poly bit (a
     // state image made with poly voices); otherwise it answers as a stub
@@ -454,13 +456,13 @@ module synclavier_core #(
     // Digital STM (M18): native routines 64-76 with the source on SD drive 5.
     // Its D157 writes go into dev_poly's register port while the CPU is held
     // in the call (it makes no I/O meanwhile); its source reads share the SD
-    // word port (stm_own, below).
+    // word port (sd_word_arb, below).
     dig_stm dstm (
         .clk, .rst(cpu_rst), .tick, .tick_ns,
         .src_mounted(img_mounted[5]), .src_present(sd_present[5]),
         .nat_req, .nat_num, .r0(regs_flat[15:0]), .r1(regs_flat[31:16]), .r2(regs_flat[47:32]),
         .nat_ack, .nat_wr, .nat_result,
-        .s_addr(stm_addr), .s_rd(stm_rd), .s_rdata(m_rdata), .s_ack(m_ack && stm_own),
+        .s_addr(stm_addr), .s_rd(stm_rd), .s_rdata(m_rdata), .s_ack(a_stm_ack),
         .p_wr(stm_pwr), .p_wdata(stm_pdata), .p_ack(poly_ack && stm_pwr)
     );
 
@@ -480,21 +482,23 @@ module synclavier_core #(
     // the boot loader owns the floppy and external memory ports in reset;
     // then the SCSI disks (drives 3, 4) or the floppies:
     // dev_floppy: {drive, sector[9:0], word} -> {drive[2:0], block[23:0], word}
-    wire scsi_m = scsi_rd || scsi_wr;
-    // (dig_stm, M18: while stm_own, its read and only its)
-    assign m_addr   = cpu_rst ? {1'b0, b_fd_addr[25:24], 8'd0, b_fd_addr[23:0]}
-                    : stm_own ? {3'd5, 8'd0, stm_addr}
-                    : scsi_m ? {scsi_unit ? 3'd4 : 3'd3, scsi_addr}
-                    : {2'b00, s_fd_addr[18], 14'd0, s_fd_addr[17:0]};
-    assign m_rd     = cpu_rst ? b_fd_rd   : stm_own ? stm_rd : (scsi_m ? scsi_rd : s_fd_rd);
-    assign m_wr     = cpu_rst ? 1'b0      : !stm_own && (scsi_m ? scsi_wr : s_fd_wr);
-    assign m_wdata  = scsi_m ? scsi_wdata : s_fd_wdata;
-    // dig_stm: the SD word port for one source word at a time, taken when
-    // neither the SCSI host nor the floppy controller has a request open
-    always_ff @(posedge clk)
-        if (cpu_rst) stm_own <= 1'b0;
-        else if (stm_own) begin if (m_ack) stm_own <= 1'b0; end
-        else if (stm_rd && !scsi_m && !s_fd_rd && !s_fd_wr) stm_own <= 1'b1;
+    // after reset: sd_word_arb (each ack to the requester whose word it is)
+    logic [34:0] a_addr;
+    logic        a_rd, a_wr;
+    logic [15:0] a_wdata;
+    sd_word_arb sd_port (
+        .clk, .rst(cpu_rst),
+        .f_addr({2'b00, s_fd_addr[18], 14'd0, s_fd_addr[17:0]}), .f_rd(s_fd_rd), .f_wr(s_fd_wr),
+        .f_wdata(s_fd_wdata), .f_ack(a_fd_ack),
+        .s_addr({scsi_unit ? 3'd4 : 3'd3, scsi_addr}), .s_rd(scsi_rd), .s_wr(scsi_wr),
+        .s_wdata(scsi_wdata), .s_ack(a_scsi_ack),
+        .t_addr({3'd5, 8'd0, stm_addr}), .t_rd(stm_rd), .t_ack(a_stm_ack), .t_own(stm_own),
+        .m_addr(a_addr), .m_rd(a_rd), .m_wr(a_wr), .m_wdata(a_wdata), .m_ack, .m_ack_drive
+    );
+    assign m_addr  = cpu_rst ? {1'b0, b_fd_addr[25:24], 8'd0, b_fd_addr[23:0]} : a_addr;
+    assign m_rd    = cpu_rst ? b_fd_rd : a_rd;
+    assign m_wr    = !cpu_rst && a_wr;
+    assign m_wdata = a_wdata;
     // external memory port: the boot loader in reset; then D60-D63 and the
     // code cache (able_system) or poly memory (words 0x1000000 up), one
     // access at a time, granted while the port is free
