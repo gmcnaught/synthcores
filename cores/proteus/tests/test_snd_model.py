@@ -23,6 +23,7 @@ CASES = [
     (1, [], []),
     (2, [], []),
     (5, ["--blocks", "10"], ["--no-tone"]),
+    (3, ["--edge"], []),        # windows that wrap past word 0x3FFFFF (review 2026-11-26 #6)
 ]
 
 

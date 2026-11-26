@@ -7,7 +7,10 @@
 //  - CPU reads: raw register words directly; +0x18 read-back waits for the
 //    FIFO to be empty and the engine to be idle, then runs a read-back.
 //  - DDR3: image loader (byte offsets < 8 MB), sample reads, output capture
-//    ring at 0x31000000 (left/right s16 LE per sample).
+//    ring at 0x31000000 (left/right s16 LE per sample). The loader also writes the
+//    first 16 bytes again at 0x30800000, so a 3-beat sample fetch that starts in the
+//    last 8 words of the 4M-word space reads words 0, 1, ... after word 0x3FFFFF
+//    (MAME mirrors the sample ROM; tools/proteus_model.py masks the address).
 //  - Status word at 0x30FFFF00, rewritten every 4096 samples (64-bit LE):
 //    bits 31..0 samples produced, 47..32 missed sample deadlines (a tick arrived
 //    while the previous one was still pending), 63..48 worst clocks from a tick
@@ -104,6 +107,7 @@ end
 reg  [63:0] ld_word;
 reg  [26:0] ld_addr;
 reg         ld_pend;
+reg         ld_mirror;       // after this write, write the same word again 8 MB higher
 reg  [31:0] cap_lo;
 reg         cap_half;
 reg  [63:0] cap_word;
@@ -221,6 +225,7 @@ wire st_done  = c_req_valid[2] && c_req_ready[2];
 always @(posedge clk) begin
 	if (!loading) begin
 		ld_pend    <= 0;
+		ld_mirror  <= 0;
 		ioctl_wait <= 0;
 	end
 	else begin
@@ -229,12 +234,19 @@ always @(posedge clk) begin
 			if (ioctl_addr[2:0] == 3'd7) begin
 				ld_addr    <= ioctl_addr;
 				ld_pend    <= 1;
+				ld_mirror  <= (ioctl_addr[26:4] == 23'd0);   // sample words 0-7
 				ioctl_wait <= 1;
 			end
 		end
 		if (ld_done) begin
-			ld_pend    <= 0;
-			ioctl_wait <= 0;
+			if (ld_mirror) begin
+				ld_mirror   <= 0;
+				ld_addr[23] <= 1'b1;                          // + 8 MB: 0x30800000
+			end
+			else begin
+				ld_pend    <= 0;
+				ioctl_wait <= 0;
+			end
 		end
 	end
 end
