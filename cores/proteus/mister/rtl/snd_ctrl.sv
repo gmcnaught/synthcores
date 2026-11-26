@@ -4,8 +4,9 @@
 //  - CPU register writes (0x800000) and pan writes (0x500000) go into a FIFO
 //    that is drained between output samples, so a write affects the next
 //    sample, as in MAME (stream update before each write).
-//  - CPU reads: raw register words directly; +0x18 read-back waits for the
-//    FIFO to be empty and the engine to be idle, then runs a read-back.
+//  - CPU reads: raw register words once no write is queued or in flight
+//    (cpu_raw_ok; until then proteus_sys holds the read); +0x18 read-back waits for
+//    the FIFO to be empty and the engine to be idle, then runs a read-back.
 //  - DDR3: image loader (byte offsets < 8 MB), sample reads, output capture
 //    ring at 0x31000000 (left/right s16 LE per sample). The loader also writes the
 //    first 16 bytes again at 0x30800000, so a 3-beat sample fetch that starts in the
@@ -46,6 +47,7 @@ module snd_ctrl #(parameter SAMPLE_DIV = 2048)
 	output reg        cpu_rb_done,
 	output     [15:0] cpu_rb_data,
 	output     [15:0] cpu_raw,         // raw register word cpu_voice/cpu_word
+	output            cpu_raw_ok,      // cpu_raw includes every write the CPU has made
 
 	// audio
 	output reg signed [15:0] out_l,
@@ -89,7 +91,7 @@ proteus_snd snd
 	.clk(clk), .reset(reset), .tone_en(tone_en),
 	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data), .wr_mask(snd_mask),
 	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(snd_data[7:0]),
-	.rd_voice(rb_start ? cpu_voice : cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),
+	.rd_voice(cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),
 	.rd_start(rb_start), .rd_done(rb_done), .rd_data(cpu_rb_data),
 	.start(snd_start), .busy(snd_busy), .done(snd_done), .out_l(snd_l), .out_r(snd_r),
 	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_win(mem_win),
@@ -272,6 +274,8 @@ reg  [11:0] div;
 reg         tick_pending;
 reg         rb_pending;
 reg  [1:0]  wgap;            // proteus_snd needs 2 clocks between writes and before start
+// proteus_snd updates raw[][] 2 clocks after a write; wgap counts those clocks down
+assign cpu_raw_ok = f_empty && !cpu_wr && !snd_wr && !pan_wr && wgap == 0;
 
 always @(posedge clk) begin
 	snd_wr        <= 0;

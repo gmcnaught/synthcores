@@ -12,8 +12,8 @@
 #   core   proteus_core + core_main.cpp: the FPGA's wiring, real system image (ROMs)
 #   sys    sys_top.sv + sys_main.cpp: proteus_sys + snd_ctrl, real system image (ROMs)
 #
-# fx68k reads microrom.mem / nanorom.mem from the working directory; they are copied next to
-# the executable, so run the CPU benches from OUTDIR. fx68k needs -Wno-BLKANDNBLK (its
+# fx68k reads microrom.mem / nanorom.mem and display.sv rtl/panel/*.hex from the working
+# directory; they are copied next to the executable, so run the CPU benches from OUTDIR. fx68k needs -Wno-BLKANDNBLK (its
 # microcode latch mixes blocking and non-blocking writes, fx68k.sv:293).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,5 +39,8 @@ esac
 verilator --cc "${SRC[@]}" --top-module "$TOP" --exe "$HERE/$MAIN" -Mdir "$OUT/obj" "${FLAGS[@]}" ${VFLAGS:-} \
   --build -o "$OUT/V$TOP" > "$OUT/verilator.log" 2>&1 \
   || { grep -E '%Error' "$OUT/verilator.log" | head -40 >&2; tail -20 "$OUT/verilator.log" >&2; exit 1; }
-case "$BENCH" in unit|core|sys) cp "$RTL/fx68k/microrom.mem" "$RTL/fx68k/nanorom.mem" "$OUT/" ;; esac
+case "$BENCH" in unit|core|sys)
+  cp "$RTL/fx68k/microrom.mem" "$RTL/fx68k/nanorom.mem" "$OUT/"
+  mkdir -p "$OUT/rtl/panel" && cp "$RTL"/panel/*.hex "$OUT/rtl/panel/" ;;   # display.sv's panel art, by Quartus path
+esac
 echo "$OUT/V$TOP"

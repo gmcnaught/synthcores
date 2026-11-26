@@ -3,7 +3,8 @@
 //  MAME proteusxr driver (see docs/hardware-notes.md):
 //    000000-01FFFF  program ROM (128 KB, block RAM, loaded from the image)
 //    400001         latch (write, ignored)
-//    500008-500047  per-voice pan byte at 500009 + 2 * voice (rest of 500000-50004F ignored)
+//    500008-500047  per-voice pan byte at 500009 + 2 * voice (rest of 500000-50004F ignored;
+//                   as MAME's umask16(0x00ff), an access without LDS is not a pan write)
 //    700000-700003  HD44780 (odd bytes; A1 = RS)
 //    800000-8003FF  sound chip
 //    900000-90002F  MC68901 MFP (odd bytes; A5..A1 = register)
@@ -12,7 +13,9 @@
 //    C00001         output jack sense (0 = nothing plugged)
 //    D00000-D00003  debug serial 6850 (status: transmit ready, no receive)
 //    FF0000-FFFFFF  RAM 64 KB (battery-backed in the XR), loaded from the image
-//  Unmapped reads return 0, every access gets DTACK (as MAME).
+//  Unmapped reads return 0, every access gets DTACK (as MAME). Sound-register reads wait
+//  until the writes queued in snd_ctrl's FIFO have reached the chip (snd_raw_ok), so a read
+//  after a write returns the written word, as MAME's m_regs.
 //  IRQ: MFP on level 1, vectored through an IACK cycle.
 //
 //  Image (ioctl index 1), byte offsets: 0x800000 ROM (big-endian words),
@@ -55,6 +58,7 @@ module proteus_sys
 	input             snd_rb_done,
 	input      [15:0] snd_rb_data,
 	input      [15:0] snd_raw,
+	input             snd_raw_ok,     // no sound/pan write is queued or in flight
 
 	// LCD render port
 	input             lcd_line,
@@ -173,7 +177,8 @@ wire [15:0] vol_scaled = {8'd0, volume} * 16'd191;   // 255 -> 190, total 202 co
 reg  [19:0] vol_load;
 always @(posedge clk) vol_load <= {12'd0, 8'd12 + vol_scaled[15:8]} * 20'd1600;   // up to 321,600 clocks
 
-localparam B_IDLE = 3'd0, B_RAMRD = 3'd1, B_ACK = 3'd2, B_SNDWR = 3'd3, B_SNDRB = 3'd4, B_IACK = 3'd5, B_IACK2 = 3'd6;
+localparam B_IDLE = 3'd0, B_RAMRD = 3'd1, B_ACK = 3'd2, B_SNDWR = 3'd3, B_SNDRB = 3'd4, B_IACK = 3'd5, B_IACK2 = 3'd6,
+           B_SNDRAW = 3'd7;
 reg  [2:0] bstate;
 
 always @(posedge clk) begin
@@ -215,7 +220,7 @@ always @(posedge clk) begin
 				// RAM bytes are written by the block RAMs (cpu_wr_go)
 				if (sel_mfp) mfp_cs_wr <= 1;
 				if (sel_lcd) lcd_wr <= 1;
-				if (sel_snd || sel_pan) begin
+				if (sel_snd || (sel_pan && !LDSn)) begin
 					bstate <= B_SNDWR;
 				end
 				else bstate <= B_ACK;
@@ -225,15 +230,16 @@ always @(posedge clk) begin
 				if (sel_mfp) mfp_cs_rd <= 1;
 				if (sel_lcd) lcd_rd <= 1;
 				if (sel_vol) vol_cnt <= vol_load;
-				if (sel_snd && addr[4:1] == 4'hC) begin
+				if (sel_snd) begin
 					snd_voice <= addr[9:5];
 					snd_word  <= addr[4:1];
-					snd_rb    <= 1;
-					bstate    <= B_SNDRB;
+					if (addr[4:1] == 4'hC) begin
+						snd_rb <= 1;                          // +0x18: sample read-back
+						bstate <= B_SNDRB;
+					end
+					else bstate <= snd_raw_ok ? B_RAMRD : B_SNDRAW;
 				end
 				else bstate <= B_RAMRD;
-				snd_voice <= addr[9:5];
-				snd_word  <= addr[4:1];
 			end
 		end
 		else case (bstate)
@@ -263,6 +269,7 @@ always @(posedge clk) begin
 					DTACKn    <= 0;
 					bstate    <= B_IDLE;
 				end
+			B_SNDRAW: if (snd_raw_ok) bstate <= B_RAMRD;   // queued writes drained; snd_raw is current
 			B_SNDRB:
 				if (snd_rb_done) begin iEdb <= snd_rb_data; DTACKn <= 0; bstate <= B_IDLE; end
 			B_IACK:  bstate <= B_IACK2;   // the MFP latches the vector on the clock after the iack strobe
