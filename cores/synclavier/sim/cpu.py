@@ -61,7 +61,6 @@ Halt = namedtuple("Halt", "reason pc word device")
 HALT_NO_SYN_READ = "no SYN on read"
 HALT_NO_SYN_WRITE = "no SYN on write"
 HALT_REQUEST = "HALT"
-HALT_UNIMPLEMENTED = "unimplemented instruction"
 
 
 class CPU:

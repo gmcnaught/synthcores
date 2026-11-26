@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from sim import CPU, NO_SYN, Bus, Device  # noqa: E402
 from sim.asm import assemble  # noqa: E402
 from sim.cpu import (  # noqa: E402
-    HALT_NO_SYN_READ, HALT_NO_SYN_WRITE, HALT_REQUEST, HALT_UNIMPLEMENTED)
+    HALT_NO_SYN_READ, HALT_NO_SYN_WRITE, HALT_REQUEST)
 
 
 class FakeDevice(Device):
@@ -695,6 +695,15 @@ def test_no_device_on_001_is_attachable():
 def test_no_syn_constant():
     assert NO_SYN is None
 
+
+
+def test_every_halt_reason_has_a_trace_code():
+    """Review 2026-11-26 sync-py #10: sim.lockstep.record writes
+    HALT_CODES[cpu.halted.reason]; every HALT_* reason in sim.cpu needs one."""
+    from sim import cpu as cpu_mod
+    from sim.lockstep import HALT_CODES
+    reasons = {v for k, v in vars(cpu_mod).items() if k.startswith("HALT_")}
+    assert reasons == set(HALT_CODES), (reasons, HALT_CODES)
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
