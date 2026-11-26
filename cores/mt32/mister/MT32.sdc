@@ -4,7 +4,7 @@ derive_clock_uncertainty
 # core specific constraints
 
 # Core (outclk_0, 96 MHz) and video (outclk_1, 40 MHz) are asynchronous; the
-# LCD renderer reads the LCD controller and the status bits's registers and the status bits for
+# LCD renderer reads the LCD controller's registers, the panel buttons and the status bits for
 # display only.
 set_clock_groups -asynchronous \
    -group [get_clocks {emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] \

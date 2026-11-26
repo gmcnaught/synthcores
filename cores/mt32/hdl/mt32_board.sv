@@ -8,7 +8,8 @@
 //                serial_w(byte), uart_cycles = total_cycles() + 3840;
 //   after slots 15 and 31: la32_sh3 = (slot == 31).
 // `hold` stops the board before the CPU turn of slot 0 (the start of a sample): the MiSTer top
-// holds while its audio FIFO is full; the bench holds to queue a sample's MIDI bytes first.
+// holds while the core is 8 or more samples ahead of a 32 kHz real-time count; the bench holds to
+// queue a sample's MIDI bytes and set the panel inputs first.
 //
 // CPU memory map (cpu_read / cpu_write):
 //   0100-017F  bank register (write: data & 1F)       0200-027F  buttons (read), reverb ROM bank (write)

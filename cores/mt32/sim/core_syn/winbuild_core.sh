@@ -4,7 +4,7 @@
 # host (WINBUILD, default "winbuild"; see scripts/build-hosts/winbuild.sh). Reports come back to
 # OUTDIR (default build/syn/<id>); prints the fit summary and the worst slacks. Exits non-zero
 # on a failed compile or negative setup/hold slack.
-#   sim/sound/syn/winbuild_core.sh [OUTDIR]
+#   sim/core_syn/winbuild_core.sh [OUTDIR]
 set -euo pipefail
 CORE="$(cd "$(dirname "$0")/../.." && pwd)"
 ROOT="$(cd "$CORE/../.." && pwd)"

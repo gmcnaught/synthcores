@@ -413,8 +413,8 @@ module mcs96_periph (
         irq_set <= rst ? 8'h0 : irq;
     end
 
-    // internal RAM in MLABs, read without a clock; a write lands the clock after its request,
-    // before the core's next access can be taken
+    // internal RAM in registers (see `ram` above), read without a clock; a write lands the
+    // clock after its request, before the core's next access can be taken
     always_ff @(posedge clk) if (wr_en) ram[wr_a] <= wr_d;
     wire [7:0] ram_rd = ram[r_addr];
     assign r_rdata = a_q;
