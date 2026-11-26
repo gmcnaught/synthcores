@@ -10,6 +10,16 @@
 // after the last (the CPU makes them, an instruction or more apart). The SCSI
 // image is one 32-block line (no background reads). +ops=N: operations per
 // requester.
+//
+// +starve=1: the starvation case instead. A 4096-block SCSI image (32-block
+// lines, background read of the next line after each SCSI word), SCSI
+// words read in order every 2-20 clocks for +scsi_words=N words while one
+// floppy word is pending; then the SCSI side stops, as it does when the CPU
+// touches the floppy controller (dev_floppy withholds that ack while a copy
+// is pending, and dev_scsi only fetches on a CPU access). +gap_lo/+gap_hi:
+// clocks between SCSI words; +seed=N. Prints how long the floppy word waited;
+// fails if it waits past the stop by more than one line read plus one block
+// read.
 module sd_word_arb_tb;
     logic        clk = 0, rst = 1;
     logic [34:0] f_addr = 0, s_addr = 0;
@@ -140,8 +150,54 @@ module sd_word_arb_tb;
     endtask
 
     logic f_done = 0, s_done = 0;
+    int   starve = 0, scsi_words = 20000, gap_lo = 2, gap_hi = 20, seed = 1;
+    longint t_clk = 0;
+    always @(posedge clk) t_clk++;
     initial begin
         if ($value$plusargs("ops=%d", ops)) ;
+        if ($value$plusargs("starve=%d", starve)) ;
+        if ($value$plusargs("scsi_words=%d", scsi_words)) ;
+        if ($value$plusargs("gap_lo=%d", gap_lo)) ;
+        if ($value$plusargs("gap_hi=%d", gap_hi)) ;
+        if ($value$plusargs("seed=%d", seed)) void'($urandom(seed));
+        if (starve != 0) begin
+            longint t_req, t_stop = -1, t_ack = -1;
+            int fsrv = 0;
+            repeat (4) @(posedge clk);
+            @(negedge clk); rst = 0;
+            @(negedge clk); img_size = 64'd64 * 512; img_mounted = 6'b000001;
+            @(negedge clk); img_mounted = 0;
+            @(negedge clk); img_size = 64'd4096 * 512; img_mounted = 6'b001000;
+            @(negedge clk); img_mounted = 0;
+            access(1, 0, 3, 0, 0, 16'd0);              // the SCSI stream's first line in a buffer
+            fork
+                begin                                  // the floppy word, pending from here
+                    t_req = t_clk;
+                    access(0, 0, 0, 5, 17, 16'd0);
+                    t_ack = t_clk;
+                end
+                begin
+                    for (int n = 1; n < scsi_words; n++) begin
+                        repeat ($urandom_range(gap_hi, gap_lo)) @(negedge clk);
+                        access(1, 0, 3, n / 256, n % 256, 16'd0);
+                    end
+                    t_stop = t_clk;
+                end
+            join_any
+            wait (t_ack >= 0);
+            // bound after the stop: a line read in flight (32 x 512 bytes, 1 a clock) and
+            // a block read (512), each with its request latency, plus the serve
+            if (t_ack < 0) $display("sd_word_arb FAILED: the floppy word never served");
+            else if (t_stop < 0)
+                $display("sd_word_arb OK (starve: floppy word served %0d clocks after its request, during the SCSI stream; gaps %0d-%0d)",
+                         t_ack - t_req, gap_lo, gap_hi);
+            else if (t_ack - t_stop > 32 * 512 + 512 + 100)
+                $display("sd_word_arb FAILED: floppy word served %0d clocks after the SCSI stream stopped", t_ack - t_stop);
+            else
+                $display("sd_word_arb OK (starve: floppy word waited the whole SCSI stream of %0d words, %0d clocks; served %0d clocks after it stopped; errors %0d)",
+                         scsi_words, t_stop - t_req, t_ack - t_stop, errors);
+            $finish;
+        end
         repeat (4) @(posedge clk);
         @(negedge clk); rst = 0;
         @(negedge clk); img_size = 64'd64 * 512; img_mounted = 6'b000001;

@@ -849,6 +849,27 @@ def test_sd_word_arb():
     print("  " + [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0])
 
 
+def test_sd_floppy_no_starvation():
+    """A floppy word pending while the SCSI side reads words in order with a
+    background read of the next line after each one (sd_word_arb_tb +starve):
+    the floppy word is served while the stream goes on, even with SCSI words
+    0-1 clocks apart (denser than the CPU makes them). The background read can
+    evict the floppy's block before it is served and cost more line reads, but
+    not forever; and the CPU's next D100-D104 access is held while the copy is
+    pending (dev_floppy `ack`), which stops the SCSI words (dev_scsi fetches
+    only on a CPU access)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    for lo, hi, seed in ((0, 1, 3), (2, 20, 1)):
+        out = _testbench("sd_word_arb", ("hdl/core/sd_floppy.sv", "hdl/core/sd_word_arb.sv"),
+                         args=["+starve=1", "+scsi_words=60000", "+gap_lo=%d" % lo, "+gap_hi=%d" % hi,
+                               "+seed=%d" % seed])
+        line = [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0]
+        assert "during the SCSI stream" in line, line
+        print("  " + line)
+
+
 def big_state_image(sectors=8192, entries=40):
     """A version 2 state image (tools/state_image.py's format) with all
     `sectors` of external memory stored: 1 + entry blocks + 16 + 256 +
