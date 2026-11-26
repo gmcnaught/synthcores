@@ -7,6 +7,7 @@
 # Without MT32_ROM_DIR every gate is skipped and the script exits 77.
 set -uo pipefail
 core=$(cd "$(dirname "$0")/.." && pwd)
+py=$(command -v pypy3 || command -v python3)     # pypy3 when present (CLAUDE.md)
 pass=0; fail=0; skip=0
 run() {
     echo "== mt32 $*"
@@ -17,9 +18,9 @@ if [ -n "${MT32_ROM_DIR:-}" ]; then
     "$core/ref/build.sh" >/dev/null && "$core/sim/cpu/build.sh" >/dev/null &&
         "$core/sim/system/build.sh" >/dev/null || exit 1
 fi
-run python3 "$core/tools/corpus.py" check
-run python3 "$core/tools/corpus.py" check --renderer "$core/build/cosim/mt32_cosim"
-run python3 "$core/tools/corpus.py" check --renderer "$core/build/system/mt32_sys_bench"
+run "$py" "$core/tools/corpus.py" check
+run "$py" "$core/tools/corpus.py" check --renderer "$core/build/cosim/mt32_cosim"
+run "$py" "$core/tools/corpus.py" check --renderer "$core/build/system/mt32_sys_bench"
 run "$core/tests/sound_check.sh"
 run "$core/tests/wrap_check.sh"
 run "$core/tests/ref_hooks_check.sh"

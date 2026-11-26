@@ -1,6 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build the LCD renderer bench (hdl/mt32_lcd_video.sv): sim/lcd/build.sh [OUTDIR] (default build/lcd)
+# JOBS sets the build jobs (default 4)
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)

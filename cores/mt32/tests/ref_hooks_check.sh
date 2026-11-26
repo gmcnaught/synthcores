@@ -11,4 +11,4 @@ if grep -q mt32h_ "$core/build/ref_nohooks/src/mt32.cpp"; then
     echo "ref_hooks_check: FAIL: the HOOKS=0 sources contain hooks"; exit 1
 fi
 # shellcheck disable=SC2086
-python3 "$core/tools/corpus.py" check --renderer "$core/build/ref_nohooks/mt32_ref" --case ${*:-boot programs panel}
+"$(command -v pypy3 || command -v python3)" "$core/tools/corpus.py" check --renderer "$core/build/ref_nohooks/mt32_ref" --case ${*:-boot programs panel}
