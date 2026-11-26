@@ -5,9 +5,13 @@ simulation (sim/sys_main.cpp), per device, in order.
 MAME lines: "<t> <addr> <data> <mask>" (word-aligned address, mask ffff/ff00/00ff).
 HDL lines:  "<t> <addr> <data> <ds>"   (ds bit1 = UDS, bit0 = LDS).
 
-Usage: compare_writes.py MAME.txt HDL.txt [--ram]
+Usage: compare_writes.py MAME.txt HDL.txt [--ram] [--mfp]
 Prints, per device, the length of the common prefix and the first difference.
+Exit status 1 if lcd, snd, pan or other differ (count or content), or ram with --ram, or mfp
+with --mfp (RAM and MFP writes differ by sub-millisecond interrupt jitter, mister/README.md),
+or if either trace has no LCD or sound writes (an empty or wrong trace); otherwise 0.
 """
+import argparse
 import sys
 
 DEVICES = [("ram", 0xFF0000, 0xFFFFFF), ("lcd", 0x700000, 0x700003), ("snd", 0x800000, 0x8003FF),
@@ -40,21 +44,37 @@ def load(path, hdl):
 
 
 def main():
-    a = load(sys.argv[1], False)
-    b = load(sys.argv[2], True)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("mame")
+    ap.add_argument("hdl")
+    ap.add_argument("--ram", action="store_true", help="RAM writes must match too")
+    ap.add_argument("--mfp", action="store_true", help="MFP writes must match too")
+    o = ap.parse_args()
+    a = load(o.mame, False)
+    b = load(o.hdl, True)
+    required = {"lcd", "snd", "pan", "other"} | ({"ram"} if o.ram else set()) | ({"mfp"} if o.mfp else set())
+    bad = []
+    for which, tr in (("MAME", a), ("HDL", b)):
+        if not tr["lcd"] or not tr["snd"]:
+            bad.append(f"{which} trace has no LCD or sound writes")
     for name, _, _ in DEVICES:
         x, y = a[name], b[name]
         n = 0
         while n < min(len(x), len(y)) and x[n][1] == y[n][1]:
             n += 1
-        status = "identical" if n == len(x) == len(y) else f"first {n} match"
-        print(f"{name:5s}: MAME {len(x):6d}  HDL {len(y):6d}  {status}")
+        same = n == len(x) == len(y)
+        status = "identical" if same else f"first {n} match"
+        if not same and name in required:
+            bad.append(name)
+        print(f"{name:5s}: MAME {len(x):6d}  HDL {len(y):6d}  {status}{'' if name in required else '  (not required)'}")
         if n < min(len(x), len(y)):
             for k in range(max(0, n - 2), min(n + 4, len(x), len(y))):
                 (tx, kx), (ty, ky) = x[k], y[k]
                 mark = "<<" if kx != ky else "  "
                 print(f"   {mark} MAME {tx:.6f} {kx[0]:06x} {kx[1]:04x}/{kx[2]:04x}   HDL {ty:.6f} {ky[0]:06x} {ky[1]:04x}/{ky[2]:04x}")
+    print("result: " + ("PASS" if not bad else "FAIL: " + ", ".join(bad)))
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
