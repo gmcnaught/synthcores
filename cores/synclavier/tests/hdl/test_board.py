@@ -30,6 +30,30 @@ def test_boot_defaults_up_to_date():
     assert open(PATH).read() == text(), "run python3 tools/gen_boot_defaults.py"
 
 
+def test_boot_defaults_match_fresh_system():
+    """boot_defaults.svh against a fresh Python system, not against its
+    generator: the device and voice writes are the ones a state image of
+    that system has (tools/state_image.py), the FM channels' oscillator
+    words are the voice model's own (acc, prescale, point), and the CPU
+    registers are cpu.r (review 2026-11-26 sync-hdl #4: channel 0 had acc 16)."""
+    import re
+    from tools.gen_boot_defaults import PATH
+    from tools.state_image import entries
+    from sim.lockstep import _Audio
+    from sim.system import make_system
+    got = [tuple(int(x) for x in m) for m in re.findall(
+        r"9'd\d+: boot_default = \{2'd(\d+), 3'd(\d+), 13'd(\d+), 64'd(\d+)\};", open(PATH).read())]
+    cpu = make_system(floppy=True, synth=True)
+    want = entries(cpu)
+    assert len(want) > 16 and got[:len(want)] == want, "device/voice entries differ from state_image"
+    chans = _Audio(cpu.fm).synth.ch
+    for c, ch in enumerate(chans[:16]):
+        o = ch.osc
+        assert (1, 0, c, o.acc << 15 | o.prescale << 8 | o.point) in got, ("channel", c)
+    regs = {a: d for k, s, a, d in got if k == 2}
+    assert [regs[i] for i in range(16)] == list(cpu.r), "registers"
+
+
 def test_panel_labels_up_to_date():
     from tools.gen_panel_labels import PATH, text
     assert open(PATH).read() == text(), "run python3 tools/gen_panel_labels.py"

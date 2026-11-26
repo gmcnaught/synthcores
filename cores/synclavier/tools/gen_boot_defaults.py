@@ -14,7 +14,6 @@ Run:  python3 tools/gen_boot_defaults.py
 tests/hdl/test_board.py checks that the file is up to date.
 """
 import os
-import struct
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,33 +25,14 @@ DEV, VOICE, DBG = 0, 1, 2
 
 
 def entries():
-    """(kind, sel, addr, data) for a fresh system, in load order."""
-    from sim.lockstep import _Audio, _device_header, _flags
+    """(kind, sel, addr, data) for a fresh system, in load order: the device
+    and voice engine writes a state image makes (tools/state_image.py), then
+    the CPU registers."""
+    from sim.lockstep import _flags
     from sim.system import make_system
+    from tools.state_image import entries as image_entries
     cpu = make_system(floppy=True, synth=True)
-    out = []
-    h = _device_header(cpu)
-    p = 0
-    while p < len(h):
-        k = h[p:p + 1]
-        p += 1
-        if k == b"X":
-            sectors, = struct.unpack_from("<I", h, p)
-            p += 4 + sectors * 512
-        elif k == b"V":
-            sel, addr, v = struct.unpack_from("<BHI", h, p)
-            p += 7
-            if sel != 6:                    # wave memory: cleared as a whole
-                out.append((DEV, sel, addr, v))
-        else:
-            raise ValueError("unexpected header section %r" % k)
-    o = _Audio(cpu.fm).header()
-    rr, to_next, phase = struct.unpack_from("<QHB", o, 1)
-    out.append((VOICE, 0, 32, rr))
-    out.append((VOICE, 0, 33, phase << 12 | to_next))
-    for c in range(16):
-        acc, pre, point = struct.unpack_from("<HBB", o, 12 + 4 * c)
-        out.append((VOICE, 0, c, acc << 15 | pre << 8 | point))
+    out = image_entries(cpu)
     for i, r in enumerate(cpu.r):
         out.append((DBG, 0, i, r))
     out.append((DBG, 0, 16, _flags(cpu)))
