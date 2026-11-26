@@ -177,6 +177,11 @@ module p2k_mem #(
     assign ack = done || look_ack || wr_ack;
     assign rdata = (st == M_LOOK) ? d_lane : rdata_r;
 
+    // A DRAM write is acknowledged in M_WLOOK, but its cache-line update (d_we) is registered and
+    // lands at the end of the next clock. An access accepted in that clock would read the array
+    // on the same edge and get the old word (review 2026-11-26 p2k.md #2): it waits one clock.
+    wire pend = (d_we && d_wa == {pa[14:5], pa[4:3]}) || (t_we && t_wa == pa[14:5]);
+
     // the read addresses: the incoming access while idle, else the latched one
     always_comb begin
         if (st == M_IDLE) begin
@@ -220,7 +225,7 @@ module p2k_mem #(
                     fmode <= F_NORMAL;       // the flash's RP# follows the CPU reset: read array
                     fl_n <= '0;
                     st <= M_FLUSH;
-                end else if (go && !done) begin
+                end else if (go && !done && !pend) begin
                     l_pa <= pa; l_wd <= wdata; l_uds <= uds; l_lds <= lds;
                     l_prog <= 1'b0;
                     if (flash && we)
