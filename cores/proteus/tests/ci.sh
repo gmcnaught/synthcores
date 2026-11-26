@@ -9,10 +9,14 @@
 #       test_mfp.py         MC68901 against MAME's behaviour at the corners the firmware can hit
 #       test_core_unit.py   proteus_core with a small 68000 program: sound-register read-back,
 #                           pan byte lanes, preset macro vs autosave
+#       test_compare_writes.py, test_rebuild_checksum.py   Proteus/1 tools
 #       p2k_snd/test_p2k_snd.py  P2K sound HDL vs the integer model
+#   - smoke_gate.py: scripts/mister/smoke.sh's pass/fail step on synthetic screenshots; needs
+#     Pillow, skips without it (not named test_*.py, so a plain loop over test_*.py that
+#     treats exit 77 as failure does not run it)
 #   - p2k/tests/ci.sh, if present
-# Needs: verilator (5.048), a C++17 compiler (g++-14 used when present, as in CI), python3;
-# pypy3 is used for the Proteus/1 model when present.
+# Needs: verilator (5.048), a C++17 compiler (g++-14 used when present, as in CI), python3,
+# Pillow (pip); pypy3 is used for the Proteus/1 model when present.
 set -euo pipefail
 CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$CORE"
@@ -37,6 +41,7 @@ for t in tests/test_*.py tests/*/test_*.py; do
   [ -f "$t" ] || continue
   run "$t" "$PY" "$t"
 done
+run "tests/smoke_gate.py" "$PY" tests/smoke_gate.py
 if [ -x p2k/tests/ci.sh ]; then run "p2k/tests/ci.sh" p2k/tests/ci.sh; fi
 
 summary="proteus ci: $pass passed, $skip skipped, $fail failed"

@@ -69,7 +69,7 @@ def main():
             fails += not ok
             last = r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ""
             print(f"{'ok  ' if ok else 'FAIL'} {name}: exit {r.returncode} ({last})")
-    print(f"test_smoke_gate: {len(cases) - fails} passed, {fails} failed")
+    print(f"smoke_gate: {len(cases) - fails} passed, {fails} failed")
     return 1 if fails else 0
 
 
