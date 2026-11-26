@@ -79,7 +79,7 @@ and ROM2:
 | R15209277 | Wave ROM B (WAVEROM2) | 1 MB |
 | R15209281 | Wave ROM C (WAVEROM3) | 1 MB |
 
-**SC-155mk2 v1.01** (not tested): `SC-155mk2.mra`, the same five files as the SC-55mk2, from
+**SC-155mk2 v1.01** (tested): `SC-155mk2.mra`, the same five files as the SC-55mk2, from
 `sc55mk2.zip`.
 
 The hashes are in Nuked-SC55's
@@ -136,7 +136,7 @@ The core plays the MIDI that arrives on the MiSTer's UART through MidiLink.
 5. MIDI out goes back through the same UART at the same speed:
     - every model sends Active Sensing (FE). Known issue: on the MiSTer the mk1 stops sending it
       after it receives a GS data request (RQ1); simulation does not show this ([#52](https://github.com/gmcnaught/synthcores/issues/52));
-    - the mk2 answers GS data requests (RQ1) with DT1 (the SC-155mk2 is not checked);
+    - the mk2 and the SC-155mk2 answer GS data requests (RQ1) with DT1;
     - the mk1's firmware answers no RQ1, in the reference as well.
 
 Panel keys (PS/2 or USB keyboard): Q power, W all, E mute, R/T part, Y/U instrument, I/O key
