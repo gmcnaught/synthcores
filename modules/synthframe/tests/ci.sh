@@ -23,6 +23,7 @@ PYY=$PY; "$PY" -c 'import yaml' 2>/dev/null || PYY=python3     # synthcore needs
 command -v ccache >/dev/null && export OBJCACHE=${OBJCACHE:-ccache}
 export VERILATOR_JOBS=${VERILATOR_JOBS:-1}
 run "no ROMs in the repository" "$PY" $S/tests/hygiene/test_no_roms.py
+run "generate regions (Quartus 17.0 needs generate ... endgenerate)" "$PY" $S/tests/hdl_style/test_generate_regions.py
 run "synthcore check" "$PYY" $S/bin/synthcore check
 run "synthcore unit tests" "$PYY" $S/tests/synthcore/test_synthcore.py
 run "synth-mister backup/restore (fake SD card)" $S/tests/synth-mister/run.sh

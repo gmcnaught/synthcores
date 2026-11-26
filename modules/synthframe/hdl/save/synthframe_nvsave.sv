@@ -87,7 +87,8 @@ module synthframe_nvsave #(
 
     // the shadow: written from mem_rdata during S_COPY (the byte read the clock before),
     // read at the SD position one clock after it, as mem_rdata is
-    if (SHADOW) begin : g_shadow
+    // generate ... endgenerate: Quartus 17.0 refuses a bare generate-if here (Error 10170)
+    generate if (SHADOW) begin : g_shadow
         logic [7:0]    shadow [1 << AW];
         logic [7:0]    shadow_q;
         logic          cp_v;
@@ -101,7 +102,7 @@ module synthframe_nvsave #(
         assign sd_buff_din = shadow_q;
     end else begin : g_direct
         assign sd_buff_din = mem_rdata;
-    end
+    end endgenerate
     assign mem_we = (st == S_RD || st == S_RD_ACK) && sd_ack && sd_buff_wr;
 
     // power-up values, not reset by rst (see the header)
