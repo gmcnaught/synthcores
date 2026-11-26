@@ -27,7 +27,8 @@ hdl/sim/lockstep.cpp the bench's; tests/hdl/test_lockstep.py checks they agree):
           disk time, ns per block; 12 SCSI seek ns; 13 poly bins, when
           more than 1; 14 voices in the last poly bin, when not 32; 16
           D32/D33 multichannel distributor outputs (8/16), when there is
-          one, M19; 18 D40/D41 printer port, M21), 4 D100
+          one, M19; 17 D70 SMPTE reader, M20; 18 D40/D41 printer port, M21;
+          names: STATE_INDEX below), 4 D100
           (fields as hdl/dev/dev_floppy.sv's state load), 5 D160 (as
           dev_fm.sv; 16 FM voices present), 6 wave memory byte (index = memory x 256 + point),
           7 D130 (as dev_keyboard.sv; index 30 = velocity keyboard
@@ -145,6 +146,52 @@ class _RecordingBus:
         return v
 
 
+# 'V' device-state entries (u8 selector, u16 index): the one map of what
+# each index loads. The HDL's load port decodes the same numbers
+# (able_system.sv and synclavier_core.sv ld_dev_sel / ld_dev_addr,
+# dev_multi.sv), as does hdl/sim/lockstep.cpp (poly size and bins, wave
+# memory); tests/hdl/test_lockstep.py test_device_state_index_map checks
+# the HDL's single-index decodes against STATE_INDEX.
+SEL_RTC, SEL_MULDIV, SEL_EXTMEM, SEL_TERM, SEL_FLOPPY, SEL_FM, SEL_WAVE, SEL_KB = range(8)
+STATE_INDEX = {
+    "rtc.elapsed": (SEL_RTC, 0), "rtc.pending": (SEL_RTC, 1),
+    "muldiv.d4": (SEL_MULDIV, 0), "muldiv.d5": (SEL_MULDIV, 1),
+    "extmem.sector": (SEL_EXTMEM, 0), "extmem.word": (SEL_EXTMEM, 1),
+    "term.baud": (SEL_TERM, 0), "term.rx_char": (SEL_TERM, 1), "term.char_rdy": (SEL_TERM, 2),
+    "term.rx_wait": (SEL_TERM, 3), "term.tx_busy": (SEL_TERM, 4), "term.xmit_irq": (SEL_TERM, 5),
+    # selector 3 also carries system options (able_system.sv / synclavier_core.sv)
+    "poly.units": (SEL_TERM, 8),          # poly memory per bin, 128 KB units
+    "term.vt640": (SEL_TERM, 9),          # VT640 graphics terminal (term_display)
+    "mouse": (SEL_TERM, 10),              # D44/D45/D54 mouse present
+    "scsi.block_ns": (SEL_TERM, 11),      # SCSI disk time per block
+    "scsi.seek_ns": (SEL_TERM, 12),       # SCSI seek time
+    "poly.bins": (SEL_TERM, 13),          # poly bins, when more than 1
+    "poly.last_voices": (SEL_TERM, 14),   # voices in the last poly bin, when not 32
+    "multi.outputs": (SEL_TERM, 16),      # D32/D33 distributor outputs (8/16), M19
+    "smpte": (SEL_TERM, 17),              # D70 SMPTE reader present, M20
+    "printer": (SEL_TERM, 18),            # D40/D41 printer port present, M21
+    "fm.voices": (SEL_FM, 16),            # FM voices present
+    "kb.vpk": (SEL_KB, 30),               # velocity keyboard (dev_vpk.sv) instead of the ORK
+    "kb.strict": (SEL_KB, 31),
+}
+# Index ranges (not named one by one): SEL_FLOPPY 0-17 (dev_floppy.sv's
+# state load, in _device_header's order); SEL_FM 0-15 (globals: channel word,
+# function, switches, clocks, A/D select, envelope time, 0, 8 x A/D) and
+# 32 + 16 x channel + k, k 0-8 (interpolator div, add, limit, value,
+# prescale, acc, MAR, packed registers 0/1/2/4, register 13); SEL_WAVE
+# memory x 256 + point; SEL_KB 0-26 (ORK: creg, dreg, 8 clavier, 8
+# buttons, 8 lights, 3 display).
+FM_CHANNEL_BASE, FM_CHANNEL_STRIDE = 32, 16
+
+
+def _v(sel, idx, value):
+    return struct.pack("<cBHI", b"V", sel, idx, int(value) & 0xFFFFFFFF)
+
+
+def _vn(name, value):
+    return _v(*STATE_INDEX[name], value)
+
+
 def _flags(cpu):
     return cpu.pcs << 4 | cpu.ion << 3 | cpu.m << 2 | cpu.c << 1 | cpu.z
 
@@ -171,7 +218,7 @@ def _device_header(cpu):
                                  fd.time % REV_NS, fd.busy_ns, fd.pending is not None,
                                  kind == "write", lsn is None, lsn or 0, wait, False,
                                  fd._kind == "write", fd.head[0], fd.head[1], fd.step_dir < 0)):
-            out += struct.pack("<cBHI", b"V", 4, idx, int(v) & 0xFFFFFFFF)
+            out += _v(SEL_FLOPPY, idx, v)
     fm, kb = getattr(cpu, "fm", None), getattr(cpu, "keyboard", None)
     if fm is not None and kb is not None:
         from .fm import ENV_CLOCK_NS, wave_memory_number
@@ -179,19 +226,19 @@ def _device_header(cpu):
         g = [fm.channel_word, fm.function, fm.switches, fm.ext_clock_in, fm.ext_clock_out,
              fm.adc_select, fm.time_ns % ENV_CLOCK_NS, 0] + list(fm.adc)
         for idx, v in enumerate(g):
-            out += struct.pack("<cBHI", b"V", 5, idx, int(v) & 0xFFFFFFFF)
-        out += struct.pack("<cBHI", b"V", 5, 16, fm.voices)        # voices present
+            out += _v(SEL_FM, idx, v)
+        out += _vn("fm.voices", fm.voices)
         for ch in range(nch):
             it = fm.interpolator(ch)            # advanced to now (lazy in Python)
             r = lambda fn: fm.channels.get((ch, fn), 0) & 0o377
             for k, v in enumerate((it.div, it.add, it.limit, it.value, it.prescale, it.acc,
                                    fm.mar.get(ch, 0),
                                    r(0) << 24 | r(1) << 16 | r(2) << 8 | r(4), r(0o13))):
-                out += struct.pack("<cBHI", b"V", 5, 32 + 16 * ch + k, int(v) & 0xFFFFFFFF)
+                out += _v(SEL_FM, FM_CHANNEL_BASE + FM_CHANNEL_STRIDE * ch + k, v)
         for m, mem in enumerate(fm.wave):
             for i, b in enumerate(mem):
                 if b:
-                    out += struct.pack("<cBHI", b"V", 6, m * 256 + i, b)
+                    out += _v(SEL_WAVE, m * 256 + i, b)
         from .devices.synth import VelocityKeyboard
         if isinstance(kb, VelocityKeyboard):
             # dev_vpk.sv has no load port: it starts as at power-on
@@ -200,12 +247,12 @@ def _device_header(cpu):
                    ("creg", "dreg", "request", "keys", "reported", "velocity", "pressure",
                     "analog", "switches", "banks", "lights", "chars")):
                 raise ValueError("velocity keyboard state is not the power-on state")
-            out += struct.pack("<cBHI", b"V", 7, 30, 1)
+            out += _vn("kb.vpk", 1)
         else:
             for idx, v in enumerate([kb.creg, kb.dreg] + kb.clavier + kb.buttons + kb.lights
                                     + kb.display):
-                out += struct.pack("<cBHI", b"V", 7, idx, int(v) & 0xFFFFFFFF)
-        out += struct.pack("<cBHI", b"V", 7, 31, bool(kb.strict and fm.strict))
+                out += _v(SEL_KB, idx, v)
+        out += _vn("kb.strict", bool(kb.strict and fm.strict))
         assert kb.strict == fm.strict
     ds = getattr(cpu, "dig_stm", None)
     if ds is not None and not ds.idle():
@@ -214,7 +261,7 @@ def _device_header(cpu):
     if mc is not None:                                      # D32/D33 distributor (M19)
         if mc.select or mc.last or any(o is not None for o in mc.route):
             raise ValueError("distributor state is not the power-on state (dev_multi.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 16, mc.outputs)
+        out += _vn("multi.outputs", mc.outputs)
     card = getattr(cpu, "midi", None)
     if card is not None and (card.sel or card.mcha or card.fifo):
         raise ValueError("MIDI card state is not the power-on state (dev_midi.sv has no load port)")
@@ -223,42 +270,42 @@ def _device_header(cpu):
         fresh, r = SmpteReader(), card.smpte
         if any(getattr(r, f) != getattr(fresh, f) for f in vars(fresh) if f != "opcode"):
             raise ValueError("SMPTE reader state is not the power-on state (dev_smpte.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 17, 1)
+        out += _vn("smpte", 1)
     from .devices.poly import PolySynth
     if getattr(term, "vt640", False):                       # VT640 graphics terminal
-        out += struct.pack("<cBHI", b"V", 3, 9, 1)
+        out += _vn("term.vt640", 1)
     sc = getattr(cpu, "scsi", None)
     if sc is not None:
         sc.head = None          # dev_scsi.sv starts with no head position (no load port)
     if sc is not None and sc.block_ns:                      # SCSI disk time per block
         if sc.timed or sc.phase != 0:
             raise ValueError("SCSI host mid-command (dev_scsi.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 11, sc.block_ns)
+        out += _vn("scsi.block_ns", sc.block_ns)
         if sc.seek_ns:                                      # SCSI seek time
-            out += struct.pack("<cBHI", b"V", 3, 12, sc.seek_ns)
+            out += _vn("scsi.seek_ns", sc.seek_ns)
     m = getattr(cpu, "mouse", None)
     if m is not None:                                       # D44/D45/D54 mouse
         if m.dx or m.dy or m.out or m.ready or m.enables or m.buttons:
             raise ValueError("mouse state is not the power-on state (dev_mouse.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 10, 1)
+        out += _vn("mouse", 1)
     p = getattr(cpu, "printer", None)
     if p is not None:                                       # D40/D41 printer port
         if p.tx_busy > 0 or p.xmit_irq or p.enables or p.baud is not None:
             raise ValueError("printer state is not the power-on state (dev_printer.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 18, 1)
+        out += _vn("printer", 1)
     if isinstance(getattr(cpu, "poly", None), PolySynth):   # poly memory size, 128 KB units
-        out += struct.pack("<cBHI", b"V", 3, 8, cpu.poly.sectors // 256)
+        out += _vn("poly.units", cpu.poly.sectors // 256)
         if cpu.poly.nbins != 1:                             # poly bins (a 6400: 2)
-            out += struct.pack("<cBHI", b"V", 3, 13, cpu.poly.nbins)
+            out += _vn("poly.bins", cpu.poly.nbins)
         if cpu.poly.bin_voices[-1] != 32:                   # voices in the last bin (M16)
-            out += struct.pack("<cBHI", b"V", 3, 14, cpu.poly.bin_voices[-1])
-    for dev, idx, v in ((0, 0, rtc.elapsed), (0, 1, rtc.pending),
-                        (1, 0, md.d4), (1, 1, md.d5),
-                        (2, 0, xm.sector), (2, 1, xm.word),
-                        (3, 0, BAUDS.index(term.baud)), (3, 1, term.rx_char),
-                        (3, 2, term.char_rdy), (3, 3, term.rx_wait), (3, 4, term.tx_busy),
-                        (3, 5, term.xmit_irq)):
-        out += struct.pack("<cBHI", b"V", dev, idx, int(v) & 0xFFFFFFFF)
+            out += _vn("poly.last_voices", cpu.poly.bin_voices[-1])
+    for name, v in (("rtc.elapsed", rtc.elapsed), ("rtc.pending", rtc.pending),
+                    ("muldiv.d4", md.d4), ("muldiv.d5", md.d5),
+                    ("extmem.sector", xm.sector), ("extmem.word", xm.word),
+                    ("term.baud", BAUDS.index(term.baud)), ("term.rx_char", term.rx_char),
+                    ("term.char_rdy", term.char_rdy), ("term.rx_wait", term.rx_wait),
+                    ("term.tx_busy", term.tx_busy), ("term.xmit_irq", term.xmit_irq)):
+        out += _vn(name, v)
     return out
 
 

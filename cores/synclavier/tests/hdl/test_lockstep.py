@@ -873,6 +873,31 @@ def test_nonzero_samples_header_with_section_bytes():
         assert trace_counts(path)[b"O"] == 1
 
 
+def test_device_state_index_map():
+    """Review 2026-11-26 sync-py #11: sim.lockstep.STATE_INDEX is the one map
+    of the 'V' device-state indices. No two names share an index, and the
+    single-index decodes of the HDL load port (ld_dev_sel == S && ld_dev_addr
+    == N in able_system.sv / synclavier_core.sv; dev_multi.sv's index under
+    selector 3) are exactly the table's entries outside the ranged blocks."""
+    from sim.lockstep import SEL_TERM, STATE_INDEX
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    vals = list(STATE_INDEX.values())
+    assert len(vals) == len(set(vals)), "two STATE_INDEX names share an index"
+    hdl = set()
+    pat = re.compile(r"ld_dev_sel == 3'd(\d) && ld_dev_addr == 13'd(\d+)")
+    for p in ("hdl/able_system.sv", "hdl/core/synclavier_core.sv"):
+        with open(os.path.join(root, p)) as f:
+            hdl |= {(int(a), int(b)) for a, b in pat.findall(f.read())}
+    with open(os.path.join(root, "hdl/dev/dev_multi.sv")) as f:    # ld_we = selector 3
+        hdl |= {(SEL_TERM, int(b)) for b in re.findall(r"ld_we && ld_addr == 13'd(\d+)", f.read())}
+    # entries the HDL decodes in blocks (term 0-7, FM globals/channels) are not single decodes
+    singles = {v for k, v in STATE_INDEX.items() if not k.startswith(("rtc.", "muldiv.", "extmem.",
+                                                                     "term.", "fm.voices"))}
+    singles.add(STATE_INDEX["term.vt640"])
+    assert hdl == singles, ("HDL only: %s; STATE_INDEX only: %s" % (sorted(hdl - singles),
+                                                                   sorted(singles - hdl)))
+
+
 def test_sine_rom_matches_python():
     from tools.gen_sine_rom import PATH, text
     assert open(PATH).read() == text(), "run python3 tools/gen_sine_rom.py"
