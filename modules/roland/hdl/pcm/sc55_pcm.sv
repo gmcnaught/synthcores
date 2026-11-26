@@ -174,9 +174,21 @@ module sc55_pcm (
     endfunction
     wire  [63:0] frame_cyc = ({58'h0, reg_slots} + 64'd1) * 64'd25;
     wire  [63:0] frame_len = jv880 ? jv_frame_len(reg_slots) : frame_cyc;
-    wire         caught_up = (pcm_cycles >= target);
+    // pcm_cycles against target on a narrow signed difference (a 64-bit compare did not meet 50 MHz;
+    // the counters stay 64 bits, as the reference's). The PCM runs the frames due alongside the CPU,
+    // so it is never more than a few frames (~1400 cycles each) from target: PW = 32 leaves 2^31.
+    localparam int PW = 32;
+    wire  [PW-1:0] pc_lag = pcm_cycles[PW-1:0] - target[PW-1:0];
+    wire           caught_up = !pc_lag[PW-1];                           // pcm_cycles >= target
+    wire  [PW-1:0] pc_next = pc_lag + frame_len[PW-1:0];                // pcm_cycles + frame_len - target
+    // synthesis translate_off
+    /* verilator lint_off PROCASSINIT */
+    logic chk_armed = 1'b0;            // the bound checks start after the first reset (before it, state is random)
+    always_ff @(posedge clk) if (rst) chk_armed <= 1'b1;
+    /* verilator lint_on PROCASSINIT */
+    // synthesis translate_on
     assign irq0 = irq_assert | (pre_done & pre_hit);
-    assign irq_known = (ps == P_IDLE && caught_up) || (pre_done && (pcm_cycles + frame_len >= target));
+    assign irq_known = (ps == P_IDLE && caught_up) || (pre_done && !pc_next[PW-1]);
     assign ready = (ps != P_CLEAR);
 
     // ------------------------------------------------------------------
@@ -530,6 +542,10 @@ module sc55_pcm (
             tag_wp <= 8'd0; tag_rp <= 8'd0;
             cpu_rom_wait <= 1'b0;
         end else begin
+            // synthesis translate_off
+            if (chk_armed && (pcm_cycles >= target ? pcm_cycles - target : target - pcm_cycles) >= (64'd1 << (PW - 2)))
+                $fatal(1, "sc55_pcm: pcm_cycles %0d too far from target %0d", pcm_cycles, target);
+            // synthesis translate_on
             // ---------------------------------------------------- CPU access
             if (cpu_req && !cpu_ack && !cpu_busy && ps == P_IDLE && caught_up) begin
                 a = cpu_addr;
@@ -675,7 +691,7 @@ module sc55_pcm (
             end
 
             P_FRAME: begin
-                if (pcm_cycles >= target) begin
+                if (caught_up) begin
                     done <= 1'b1;
                     ps <= P_IDLE;
                 end else begin
