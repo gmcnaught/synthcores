@@ -11,7 +11,7 @@ Milestone M1 in [`plan.md`](plan.md). This page covers what exists so far:
 
 | File | Contents |
 |---|---|
-| `sim/cpu.py` | `CPU`: Model B instruction execution, flags, PSW/PCW, interrupt entry, HALT, timing counters |
+| `sim/cpu.py` | `CPU`: instruction execution for Models B, C and D (C: ADC/SBB, D10 repeat and link, D2, the R12 stack `MR12D`; D: also D11 code paging from external memory and D57), flags, PSW/PCW, interrupt entry, HALT, timing counters |
 | `sim/decode.py` | 256-entry source and destination decode tables (checked against `tools/able_disasm.py`) |
 | `sim/bus.py` | `Bus` and the `Device` base class for I/O devices 000–177 |
 | `sim/devices/` | Device models: `extmem.py` (D60–D63), `terminal.py` (D50/D51), `rtc.py` (D3), `muldiv.py` (D4567), `floppy.py` (D100–D104), `synth.py` (D130/D131 original keyboard, D160–D163 FM interface and old-panel inputs, D164/D165 control voltages; see [`devices/`](devices/)), `digstm.py` (M18: the digital STM native routines 64–76 that `sim/cpu.py` calls through `cpu.native` on `PCI TO RTNV` + n; [`devices/digital-stm.md`](devices/digital-stm.md)), `stubs.py` (`ProbeDevice` for M2 exploration). Each file starts with its evidence. |
@@ -23,7 +23,7 @@ Milestone M1 in [`plan.md`](plan.md). This page covers what exists so far:
 | `sim/voice.py` | Integer FM voice model: replays the D162 write log and renders stereo audio (`render`, `write_wav`; `pypy3 -m sim.voice LOG.csv OUT.wav`) (M3.2) |
 | `sim/trace.py` | `Debugger`: instruction history, device-access log, breakpoints, stop on input wait, halt report, memory inspect (M1.7) |
 | `sim/asm.py` | Small assembler in NED syntax (`SRC TO DST`, `DATA`, `IM()`, `RE(label)`), for tests and experiments |
-| `tests/sim/` | `test_decode.py` (tables, assembler round trip over all 65,536 words), `test_cpu.py` (42 instruction-level tests), `test_devices.py` (17 device tests, mostly small programs written like NED's loaders and runtime), `test_floppy.py` (7), `test_synth.py` (8), `test_fm.py` (7), `test_voice.py` (8), `test_trace.py` (5), `test_boot.py` (3; boots the real MONITOR to `Ready >` and runs `CATALOG` when `SYNCLAVIER_RELEASE_L` names the image) and `test_rtp.py` (5; with the image: runs ORK-LM, checks the `.STAB-6` pointer, recalls a timbre, checks C4's pitch, renders it and checks the note's end) |
+| `tests/sim/` | `test_decode.py` (tables, assembler round trip over all 65,536 words), `test_cpu.py` (53 instruction-level tests), `test_devices.py` (18 device tests, mostly small programs written like NED's loaders and runtime), `test_floppy.py` (7), `test_synth.py` (12), `test_fm.py` (7), `test_voice.py` (8), `test_trace.py` (5), `test_boot.py` (3; boots the real MONITOR to `Ready >` and runs `CATALOG` when `SYNCLAVIER_RELEASE_L` names the image) and `test_rtp.py` (6; with the image: runs ORK-LM, checks the `.STAB-6` pointer, recalls a timbre, checks C4's pitch, renders it and checks the note's end) |
 
 ## Use
 
@@ -180,7 +180,7 @@ Release L's F0/F1 configuration says (cylinders 0–80).
 Terminal characters take 10 bit times each way (1.04 ms at 9600 baud), so
 programs that poll XMIT_MT or CHAR_RDY run at the real speed. With all
 devices attached the simulator runs at about 1 million instructions per
-second, roughly real time.
+second under pypy3 (see Speed below), roughly real time.
 
 ## Behaviour
 
@@ -225,8 +225,10 @@ Everything follows [`instruction-set.md`](instruction-set.md). In short:
   core the seek is when the SD card delivers the READ's first 16 KB line
   (`dev_scsi` asks `sd_floppy` for it at the command), so a load no
   longer stops simulated time while the SD card answers.
-* **Speed:** about 1.6 million instructions per second on a current PC, so
-  roughly real time for the original machine (risk R4).
+* **Speed:** about 1 million instructions per second under pypy3 with all
+  devices attached (0.84 million measured running ORK-LM, 2026-11-26),
+  so roughly real time for the original machine (risk R4). CPython is
+  several times slower; run the simulator and its tests with pypy3.
 
 ### Behaviour choices
 
@@ -236,7 +238,7 @@ The manual leaves these open. Each choice is marked `CHOICE` in the code.
 |---|---|---|
 | C after LOAD, AND, XOR, OR, LCM, BSOR (manual: "undefined") | Unchanged | Simplest. Software that relies on it is a bug; a trace check could flag reads of an undefined C later. |
 | Registers and flags after INIT | Cleared | The manual only gives PC = R17 and interrupts off. |
-| When an ION enable takes effect | Immediately: IRQ is sampled at the end of the PCW-writing instruction | The manual describes no delay. |
+| When an ION enable takes effect | Model B: immediately, IRQ is sampled at the end of the PCW-writing instruction. Models C/D: one instruction later: no interrupt is taken at the end of an instruction that writes the PCW (`R14 TO D1`) or takes an absolute jump (`int_shadow` in `sim/cpu.py`), nor inside a D10 repeat | Model B: the manual describes no delay. Models C/D: RTP/INTRO's SREG says its "two instruction enable/transfer sequence will NOT be interrupted", and after a taken absolute transfer the link (D10) must reach the callee's first instruction ([`release-5.3.md`](release-5.3.md)); the HDL does the same (`shadow` in `able_cpu.sv`). |
 | `PCI` (377) at interrupt level | Reads through R17, not R16 | Codes name physical registers; nothing in the manual remaps them. |
 | ADC/SBB destinations (270–277) on Model B | No operation (accumulator and flags unchanged); ADC/SBB work when `cpu.model = "C"` | [HYP] ORK-LM's Model C test (`IM(5) TO ADC0` must leave R0 = 0 on a Model B); see [`instruction-set.md`](instruction-set.md) §9. |
 | `MR12I` destination (372) | Ordinary post-increment on Model B | Model C/D (`cpu.model`): `MR12D`, store then decrement R12. |
