@@ -11,9 +11,9 @@ planned. The layout follows jotego's jtcores and JTFRAME.
 | Roland JV-880 | [`cores/jv880`](cores/jv880) | plays MIDI on the MiSTer; sample-exact against Nuked-SC55's `jv880` model | [JV-880-MiSTer](https://github.com/gmcnaught/JV-880-MiSTer/releases) v20261125b | GPL-2.0-or-later |
 | Roland MT-32 (second generation) | [`cores/mt32`](cores/mt32) | plays MIDI on the MiSTer; instruction- and sample-exact against Nuked-MT32 | [MT-32-MiSTer](https://github.com/gmcnaught/MT-32-MiSTer/releases) v20261125 | GPL-2.0-or-later (8098 CPU MIT) |
 | Casio CZ-101 | [`cores/cz101`](cores/cz101) | plays MIDI on the MiSTer; instruction- and sample-exact against MAME | [CZ-101-MiSTer](https://github.com/gmcnaught/CZ-101-MiSTer/releases) v20261125 | MIT (MAME's BSD-3-Clause notice in its `NOTICE`) |
-| E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | plays MIDI on the MiSTer | [emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer/releases) v0.2.0 | GPL-3.0-or-later |
+| E-mu Proteus/1 XR | [`cores/proteus`](cores/proteus) | plays MIDI on the MiSTer | [emu-proteus-xr-MiSTer](https://github.com/gmcnaught/emu-proteus-xr-MiSTer/releases) v20261126 | GPL-3.0-or-later |
 | E-mu Proteus 2000 | [`cores/p2k`](cores/p2k) (CPU and sound RTL in [`cores/proteus/p2k`](cores/proteus/p2k)) | boots OS 2.26 and plays MIDI on the MiSTer with a stand-in SIMM; sound bit-exact against the integer MAME model; user flash SIMMs written as MAME writes them | [Proteus-2000-MiSTer](https://github.com/gmcnaught/Proteus-2000-MiSTer/releases) v20261125b | GPL-3.0-or-later |
-| New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on the MiSTer | [synclavierii](https://github.com/gmcnaught/synclavierii/releases) Synclavier_20261118 | MIT |
+| New England Digital Synclavier | [`cores/synclavier`](cores/synclavier) | Release L and 5.3 on the MiSTer | [synclavierii](https://github.com/gmcnaught/synclavierii/releases) v20261126 | MIT |
 
 Each core's README gives its checks, the ROM dumps it needs and how to install it.
 
@@ -25,10 +25,12 @@ Each core's README gives its checks, the ROM dumps it needs and how to install i
       (GPL-2.0-or-later).
     - Reference models, as submodules: `nuked-sc55` (jcmoyer's Nuked-SC55) and `nuked-mt32`
       (Nuked-MT32).
-- **Releases:** each released core has its own repository, which holds the RBFs, the
-  instructions and any ROM-pack tool. The SC-55, Proteus/1 XR and Synclavier repositories are
-  also the cores' original source repositories; their history was imported here by
-  [`scripts/import-cores.sh`](scripts/import-cores.sh), and new work happens in this one.
+- **Releases:** each core has its own release-only repository (linked in the table), which
+  holds the RBFs, the install instructions and the tools that make the files the core loads. The
+  source stays here; each release is built by the Build RBF workflow and tagged
+  `<core>-YYYYMMDD` here. The SC-55, Proteus/1 XR and Synclavier release repositories were the
+  cores' original source repositories; their history before the move still holds that source, and
+  it was imported here by [`scripts/import-cores.sh`](scripts/import-cores.sh).
 - **Plans:** [`SESSION-PLAN.md`](SESSION-PLAN.md) and [`SESSION-LOG.md`](SESSION-LOG.md) (work by
   iteration), [`LAYOUT-PLAN.md`](LAYOUT-PLAN.md) and [`HARDWARE-PLAN.md`](HARDWARE-PLAN.md).
 - **ROMs:** no ROMs, firmware or disk images are included. Each core's README says which dumps

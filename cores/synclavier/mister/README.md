@@ -36,23 +36,15 @@ version (`vYYMMDD`, `BUILD_DATE` from `sys/build_id.tcl`).
 
 ## Releases
 
-Releases follow the MiSTer-devel layout, which Distribution_MiSTer reads:
-[`releases/`](../releases/) at the top of the repository holds every
-released `Synclavier_YYYYMMDD.rbf` (the newest is installed; older ones are
-the history) and the MGLs (`Synclavier-5.3.mgl`, `Synclavier-ReleaseL.mgl`),
-which go to `_Devices/` next to the RBF. A release is one commit on `main`
-named `Release YYYYMMDD.` that adds the RBF. There are no GitHub Releases
-or tags.
-
-The **Release** workflow (`.github/workflows/release.yml`, run by hand:
-`gh workflow run release.yml [-f run_id=N]`) makes that commit from the RBF
-of a successful **Build RBF** run on `main` (default: the latest) without
-recompiling, so the released file is the one CI built and timing-checked;
-the commit body names the run and the source commit. One release per build
-date. `releases/` holds only RBFs and MGLs, because Distribution_MiSTer
-copies any other undated file there to `games/Synclavier/`
-(`tests/test_repo_hygiene.py`). Before releasing, run the build on a MiSTer
-(Release 5.3 and Release L boot).
+Released RBFs are not committed here. A release is the RBF of a **Build
+RBF** run on `main` (`gh workflow run build-rbf.yml --ref main -f
+cores='["synclavier"]'`), run on a MiSTer first (Release 5.3 and Release L
+boot), tagged `synclavier-YYYYMMDD` in synthcores and published to the
+release-only repository
+[synclavierii](https://github.com/gmcnaught/synclavierii):
+`releases/Synclavier_YYYYMMDD.rbf` plus the MGLs from
+[`../release/`](../release/) (`Synclavier-5.3.mgl`,
+`Synclavier-ReleaseL.mgl`), and a GitHub release `vYYYYMMDD`.
 
 ## Use
 

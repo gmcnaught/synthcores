@@ -30,7 +30,7 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
 
 - **MiSTer (DE10-Nano, Cyclone V):** `root@192.168.20.62`, SSH key login. Hardware smoke tests:
   `modules/synthframe/bin/synth-mister` and each core's smoke script
-  (`cores/sc55/scripts/mister/smoke.sh`, `cores/proteus/tools/mister_smoke.sh`,
+  (`cores/sc55/scripts/mister/smoke.sh`, `cores/proteus/scripts/mister/smoke.sh`,
   `cores/synclavier/scripts/mister/smoke.sh`). The installed releases are backed up in
   `/media/fat/_synth_backup/<date>/`. MIDI comes in through MidiLink.
 - **Windows build host (`winbuild` in `~/.ssh/config`):** Quartus Lite 17.0 and Vivado 2026.1,

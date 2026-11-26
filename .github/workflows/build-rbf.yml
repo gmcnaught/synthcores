@@ -16,7 +16,7 @@ on:
         required: false
         default: ''
       seed:
-        description: Fitter seed override (integer; blank = the QSF's; SC-55, Synclavier, JV-880, MT-32)
+        description: Fitter seed override (integer; blank = the QSF's; every core)
         required: false
         default: ''
   # Releases only (a v* tag) and on demand: day-to-day builds run on the Windows build host
@@ -48,6 +48,10 @@ jobs:
               - 'cores/synclavier/mister/**'
             proteus:
               - 'cores/proteus/mister/**'
+            p2k:
+              - 'cores/p2k/hdl/**'
+              - 'cores/p2k/mister/**'
+              - 'cores/proteus/p2k/rtl/**'
             jv880:
               - 'cores/jv880/hdl/**'
               - 'cores/jv880/mister/**'
@@ -61,7 +65,7 @@ jobs:
       - id: pick
         shell: bash
         run: |
-          all='["sc55","synclavier","proteus","jv880","mt32","cz101"]'
+          all='["sc55","synclavier","proteus","p2k","jv880","mt32","cz101"]'
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             req='${{ github.event.inputs.cores }}'
             echo "cores=${req:-$all}" >> "$GITHUB_OUTPUT"
@@ -107,13 +111,16 @@ jobs:
           SYNCLAVIER_SEED: ${{ github.event.inputs.seed }}
           JV880_SEED: ${{ github.event.inputs.seed }}
           MT32_SEED: ${{ github.event.inputs.seed }}
+          CZ101_SEED: ${{ github.event.inputs.seed }}
+          P2K_SEED: ${{ github.event.inputs.seed }}
+          PROTEUS_SEED: ${{ github.event.inputs.seed }}
         run: |
           set -o pipefail
           tar -cf - --exclude=./.git . |
-            docker run --rm -i -e CORE -e SC55_SEED -e SYNCLAVIER_SEED -e JV880_SEED -e MT32_SEED raetro/quartus:17.0 bash -c '
+            docker run --rm -i -e CORE -e SC55_SEED -e SYNCLAVIER_SEED -e JV880_SEED -e MT32_SEED -e CZ101_SEED -e P2K_SEED -e PROTEUS_SEED raetro/quartus:17.0 bash -c '
               mkdir -p /build && cd /build && tar -xf - || exit 2
               cd cores/$CORE
-              if [ "$CORE" = proteus ]; then bash mister/build.sh 1>&2; else mister/build.sh _out 1>&2; fi
+              bash mister/build.sh _out 1>&2
               status=$?
               tar -cf - mister/_out mister/output_files mister/build.log 2>/dev/null
               exit $status' |
@@ -140,5 +147,4 @@ jobs:
           name: ${{ matrix.core }}-rbf
           path: |
             cores/${{ matrix.core }}/mister/_out/*.rbf
-            cores/${{ matrix.core }}/mister/output_files/Proteus.rbf
           if-no-files-found: warn

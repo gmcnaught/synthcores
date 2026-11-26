@@ -24,7 +24,7 @@ SD card
 │   ├── SC-155.mra
 │   ├── SC-155mk2.mra
 │   └── cores/
-│       └── SC55_YYYYMMDD.rbf   the core, from releases/
+│       └── SC55_YYYYMMDD.rbf   the core, from the release page
 └── games/
     └── mame/
         ├── sc55.zip            SC-55 and SC-155 ROMs
@@ -90,7 +90,7 @@ its own core.
 ### 2. Copy the files to the SD card
 
 1. Copy the MRAs from [`mra/`](mra/) to `_Devices/`.
-2. Copy the newest `SC55_YYYYMMDD.rbf` from [`releases/`](releases/) to `_Devices/cores/` (make
+2. Copy the newest `SC55_YYYYMMDD.rbf` from [sc55-MiSTer releases](https://github.com/gmcnaught/sc55-MiSTer/releases) to `_Devices/cores/` (make
    the folder). Main_MiSTer looks for an MRA's core in the `cores` folder next to it, as for
    arcade cores.
 3. Copy the zips to `games/mame/`. For the SC-155, `sc155.zip` (a split MAME set) or `sc55.zip`

@@ -1,25 +1,85 @@
 #!/usr/bin/env bash
-# Build the Proteus MiSTer core (Proteus.qpf) into an RBF with Quartus Lite 17.0,
-# locally (quartus_sh on PATH) or in CI inside raetro/quartus:17.0.
-# Usage: bash mister/build.sh   -> mister/output_files/Proteus.rbf
-# Exits non-zero on a failed compile or negative setup/hold slack.
+# Build the Proteus/1 XR MiSTer core (Proteus.qpf) into an RBF with
+# Quartus Lite 17.0: locally (quartus_sh on PATH) or in CI, inside the
+# raetro/quartus:17.0 Docker image (.github/workflows/build-rbf.yml).
+#
+# Usage: mister/build.sh [output_dir]       (default: mister/output_files)
+# PROTEUS_SEED=N overrides the fitter seed for this build.
+#
+# Prints the resource summary and the timing summary; exits non-zero when
+# the compile fails or any clock domain has negative setup or hold slack.
+# (Report printing is never fatal: `| head` ends pipelines early, which
+# pipefail would turn into a SIGPIPE exit.)
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
+PROJECT=Proteus
+OUTDIR="${1:-output_files}"
+
 for q in quartus_sh /opt/intelFPGA/quartus/bin/quartus_sh /c/intelFPGA_lite/17.0/quartus/bin64/quartus_sh.exe; do
     if command -v "$q" >/dev/null 2>&1; then QSH=$(command -v "$q"); break; fi
 done
-[ -n "${QSH:-}" ] || { echo "ERROR: quartus_sh not found" >&2; exit 127; }
+[ -n "${QSH:-}" ] || { echo "ERROR: quartus_sh not found (PATH, /opt/intelFPGA, C:/intelFPGA_lite/17.0)" >&2; exit 127; }
+QBIN=$(dirname "$QSH")
 "$QSH" --version | head -2
+
+if [ -n "${PROTEUS_SEED:-}" ]; then
+    case "$PROTEUS_SEED" in ''|*[!0-9]*) echo "ERROR: PROTEUS_SEED must be an integer" >&2; exit 2;; esac
+    sed -i.bak "s/^set_global_assignment -name SEED .*/set_global_assignment -name SEED $PROTEUS_SEED/" $PROJECT.qsf
+    grep -n "name SEED" $PROJECT.qsf
+fi
+
 status=0
-"$QSH" --flow compile Proteus 2>&1 | tee build.log || status=1
-[ -f output_files/Proteus.fit.summary ] && cat output_files/Proteus.fit.summary
-if [ -f output_files/Proteus.sta.rpt ]; then
-    "$(dirname "$QSH")/quartus_sta" -t sta_paths.tcl > output_files/sta_paths.log 2>&1 || tail -5 output_files/sta_paths.log
-    [ -f output_files/worst_paths.txt ] && head -80 output_files/worst_paths.txt
+if ! "$QSH" --flow compile $PROJECT 2>&1 | tee build.log; then status=1; fi
+
+echo
+echo "== Resources =="
+for stage in map fit; do
+    rpt=output_files/$PROJECT.$stage.rpt
+    [ -f "$rpt" ] || continue
+    awk '/^; *Resource +; *Usage/{s=1} s{print} s&&/^\+---/{n++} s&&n>=2{exit}' "$rpt" | head -40 || true
+done
+fit=output_files/$PROJECT.fit.summary
+[ -f "$fit" ] && cat "$fit"
+grep -hE "uninferred|can't infer memory|Error \(" build.log 2>/dev/null | sort -u | head -40 || true
+
+if [ -f output_files/$PROJECT.sta.rpt ]; then
+    "$QBIN/quartus_sta" -t sta_paths.tcl > output_files/sta_paths.log 2>&1 || { echo "(worst-path report failed)"; tail -20 output_files/sta_paths.log; }
+    if [ -f output_files/worst_paths.txt ]; then head -80 output_files/worst_paths.txt || true; fi
+    if [ -f output_files/core_50mhz.txt ]; then
+        echo "== core paths over 20 ns (50 MHz), by module"; sed -n '/endpoints with paths over 20 ns/,$p' output_files/core_50mhz.txt
+    fi
+    if [ -f output_files/core_modules.txt ]; then echo "== worst path per module"; cat output_files/core_modules.txt; fi
 fi
-if [ -f output_files/Proteus.sta.summary ]; then
-    cat output_files/Proteus.sta.summary
-    if grep -E "^Slack *: *-" output_files/Proteus.sta.summary >/dev/null; then echo "ERROR: negative slack" >&2; status=1; fi
+
+echo
+echo "== Timing =="
+sta=output_files/$PROJECT.sta.summary
+if [ -f "$sta" ]; then
+    cat "$sta"
+    # "Slack : -1.234" lines; any negative slack fails the build
+    if grep -E "^Slack *: *-" "$sta" >/dev/null; then
+        echo "TIMING FAILED: negative slack above"
+        status=1
+    fi
+else
+    echo "no timing summary"
+    status=1
 fi
-[ -f output_files/Proteus.rbf ] || status=1
+
+rbf=output_files/$PROJECT.rbf
+if [ -f "$rbf" ]; then
+    mkdir -p "$OUTDIR"
+    # Named as MiSTer expects, <core>_YYYYMMDD.rbf, with the date the OSD
+    # shows ("V,v" BUILD_DATE, yymmdd in build_id.v from sys/build_id.tcl)
+    # so the file name and the version agree even across midnight.
+    if [ "$OUTDIR" != output_files ]; then
+        d=$(sed -n 's/.*BUILD_DATE "\([0-9]\{6\}\)".*/\1/p' build_id.v 2>/dev/null || true)
+        [ -n "$d" ] || d=$(date -u +%y%m%d)
+        cp "$rbf" "$OUTDIR/Proteus_20$d.rbf"
+    fi
+    ls -l "$rbf"
+else
+    echo "no RBF produced"
+    status=1
+fi
 exit $status
