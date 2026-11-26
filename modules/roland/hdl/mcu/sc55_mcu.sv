@@ -632,7 +632,7 @@ module sc55_mcu #(
                                                 d = d | 8'h80;
                                             end
                                         end
-                                        7'h7f: d = ((mk2 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR
+                                        7'h7f: d = ((nm1 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR: cfg bit 1 on every !is_mk1 model but the SC-155mk2
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end

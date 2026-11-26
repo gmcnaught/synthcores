@@ -90,6 +90,14 @@ def test_mk2_cycles_wrap_48():
     bench("--romset", "mk2-v1.01", "--midi-demo", "5", "--steps", "5500000", "--cycle-base", str(WRAP_48))
 
 
+def test_p9dr_read():
+    """#2: P9DR (H'FFFF) with P9DDR = 0 reads the model's cfg bits (bit 1 on the mk2), mk1 and mk2."""
+    need_roms()
+    bench("--steps", "2000000", "--probe-p9dr")
+    need_roms("mk2-v1.01")
+    bench("--romset", "mk2-v1.01", "--steps", "2000000", "--probe-p9dr")
+
+
 # MIDI out (MIDI-OUT-PLAN.md). Requests at Roland's default device ID 0x10.
 GS_RQ1_MASTER_TUNE = "f0411042114000000000043cf7"           # 40 00 00, 4 bytes
 JV_RQ1_SYSTEM = "f041104611000000000000001070f7"            # 00 00 00 00, 16 bytes
