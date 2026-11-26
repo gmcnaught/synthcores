@@ -223,7 +223,7 @@ module mcf5206e_periph #(
 			10'h131: r = {6'b0, t2.ter};
 			10'h140: r = ua.mrptr ? ua.mr2 : ua.mr1;   10'h180: r = ub.mrptr ? ub.mr2 : ub.mr1;
 			10'h144: r = uart_usr(ua);                 10'h184: r = uart_usr(ub);
-			10'h14c: r = ua.rxf0;                      10'h18c: r = ub.rxf0;
+			10'h14c: r = ua.rxn != 0 ? ua.rxf0 : 8'h00;  10'h18c: r = ub.rxn != 0 ? ub.rxf0 : 8'h00;
 			10'h154: r = uart_isr(ua);                 10'h194: r = uart_isr(ub);
 			10'h158: r = ua.ubg1; 10'h15c: r = ua.ubg2; 10'h198: r = ub.ubg1; 10'h19c: r = ub.ubg2;
 			10'h170: r = ua.ivr;                       10'h1b0: r = ub.ivr;
@@ -236,41 +236,68 @@ module mcf5206e_periph #(
 	always_comb dout = {rd8({offs[9:1], 1'b0}), rd8({offs[9:1], 1'b1})};
 
 	// ---------------------------------------------------------------- writes and state
+	// Each clock computes the next timer and UART state in one place: the system-clock step first,
+	// then the CPU access applied to the stepped state, then one assignment. A register access on
+	// the clock a byte completes or a timer reaches its reference therefore keeps that event
+	// (review 2026-11-26 p2k.md #1, #3).
 	always_ff @(posedge clk) begin
-		logic t1d, t2d;
+		timer_t n1, n2;
+		logic [1:0] ev1, ev2;             // timer events set on this clock (set wins over a TER clear)
+		uart_t  na, nb;
+		logic   txa, txb;
 		if (reset) begin
 			for (int s = 1; s <= 15; s++) icr[s] <= 8'h00;
 			imr <= 16'h3ffe;
-			t1 <= '0; t2 <= '0;
+			// timers as MAME coldfire_timer_device::device_reset: TRR = FFFF, the rest 0
+			n1 = '0; n1.trr = 16'hffff;
+			t1 <= n1; t2 <= n1;
 			ua <= '0; ub <= '0;
 			ua.rxd_q <= 1'b1; ub.rxd_q <= 1'b1;
 			ppdat <= 8'h00; pp_ddr <= 8'h00;
 			div16 <= 4'd0;
+			// latch-only registers MAME init_regs restores on reset: DRAM controller, CS0, DMCR
+			regs[9'h023] <= 16'h0000;                 // DCRR 0x046
+			regs[9'h025] <= 16'h0000;                 // DCTR 0x04A
+			regs[9'h02b][7:0] <= 8'h00;               // DCCR0 0x057
+			regs[9'h031][7:0] <= 8'h00;               // DCCR1 0x063
+			regs[9'h032] <= 16'h0000;                 // CSAR0 0x064
+			regs[9'h034] <= 16'h0000;                 // CSMR0 0x068
+			regs[9'h035] <= 16'h0000;
+			regs[9'h037] <= 16'h3c1f;                 // CSCR0 0x06E
+			regs[9'h062] <= 16'h0000;                 // DMCR 0x0C4
+			regs[9'h063] <= 16'h0000;
 		end else begin
+			n1 = t1; n2 = t2; na = ua; nb = ub;
+			ev1 = 2'b00; ev2 = 2'b00;
 			// timers (CLK = 01 sysclk; CLK = 10 sysclk/16) and UART baud, on the system clock enable
 			if (ce_sys) begin
 				div16 <= div16 + 4'd1;
-				if (t1.tmr[2:1] == 2'b01 || (t1.tmr[2:1] == 2'b10 && div16 == 4'd0)) t1 <= tick(t1);
-				if (t2.tmr[2:1] == 2'b01 || (t2.tmr[2:1] == 2'b10 && div16 == 4'd0)) t2 <= tick(t2);
-				ua <= uart_step(ua, u1_rxd, u1_txd);
-				ub <= uart_step(ub, u2_rxd, u2_txd);
+				if (t1.tmr[2:1] == 2'b01 || (t1.tmr[2:1] == 2'b10 && div16 == 4'd0)) begin
+					n1.ter = 2'b00; n1 = tick(n1); ev1 = n1.ter; n1.ter = t1.ter | ev1;
+				end
+				if (t2.tmr[2:1] == 2'b01 || (t2.tmr[2:1] == 2'b10 && div16 == 4'd0)) begin
+					n2.ter = 2'b00; n2 = tick(n2); ev2 = n2.ter; n2.ter = t2.ter | ev2;
+				end
+				na = uart_step(ua, u1_rxd, txa);
+				nb = uart_step(ub, u2_rxd, txb);
+				u1_txd <= txa;
+				u2_txd <= txb;
 			end
 			if (t1_warp && !t1.ter[1]) begin
-				t1.ter[1] <= 1'b1; t1.tcn <= 16'd0; t1.pre <= t1.tmr[15:8];
+				n1.ter[1] = 1'b1; n1.tcn = 16'd0; n1.pre = t1.tmr[15:8]; ev1[1] = 1'b1;
 			end
 			if (t2_warp && !t2.ter[1]) begin
-				t2.ter[1] <= 1'b1; t2.tcn <= 16'd0; t2.pre <= t2.tmr[15:8];
+				n2.ter[1] = 1'b1; n2.tcn = 16'd0; n2.pre = t2.tmr[15:8]; ev2[1] = 1'b1;
 			end
 
 			if (sel && !wr) begin
-				// reading the receive buffer pops the FIFO
-				if (offs == 10'h14c && uds) begin
-					ua.rxf0 <= ua.rxf1; ua.rxf1 <= ua.rxf2;
-					if (ua.rxn != 0) ua.rxn <= ua.rxn - 2'd1;
+				// reading the receive buffer pops the FIFO when it held a byte (the one returned);
+				// a byte pushed on this clock stays (MAME mc68681: an empty read changes nothing)
+				if (offs == 10'h14c && uds && ua.rxn != 2'd0) begin
+					na.rxf0 = na.rxf1; na.rxf1 = na.rxf2; na.rxn = na.rxn - 2'd1;
 				end
-				if (offs == 10'h18c && uds) begin
-					ub.rxf0 <= ub.rxf1; ub.rxf1 <= ub.rxf2;
-					if (ub.rxn != 0) ub.rxn <= ub.rxn - 2'd1;
+				if (offs == 10'h18c && uds && ub.rxn != 2'd0) begin
+					nb.rxf0 = nb.rxf1; nb.rxf1 = nb.rxf2; nb.rxn = nb.rxn - 2'd1;
 				end
 			end
 
@@ -288,26 +315,30 @@ module mcf5206e_periph #(
 						case (a)
 							10'h036: imr[15:8] <= d;
 							10'h037: imr[7:0] <= d;
-							10'h100: t1.tmr[15:8] <= d;
-							10'h101: begin t1.tmr[7:0] <= d; if (!d[0]) begin t1.tcn <= 0; t1.pre <= 0; end end
-							10'h104: t1.trr[15:8] <= d; 10'h105: t1.trr[7:0] <= d;
-							10'h10c, 10'h10d: t1.tcn <= 16'd0;
-							10'h111: t1.ter <= t1.ter & ~d[1:0];
-							10'h120: t2.tmr[15:8] <= d;
-							10'h121: begin t2.tmr[7:0] <= d; if (!d[0]) begin t2.tcn <= 0; t2.pre <= 0; end end
-							10'h124: t2.trr[15:8] <= d; 10'h125: t2.trr[7:0] <= d;
-							10'h12c, 10'h12d: t2.tcn <= 16'd0;
-							10'h131: t2.ter <= t2.ter & ~d[1:0];
-							10'h140: begin if (ua.mrptr) ua.mr2 <= d; else begin ua.mr1 <= d; ua.mrptr <= 1'b1; end end
-							10'h180: begin if (ub.mrptr) ub.mr2 <= d; else begin ub.mr1 <= d; ub.mrptr <= 1'b1; end end
-							10'h144: ua.csr <= d;  10'h184: ub.csr <= d;
-							10'h148: ua <= uart_cmd(ua, d);  10'h188: ub <= uart_cmd(ub, d);
-							10'h14c: begin ua.thr <= d; ua.thr_full <= 1'b1; ua.txemp <= 1'b0; end
-							10'h18c: begin ub.thr <= d; ub.thr_full <= 1'b1; ub.txemp <= 1'b0; end
-							10'h154: ua.imr <= d;  10'h194: ub.imr <= d;
-							10'h158: ua.ubg1 <= d; 10'h15c: ua.ubg2 <= d;
-							10'h198: ub.ubg1 <= d; 10'h19c: ub.ubg2 <= d;
-							10'h170: ua.ivr <= d;  10'h1b0: ub.ivr <= d;
+							// TMR: RST 1 -> 0 resets the whole timer and discards the write (MAME tmr_w);
+							// the low byte (RST) is lane 1, after the high byte of the same access
+							10'h100: n1.tmr[15:8] = d;
+							10'h101: if (t1.tmr[0] && !d[0]) begin n1 = '0; n1.trr = 16'hffff; end
+							         else begin n1.tmr[7:0] = d; if (!d[0]) begin n1.tcn = 16'd0; n1.pre = 8'd0; end end
+							10'h104: n1.trr[15:8] = d; 10'h105: n1.trr[7:0] = d;
+							10'h10c, 10'h10d: n1.tcn = 16'd0;
+							10'h111: n1.ter = (t1.ter & ~d[1:0]) | ev1;   // write 1 to clear; an event now stays
+							10'h120: n2.tmr[15:8] = d;
+							10'h121: if (t2.tmr[0] && !d[0]) begin n2 = '0; n2.trr = 16'hffff; end
+							         else begin n2.tmr[7:0] = d; if (!d[0]) begin n2.tcn = 16'd0; n2.pre = 8'd0; end end
+							10'h124: n2.trr[15:8] = d; 10'h125: n2.trr[7:0] = d;
+							10'h12c, 10'h12d: n2.tcn = 16'd0;
+							10'h131: n2.ter = (t2.ter & ~d[1:0]) | ev2;
+							10'h140: begin if (ua.mrptr) na.mr2 = d; else begin na.mr1 = d; na.mrptr = 1'b1; end end
+							10'h180: begin if (ub.mrptr) nb.mr2 = d; else begin nb.mr1 = d; nb.mrptr = 1'b1; end end
+							10'h144: na.csr = d;  10'h184: nb.csr = d;
+							10'h148: na = uart_cmd(na, d);  10'h188: nb = uart_cmd(nb, d);
+							10'h14c: begin na.thr = d; na.thr_full = 1'b1; na.txemp = 1'b0; end
+							10'h18c: begin nb.thr = d; nb.thr_full = 1'b1; nb.txemp = 1'b0; end
+							10'h154: na.imr = d;  10'h194: nb.imr = d;
+							10'h158: na.ubg1 = d; 10'h15c: na.ubg2 = d;
+							10'h198: nb.ubg1 = d; 10'h19c: nb.ubg2 = d;
+							10'h170: na.ivr = d;  10'h1b0: nb.ivr = d;
 							10'h1c5: pp_ddr <= d;
 							10'h1c9: ppdat <= d;
 							default: ;
@@ -315,6 +346,8 @@ module mcf5206e_periph #(
 					end
 				end
 			end
+			t1 <= n1; t2 <= n2;
+			ua <= na; ub <= nb;
 		end
 	end
 endmodule
