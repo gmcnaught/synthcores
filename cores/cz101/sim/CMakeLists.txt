@@ -28,7 +28,7 @@ verilate(upd7811_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/
 
 # CZ-101 board with the real firmware (milestone C4)
 add_executable(cz101_bench cz101_bench.cpp)
-verilate(cz101_bench SOURCES ${CZ101_SV}
+verilate(cz101_bench SOURCES ${CZ101_SV} INCLUDE_DIRS ${CZ101_INC}
          TOP_MODULE cz101_board PREFIX Vcz101_board
          VERILATOR_ARGS ${VFLAGS} --public-flat-rw -Wno-PINCONNECTEMPTY -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
          "-GDECODE_HEX=\"${HDL}/upd7810/upd7810_decode.hex\"" "-GTABLE_DIR=\"${HDL}/upd933/\"")

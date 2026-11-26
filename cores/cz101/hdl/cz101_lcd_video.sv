@@ -123,8 +123,9 @@ module cz101_lcd_video #(
     `include "cz101_panel.svh"
     logic [2**PANEL_EB-1:0] panel_state;
     `include "cz101_panel_state.svh"
-    generate if (PANEL_NE + 1 < 2**PANEL_EB)
+    generate if (PANEL_NE + 1 < 2**PANEL_EB) begin : gen_state_pad
         assign panel_state[2**PANEL_EB-1:PANEL_NE+1] = '0;
+    end
     endgenerate
     logic [23:0] art;
     synthframe_panel_art #(.W(PANEL_W), .H(PANEL_H), .BPP(PANEL_BPP), .TB(PANEL_TB), .EB(PANEL_EB),
