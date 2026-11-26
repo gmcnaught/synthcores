@@ -70,7 +70,13 @@ module poly_box_tb;
             lines++;
             if (k == "K") begin                  // held while stall, as the CPU is (lockstep)
                 @(negedge clk);
-                while (stall) @(negedge clk);
+                for (int n = 0; stall; n++) begin   // a stall that never ends: the device hung
+                    if (n == 1_000_000) begin
+                        $display("poly_box FAILED: stall held 1000000 clocks at line %0d (now %0d nb %0d)", lines, dut.now, dut.nb);
+                        $finish;
+                    end
+                    @(negedge clk);
+                end
                 tick = 1; tick_ns = 10'(a); inst = b != 0; inst_d = 10'(c);
                 @(negedge clk); tick = 0; inst = 0;
             end else if (k == "F") begin
