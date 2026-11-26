@@ -34,6 +34,7 @@
 ../hdl/core/crt_adjust.sv
 ../hdl/core/tek_plane.sv
 ../hdl/core/ps2_ascii.sv
+../hdl/core/term_rx_mux.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 ../hdl/core/midi_in.sv
 ../hdl/core/midi_vpk.sv

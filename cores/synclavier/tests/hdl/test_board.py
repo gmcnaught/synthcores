@@ -865,6 +865,28 @@ def test_boot_loader_big_state_image():
         os.unlink(path)
 
 
+def test_term_rx_mux():
+    """Terminal input from the board simulation, the VT640 read-back and the
+    keyboard, often on the same clock: every byte arrives once and in order
+    (review 2026-11-26 sync-hdl #8: a keyboard byte on a read-back byte's
+    clock was lost)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("term_rx_mux", "hdl/core/term_rx_mux.sv")
+    print("  " + [ln for ln in out.splitlines() if "term_rx_mux OK" in ln][0])
+
+
+def test_dev_terminal_fifo_full():
+    """dev_terminal's input FIFO drops bytes when full instead of wrapping to
+    empty (review 2026-11-26 sync-hdl #8)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("dev_terminal", "hdl/dev/dev_terminal.sv")
+    print("  " + [ln for ln in out.splitlines() if "dev_terminal OK" in ln][0])
+
+
 def vpk_stimulus(path, seed=1, ops=4000):
     """Stimulus for hdl/sim/dev_vpk_tb.sv from sim/devices/synth.py
     VelocityKeyboard: KEYBOARD.CHECK, KCR reads, key scans with velocity

@@ -261,6 +261,17 @@ module synclavier_core #(
     logic [7:0]  v_addr, v_data;
     logic        kb_rx_valid;
     logic [7:0]  kb_rx_data;
+    logic        rb_valid;               // VT640 read-back reply bytes (tek_plane)
+    logic [7:0]  rb_data;
+    // terminal input: the board simulation's bytes, then the read-back reply,
+    // then the keyboard; a byte that meets another waits its turn
+    logic        t_rx_valid;
+    logic [7:0]  t_rx_data;
+    term_rx_mux term_rx (
+        .clk, .rst(cpu_rst), .a_valid(sim_rx_valid), .a_data(sim_rx_data),
+        .b_valid(rb_valid), .b_data(rb_data), .c_valid(kb_rx_valid), .c_data(kb_rx_data),
+        .out_valid(t_rx_valid), .out_data(t_rx_data), .dropped()
+    );
     logic [31:0] lag_us;
     logic [23:0] stall_us [7];
     logic [10:0] poly_units;
@@ -322,8 +333,7 @@ module synclavier_core #(
         .poly_en(1'b1), .poly_p_valid, .poly_p_l, .poly_p_r, .poly_late,
         .pcm_valid, .pcm_l, .pcm_r,
         .ld_voice_we, .ld_voice_addr, .ld_voice_data,
-        .term_rx_valid(kb_rx_valid || sim_rx_valid || rb_valid),
-        .term_rx_data(sim_rx_valid ? sim_rx_data : rb_valid ? rb_data : kb_rx_data),
+        .term_rx_valid(t_rx_valid), .term_rx_data(t_rx_data),
         .term_tx_valid, .term_tx_data,
         .halt_req(1'b0), .halted, .halt_reason,
         .ld_mem_we, .ld_mem_addr, .ld_mem_data, .dbg_we, .dbg_addr, .dbg_wdata,
@@ -668,8 +678,6 @@ module synclavier_core #(
 
     // ------------------------------------------------------ terminal, video
     logic keypad_app;
-    logic        rb_valid;               // VT640 read-back reply bytes (tek_plane)
-    logic [7:0]  rb_data;
     ps2_ascii keys (.clk, .rst, .ps2_key, .keypad_app, .valid(kb_rx_valid), .ascii(kb_rx_data));
 
     term_display #(.CE_DIV(VID_CE_DIV)) display (
