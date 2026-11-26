@@ -7,11 +7,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 L=${1:-12}; M=${2:-5}; TAPS=${3:-80}; HEX=${4:-hdl/audio/synthframe_resample_40k_96k.hex}
-W=${RESAMPLE_WORK:-$(mktemp -d)}; mkdir -p "$W/obj"
-verilator --cc --exe --build -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
+W=${RESAMPLE_WORK:-out/tests/resample-$L-$M}; mkdir -p "$W/obj"   # kept: rebuilds are incremental
+verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
     hdl/audio/synthframe_resample.sv tests/resample/tb.cpp --top-module synthframe_resample \
     -GL=$L -GM=$M -GTAPS=$TAPS "-GCOEF_HEX=\"$PWD/$HEX\"" >/dev/null
-python3 - "$W/in.txt" <<'PY'
+"$(command -v pypy3 || command -v python3)" - "$W/in.txt" <<'PY'
 import math, random, sys
 random.seed(1)
 v = [(32767, -32768)] + [(0, 0)] * 200
