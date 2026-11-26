@@ -1,5 +1,5 @@
-// SC-55 (mk1) MCU system: H8/532 CPU, memories, on-chip peripherals and the
-// mk1 gate array, sequenced like the reference model's MCU_Step:
+// Roland MCU system (SC-55 mk1 and mk2, SC-155 and SC-155mk2, JV-880): H8/532 CPU, memories,
+// on-chip peripherals, the gate array and the mk2's sub-MCU, sequenced like the reference model's MCU_Step:
 //
 //   CPU part (h8_cpu)  ->  cycles += 12  ->  PCM update (external, pcm_tick)
 //   ->  TIMER_Clock  ->  UART RX/TX (mk1)  ->  analog  ->  gate-array LCD counter
