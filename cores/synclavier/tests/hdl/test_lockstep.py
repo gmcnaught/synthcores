@@ -49,6 +49,29 @@ def test_random_programs_model_c():
         assert _check(random_cpu(2000 + seed, "C"), 3000) == 3000
 
 
+def test_random_programs_model_d():
+    """Review 2026-11-26 sync-py #3: Model D on random programs: code
+    fetched from external memory pages (D11; the HDL's S_CFETCH / S_CSRC
+    states), PCI literals from the page, D11/D57 reads, page switches by
+    random D11 writes, page 0 (internal memory) and pages beyond the
+    installed memory (177777, as sim/cpu.py _code_read)."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    paged = beyond = switches = 0
+    for seed in range(40):
+        cpu = random_cpu(3000 + seed, "D")
+        installed = len(cpu.extmem.data)
+        pages = []
+        cpu.trace = lambda c, pc, w: pages.append(c.page)
+        assert _check(cpu, 3000) == 3000
+        base = [p >> 8 << 16 for p in pages]
+        paged += sum(1 for b in base if 0 < b < installed)
+        beyond += sum(1 for b in base if b >= installed)
+        switches += sum(1 for a, b in zip(pages, pages[1:]) if a != b)
+    # every kind of fetch happened, many times
+    assert paged > 10_000 and beyond > 1000 and switches > 30, (paged, beyond, switches)
+
+
 # A short program that never reads R5, D2 or memory 7000-7777 back: a
 # difference there shows only in the per-instruction register check ('D')
 # or the end state ('M'). Stops on a read of D6, which has no SYN.

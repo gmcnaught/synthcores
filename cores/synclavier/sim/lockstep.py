@@ -93,6 +93,7 @@ import os
 import random
 import struct
 import subprocess
+from array import array
 
 from .bus import BUS_WAIT, NO_SYN, Device
 
@@ -583,8 +584,10 @@ class RandomDevice(Device):
         return self.irq
 
 
-def random_cpu(seed, model="B"):
-    """A CPU with random memory, registers and flags; every device random."""
+def random_cpu(seed, model="B", ext_sectors=2048):
+    """A CPU with random memory, registers and flags; every device random.
+    Model D also gets `ext_sectors` of random external memory for its code
+    pages (2048: pages 1-8 installed)."""
     from .cpu import CPU
     rng = random.Random(seed)
     cpu = CPU()
@@ -597,6 +600,19 @@ def random_cpu(seed, model="B"):
     cpu.z, cpu.c, cpu.m, cpu.ion, cpu.pcs = (rng.random() < 0.5 for _ in range(5))
     if not cpu.pcs:
         cpu.ion = False
+    if model == "D":
+        # code pages: external memory of random words (only code fetches and
+        # PCI literals read it: D60-D63 stay on RandomDevice, as the CPU
+        # top's copy sees no writes), starting in a page; random code writes
+        # D11 now and then, so fetches also come from page 0 (internal
+        # memory) and from pages beyond the installed memory (177777)
+        from .devices.extmem import ExternalMemory
+        xm = ExternalMemory(ext_sectors)
+        xm.data = array("H", (rng.randrange(0x10000) for _ in range(ext_sectors * 256)))
+        cpu.extmem = xm
+        cpu.pcs = True
+        cpu.page = rng.randrange(1, ext_sectors // 256 + 1) << 8
+        cpu.d57 = random_value(rng)
     return cpu
 
 
