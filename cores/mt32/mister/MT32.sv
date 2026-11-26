@@ -261,7 +261,8 @@ wire hold = !ahead[15] && ahead >= 16'd8;
 wire [4:0] lcd_rd_addr, lcd_cg_addr, lcd_cursor;
 wire [7:0] lcd_rd_text;
 wire [4:0] lcd_cg_row;
-wire       lcd_cursor_on, lcd_display_on, core_ready, msg_led;
+wire       lcd_cursor_on, lcd_cursor_blink, lcd_cursor_font, lcd_lines2, lcd_display_on;
+wire       core_ready, msg_led;
 
 mt32_core #(
 	.PCM_BASE(PCM_BASE),
@@ -284,9 +285,10 @@ mt32_core #(
 	.sample_valid(sample_valid), .out_l(out_l), .out_r(out_r),
 	.lcd_rd_addr(lcd_rd_addr), .lcd_rd_text(lcd_rd_text), .lcd_cg_addr(lcd_cg_addr),
 	.lcd_cg_row(lcd_cg_row), .lcd_cursor(lcd_cursor), .lcd_cursor_on(lcd_cursor_on),
+	.lcd_cursor_blink(lcd_cursor_blink), .lcd_cursor_font(lcd_cursor_font), .lcd_lines2(lcd_lines2),
 	.lcd_display_on(lcd_display_on),
 	.cpu_cycles(), .la32_cycle(), .dbg_fetch(), .dbg_irq(), .dbg_regw(), .dbg_busw(), .dbg_midi(),
-	.dbg_lcd(), .bad_op(), .dbg_level(), .dbg_pc(), .dbg_fpc(), .dbg_psw(), .dbg_waddr(), .dbg_addr(),
+	.dbg_lcd(), .bad_op(), .unsupported(), .dbg_level(), .dbg_pc(), .dbg_fpc(), .dbg_psw(), .dbg_waddr(), .dbg_addr(),
 	.dbg_data(), .dbg_wdata(), .dbg_mbyte(), .extint(), .dbg_acc2(), .dbg_acc3(), .dbg_acc6(),
 	.dbg_acc7(), .dbg_rv0(), .dbg_rv1(), .dbg_vol()
 );
@@ -343,7 +345,8 @@ mt32_lcd_video #(.FONT_HEX("../hdl/mt32_lcd_font.hex")) video
 (
 	.clk(clk_vid),
 	.text_addr(lcd_rd_addr), .text(lcd_rd_text), .cg_addr(lcd_cg_addr), .cg_row(lcd_cg_row),
-	.cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .display_on(lcd_display_on),
+	.cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .cursor_blink(lcd_cursor_blink),
+	.cursor_font(lcd_cursor_font), .lines2(lcd_lines2), .display_on(lcd_display_on),
 	.buttons(panel), .msg_led(msg_led),
 	.rom_ok(rom_ok), .loading(ioctl_download), .running(core_ready && !core_reset),
 	.midi_led(LED_USER), .underrun_seen(underruns != 0),

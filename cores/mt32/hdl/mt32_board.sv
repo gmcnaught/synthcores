@@ -65,6 +65,9 @@ module mt32_board #(
     output logic [4:0]  lcd_cg_row,
     output logic [4:0]  lcd_cursor,
     output logic        lcd_cursor_on,
+    output logic        lcd_cursor_blink,
+    output logic        lcd_cursor_font,
+    output logic        lcd_lines2,
     output logic        lcd_display_on,
 
     // trace (bench)
@@ -79,7 +82,8 @@ module mt32_board #(
     output logic        dbg_midi,       // pulse: byte handed to the CPU (dbg_mbyte)
     output logic [7:0]  dbg_mbyte,
     output logic        dbg_lcd,        // pulse: after an LCD command write
-    output logic        bad_op
+    output logic        bad_op,
+    output logic        unsupported     // HSO command 0F ran (A/D start without MAME's nested update)
 );
     // ---------------------------------------------------------------- memories
     logic [7:0] rom [131072];
@@ -110,7 +114,6 @@ module mt32_board #(
     logic [47:0] c_target;
     logic [15:0] ext_addr;
     logic [7:0]  ext_wdata, ext_rdata, serial_byte;
-    logic        unsupported;
 
     mcs96 #(.DECODE_HEX(DECODE_HEX)) cpu (
         .clk, .rst, .ready(c_ready),
@@ -122,13 +125,13 @@ module mt32_board #(
     );
 
     // ---------------------------------------------------------------- LCD
-    logic lcd_wr, lcd_cmd, lcd_busy, lcd_done, lcd_cmd_done, lcd_blink;
+    logic lcd_wr, lcd_cmd, lcd_busy, lcd_done, lcd_cmd_done;
     mt32_lcd lcd (
         .clk, .rst, .wr(lcd_wr), .cmd(lcd_cmd), .data(ext_wdata), .now(cpu_cycles),
         .busy(lcd_busy), .done(lcd_done), .cmd_done(lcd_cmd_done),
         .rd_addr(lcd_rd_addr), .rd_text(lcd_rd_text), .cg_addr(lcd_cg_addr), .cg_row(lcd_cg_row),
-        .cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .cursor_blink(lcd_blink),
-        .display_on(lcd_display_on)
+        .cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .cursor_blink(lcd_cursor_blink),
+        .cursor_font(lcd_cursor_font), .lines2(lcd_lines2), .display_on(lcd_display_on)
     );
     assign dbg_lcd = lcd_cmd_done;
     assign at_hold = (ts == T_HOLD) && (slot == 5'd0) && hold;

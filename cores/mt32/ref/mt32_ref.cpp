@@ -17,7 +17,14 @@
 //   --rv-log   W la32cycle reg value | I la32cycle which value
 //   --out-log  one line a sample: acc2 acc3 acc6 acc7 rv0 rv1 vol l r (signed decimal)
 //   --lcd-log  cycle "20 characters" (only when the text changes)
+//   --lcd-state-log  after every LCD command: S cycle text (20 bytes hex) CG RAM (32 rows hex) state
+//              (cursor | on << 5 | blink << 6 | font << 7 | 2-line << 8 | display on << 9, hex)
+//   --lcd-dots after every LCD command: cycle, then "off" (display off) or 20 cells of 8 rows hex
+//              (bit 4 = left dot), the dots lcd_render() draws lit
 // --button SAMPLE:MASK (repeatable) sets the panel buttons (bit = MT32_BUTTTON_*) from SAMPLE on
+// --knob SAMPLE:VALUE (repeatable) sets the volume knob (0-1023, default 1020) from SAMPLE on
+// --start LA32:CPU  start the LA32 cycle count and the CPU's cycle count there instead of 0
+//            (tests/wrap_check.sh; the logs then carry the shifted cycles)
 //   --irq-log  S la32cycle status (LA32 interrupt set, slot start) | C la32cycle status (cleared by a write)
 //   --slot-log debug, per slot: G la32cycle i oo prev w46 ram2_0 ram2_1 ram2_2 (after the wave generator)
 //              and E la32cycle i acc2 acc3 acc6 acc7 w186<<16|w187 w188 (slot end; decimal)
@@ -36,6 +43,8 @@ void (*mt32h_busw)(uint16_t, uint8_t, uint64_t);
 void (*mt32h_midi)(uint8_t, uint64_t);
 void (*mt32h_tx)(uint8_t, uint64_t);
 void (*mt32h_lcd)(const uint8_t*, uint64_t);
+void (*mt32h_lcdst)(const uint8_t*, const uint8_t*, uint32_t, const uint32_t*, uint64_t);
+uint64_t mt32h_cpu_start, mt32h_la32_start;
 void (*mt32h_la32w)(uint16_t, uint8_t, uint64_t);
 void (*mt32h_rvw)(int, uint32_t, uint64_t);
 void (*mt32h_rvin)(int, int16_t, uint64_t);
@@ -43,7 +52,7 @@ void (*mt32h_out)(const int16_t*, const int16_t*, int32_t, int16_t, int16_t, uin
 void (*mt32h_la32irq)(int, uint8_t, uint64_t);
 void (*mt32h_slot)(int, uint32_t, int64_t, int64_t, int64_t, int64_t, int64_t, int64_t, uint64_t);
 
-static FILE *f_trace, *f_la32, *f_rv, *f_out, *f_lcd, *f_irq, *f_slot;
+static FILE *f_trace, *f_la32, *f_rv, *f_out, *f_lcd, *f_irq, *f_slot, *f_lcdst, *f_dots;
 static char lcd_last[21];
 
 static mt32_t* mt;
@@ -85,8 +94,8 @@ static std::vector<MidiEvent> read_schedule(const char* path)
 
 int main(int argc, char** argv)
 {
-    std::vector<std::pair<uint64_t, uint32_t>> buttons;
-    size_t next_button = 0;
+    std::vector<std::pair<uint64_t, uint32_t>> buttons, knobs;
+    size_t next_button = 0, next_knob = 0;
     std::string roms, cpu_rom, midi, out_path;
     uint64_t samples = 96000;
     for (int i = 1; i < argc; i++) {
@@ -108,6 +117,18 @@ int main(int argc, char** argv)
         else if (a == "--lcd-log") open_log(&f_lcd);
         else if (a == "--irq-log") open_log(&f_irq);
         else if (a == "--slot-log") open_log(&f_slot);
+        else if (a == "--lcd-state-log") open_log(&f_lcdst);
+        else if (a == "--lcd-dots") open_log(&f_dots);
+        else if (a == "--start") {
+            char* e; mt32h_la32_start = strtoull(val(), &e, 0);
+            if (*e != ':') { fprintf(stderr, "mt32_ref: --start LA32:CPU\n"); return 1; }
+            mt32h_cpu_start = strtoull(e + 1, nullptr, 0);
+        }
+        else if (a == "--knob") {
+            char* e; uint64_t at = strtoull(val(), &e, 0);
+            if (*e != ':') { fprintf(stderr, "mt32_ref: --knob SAMPLE:VALUE\n"); return 1; }
+            knobs.push_back({ at, (uint32_t)strtoul(e + 1, nullptr, 0) });
+        }
         else if (a == "--button") {
             char* e; uint64_t at = strtoull(val(), &e, 0);
             if (*e != ':') { fprintf(stderr, "mt32_ref: --button SAMPLE:MASK\n"); return 1; }
@@ -151,6 +172,35 @@ int main(int argc, char** argv)
             if (strcmp(s, lcd_last)) { strcpy(lcd_last, s); fprintf(f_lcd, "%llx \"%s\"\n", (unsigned long long)c, s); }
         };
 
+    if (f_lcdst || f_dots)
+        mt32h_lcdst = [](const uint8_t* t, const uint8_t* cg, uint32_t st, const uint32_t* buf, uint64_t c) {
+            if (f_lcdst) {
+                fprintf(f_lcdst, "S %llx ", (unsigned long long)c);
+                for (int i = 0; i < 20; i++) fprintf(f_lcdst, "%02x", t[i]);
+                fputc(' ', f_lcdst);
+                for (int i = 0; i < 32; i++) fprintf(f_lcdst, "%02x", cg[i]);
+                fprintf(f_lcdst, " %03x\n", st);
+            }
+            if (f_dots) {
+                fprintf(f_dots, "%llx", (unsigned long long)c);
+                if (!(st & 0x200)) { fprintf(f_dots, " off\n"); return; }
+                // lcd_font_render(25, 25 + i * 40, ...): dot row r at x 25 + 6r (+6 for row 7),
+                // dot j at y 25 + 40i + 6j; 0xff18f2b3 is a lit dot
+                for (int i = 0; i < 20; i++) {
+                    fputc(' ', f_dots);
+                    for (int r = 0; r < 8; r++) {
+                        int v = 0;
+                        for (int j = 0; j < 5; j++) {
+                            int xx = 25 + r * 6 + (r == 7 ? 6 : 0), yy = 25 + i * 40 + j * 6;
+                            if (buf[xx * lcd_w + yy] == 0xff18f2b3u) v |= 1 << (4 - j);
+                        }
+                        fprintf(f_dots, "%02x", v);
+                    }
+                }
+                fputc('\n', f_dots);
+            }
+        };
+
     // mt32_t starts the CPU in its constructor, so the ROMs go in through a staging copy.
     static uint8_t rom[0x20000], pcm[0x80000], rvrom[0x8000];
     std::string cpu = cpu_rom.empty() ? roms + "/mt32_cpu.bin" : cpu_rom;
@@ -179,9 +229,12 @@ int main(int argc, char** argv)
         }
         while (next_button < buttons.size() && buttons[next_button].first <= s)
             mt->button = buttons[next_button++].second;
+        while (next_knob < knobs.size() && knobs[next_knob].first <= s)
+            mt->knob = (int32_t)knobs[next_knob++].second;
         uint64_t end = samples;
         if (next < sched.size() && sched[next].sample < end) end = sched[next].sample;
         if (next_button < buttons.size() && buttons[next_button].first < end) end = buttons[next_button].first;
+        if (next_knob < knobs.size() && knobs[next_knob].first < end) end = knobs[next_knob].first;
         uint64_t n = end - s;
         if (n > 4096) n = 4096;
         mt->clock(n);
@@ -189,7 +242,7 @@ int main(int argc, char** argv)
         s += n;
     }
     if (out) fclose(out);
-    for (FILE* f : { f_trace, f_la32, f_rv, f_out, f_lcd, f_irq, f_slot })
+    for (FILE* f : { f_trace, f_la32, f_rv, f_out, f_lcd, f_irq, f_slot, f_lcdst, f_dots })
         if (f) fclose(f);
     return 0;
 }

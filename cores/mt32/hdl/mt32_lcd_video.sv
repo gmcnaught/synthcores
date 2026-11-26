@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // MT-32 LCD on an 800 x 600 screen: 20 characters of 5 x 8 dots at 6 x 6 pixels, the font of
-// Nuked-MT32 (lcd_font.h -> mt32_lcd_font.hex, tools/mkfont.py), drawn as lcd.cpp does: rows
-// 0-6 from the font, row 7 only as the cursor line. Around it the front panel (cfg/panel.yaml,
+// Nuked-MT32 (lcd_font.h -> mt32_lcd_font.hex, tools/mkfont.py), drawn as lcd.cpp lcd_render()
+// does: rows 0-6 from the font; row 7 only in the cursor cell, which is shown when cursor_on and
+// cursor_blink are both set and is blank when cursor_font is set; no characters in 1-line mode.
+// tests/test_lcd.py compares the dots with lcd_render(). Around it the front panel (cfg/panel.yaml,
 // owner's manual p. 2: synthframe_panel_art from the ROMs in hdl/panel/ that
 // modules/synthframe/tools/panel_art.py makes), its buttons shown pressed and the MIDI MESSAGE
 // LED lit; the synthframe status strip at the bottom.
@@ -17,6 +19,9 @@ module mt32_lcd_video #(
     input  logic [4:0]  cg_row,
     input  logic [4:0]  cursor,
     input  logic        cursor_on,
+    input  logic        cursor_blink,
+    input  logic        cursor_font,
+    input  logic        lines2,
     input  logic        display_on,
     // front panel (clk_sys domain, display only)
     input  logic [9:0]  buttons,       // MT32_BUTTTON_* order of Nuked-MT32's mt32.h
@@ -71,7 +76,7 @@ module mt32_lcd_video #(
         s_row <= row;
         s_col <= 3'(cx / 6'd6);
         s_cell <= cx < 6'd30;      // 5 dots of 6 pixels, then a 6-pixel gap
-        s_cur <= (ch == cursor) && cursor_on;
+        s_cur <= (ch == cursor) && cursor_on && cursor_blink;
         if (text < 8'h04)                         fa <= 11'h7ff;
         else if (text >= 8'h20 && text < 8'h80)   fa <= {text - 8'h20, row};
         else if (text >= 8'ha0 && text < 8'he0)   fa <= {text - 8'h40, row};
@@ -83,7 +88,7 @@ module mt32_lcd_video #(
     always_comb bits = (fa == 11'h7ff) ? s_cg : font[fa][4:0];
     always_ff @(posedge clk) begin
         logic on;
-        on = s_cell && bits[3'd4 - s_col] && (s_row != 3'd7 || s_cur);
+        on = s_cell && lines2 && bits[3'd4 - s_col] && (s_row != 3'd7 || s_cur) && !(s_cur && cursor_font);
         s_dot <= s_in && on;
     end
     logic s_dot2;

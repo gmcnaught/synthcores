@@ -26,6 +26,8 @@ module mt32_lcd (
     output logic [4:0]  cursor,
     output logic        cursor_on,
     output logic        cursor_blink,
+    output logic        cursor_font,   // the cursor cell is blank (lcd_cursor_font)
+    output logic        lines2,        // 2-line mode; in 1-line mode no characters are drawn
     output logic        display_on
 );
     logic [7:0]  text [20];
@@ -35,7 +37,7 @@ module mt32_lcd (
     logic [47:0] lcd_cycles;
     logic [4:0]  cgram_addr_r;          // 2 bits used
     logic [2:0]  cgram_row;
-    logic        dir, lines2, font, replay;
+    logic        dir, replay;
     logic [7:0]  cmdv;
 
     assign busy = now < lcd_cycles;
@@ -60,9 +62,10 @@ module mt32_lcd (
                 cgram_addr_r <= {3'b000, d[1:0]};
                 cgram_row <= 3'd0;
             end else if (d == 8'h10) begin
-                // lcd_reset(soft = true): CG RAM kept
+                // lcd_reset() (soft = false, as lcd.cpp calls it): CG RAM cleared
                 cursor <= 5'd0; cgram_addr_r <= 5'd0; cgram_row <= 3'd0; dir <= 1'b0;
-                lines2 <= 1'b0; font <= 1'b0; cursor_blink <= 1'b0; display_on <= 1'b0;
+                lines2 <= 1'b0; cursor_font <= 1'b0; cursor_blink <= 1'b0; display_on <= 1'b0;
+                for (int i = 0; i < 32; i++) cg[i] <= 5'h0;
             end else case (d[4:1])
                 4'd2: dir <= d[0];
                 4'd3: begin
@@ -74,7 +77,7 @@ module mt32_lcd (
                         else if (cursor != 5'd9 && cursor != 5'd19) cursor <= cursor + 5'd1;
                     end
                 end
-                4'd4: font <= d[0];
+                4'd4: cursor_font <= d[0];
                 4'd5: cursor_blink <= d[0];
                 4'd6: display_on <= d[0];
                 4'd7: cursor_on <= d[0];
@@ -99,7 +102,7 @@ module mt32_lcd (
         if (rst) begin
             // constructor: lcd_reset() (hard: CG RAM cleared), lcd_cycles 0, queue empty
             cursor <= 5'd0; cgram_addr_r <= 5'd0; cgram_row <= 3'd0; dir <= 1'b0;
-            lines2 <= 1'b0; font <= 1'b0; cursor_blink <= 1'b0; display_on <= 1'b0;
+            lines2 <= 1'b0; cursor_font <= 1'b0; cursor_blink <= 1'b0; display_on <= 1'b0;
             cursor_on <= 1'b0;
             for (int i = 0; i < 32; i++) cg[i] <= 5'h0;
             for (int i = 0; i < 20; i++) text[i] <= 8'h0;

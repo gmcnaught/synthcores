@@ -13,6 +13,12 @@ extern void (*mt32h_busw)(uint16_t addr, uint8_t data, uint64_t cycle);        /
 extern void (*mt32h_midi)(uint8_t byte, uint64_t cycle);                       // byte written to SBUF
 extern void (*mt32h_tx)(uint8_t byte, uint64_t cycle);                         // byte the CPU sends (sbuf_w)
 extern void (*mt32h_lcd)(const uint8_t* text20, uint64_t cycle);               // after an LCD command
+// After an LCD command: text, CG RAM (4 x 8 rows), state = cursor | on << 5 | blink << 6 |
+// font << 7 | (lines == 2) << 8 | display_on << 9, and lcd_buffer (lcd_h x lcd_w) just rendered.
+extern void (*mt32h_lcdst)(const uint8_t* text20, const uint8_t* cg32, uint32_t state,
+                           const uint32_t* buffer, uint64_t cycle);
+// Start values of the CPU's totalcycles and the LA32 cycle count (0 unless the harness sets them).
+extern uint64_t mt32h_cpu_start, mt32h_la32_start;
 // LA32 and reverb (cycle = LA32 cycle, 256 a sample).
 extern void (*mt32h_la32w)(uint16_t addr, uint8_t data, uint64_t la32_cycle);
 extern void (*mt32h_rvw)(int reg, uint32_t value, uint64_t la32_cycle);        // 0 saw0, 1 saw1, 2 ROM bank

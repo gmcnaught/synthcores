@@ -46,7 +46,16 @@ EDITS = [
      "            mcu->serial_w(b);\n            if (mt32h_midi) mt32h_midi(b, mcu->total_cycles());\n", 1),
     ("mt32.cpp", "                ga_lcd_queue_cnt = 0;\n",
      "                ga_lcd_queue_cnt = 0;\n"
-     "                if (mt32h_lcd) mt32h_lcd(lcd_data, mcu->total_cycles());\n", 1),
+     "                if (mt32h_lcd) mt32h_lcd(lcd_data, mcu->total_cycles());\n"
+     "                if (mt32h_lcdst) {\n"
+     "                    lcd_render();\n"
+     "                    mt32h_lcdst(lcd_data, &lcd_cg[0][0], lcd_cursor | lcd_cursor_on << 5 | lcd_cursor_blink << 6\n"
+     "                                | lcd_cursor_font << 7 | (lcd_lines == 2) << 8 | lcd_display_on << 9,\n"
+     "                                &lcd_buffer[0][0], mcu->total_cycles());\n"
+     "                }\n", 1),
+    # Start times (default 0): tests/wrap_check.sh starts both models near the 2^48 / 375 point.
+    ("mame/mcs96.cpp", "\ttotalcycles = 0;\n", "\ttotalcycles = mt32h_cpu_start;\n", 1),
+    ("la32.cpp", "    la32_cycles = 0;\n", "    la32_cycles = mt32h_la32_start;\n", 1),
     # LA32: register writes with the LA32 cycle; the reverb chip's register writes.
     ("la32.h", "public:\n", "public:\n    uint64_t cycles() const { return la32_cycles; }\n", 1),
     ("la32.cpp", "void la32_t::write(uint16_t address, uint8_t data)\n{\n",

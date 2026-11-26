@@ -51,12 +51,16 @@ module mt32_core #(
     output logic [4:0]  lcd_cg_row,
     output logic [4:0]  lcd_cursor,
     output logic        lcd_cursor_on,
+    output logic        lcd_cursor_blink,
+    output logic        lcd_cursor_font,
+    output logic        lcd_lines2,
     output logic        lcd_display_on,
 
     // trace
     output logic [47:0] cpu_cycles,
     output logic [63:0] la32_cycle,
     output logic        dbg_fetch, dbg_irq, dbg_regw, dbg_busw, dbg_midi, dbg_lcd, bad_op,
+    output logic        unsupported,    // HSO command 0F ran: not modelled as MAME does (bench check)
     output logic [2:0]  dbg_level,
     output logic [15:0] dbg_pc, dbg_fpc, dbg_psw, dbg_waddr,
     output logic [7:0]  dbg_addr, dbg_data, dbg_wdata, dbg_mbyte,
@@ -80,10 +84,10 @@ module mt32_core #(
         .la_we, .la_addr, .la_wdata, .la_rdata, .extint,
         .rv_we, .rv_reg, .rv_value, .pwm, .tx_stb, .tx_byte,
         .lcd_rd_addr, .lcd_rd_text, .lcd_cg_addr, .lcd_cg_row, .lcd_cursor, .lcd_cursor_on,
-        .lcd_display_on,
+        .lcd_cursor_blink, .lcd_cursor_font, .lcd_lines2, .lcd_display_on,
         .cpu_cycles, .dbg_fetch, .dbg_irq, .dbg_regw, .dbg_level, .dbg_pc, .dbg_fpc, .dbg_psw,
         .dbg_addr, .dbg_data, .dbg_busw, .dbg_waddr, .dbg_wdata, .dbg_midi, .dbg_mbyte, .dbg_lcd,
-        .bad_op
+        .bad_op, .unsupported
     );
 
     mt32_sound #(.PCM_BASE(PCM_BASE), .POW_HEX(POW_HEX), .LOGSIN_HEX(LOGSIN_HEX)) sound (
