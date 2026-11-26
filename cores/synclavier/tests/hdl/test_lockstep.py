@@ -928,6 +928,33 @@ def test_release_l_monitor_boot_and_catalog():
     assert n > 1_000_000 and "Catalog contains 7 entries" in cpu.terminal.text()
 
 
+
+def test_w0_board_boot_syn53():
+    """Release 5.3 (Model D) on the board top from power-on, as docs/hdl.md's
+    W0 runs: tools/w0_image.py --fm-voices 8 (W0-53.IMG, W0-53-FM8.SST), then
+    `w0boot --poly --vpk`, first 300,000 instructions (MONITOR, PROFILE and
+    the SCSI loads of SYN-5.3).
+
+    KNOWN FAILURE (found 2026-11-26, also on origin/main 1967e47; PR #63):
+    at instruction 143,102 (cycle 6,921,123) the HDL reads D25 = 000402 and
+    Python 000602 (SCSI REQ, bit 0o200). This test is expected to fail until
+    dev_scsi.sv and sim/devices/scsi.py agree; it is not skipped or inverted."""
+    raw = os.environ.get("SYNCLAVIER_W0_RAW")
+    if not raw or not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs SYNCLAVIER_W0_RAW and verilator")
+    import subprocess
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    with tempfile.TemporaryDirectory() as d:
+        p = subprocess.run([sys.executable, os.path.join(root, "tools", "w0_image.py"), raw, d,
+                            "--fm-voices", "8"], capture_output=True, text=True, cwd=root)
+        assert p.returncode == 0, p.stdout + p.stderr
+        img, sst, path = (os.path.join(d, n) for n in ("W0-53.IMG", "W0-53-FM8.SST", "w0.trace"))
+        from sim.lockstep import main as lockstep_main
+        assert lockstep_main(["w0boot", img, path, "--poly", "--vpk", "--instructions", "300000"]) == 0
+        ok, text = check(path, top="board", state=sst, w0=img)
+    assert ok, "W0 board lockstep (known failure, see docstring):\n" + "\n".join(
+        ln for ln in text.splitlines() if not ln.startswith(("  ", "|")))
+
 if __name__ == "__main__":
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     from testlib import run_tests
