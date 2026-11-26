@@ -25,55 +25,19 @@ on:
     tags: ['v*']
 
 jobs:
+  # Which cores: the dispatch input (blank = all), or every core on a tag.
   changes:
     runs-on: ubuntu-24.04
     outputs:
       cores: ${{ steps.pick.outputs.cores }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            shared:
-              - 'modules/synthframe/hdl/**'
-              - 'modules/synthframe/target/**'
-              - '.github/workflows/build-rbf.yml'
-            sc55:
-              - 'cores/sc55/hdl/**'
-              - 'modules/roland/**'
-              - 'cores/sc55/mister/**'
-            synclavier:
-              - 'cores/synclavier/hdl/**'
-              - 'cores/synclavier/mister/**'
-            proteus:
-              - 'cores/proteus/mister/**'
-            p2k:
-              - 'cores/p2k/hdl/**'
-              - 'cores/p2k/mister/**'
-              - 'cores/proteus/p2k/rtl/**'
-            jv880:
-              - 'cores/jv880/hdl/**'
-              - 'cores/jv880/mister/**'
-              - 'modules/roland/**'
-            mt32:
-              - 'cores/mt32/hdl/**'
-              - 'cores/mt32/mister/**'
-            cz101:
-              - 'cores/cz101/hdl/**'
-              - 'cores/cz101/mister/**'
       - id: pick
         shell: bash
+        env:
+          REQ: ${{ github.event.inputs.cores }}
         run: |
           all='["sc55","synclavier","proteus","p2k","jv880","mt32","cz101"]'
-          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
-            req='${{ github.event.inputs.cores }}'
-            echo "cores=${req:-$all}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = push ] || [ "${{ steps.filter.outputs.shared }}" = true ]; then
-            echo "cores=$all" >> "$GITHUB_OUTPUT"
-          else
-            echo "cores=$(echo '${{ steps.filter.outputs.changes }}' | jq -c 'map(select(. != "shared"))')" >> "$GITHUB_OUTPUT"
-          fi
+          echo "cores=${REQ:-$all}" >> "$GITHUB_OUTPUT"
 
   rbf:
     needs: changes
@@ -92,7 +56,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Free disk space (Quartus needs ~24 GB)
-        uses: jlumbroso/free-disk-space@main
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
           tool-cache: true
           android: true
@@ -107,17 +71,11 @@ jobs:
         shell: bash
         env:
           CORE: ${{ matrix.core }}
-          SC55_SEED: ${{ github.event.inputs.seed }}
-          SYNCLAVIER_SEED: ${{ github.event.inputs.seed }}
-          JV880_SEED: ${{ github.event.inputs.seed }}
-          MT32_SEED: ${{ github.event.inputs.seed }}
-          CZ101_SEED: ${{ github.event.inputs.seed }}
-          P2K_SEED: ${{ github.event.inputs.seed }}
-          PROTEUS_SEED: ${{ github.event.inputs.seed }}
+          SEED: ${{ github.event.inputs.seed }}
         run: |
           set -o pipefail
           tar -cf - --exclude=./.git . |
-            docker run --rm -i -e CORE -e SC55_SEED -e SYNCLAVIER_SEED -e JV880_SEED -e MT32_SEED -e CZ101_SEED -e P2K_SEED -e PROTEUS_SEED raetro/quartus:17.0 bash -c '
+            docker run --rm -i -e CORE -e SEED raetro/quartus:17.0 bash -c '
               mkdir -p /build && cd /build && tar -xf - || exit 2
               cd cores/$CORE
               bash mister/build.sh _out 1>&2
