@@ -53,6 +53,9 @@ if [ -f output_files/$PROJECT.sta.rpt ]; then
     if [ -f output_files/core_50mhz.txt ]; then
         echo "== core paths over 20 ns (50 MHz), by module"; sed -n '/endpoints with paths over 20 ns/,$p' output_files/core_50mhz.txt
     fi
+    if [ -f output_files/core_near.txt ]; then
+        echo "== core endpoints near the limit, by module"; sed -n '/ns slack. Per module/,$p' output_files/core_near.txt
+    fi
     if [ -f output_files/core_modules.txt ]; then echo "== worst path per module"; cat output_files/core_modules.txt; fi
 fi
 

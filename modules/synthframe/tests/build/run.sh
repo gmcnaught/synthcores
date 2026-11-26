@@ -17,6 +17,7 @@ echo "seed $(sed -n 's/^set_global_assignment -name SEED //p' "$p.qsf")" > outpu
 echo rbf > "output_files/$p.rbf"
 printf 'Type  : Setup\nSlack : %s\n' "${FAKE_SLACK:-1.000}" > "output_files/$p.sta.summary"
 touch "output_files/$p.sta.rpt"
+printf 'x\n3 endpoints with less than 1.0 ns slack. Per module (endpoints, longest path ns):\n  fake_mod 3 10.1\n' > output_files/core_near.txt
 Q
 printf '#!/bin/sh\nexit 0\n' > "$T/bin/quartus_sta"
 chmod +x "$T/bin/quartus_sh" "$T/bin/quartus_sta"
@@ -37,6 +38,7 @@ for qsf in "$ROOT"/cores/*/mister/*.qsf; do
     check "$c: _out/${p}_20*.rbf" 'ls "$m/_out/${p}"_20*.rbf >/dev/null 2>&1'
     env "${up}_SEED=9" "$m/build.sh" > "$T/$c.log" 2>&1
     check "$c: ${up}_SEED=9 still works" 'grep -qx "seed 9" "$m/output_files/seed"'
+    check "$c: core_near.txt printed" 'grep -q "fake_mod 3 10.1" "$T/$c.log" && ! grep -q "^x$" "$T/$c.log"'
     FAKE_SLACK=-0.5 "$m/build.sh" > "$T/$c.log" 2>&1 && st=0 || st=$?
     check "$c: negative slack fails" '[ $st != 0 ]'
 done
