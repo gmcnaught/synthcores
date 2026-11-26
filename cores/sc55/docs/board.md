@@ -6,7 +6,7 @@ the PLL (50 MHz core, 25 MHz video), DDR3 and the outputs.
 
 | Part | File | What it does |
 |---|---|---|
-| ROM pack | `rom_loader.sv`, `tools/romset.py pack` | hps_io download (`games/SC-55/boot.rom` or OSD "Load ROM pack"): header "SC55" + model, ROM1 and ROM2 into the MCU's block RAM, the three wave ROMs into DDR3. The pack holds the wave ROMs **unscrambled**, as the reference model has them in memory (`rom_io.cpp unscramble`: address bits and data bits are permuted on the chips). |
+| ROM pack | `rom_loader.sv`, `tools/romset.py pack` | hps_io download (`games/SC-55/boot.rom` or OSD "Load ROM pack"): header "SC55" + model, ROM1 and ROM2 into the MCU's block RAM, the three wave ROMs into DDR3. A v2 pack holds the wave ROMs **unscrambled**, as the reference model has them in memory (`rom_io.cpp unscramble`: address bits and data bits are permuted on the chips). A v3 pack (the layout the MRAs in `mra/` assemble from MAME's zips) holds them as dumped, and the loader unscrambles each byte on its way to DDR3 by the same bit permutation; `board_lockstep` checks all 4 MB in DDR3 against the model's wave ROMs after a v3 load. |
 | Wave ROMs | `wave_ddr.sv` | The PCM's in-order byte stream on DDR3 (64-bit words from 0x30000000). A byte in the same word as the byte requested just before shares its read; reads are pipelined. |
 | Pacing | `step_pacer.sv` | 600 ns of real time per step (mk1: 12 cycles at 20 MHz); up to 200 µs of credit after a stall. OSD "Real-time pacing" off runs as fast as possible. |
 | MIDI | `midi_rx.sv` | MidiLink UART at 31250, or 9600 when ttyS1 fell back (from synclavierii). |
