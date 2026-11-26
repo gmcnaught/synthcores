@@ -9,6 +9,7 @@ HDL=${1:-hdl/save/synthframe_nvsave.sv}
 W=${NVSAVE_WORK:-out/tests/nvsave}   # kept: rebuilds are incremental
 fail=0
 for aw in 13 15; do
+    mkdir -p "$W/aw$aw"          # Verilator makes --Mdir but not its parents
     verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL --x-assign unique --x-initial unique \
         --Mdir "$W/aw$aw" "$HDL" tests/nvsave/tb.cpp --top-module synthframe_nvsave -GAW=$aw -CFLAGS -DAW=$aw >/dev/null
     "$W/aw$aw/Vsynthframe_nvsave" 1 +verilator+seed+1 +verilator+rand+reset+2 || fail=1

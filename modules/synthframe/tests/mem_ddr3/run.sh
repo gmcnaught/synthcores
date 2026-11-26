@@ -9,6 +9,7 @@ HDL=${1:-hdl/mem/synthframe_mem_ddr3.sv}
 W=${MEM_DDR3_WORK:-out/tests/mem_ddr3}   # kept: rebuilds are incremental
 fail=0
 for q in 2 4; do
+    mkdir -p "$W/q$q"            # Verilator makes --Mdir but not its parents
     verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL --x-assign unique --x-initial unique \
         --Mdir "$W/q$q" "$HDL" tests/mem_ddr3/tb.cpp --top-module synthframe_mem_ddr3 -GQBITS=$q -GTW=4 >/dev/null
     for seed in 1 2 3; do
