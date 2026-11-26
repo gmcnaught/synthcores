@@ -40,7 +40,7 @@ def run(name, edits, note=60, vel=100):
     script = ["14.0 cc 1 0 4", "14.0 cc 1 32 0", "14.1 pc 1 0", f"15.0 on 1 {note} {vel}", f"17.0 off 1 {note}"]
     open(os.path.join(d, "script.txt"), "w").write("\n".join(script) + "\n")
     mid = os.path.join(d, "run.mid")
-    subprocess.run([sys.executable, os.path.join(ROOT, "tools", "mkmidi.py"), os.path.join(d, "script.txt"), mid], check=True)
+    subprocess.run([sys.executable, os.path.join(ROOT, "..", "..", "modules", "synthframe", "tools", "midi", "mkmidi.py"), os.path.join(d, "script.txt"), mid], check=True)
     nv = os.path.join(ROOT, "build", "p2k", "simm", "demo", "flash_clean.nv")
     if os.path.exists(nv):   # factory-default user data (the dump's own has MIDI channel 1 off)
         os.makedirs(os.path.join(d, "nvram", "proteus2k"), exist_ok=True)

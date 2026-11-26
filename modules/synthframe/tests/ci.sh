@@ -22,6 +22,7 @@ run "synth-mister backup/restore (fake SD card)" $S/tests/synth-mister/run.sh
 run "mister/build.sh wrappers (fake Quartus)" $S/tests/build/run.sh
 run "synthframe_resample 40k->96k (CZ-101)" $S/tests/resample/run.sh
 run "synthframe_resample 32k->96k (MT-32)" $S/tests/resample/run.sh 3 1 80 hdl/audio/synthframe_resample_32k_96k.hex
+run "MIDI helpers (mkmidi, smf2events, play_tty, tty_midi_xfer)" python3 $S/tests/midi_tools/test_midi_tools.py
 run "synthframe_midi_tx" python3 $S/ver/midi/test_midi_tx.py
 echo "synthframe ci: $pass passed, $fail failed${failed:+ (${failed[*]})}"
 [ "$fail" = 0 ]
