@@ -64,7 +64,10 @@ under `cores/<core>/` by `scripts/import-cores.sh`.
   `core.yaml`) and run `modules/synthframe/bin/synthcore`; CI checks them
   (`modules/synthframe/target/mister/README.md`).
 - **Vendor code:** keep vendor-specific code out of core HDL. Today it is limited to `pll.v` and
-  `mister/sys`, plus one RAM hint in `cores/synclavier/hdl/dev/pcm_reverb.sv`.
+  `mister/sys`, plus Quartus attributes in three Synclavier files: one RAM hint in
+  `cores/synclavier/hdl/dev/pcm_reverb.sv` and `multstyle = "logic"` in `hdl/dev/dev_fm.sv` and
+  `hdl/dev/dev_floppy.sv` (keeps the DSP blocks for `sys/`; other tools ignore it).
+  `cores/synclavier/tests/hdl/test_board.py` checks this list.
 - **ROMs:** no ROMs, firmware or disk images are committed. The tests find them through
   `SC55_ROM_DIR`, `SYNCLAVIER_RELEASE_L` and so on, in the old repo folders.
 - **Python simulators:** run them and their tests with `pypy3`, not `python3`. That covers the

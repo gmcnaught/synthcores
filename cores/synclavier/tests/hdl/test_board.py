@@ -54,6 +54,27 @@ def test_boot_defaults_match_fresh_system():
     assert [regs[i] for i in range(16)] == list(cpu.r), "registers"
 
 
+def test_vendor_attributes_listed():
+    """Quartus attributes in the core's HDL are only the ones the repository's
+    CLAUDE.md lists under "Vendor code" (review 2026-11-26 sync-hdl #7)."""
+    import glob
+    import re
+    allowed = {"hdl/dev/pcm_reverb.sv": {"ramstyle", "max_depth"},
+               "hdl/dev/dev_fm.sv": {"multstyle"}, "hdl/dev/dev_floppy.sv": {"multstyle"}}
+    found = {}
+    for path in glob.glob(os.path.join(ROOT, "hdl", "**", "*.sv"), recursive=True):
+        rel = os.path.relpath(path, ROOT).replace(os.sep, "/")
+        if rel.startswith("hdl/sim/"):
+            continue
+        for attrs in re.findall(r"\(\*\s*(.*?)\s*\*\)", open(path).read()):
+            found.setdefault(rel, set()).update(a.split("=")[0].strip() for a in attrs.split(","))
+    assert found == allowed, found
+    claude = open(os.path.join(ROOT, "..", "..", "CLAUDE.md")).read()
+    vendor = claude[claude.index("**Vendor code:**"):claude.index("**ROMs:**")]
+    for rel in allowed:
+        assert os.path.basename(rel) in vendor, "CLAUDE.md does not list " + rel
+
+
 def test_panel_labels_up_to_date():
     from tools.gen_panel_labels import PATH, text
     assert open(PATH).read() == text(), "run python3 tools/gen_panel_labels.py"
