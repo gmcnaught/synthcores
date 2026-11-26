@@ -1,12 +1,15 @@
 name: Simulation tools
 description: >
-  apt build tools, g++-14, pypy3 (with PyYAML and Pillow when pip works there), Python 3.12 with
-  PyYAML and Pillow, and Verilator 5.048
+  apt build tools, g++-14, PyPy 3.10 (pypy3) and Python 3.12, both with PyYAML and Pillow, and Verilator 5.048
   (built once and cached; Ubuntu's 5.020 cannot compile non-blocking array writes in loops,
   which the SC-55 HDL uses). Used by tests.yml.
 runs:
   using: composite
   steps:
+    # PyPy 3.10 first (stays on PATH as pypy3), then CPython 3.12 (python / python3)
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "pypy3.10"
     - uses: actions/setup-python@v5
       with:
         python-version: "3.12"
@@ -14,16 +17,10 @@ runs:
       shell: bash
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build cmake g++-14 pypy3 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
+        sudo apt-get install -y ninja-build cmake g++-14 git help2man perl make autoconf flex bison libfl2 libfl-dev zlib1g zlib1g-dev ccache
         python -m pip install pyyaml pillow
-        pypy3 --version     # apt's pypy3 (Python 3.9 on 24.04), on PATH as pypy3
-        # pypy3 from apt has no pip: bootstrap it, then the same packages (best effort; a ci.sh
-        # that needs them under pypy3 falls back to python3)
-        if pypy3 -m ensurepip --user >/dev/null 2>&1 || pypy3 -m pip --version >/dev/null 2>&1; then
-          pypy3 -m pip install --user pyyaml pillow || echo "::warning title=pypy3::pip install pyyaml pillow failed"
-        else
-          echo "::warning title=pypy3::no pip for pypy3; PyYAML and Pillow only under python3"
-        fi
+        pypy3 --version
+        pypy3 -m pip install pyyaml pillow
     - name: Cache Verilator
       id: verilator-cache
       uses: actions/cache@v4
