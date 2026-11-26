@@ -238,7 +238,10 @@ module mt32_board #(
                     if (hi >= 9'h020 && hi < 9'h100) rsel <= 8'd1;
                     else if (hi >= 9'h180) rsel <= 8'd2;
                     else if (hi >= 9'h100) rsel <= reg_bank[4] ? 8'd2 : 8'd1;
-                    else if (hi >= 9'h018 && hi < 9'h020) rsel <= 8'd3;
+                    else if (hi >= 9'h018 && hi < 9'h020) begin
+                        rsel <= 8'd3;
+                        la_addr <= ext_addr[8:0];        // the LA32 decodes the read's own address
+                    end
                     else if (hi == 9'd7) rsel <= 8'd4;
                     else if (hi == 9'd4) rsel <= 8'd5;
                     else rsel <= 8'd0;
