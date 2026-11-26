@@ -967,13 +967,11 @@ def test_release_l_monitor_boot_and_catalog():
 def test_w0_board_boot_syn53():
     """Release 5.3 (Model D) on the board top from power-on, as docs/hdl.md's
     W0 runs: tools/w0_image.py --fm-voices 8 (W0-53.IMG, W0-53-FM8.SST), then
-    `w0boot --poly --vpk`, first 300,000 instructions (MONITOR, PROFILE and
-    the SCSI loads of SYN-5.3).
-
-    KNOWN FAILURE (found 2026-11-26, also on origin/main 1967e47; PR #63):
-    at instruction 143,102 (cycle 6,921,123) the HDL reads D25 = 000402 and
-    Python 000602 (SCSI REQ, bit 0o200). This test is expected to fail until
-    dev_scsi.sv and sim/devices/scsi.py agree; it is not skipped or inverted."""
+    `w0boot --poly --vpk --disk-us 500 --seek-us 25000` (the SCSI disk time
+    w0_image.py stores in the state image), first 300,000 instructions
+    (MONITOR, PROFILE and the SCSI loads of SYN-5.3); registers every
+    instruction and the end state (memory, DDR3 external memory, Model C/D
+    state) compared."""
     raw = os.environ.get("SYNCLAVIER_W0_RAW")
     if not raw or not HAVE_VERILATOR:
         raise unittest.SkipTest("needs SYNCLAVIER_W0_RAW and verilator")
@@ -985,10 +983,35 @@ def test_w0_board_boot_syn53():
         assert p.returncode == 0, p.stdout + p.stderr
         img, sst, path = (os.path.join(d, n) for n in ("W0-53.IMG", "W0-53-FM8.SST", "w0.trace"))
         from sim.lockstep import main as lockstep_main
-        assert lockstep_main(["w0boot", img, path, "--poly", "--vpk", "--instructions", "300000"]) == 0
+        assert lockstep_main(["w0boot", img, path, "--poly", "--vpk", "--disk-us", "500",
+                              "--seek-us", "25000", "--instructions", "300000"]) == 0
         ok, text = check(path, top="board", state=sst, w0=img)
-    assert ok, "W0 board lockstep (known failure, see docstring):\n" + "\n".join(
+    assert ok and "end state checked" in text, "\n".join(
         ln for ln in text.splitlines() if not ln.startswith(("  ", "|")))
+
+
+def test_state_image_options_must_match_trace():
+    """check(top="board", state=...) stops at once, naming the entry, when
+    the trace was recorded with other device options than the state image
+    (a w0boot trace without --disk-us for an image with SCSI disk time gave
+    a D25 difference 143,102 instructions in, which looked like an HDL bug)."""
+    from sim.lockstep import state_image_mismatches
+    from sim.system import make_system
+    from tools.state_image import state_bytes
+    with tempfile.TemporaryDirectory() as d:
+        sst, path = os.path.join(d, "s.sst"), os.path.join(d, "t.trace")
+        cpu = make_system(floppy=True, synth=True)
+        with open(sst, "wb") as f:
+            f.write(state_bytes(cpu))
+        record(cpu, path, 10)
+        assert state_image_mismatches(path, sst) == []
+        cpu = make_system(floppy=True, synth=True, scsi={}, scsi_block_ns=500_000)
+        record(cpu, path, 10)
+        bad = state_image_mismatches(path, sst)
+        assert bad == ["device state scsi.block_ns (3, 11): state image None, trace 500000 "
+                       "(w0boot --disk-us N: N x 1000 ns)"], bad
+        ok, text = check(path, top="board", state=sst)
+        assert not ok and "other options than the state image" in text and "scsi.block_ns" in text, text
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))

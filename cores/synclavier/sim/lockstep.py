@@ -781,6 +781,81 @@ def hw_cfg(voices=None, mono=False, mb=None, fm=None):
     return v
 
 
+def trace_device_state(path):
+    """The 'V' entries of a trace's header as {(selector, index): value}
+    (wave memory left out)."""
+    out = {}
+    for k, v in iter_trace_header(path):
+        if k == b"V":
+            sel, idx, val = struct.unpack("<BHI", v)
+            if sel != SEL_WAVE:
+                out[sel, idx] = val
+    return out
+
+
+def iter_trace_header(path):
+    """iter_trace up to and including 'B', reading only the header."""
+    with open(path, "rb") as f:
+        b = bytearray(f.read(HEADER_START))
+        while True:
+            k = f.read(1)
+            if not k:
+                raise ValueError("trace ends in the header")
+            b += k
+            if k == b"B":
+                break
+            n = {b"X": 4, b"F": 3, b"V": 7, b"O": 12, b"C": 18}.get(k)
+            if n is None:
+                raise ValueError("bad header section %r" % k)
+            b += f.read(n)
+            if k in (b"X", b"F", b"O"):        # variable part
+                b += f.read(_header_size(b, len(b) - n, k) - n)
+    for k, v in iter_trace(bytes(b) + b"E"):
+        if k == b"E":
+            return
+        yield k, v
+
+
+def state_image_device_state(path):
+    """The device entries of a state image (tools/state_image.py) as
+    {(selector, index): value}, without the FM channel accumulators that
+    come from a trace's 'O' section."""
+    with open(path, "rb") as f:
+        b = f.read()
+    n = struct.unpack_from(">H", b, 12)[0]
+    out = {}
+    for i in range(n):
+        kind, sel, idx, _, a, b1, c, d = struct.unpack_from(">8H", b, 512 + 16 * i)
+        if kind == 0 and not (sel == SEL_FM and idx >= FM_CHANNEL_BASE
+                              and (idx - FM_CHANNEL_BASE) % FM_CHANNEL_STRIDE == 9):
+            out[sel, idx] = a << 48 | b1 << 32 | c << 16 | d
+    return out
+
+
+def state_image_mismatches(trace_path, state_path, cfg=0, printer_osd=False):
+    """Device state the board's boot loader takes from the state image that
+    differs from the trace's start (a trace recorded with other options than
+    the image, e.g. w0boot without --disk-us for an image with SCSI disk
+    time). Entries the OSD replaces (cfg, printer_osd) are not compared.
+    Returns a list of messages, empty when they agree."""
+    names = {v: k for k, v in STATE_INDEX.items()}
+    skip = set()
+    if cfg:
+        skip |= {STATE_INDEX[k] for k in ("poly.units", "poly.bins", "poly.last_voices", "fm.voices")}
+    if printer_osd:
+        skip.add(STATE_INDEX["printer"])
+    hint = {STATE_INDEX["scsi.block_ns"]: " (w0boot --disk-us N: N x 1000 ns)",
+            STATE_INDEX["scsi.seek_ns"]: " (w0boot --seek-us N: N x 1000 ns)"}
+    t, si = trace_device_state(trace_path), state_image_device_state(state_path)
+    out = []
+    for key in sorted((set(t) | set(si)) - skip):
+        a, b = si.get(key), t.get(key)
+        if a != b and not (a in (None, 0) and b in (None, 0)):
+            out.append("device state %s %s: state image %s, trace %s%s" % (
+                names.get(key, "entry"), key, a, b, hint.get(key, "")))
+    return out
+
+
 def check(path, max_instructions=None, top="cpu", wav=None, realtime=False, frame=None,
           state=None, w0=None, w1=None, rt_voices=False, stall=None, cfg=0, stm=None,
           poly_dump=None, outputs=0, printer_osd=False, print_file=None):
@@ -801,7 +876,14 @@ def check(path, max_instructions=None, top="cpu", wav=None, realtime=False, fram
     printer_osd (board): the OSD's printer item on (M21). print_file (board):
     the capture file for SD slot S6 (started blank, written at the end); if
     the trace has a TRACE.prn (w0boot --printer: what Python printed), the
-    captured bytes must equal it."""
+    captured bytes must equal it. With a state image the trace header's
+    device state must equal the image's first (state_image_mismatches);
+    otherwise check fails at once, without running the bench."""
+    if top == "board" and state:
+        bad = state_image_mismatches(path, state, cfg=cfg, printer_osd=printer_osd)
+        if bad:
+            return False, ("trace was recorded with other options than the state image %s:\n%s\n"
+                           % (state, "\n".join(bad)))
     cmd = [build(top), path] + ([str(max_instructions)] if max_instructions else [])
     env = dict(os.environ)
     if frame:
