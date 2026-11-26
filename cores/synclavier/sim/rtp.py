@@ -190,6 +190,8 @@ def main(argv=None):
     out = sys.stdout
     cpu, dbg, lay = start_rtp(a.image, a.rtp, io_sink=sink if writer else None,
                               output=lambda b: (out.write(chr(b & 0o177)), out.flush()))
+    if a.fm_log or a.wav:
+        cpu.fm.log_len = 1 << 62    # keep every write (the default log stops at 100,000)
     print("\n[rtp] %s staged (%d words); starting at %06o" % (a.rtp, lay["rtp_words"], cpu.pc))
     t0 = cpu.time_ns
     stop = run_seconds(cpu, dbg, a.seconds)
@@ -232,9 +234,6 @@ def main(argv=None):
                 w.writerow([t, "%06o" % word, "%03o" % (word & 0o377), "%02o" % fn, "%06o" % v])
     if a.wav and cpu.fm.log[fm0:]:
         from .voice import render, write_wav
-        if len(cpu.fm.log) >= cpu.fm.log_len:
-            print("[rtp] warning: FM log full (%d writes); later writes are not rendered"
-                  % cpu.fm.log_len)
         samples = render(cpu.fm.log, t_keys if keys else cpu.fm.log[fm0][0], cpu.fm.time_ns,
                          voices=cpu.fm.voices)
         clipped = write_wav(a.wav, samples)

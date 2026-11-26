@@ -144,6 +144,40 @@ def test_release_l_ork_lm_plays_a_note():
     assert cpu.fm.interpolator(ch).value == 0
 
 
+
+def test_fm_log_keeps_every_write():
+    """Review 2026-11-26 sync-py #7: --fm-log wrote at most the FM
+    interface's first 100,000 logged writes, with no warning. A stand-in
+    RTP (no image) makes 150,000 D162 writes while the key is held."""
+    import csv
+    import tempfile
+    from sim import rtp
+    from sim.system import make_system
+    calls = []
+
+    def fake_start(image, name="ORK-LM", **kw):
+        return make_system(synth=True), None, {"rtp_words": 0}
+
+    def fake_run(cpu, dbg, seconds):
+        calls.append(seconds)
+        if len(calls) == 2:                     # the key hold
+            for i in range(150_000):
+                cpu.fm.write(0o162, i & 0xFFFF)
+        return None
+    saved = rtp.start_rtp, rtp.run_seconds
+    rtp.start_rtp, rtp.run_seconds = fake_start, fake_run
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "fm.csv")
+            assert rtp.main(["none.simg", "--keys", "48", "--hold", "0.1", "--release", "0",
+                             "--fm-log", path]) == 0
+            with open(path, newline="") as g:
+                rows = list(csv.reader(g))
+    finally:
+        rtp.start_rtp, rtp.run_seconds = saved
+    assert len(rows) == 1 + 150_000, len(rows)
+    assert rows[-1][4] == "%06o" % (149_999 & 0xFFFF), rows[-1]
+
 if __name__ == "__main__":
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     from testlib import run_tests
