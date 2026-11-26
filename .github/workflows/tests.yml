@@ -27,6 +27,8 @@ jobs:
         run: python3 modules/synthframe/bin/synthcore check
       - name: synthcore unit tests
         run: python3 modules/synthframe/tests/synthcore/test_synthcore.py
+      - name: syx (SysEx dump tool) unit tests
+        run: python3 modules/synthframe/tests/syx/test_syx.py
 
   changes:
     runs-on: ubuntu-24.04

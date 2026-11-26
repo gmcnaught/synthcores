@@ -38,7 +38,9 @@ notes and the MAME flag bugs found on the way are in [`docs/upd7810.md`](docs/up
    CZ-101 receives on the channel set with its MIDI button. Program change n selects preset
    n + 1 (the test corpus's program change 14 shows PRESET NO.15). MIDI out (tone selection,
    the pitch wheel) leaves through the UART's TX at 31,250 baud (the smoke test reads it back
-   on the MiSTer's `/dev/ttyS1`).
+   on the MiSTer's `/dev/ttyS1`). Tone dumps load and save over the CZ handshake with
+   `modules/synthframe/tools/syx.py` (`SYX.md` there): 16 tones into internal memory, kept in
+   the save file.
 4. **Pitch wheel:** the first joystick's Y axis (up raises the pitch), or its up/down
    directions for full bend. The firmware bends its own voices and sends pitch bend on MIDI out.
 5. **Output gain (OSD):** 0 to +18 dB, saturating. The output runs at 96 kHz: the chip's
