@@ -6,7 +6,8 @@
 
 A schedule line is "SAMPLE HEX HEX ...": the bytes are queued before 32 kHz sample SAMPLE.
 The MT-32's default parts are on channels 2-9 and the rhythm part on channel 10.
-Every case is generated from fixed seeds, so the files are the same on every run.
+Every case is generated from fixed seeds, so the files are the same on every run. rq1.txt and
+panel.txt (buttons and knob through "# args" lines, tools/corpus.py) are written by hand.
 """
 import random
 import sys

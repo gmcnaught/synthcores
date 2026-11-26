@@ -31,10 +31,19 @@ def samples_of(path):
     return int(first.split()[2])
 
 
+def extra_args(path):
+    """Renderer options from "# args ..." lines (panel buttons, knob: --button/--knob)."""
+    out = []
+    for line in path.read_text().splitlines():
+        if line.startswith("# args "):
+            out += shlex.split(line[len("# args "):])
+    return out
+
+
 def render(cmd, roms, case, tmp):
     out = Path(tmp) / f"{case.stem}.raw"
     args = shlex.split(cmd) + ["--roms", roms, "--midi", str(case), "--samples",
-                               str(samples_of(case)), "--out", str(out)]
+                               str(samples_of(case)), "--out", str(out)] + extra_args(case)
     subprocess.run(args, check=True)
     data = out.read_bytes()
     out.unlink()

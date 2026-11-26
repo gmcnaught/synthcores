@@ -11,6 +11,10 @@
     "samples": 771519,
     "sha256": "518ce52c27e9e090ccfe1654e3792ee3e043017a111334388c6f50a2cf49ab54"
   },
+  "panel": {
+    "samples": 192000,
+    "sha256": "c20de21b13fc3f8d6d02dfb35f6c5c0f70c53fa89c478ba059bc6cf652ead7ce"
+  },
   "parts": {
     "samples": 294400,
     "sha256": "f11cc67ed4dbc1f3a2626ed7d01de31ead196338a6423cf6822d0cd506509f46"
