@@ -202,15 +202,27 @@ module cz101_board #(
     logic [76:0] div_num;           // n S, shifted out MSB first
     logic [39:0] div_rem;
     logic [37:0] div_q;
-    logic [31:0] tmr_cycle;         // boundary cycle the timer fires at
+    logic [31:0] tmr_cycle;         // boundary cycle the timer fires at, once tmr_far = 0
+    // The deadline can be up to 2^37 cycles ahead (an envelope moving away from its target makes
+    // MAME's remaining time wrap: up to 2^29 samples). The 32-bit compare below is valid for less
+    // than 2^31 cycles, so the deadline is kept as tmr_far periods of 2^31 cycles plus
+    // div_q[30:0]: each time vcyc reaches tmr_cycle while tmr_far != 0, one period is used up.
+    logic [6:0]  tmr_far;
+    logic        tmr_hi;            // bit 31 added to tmr_cycle by the periods used up
+    wire  [31:0] tmr_ahead = vcyc - tmr_cycle;   // wrap-safe tmr_cycle <= vcyc: bit 31 clear
 
     always_ff @(posedge clk) begin
         if (reset) begin
-            tmr_valid <= 1'b0; div_busy <= 1'b0; mul_busy <= 1'b0;
+            tmr_valid <= 1'b0; div_busy <= 1'b0; mul_busy <= 1'b0; tmr_far <= 7'd0; tmr_hi <= 1'b0;
         end else begin
             if (t_cancel || t_fire) tmr_valid <= 1'b0;
+            if (tmr_valid && tmr_far != 7'd0 && !tmr_ahead[31]) begin
+                tmr_far <= tmr_far - 7'd1;
+                tmr_hi <= !tmr_hi;
+            end
             if (t_arm) begin
                 arm_base <= arm_time;
+                tmr_hi <= 1'b0;
                 // n S by shift and add (32 clocks), then n S / P by restoring division (77)
                 mul_n <= t_n; div_num <= 77'h0; div_i <= 7'd32;
                 mul_busy <= 1'b1; div_busy <= 1'b0; tmr_valid <= 1'b0;
@@ -225,25 +237,23 @@ module cz101_board #(
                 end
             end else if (div_busy) begin
                 logic [39:0] r;
+                logic [37:0] q;
                 r = {div_rem[38:0], div_num[76]};
                 div_num <= {div_num[75:0], 1'b0};
-                if (r >= {1'b0, P_AS}) begin
-                    div_rem <= r - {1'b0, P_AS};
-                    div_q <= {div_q[36:0], 1'b1};
-                end else begin
-                    div_rem <= r;
-                    div_q <= {div_q[36:0], 1'b0};
-                end
+                q = {div_q[36:0], r >= {1'b0, P_AS}};
+                div_q <= q;
+                div_rem <= (r >= {1'b0, P_AS}) ? r - {1'b0, P_AS} : r;
                 div_i <= div_i - 7'd1;
                 if (div_i == 7'd1) begin
                     div_busy <= 1'b0;
                     tmr_valid <= 1'b1;
+                    tmr_far <= q[37:31];
                 end
             end
         end
     end
     // quotient settles the clock div_busy falls
-    always_comb tmr_cycle = arm_base + div_q[31:0];
+    always_comb tmr_cycle = arm_base + {tmr_hi, div_q[30:0]};
     assign sample_valid = s_valid;
     assign sample = s_out;
     assign sample_sum = s_sum;
@@ -472,7 +482,6 @@ module cz101_board #(
 
     wire sck_due = !sck_ahead[31];
     wire [31:0] sck_ahead = vcyc - sck_cyc;      // wrap-safe sck_cyc <= vcyc
-    wire [31:0] tmr_ahead = vcyc - tmr_cycle;
     wire [31:0] rx_ahead  = vcyc - rx_cycle;
     wire [31:0] rx_before = rx_edge - sck_k;
 
@@ -497,7 +506,7 @@ module cz101_board #(
             else if (fire_wait != 2'd0) fire_wait <= fire_wait - 2'd1;
             if (at_boundary && !ev_done && s_settled && bus_st == B_IDLE && !pb_pending && !rst_pending
                 && !div_busy && !mul_busy && !t_arm && !t_fire && fire_wait == 2'd0) begin
-                if (tmr_valid && !tmr_ahead[31]) begin
+                if (tmr_valid && tmr_far == 7'd0 && !tmr_ahead[31]) begin
                     t_fire <= 1'b1;           // MAME timer_tick at D (before this instruction)
                 end else if (irq_seen_rise || int1_line != s_irq) begin
                     int1_rise <= irq_seen_rise;

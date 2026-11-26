@@ -7,6 +7,9 @@
 #              wraps (CZ_TICK_BASE; on the board after about 30.5 h): samples continue.
 #   power      PC3 = 0 (firmware power-down) with the power switch on: the CPU is held in reset,
 #              the LCD is dark (MAME m_power = 0) and the uPD933 keeps making samples.
+#   irqtimer   a DCA step with direction and target on the wrong side (MAME's remaining time
+#              wraps: 390,427,742 samples, 3.25e10 CPU cycles), then /CS rises: the IRQ timer is
+#              more than 2^31 cycles ahead and must not fire during the run.
 # Prints one line per case and "board: N passed"; exits 1 on any failure.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,7 +52,8 @@ def near(got, want, tol=3):
 
 JR_SELF = [0xFF]                                   # JR $
 MVI_A = lambda v: [0x69, v]
-MOV_MC_A, MOV_PC_A = [0x4D, 0xD4], [0x4D, 0xC2]
+MOV_MB_A, MOV_MC_A, MOV_PB_A, MOV_PC_A = [0x4D, 0xD3], [0x4D, 0xD4], [0x4D, 0xC1], [0x4D, 0xC2]
+STA = lambda a: [0x70, 0x79, a & 0xFF, a >> 8]       # MOV (word),A
 
 results = []
 def check(name, ok, detail):
@@ -78,6 +82,19 @@ else:
           and near(r["down_samples"], want),
           f"powered down at cycle {r['down_at']}, lcd_power {r['lcd_power']}, {r['down_samples']} samples "
           f"in the {span} cycles after (expected {want})")
+
+# irqtimer: DCA voice 0 step 0x8301 (direction down, rate code 3 = 11, target 1 << 18; current 0)
+N_EXPECT = 390427742
+rom = prog("irqtimer", MVI_A(0x00) + MOV_MB_A + MOV_PB_A                 # port B out, /CS low
+           + MVI_A(0x00) + STA(0xC000) + MVI_A(0x83) + STA(0xC000) + MVI_A(0x01) + STA(0xC000)
+           + MVI_A(0x20) + MOV_PB_A + JR_SELF)                          # /CS high: arm the timer
+r, err = run("irqtimer", rom)
+if r is None:
+    check("irqtimer", False, err)
+else:
+    check("irqtimer", r["arms"] >= 1 and r["arm_n"] == N_EXPECT and r["irq_rises"] == 0,
+          f"timer armed {r['arms']} time(s), n {r['arm_n']} (expected {N_EXPECT}); "
+          f"uPD933 IRQ rises {r['irq_rises']} in {r['cycles']} cycles (expected 0)")
 
 npass = sum(results)
 print(f"board: {npass} passed, {len(results) - npass} failed")
