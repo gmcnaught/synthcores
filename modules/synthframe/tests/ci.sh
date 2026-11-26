@@ -15,6 +15,7 @@ run() {     # NAME CMD...
     if "$@"; then pass=$((pass + 1)); else fail=$((fail + 1)); failed+=("$name"); echo "FAIL: $name"; fi
 }
 S=modules/synthframe
+run "no ROMs in the repository" python3 $S/tests/hygiene/test_no_roms.py
 run "synthcore check" python3 $S/bin/synthcore check
 run "synthcore unit tests" python3 $S/tests/synthcore/test_synthcore.py
 run "synth-mister backup/restore (fake SD card)" $S/tests/synth-mister/run.sh
