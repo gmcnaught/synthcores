@@ -5,7 +5,9 @@ Builds sim/snd_tb.cpp (snd_ctrl: the core's write FIFO and sequencer, synthframe
 synthframe_mem_ddr3 and proteus_snd), makes random demo images with tools/snd_randimg.py
 (random sample data; all 32 voices with random start, pitch, tone, loops, envelopes, pan and
 byte-lane writes) and checks that the bench output equals the model's bit for bit. The bench
-itself also checks the DDR3 capture ring, missed sample deadlines and the status words.
+itself also checks the DDR3 capture ring, missed sample deadlines and the status words
+(sample count, reset epoch, peak level). A second build with a 128-clock sample period checks
+that the missed-deadline counter saturates and the epoch counts a reset (--status-test).
 
 The model runs under pypy3 (CLAUDE.md); without pypy3 it falls back to python3 (slower).
 Exit status: 0 all passed, 1 a failure, 77 skipped (verilator missing).
@@ -62,7 +64,19 @@ def main():
                 fails += 1
             else:
                 print(f"ok   {name}: {SAMPLES} samples bit-identical")
-        print(f"test_snd_model: {len(CASES) - fails} passed, {fails} failed")
+        # status words under overload: SAMPLE_DIV=128 misses most ticks (review #16)
+        env = dict(os.environ, VFLAGS="-GSAMPLE_DIV=128")
+        tb2 = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(tmp, "build128")],
+                             check=True, stdout=subprocess.PIPE, text=True, env=env).stdout.strip().splitlines()[-1]
+        img = os.path.join(tmp, f"rand{CASES[0][0]}.bin")
+        r = subprocess.run([tb2, img, os.path.join(tmp, "st.raw"), "24576", "1", "--status-test"], cwd=tmp,
+                           stderr=subprocess.PIPE, text=True)
+        if r.returncode != 0:
+            print(f"FAIL status words under overload:\n{r.stderr}")
+            fails += 1
+        else:
+            print("ok   status words: missed deadlines saturate, reset epoch counts")
+        print(f"test_snd_model: {len(CASES) + 1 - fails} passed, {fails} failed")
         return 1 if fails else 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

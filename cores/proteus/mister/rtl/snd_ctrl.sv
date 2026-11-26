@@ -11,10 +11,14 @@
 //    first 16 bytes again at 0x30800000, so a 3-beat sample fetch that starts in the
 //    last 8 words of the 4M-word space reads words 0, 1, ... after word 0x3FFFFF
 //    (MAME mirrors the sample ROM; tools/proteus_model.py masks the address).
-//  - Status word at 0x30FFFF00, rewritten every 4096 samples (64-bit LE):
-//    bits 31..0 samples produced, 47..32 missed sample deadlines (a tick arrived
-//    while the previous one was still pending), 63..48 worst clocks from a tick
-//    to its sample (of 2048 available).
+//  - Status words, rewritten every 4096 samples (64-bit LE; tools/mister_soak.py):
+//    0x30FFFF00: bits 31..0 samples produced since the last reset, 47..32 missed
+//    sample deadlines (a tick arrived while the previous one was still pending;
+//    saturates at 0xFFFF), 63..48 worst clocks from a tick to its sample (of 2048).
+//    0x30FFFF08: bits 15..0 reset epoch (resets of the sound subsystem since the FPGA
+//    was configured, saturating; a reader sees whether the counters above restarted),
+//    31..16 peak |sample| of either channel over the last 4096 samples,
+//    47..32 0x5031 (marks this layout), 63..48 0.
 //============================================================================
 
 module snd_ctrl #(parameter SAMPLE_DIV = 2048)
@@ -118,6 +122,16 @@ reg  [15:0] st_missed;
 reg  [15:0] st_worst;
 reg  [15:0] st_busy;         // clocks since the current tick
 reg         st_pend;
+reg         st_sel;          // status word being written: 0 counters, 1 epoch/peak
+reg  [15:0] st_epoch = 16'd0;
+reg  [15:0] st_peak, st_peak_out;
+reg         reset_d;
+localparam [15:0] ST_MAGIC = 16'h5031;
+
+function [15:0] mag(input signed [15:0] x);
+	mag = x[15] ? 16'd0 - x : x;
+endfunction
+wire [15:0] smp_mag = (mag(snd_l) > mag(snd_r)) ? mag(snd_l) : mag(snd_r);
 
 // ---------------------------------------------------------------- DDR arbiter
 // Sample fetch: 3 beats (12 words) from the aligned address; the engine gets the 8 words
@@ -180,8 +194,8 @@ assign c_req_valid[1] = cap_pend;
 assign c_req_addr[1]  = CAPT_BASE + {8'd0, cap_ptr};
 assign c_req_wdata[1] = cap_word;
 assign c_req_valid[2] = st_pend;
-assign c_req_addr[2]  = STAT_ADDR;
-assign c_req_wdata[2] = {st_worst, st_missed, st_samples};
+assign c_req_addr[2]  = STAT_ADDR + {28'd0, st_sel};
+assign c_req_wdata[2] = st_sel ? {16'd0, ST_MAGIC, st_peak_out, st_epoch} : {st_worst, st_missed, st_samples};
 assign c_req_valid[3] = mem_req && !mem_ack && !s_wait;
 assign c_req_addr[3]  = DDR_BASE + {9'd0, mem_addr[21:2]};
 assign c_req_wdata[3] = 64'd0;
@@ -267,6 +281,8 @@ always @(posedge clk) begin
 	cpu_rb_done   <= 0;
 	sample_strobe <= 0;
 	wgap <= (snd_wr || pan_wr) ? 2'd2 : (wgap != 0 ? wgap - 1'd1 : 2'd0);
+	reset_d <= reset;
+	if (reset_d && !reset && st_epoch != 16'hFFFF) st_epoch <= st_epoch + 1'd1;
 
 	if (reset) begin
 		q_state      <= Q_IDLE;
@@ -285,6 +301,9 @@ always @(posedge clk) begin
 		st_worst     <= 0;
 		st_busy      <= 0;
 		st_pend      <= 0;
+		st_sel       <= 0;
+		st_peak      <= 0;
+		st_peak_out  <= 0;
 	end
 	else begin
 		if (cpu_wr && !cpu_wr_full) f_wp <= f_wp + 1'd1;
@@ -293,11 +312,14 @@ always @(posedge clk) begin
 		if (div == SAMPLE_DIV - 1) begin
 			div <= 0;
 			tick_pending <= 1;
-			if (tick_pending) st_missed <= st_missed + 1'd1;
+			if (tick_pending && st_missed != 16'hFFFF) st_missed <= st_missed + 1'd1;
 		end
 		else div <= div + 1'd1;
 		if (st_busy != 16'hFFFF) st_busy <= st_busy + 1'd1;
-		if (st_done) st_pend <= 0;
+		if (st_done) begin
+			if (!st_sel) st_sel <= 1;                  // then the second word
+			else begin st_sel <= 0; st_pend <= 0; end
+		end
 
 		if (cap_done) begin
 			cap_pend <= 0;
@@ -336,7 +358,12 @@ always @(posedge clk) begin
 				sample_strobe <= 1;
 				st_samples <= st_samples + 1'd1;
 				if (st_busy > st_worst) st_worst <= st_busy;
-				if (st_samples[11:0] == 12'hFFF) st_pend <= 1;
+				if (st_samples[11:0] == 12'hFFF) begin
+					st_pend     <= 1;
+					st_peak_out <= (smp_mag > st_peak) ? smp_mag : st_peak;
+					st_peak     <= 0;
+				end
+				else if (smp_mag > st_peak) st_peak <= smp_mag;
 				if (!cap_half) begin
 					cap_lo   <= {snd_r, snd_l};
 					cap_half <= 1;

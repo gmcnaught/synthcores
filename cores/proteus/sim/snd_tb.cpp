@@ -6,9 +6,14 @@
 // the FIFO drains them in front of sample k, the same timing as tools/proteus_model.py.
 // Writes the outputs as raw s16 LE L/R and checks the DDR3 capture ring and the status words.
 //
-// Usage: Vsnd_ctrl DEMO.bin OUT.raw SAMPLES [seed] [--no-tone]
+// Usage: Vsnd_ctrl DEMO.bin OUT.raw SAMPLES [seed] [--no-tone] [--status-test]
+//   --status-test: for a build with a short sample period (VFLAGS=-GSAMPLE_DIV=128, so most
+//   ticks are missed): resets the sound subsystem once at sample 8192 and checks the status
+//   words: missed deadlines saturate at 0xFFFF instead of wrapping, the reset epoch counts
+//   both resets (review 2026-11-26 proteus1.md#16). No output comparison in this mode.
 #include "Vsnd_ctrl.h"
 #include "verilated.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -35,8 +40,11 @@ int main(int argc, char **argv) {
 	FILE *out = fopen(argv[2], "wb"); if (!out) return 2;
 	long want = atol(argv[3]);
 	srand(argc > 4 && argv[4][0] != '-' ? atoi(argv[4]) : 1);
-	bool tone = true;
-	for (int i = 4; i < argc; i++) if (!strcmp(argv[i], "--no-tone")) tone = false;
+	bool tone = true, status_test = false;
+	for (int i = 4; i < argc; i++) {
+		if (!strcmp(argv[i], "--no-tone")) tone = false;
+		if (!strcmp(argv[i], "--status-test")) status_test = true;
+	}
 
 	Verilated::commandArgs(argc, argv);
 	Vsnd_ctrl *t = new Vsnd_ctrl;
@@ -85,6 +93,7 @@ int main(int argc, char **argv) {
 	t->reset = 0;
 	size_t ev = 0; long wait = 0;
 	long got = 0, writes = 0; int full_stalls = 0;
+	std::vector<uint16_t> mags;   // max(|L|, |R|) per sample since the last reset
 	auto push_events = [&]() {
 		// the events for the next output sample (tools/proteus_model.py run())
 		if (wait) { wait--; return; }
@@ -111,6 +120,11 @@ int main(int argc, char **argv) {
 		if (t->sample_strobe) {
 			int16_t s[2] = { int16_t(t->out_l), int16_t(t->out_r) };
 			fwrite(s, 2, 2, out); got++;
+			mags.push_back(uint16_t(std::max(std::abs(int(s[0])), std::abs(int(s[1])))));
+			if (status_test && got == 8192) {
+				t->reset = 1; for (int i = 0; i < 16; i++) cycle(); t->reset = 0;
+				mags.clear();
+			}
 			if (got < want) push_events();
 		}
 	}
@@ -123,8 +137,23 @@ int main(int argc, char **argv) {
 	        unsigned(st0 & 0xFFFFFFFF), unsigned(st0 >> 32 & 0xFFFF), unsigned(st0 >> 48),
 	        unsigned(st1 & 0xFFFF), unsigned(st1 >> 16 & 0xFFFF), unsigned(st1 >> 32 & 0xFFFF));
 	int rc = 0;
+	unsigned missed = st0 >> 32 & 0xFFFF, epoch = st1 & 0xFFFF, peak = st1 >> 16 & 0xFFFF, magic = st1 >> 32 & 0xFFFF;
+	if (mags.size() >= 4096) {
+		size_t end = mags.size() / 4096 * 4096;
+		unsigned want_peak = *std::max_element(mags.begin() + (end - 4096), mags.begin() + end);
+		if (magic != 0x5031) { fprintf(stderr, "FAIL: second status word missing (magic %04x)\n", magic); rc = 1; }
+		if (epoch != (status_test ? 2u : 1u)) { fprintf(stderr, "FAIL: reset epoch %u\n", epoch); rc = 1; }
+		if (peak != want_peak) { fprintf(stderr, "FAIL: status peak %u, output peak %u\n", peak, want_peak); rc = 1; }
+		if ((st0 & 0xFFFFFFFF) != end) { fprintf(stderr, "FAIL: status samples %u, want %zu\n", unsigned(st0 & 0xFFFFFFFF), end); rc = 1; }
+	}
+	if (status_test) {
+		if (missed != 0xFFFF) { fprintf(stderr, "FAIL: missed deadlines %u, want saturated 65535\n", missed); rc = 1; }
+		else fprintf(stderr, "status test: missed saturated, epoch %u, peak %u\n", epoch, peak);
+		delete t;
+		return rc;
+	}
 	if (full_stalls) { fprintf(stderr, "FAIL: the write FIFO filled (more than 63 writes in one sample)\n"); rc = 1; }
-	if (got >= 4096 && (st0 >> 32 & 0xFFFF)) { fprintf(stderr, "FAIL: missed sample deadlines\n"); rc = 1; }
+	if (got >= 4096 && missed) { fprintf(stderr, "FAIL: missed sample deadlines\n"); rc = 1; }
 	// the capture ring must hold the same samples (pairs are written every 2 samples)
 	long cap = (got / 2) * 2;
 	std::vector<uint8_t> o(cap * 4);
