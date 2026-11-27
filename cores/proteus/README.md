@@ -51,9 +51,11 @@ and saves the presets to `saves/Proteus/proteus_system.sav`. Later boots restore
 
 ## MIDI
 Set the core's UART mode to **MIDI** in the OSD and connect a USB MIDI keyboard to the MiSTer
-(MidiLink). Notes, program changes, CC7 (volume) and CC10 (pan) are tested; the Proteus/1's other
-MIDI features (multitimbral setups, assignable controllers A–D, SysEx) come from the original
-firmware and have not been verified on the core yet.
+(MidiLink). Notes, program changes, CC7 (volume) and CC10 (pan) are tested. SysEx preset dumps
+load and save with `modules/synthframe/tools/syx.py` (`SYX.md` there): 64 user presets sent and
+read back unchanged, kept in `proteus_system.sav`. The other MIDI features (multitimbral setups,
+assignable controllers A–D) come from the original firmware and have not been verified on the
+core yet.
 
 ## Controls
 | Front panel | Keyboard | Joystick |

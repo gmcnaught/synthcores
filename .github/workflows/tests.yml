@@ -31,6 +31,8 @@ jobs:
         run: python3 modules/synthframe/bin/synthcore check
       - name: synthcore unit tests
         run: python3 modules/synthframe/tests/synthcore/test_synthcore.py
+      - name: syx (SysEx dump tool) unit tests
+        run: python3 modules/synthframe/tests/syx/test_syx.py
 
   # ShellCheck (scripts/, modules/synthframe/bin, cores/*/scripts) and ruff (ruff.toml) through
   # scripts/precommit.sh --fast; hdl-lint and counter-audit run in modules/synthframe/tests/ci.sh.

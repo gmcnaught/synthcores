@@ -74,6 +74,8 @@ SIMM download (see `docs/plan.md`).
 
 - **MIDI:** set the UART to MidiLink; it is MIDI In A, at 31250 or 9600 baud. UART TX is MIDI Out
   (checked on the MiSTer with `scripts/mister/midi_probe.py`: the OS answers an identity request).
+  Preset dumps, open and closed loop, load into the user bank and are kept in the flash save:
+  `modules/synthframe/tools/syx.py` (`SYX.md` there).
 - **Panel keys:**
 
   | Key | Panel | Key | Panel |

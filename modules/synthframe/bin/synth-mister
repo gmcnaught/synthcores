@@ -28,6 +28,10 @@
 #   midi-off                     after a core load: stop the /sbin/uartmode loops the load started
 #                                (they respawn MidiLink every second) and MidiLink, so a test can
 #                                read the core's MIDI out on /dev/ttyS1
+#   syx-send FILE... [-- OPTS]   send .syx/.mid SysEx dumps to the running core through its UART
+#                                (tools/syx.py send; run midi-off first, or pass --stop-midilink)
+#   syx-dump OUT.syx ARGS...     tools/syx.py dump on the MiSTer (REQUEST_HEX... or --cz PP),
+#                                the file copied back to OUT.syx
 #   sh CMD...                    run a command on the MiSTer
 #
 # Cores and where they install: see CORES below. Every core installs under _Devices; restore
@@ -108,6 +112,21 @@ midi-off)
     # expands $p: single quotes on purpose.
     # shellcheck disable=SC2016
     "${SSH[@]}" 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true' ;;
+syx-send)
+    TOOLS=$(cd "$(dirname "$0")/../tools" && pwd)
+    files=(); while [ $# -gt 0 ] && [ "$1" != -- ]; do files+=("$1"); shift; done; [ "${1:-}" = -- ] && shift
+    [ ${#files[@]} -gt 0 ] || { echo "syx-send FILE... [-- OPTS]" >&2; exit 2; }
+    "${SSH[@]}" "rm -rf /tmp/syx && mkdir -p /tmp/syx"
+    scp -q "$TOOLS/syx.py" "${files[@]}" "$DEV:/tmp/syx/"
+    remote=(); for f in "${files[@]}"; do remote+=("/tmp/syx/$(basename "$f")"); done
+    "${SSH[@]}" "python3 /tmp/syx/syx.py send ${remote[*]} $*" ;;
+syx-dump)
+    TOOLS=$(cd "$(dirname "$0")/../tools" && pwd)
+    out=${1:?syx-dump OUT.syx REQUEST_HEX... | --cz PP}; shift
+    "${SSH[@]}" "rm -rf /tmp/syx && mkdir -p /tmp/syx"
+    scp -q "$TOOLS/syx.py" "$DEV:/tmp/syx/"
+    "${SSH[@]}" "python3 /tmp/syx/syx.py dump /tmp/syx/out.syx $*"
+    scp -q "$DEV:/tmp/syx/out.syx" "$out" ;;
 sh)
     "${SSH[@]}" "$*" ;;
 *)
