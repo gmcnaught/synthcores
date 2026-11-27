@@ -10,6 +10,11 @@
 //
 // Usage: board_lockstep --roms DIR --pack FILE [--steps N] [--midi-loud S | --midi-demo S] [--seed S]
 //                       [--midi-at STEP:HEX]...
+//        [--rx-baud B] (mk1, SC-155): --midi-at bytes go out on uart_rxd as 8N1 at B baud, back to back
+//        from their step (as `cat > /dev/ttyS1` sends them), through synthframe_midi_rx's speed
+//        detection; the model gets each byte in the step in which the HDL MCU reads it, and uart_txd is
+//        decoded at B baud, as the host reads it. [--step-clocks N]: each step takes at least N clocks
+//        (16 is about real time at 50 MHz for the mk1).
 //        [--drop-hdl-from STEP] (bench self-test): discard the HDL's samples from STEP on, as a PCM
 //        that stops late in the run would; the end-of-run count check must then fail.
 #include "Vsc55_board.h"
@@ -98,6 +103,8 @@ int main(int argc, char** argv)
     int64_t     midi_seed = -1, loud_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     bool        zero_init = false, serial = false;
+    int64_t     rx_baud = 0, step_clocks = 0;
+    bool        rx_trace = false;
     std::string lcd_ppm;
     uint64_t    free_run = 0, stall_at = 0, stall_len = 0;   // free run: close step_gate for stall_len clocks at stall_at
     std::vector<uint8_t> frame(741 * 268 * 3, 0);
@@ -122,6 +129,9 @@ int main(int argc, char** argv)
         }
         else if (a == "--zero-init") zero_init = true;
         else if (a == "--serial") serial = true;
+        else if (a == "--rx-baud" && i + 1 < argc) rx_baud = std::strtoll(argv[++i], nullptr, 0);
+        else if (a == "--rx-trace") rx_trace = true;
+        else if (a == "--step-clocks" && i + 1 < argc) step_clocks = std::strtoll(argv[++i], nullptr, 0);
         else if (a == "--drop-hdl-from" && i + 1 < argc) drop_hdl_from = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--lcd-ppm" && i + 1 < argc) lcd_ppm = argv[++i];
         else if (a == "--free-run" && i + 1 < argc) free_run = std::strtoull(argv[++i], nullptr, 0);
@@ -155,6 +165,7 @@ int main(int argc, char** argv)
     emu.GetPCM().enable_oversampling = true;
     emu.SetSampleCallback(sample_cb, nullptr);
     mcu_t& m = emu.GetMCU();
+    if (rx_baud && !m.is_mk1) { fprintf(stderr, "--rx-baud: mk1 and SC-155 only (the mk2's sub-MCU reads the buffer)\n"); return 2; }
     {
         // a v2 pack must hold the wave ROMs as the model has them (unscrambled); for a v3 pack
         // the loader must put them in DDR3 that way
@@ -189,7 +200,19 @@ int main(int argc, char** argv)
     std::string last_pcm;
     uint32_t pre_vm = 0, pre_vmp = 0; bool pre_upd = false; uint64_t pre_cyc = 0; uint16_t pre_r2[16] = {};
     uint64_t last_rd_due = 0, ddr_reads = 0;
-    UartDecode txdec(50'000'000 / 31'250);   // the board at its default CLK_HZ
+    const int64_t tx_bit = 50'000'000 / (rx_baud ? rx_baud : 31'250);   // the board at its default CLK_HZ
+    UartDecode txdec(tx_bit);
+    // --rx-baud: the serial line into uart_rxd, and the bytes synthframe_midi_rx delivered to the MCU
+    std::deque<uint8_t> line_q;
+    int64_t  line_bit = -1, line_left = 0;   // bit of the frame on the line (-1 idle), clocks left in it
+    uint16_t line_frame = 0;
+    std::deque<uint8_t> hdl_rx;              // in the HDL's receive buffer, not yet posted to the model
+    uint64_t rx_line_bytes = 0, rx_hdl_bytes = 0;
+    // MIDI out is checked from the speed match on: before it the board sends at 31250, which a host
+    // at another speed cannot read (the bytes the model and the host had by then are not compared)
+    bool   speed_matched = rx_baud == 0;
+    size_t tx_skip_ref = 0, tx_skip_line = 0;
+    int    tx_skip_err = 0;
     static std::vector<uint8_t> tx_ref;
     g_ref_hooks.tx = [](void*, int, uint64_t, uint8_t d) { tx_ref.push_back(d); };
     auto tick = [&]() {
@@ -201,7 +224,49 @@ int main(int argc, char** argv)
             t->DDRAM_DOUT = ddr[rdq.front().second];
             rdq.pop_front();
         }
+        if (rx_baud)
+        {
+            if (line_bit < 0 && !line_q.empty())
+            {
+                line_frame = (uint16_t)(0x200 | (line_q.front() << 1));   // start 0, data LSB first, stop 1
+                line_q.pop_front();
+                line_bit = 0;
+                line_left = 50'000'000 / rx_baud;
+                ++rx_line_bytes;
+            }
+            t->uart_rxd = line_bit < 0 ? 1 : (line_frame >> line_bit) & 1;
+            if (line_bit >= 0 && --line_left == 0)
+            {
+                if (++line_bit == 10) line_bit = -1;
+                else line_left = 50'000'000 / rx_baud;
+            }
+        }
         t->clk = 0; t->clk_vid = 0; t->eval();
+        // a byte from synthframe_midi_rx goes into the MCU's buffer at this edge
+        if (rx_baud && t->rootp->sc55_board__DOT__rx_valid && t->running && !t->rootp->sc55_board__DOT__core__DOT__midi_full)
+        {
+            hdl_rx.push_back(t->rootp->sc55_board__DOT__rx_data);
+            ++rx_hdl_bytes;
+            if (rx_trace) printf("step %" PRIu64 ": MIDI in %02x (speed %s)\n", cur_step, t->rootp->sc55_board__DOT__rx_data, t->midi_alt ? "alt" : "standard");
+        }
+        if (rx_trace)
+        {
+            static int alt_was = 0;
+            static size_t tx_seen = 0;
+            static int scr_was = -1;
+            const int scr = t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__dev[0x5a];
+            if (scr != scr_was) { printf("step %" PRIu64 ": SCR %02x (SSR %02x)\n", cur_step, scr, t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__dev[0x5c]); scr_was = scr; }
+            if (t->midi_alt != alt_was) { printf("step %" PRIu64 ": midi_alt %d\n", cur_step, t->midi_alt); alt_was = t->midi_alt; }
+            if (t->rootp->sc55_board__DOT__tx_valid) printf("step %" PRIu64 ": MCU sent %02x (midi_alt %d)\n", cur_step, t->rootp->sc55_board__DOT__tx_data, t->midi_alt);
+            if (txdec.bytes.size() != tx_seen) { printf("step %" PRIu64 ": host got %02x\n", cur_step, txdec.bytes.back()); tx_seen = txdec.bytes.size(); }
+        }
+        if (!speed_matched && (t->midi_alt != 0) == (rx_baud != 31'250) && txdec.idle())
+        {
+            speed_matched = true;
+            tx_skip_ref = tx_ref.size();
+            tx_skip_line = txdec.bytes.size();
+            tx_skip_err = txdec.errors;
+        }
         // commands are taken at this edge when not busy
         if (!t->DDRAM_BUSY && !t->rst)
         {
@@ -465,6 +530,8 @@ int main(int argc, char** argv)
             tick();
             t->midi_inject = 0;
         }
+        else if (rx_baud)
+            while (!sched.empty() && sched.front().first <= s) { line_q.push_back(sched.front().second); sched.pop_front(); }
         else if (!sched.empty() && sched.front().first <= s && (s % 600) == 0)
         {
             uint8_t b = sched.front().second;
@@ -479,14 +546,27 @@ int main(int argc, char** argv)
             pre_vm = pm.voice_mask; pre_vmp = pm.voice_mask_pending; pre_upd = pm.voice_mask_updating; pre_cyc = pm.cycles;
             for (int i = 0; i < 16; ++i) pre_r2[i] = pm.ram2[23][i];
         }
-        emu.Step();
+        // --rx-baud: the HDL steps first; the model gets the bytes the HDL MCU read in this step
+        if (!rx_baud) emu.Step();
         last_pcm.clear();
         uint64_t c0 = clocks;
+        const uint32_t rp0 = t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__rx_rp;
         t->step_gate = 1;
         tick();
         t->step_gate = 0;
         for (int g = 0; g < 50'000'000 && !t->step_done; ++g) tick();
         const bool step_finished = t->step_done;
+        if (rx_baud)
+        {
+            for (uint32_t k = (t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__rx_rp - rp0) & 2047; k > 0; --k)
+            {
+                if (hdl_rx.empty()) { fprintf(stderr, "step %" PRIu64 ": the HDL MCU read a byte the bench did not see arrive\n", s); return 1; }
+                emu.PostMIDI(hdl_rx.front());
+                hdl_rx.pop_front();
+            }
+            emu.Step();
+            while ((int64_t)(clocks - c0) < step_clocks) tick();
+        }
         max_step = std::max(max_step, clocks - c0);
         // mk2: the sub-MCU runs this step's SM_Update alongside the next step; let it finish before comparing
         if (!m.is_mk1) for (int g = 0; g < 10000 && !t->rootp->sc55_board__DOT__core__DOT__mcu__DOT__sm_caught_up; ++g) tick();
@@ -496,7 +576,8 @@ int main(int argc, char** argv)
             std::string d;
             if ((m.is_mk1 ? R->sc55_board__DOT__core__DOT__mcu__DOT__uart_rx_byte : R->sc55_board__DOT__core__DOT__mcu__DOT__sm__DOT__rx_byte) != m.uart_rx_byte) d += "uart_rx_byte ";
             uint32_t hc = (uint32_t)(R->sc55_board__DOT__core__DOT__mcu__DOT__rx_wp - R->sc55_board__DOT__core__DOT__mcu__DOT__rx_rp) & 2047;
-            if (hc != (m.uart_write_ptr - m.uart_read_ptr) % uart_buffer_size) d += "rx_count(hdl " + std::to_string(hc) + " ref " + std::to_string((m.uart_write_ptr - m.uart_read_ptr) % uart_buffer_size) + ") ";
+            const uint32_t rc = (m.uart_write_ptr - m.uart_read_ptr) % uart_buffer_size + (uint32_t)hdl_rx.size();
+            if (hc != rc) d += "rx_count(hdl " + std::to_string(hc) + " ref " + std::to_string(rc) + ") ";
             for (int a = 0; a < 0x80; ++a)
                 if (!((a >= 0x10 && a < 0x40) || (a >= 0x50 && a < 0x55)) && R->sc55_board__DOT__core__DOT__mcu__DOT__dev[a] != m.dev_register[a])
                     d += "dev[" + std::to_string(a) + "] ";
@@ -540,11 +621,19 @@ int main(int argc, char** argv)
     if (m_total == 0) { fprintf(stderr, "no samples compared\n"); return 1; }
 
     // MIDI out: let the line finish, then the bytes must be the model's
-    for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * 1600 &&
+    for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * (uint64_t)tx_bit &&
                          (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
         tick();
     {
         const unsigned dropped = t->rootp->sc55_board__DOT__midi_out__DOT__dropped;
+        if (!speed_matched) { fprintf(stderr, "MIDI in: synthframe_midi_rx never matched the line's %" PRId64 " baud\n", rx_baud); return 1; }
+        if (tx_skip_ref || tx_skip_line)
+        {
+            printf("MIDI out before the speed match (not compared): model %zu bytes, line %zu\n", tx_skip_ref, tx_skip_line);
+            tx_ref.erase(tx_ref.begin(), tx_ref.begin() + tx_skip_ref);
+            txdec.bytes.erase(txdec.bytes.begin(), txdec.bytes.begin() + tx_skip_line);
+            txdec.errors -= tx_skip_err;
+        }
         if (txdec.bytes != tx_ref || txdec.errors || dropped)
         {
             fprintf(stderr, "MIDI out: uart_txd carried %zu bytes (%d framing errors, %u dropped), model sent %zu\n",
@@ -602,6 +691,10 @@ int main(int argc, char** argv)
            "%.1f clocks/step (max %" PRIu64 "), %" PRIu64 " DDR3 reads, MIDI bytes %zu, MIDI out bytes %zu on uart_txd\n",
            load_clocks, steps, compared, peak > 0 ? 20 * std::log10((double)peak / 2147483648.0) : -999.0,
            (double)run_clocks / (double)steps, max_step, ddr_reads, pos, tx_ref.size());
+    if (rx_baud)
+        printf("serial MIDI in at %" PRId64 " baud: %" PRIu64 " bytes on uart_rxd, %" PRIu64 " to the MCU, speed %s; MIDI out at %" PRId64 " baud:%s\n",
+               rx_baud, rx_line_bytes, rx_hdl_bytes, t->midi_alt ? "alt" : "standard", rx_baud,
+               [&] { std::string o; for (uint8_t b : txdec.bytes) { char h[4]; snprintf(h, sizeof h, " %02x", b); o += h; } return o; }().c_str());
     delete t;
     return 0;
 }

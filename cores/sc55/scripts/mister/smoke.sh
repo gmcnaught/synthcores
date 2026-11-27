@@ -9,8 +9,9 @@
 # SECONDS (default 100) and screenshots again. MIDI out (MIDI-OUT-PLAN.md): after the boot
 # screenshot, the GS data request (RQ1) for master tune goes out and tty_midi_xfer.py
 # reads /dev/ttyS1 for 3 s (at 9600: synthframe_midi_tx follows the input's speed); every model
-# sends Active Sensing (FE), and the mk2 / SC-155mk2 answer with the DT1 the reference sends,
-# F0 41 10 42 12 40 00 00 00 04 00 00 3C F7 (the mk1's firmware does not answer in the reference).
+# sends Active Sensing (FE), and the mk1, mk2 and SC-155mk2 answer with the DT1 the reference
+# sends, F0 41 10 42 12 40 00 00 00 04 00 00 3C F7. The SC-155's firmware does not answer, in
+# the reference either. Before synthcores #52 the mk1 sent nothing at all after the RQ1.
 # Writes OUTDIR/{boot,end}.png, OUTDIR/midi_out.txt and OUTDIR/result.txt (lcd_sha: SHA-256 of
 # the LCD area at boot; band, underrun, lag: the status strip at the end; midi_out). Exit 1 if
 # the core is not running, an underrun or lag box is set, or the MIDI out bytes are not there.
@@ -87,7 +88,7 @@ dt1 = bytes.fromhex("f041104212400000000400003cf7")
 # message (MIDI 1.0): the SC-155mk2 sends FE inside its DT1. Match the DT1 without them.
 msg = bytes(b for b in rx if b < 0xF8)
 dt1_ok = dt1 in msg
-midi_ok = rx.count(0xFE) >= 2 and (model < 2 or dt1_ok)
+midi_ok = rx.count(0xFE) >= 2 and (model == 1 or dt1_ok)
 print(f"midi_out: model {model}, {len(rx)} bytes, {rx.count(0xFE)} FE, DT1 {'yes' if dt1_ok else 'no'}: "
       f"{msg.hex(' ')}")
 sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and midi_ok else 1)

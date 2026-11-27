@@ -36,9 +36,13 @@ Other page-0 reads return 0xFF.
   stride. Flags clear only when the CPU read them set first (`status_rd`).
   The high-byte temporary register is shared by all FRTs.
 * **SCI**: receive takes a byte from the MIDI buffer when RX is enabled,
-  RDRF is clear and `cycles >= uart_rx_delay`; clearing RDRF/TDRE sets the
+  RDRF is clear and `cycles >= uart_rx_delay`; clearing RDRF sets the
   delay to `cycles + 3000`. An SSR write overwrites the whole register
-  after the flag logic (reference behaviour).
+  after the flag logic (reference behaviour). Transmit (mk1, SC-155,
+  JV-880) is double-buffered as on the H8/532 (`ref/patch_ref.py` FIXES):
+  TDRE sets again as soon as the shift register is free, the 3000-cycle
+  byte time starts then, and TXI is requested while TIE and TDRE are both
+  1, including when an SCR write sets TIE (synthcores #52).
 * **A/D**: a conversion ends 200 cycles after it starts; scan mode repeats.
   mk1 pin values: channel 7 = battery 0x2A0, all others 0 (RCU path).
 * **Gate array**: 500 steps after an LCD write it raises source 1 on IRQ1;
