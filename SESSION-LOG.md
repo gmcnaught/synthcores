@@ -34,9 +34,11 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   timeslice edges matter: MIDI pin changes and the LCD busy flag follow measured rules.
 - **U4 (branch `mu50-u4`, PR #81):** the whole board from power-on gives the corpus sample file
   identical to MAME's (794,099 pairs); 2.66 FPGA clocks a CPU state with 1-clock memories.
-- **U5 (branch `mu50-u5`, in progress):** MiSTer top (DDR3 memories with a program ROM cache,
-  pacing, MIDI from MidiLink, audio, NVRAM, LCD video); its bench's bus hash over 4 s equals the
-  board bench's; 4.44 clocks a state with a 12-clock DDR3 model.
+- **U5 (branch `mu50-u5`):** MiSTer top (DDR3 memories with a program ROM cache, pacing, MIDI from
+  MidiLink, audio, NVRAM, LCD video). Windows build: 26,806 ALMs, core +1.241 ns at 50 MHz. Bench
+  with a DDR3 model: bus hash equals the board bench's; 18 s corpus in real time, 0 underruns.
+  MiSTer smoke test PASS (running, no underrun, LCD, MIDI, keys, 64 KB save). Open: NVRAM restore
+  after reload, MIDI out, listening. User: move to a real-hardware timing model once data exists.
 
 ## P2K release v20261125 (2026-11-25)
 
