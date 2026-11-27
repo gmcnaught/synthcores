@@ -29,3 +29,14 @@ target_include_directories(swp00_replay PRIVATE "${REF}")
 # MAME's swp00 code overflows s32 sums under extreme settings; C leaves that undefined and clang
 # then differs from two's complement wrap. The reference wraps, as the HDL (docs/plan.md, U3).
 set_source_files_properties("${REF}/swp00_ref.cpp" PROPERTIES COMPILE_OPTIONS "-fwrapv")
+
+# H8/3003 core + peripherals on a software MU50 board, against MAME's firmware trace (U2)
+add_executable(mu50sys_bench mu50sys_bench.cpp)
+verilate(mu50sys_bench SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_periph.sv" "${HDL}/h8h/h8h_sys.sv"
+         INCLUDE_DIRS "${HDL}/h8h" TOP_MODULE h8h_sys PREFIX Vh8h_sys VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ)
+
+# the same with peripheral debug messages (H8H_DEBUG)
+add_executable(mu50sys_bench_dbg mu50sys_bench.cpp)
+verilate(mu50sys_bench_dbg SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_periph.sv" "${HDL}/h8h/h8h_sys.sv"
+         INCLUDE_DIRS "${HDL}/h8h" TOP_MODULE h8h_sys PREFIX Vh8h_sys VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ +define+H8H_DEBUG)
+

@@ -161,14 +161,14 @@ S_76 ldc_w_r32ih_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_79 stc_w_ccr_r32ih
+S_80 stc_w_ccr_r32ih
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = r32_r(m_IR[1] >> 4);
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_82 ldc_w_abs16_ccr
+S_83 ldc_w_abs16_ccr
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -178,7 +178,7 @@ S_82 ldc_w_abs16_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_86 ldc_w_abs32_ccr
+S_88 ldc_w_abs32_ccr
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -190,7 +190,7 @@ S_86 ldc_w_abs32_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_91 stc_w_ccr_abs16
+S_94 stc_w_ccr_abs16
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -199,7 +199,7 @@ S_91 stc_w_ccr_abs16
     m_TMP1 = s16(m_IR[2]);
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_95 stc_w_ccr_abs32
+S_98 stc_w_ccr_abs32
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -210,7 +210,7 @@ S_95 stc_w_ccr_abs32
     m_TMP1 = (m_IR[2] << 16) | m_IR[3];
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_100 ldc_w_r32ph_ccr
+S_103 ldc_w_r32ph_ccr
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -220,7 +220,7 @@ S_100 ldc_w_r32ph_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_104 stc_w_ccr_pr32h
+S_108 stc_w_ccr_pr32h
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -229,7 +229,7 @@ S_104 stc_w_ccr_pr32h
     r32_w(m_IR[1] >> 4, m_TMP1);
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_108 ldc_w_r32d16h_ccr
+S_112 ldc_w_r32d16h_ccr
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -239,7 +239,7 @@ S_108 ldc_w_r32d16h_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_112 stc_w_ccr_r32d16h
+S_117 stc_w_ccr_r32d16h
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -248,7 +248,7 @@ S_112 stc_w_ccr_r32d16h
     m_TMP1 = r32_r(m_IR[1] >> 4) + s16(m_IR[2]);
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_116 ldc_w_r32d32hh_ccr
+S_121 ldc_w_r32d32hh_ccr
     m_IR[3] = read16i(m_PC);
     m_PC += 2;
     m_IR[4] = read16i(m_PC);
@@ -260,7 +260,7 @@ S_116 ldc_w_r32d32hh_ccr
     m_CCR = read16(m_TMP1) >> 8;
     update_irq_filter();
     prefetch_done_noirq();
-S_121 stc_w_ccr_r32d32hh
+S_127 stc_w_ccr_r32d32hh
     m_IR[3] = read16i(m_PC);
     m_PC += 2;
     m_IR[4] = read16i(m_PC);
@@ -271,7 +271,7 @@ S_121 stc_w_ccr_r32d32hh
     m_TMP1 = r32_r(m_IR[1] >> 4) + (m_IR[3] << 16) + m_IR[4];
     write16(m_TMP1, (m_CCR << 8) | m_CCR);
     prefetch_done();
-S_126 sleep
+S_132 sleep
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -286,7 +286,7 @@ S_126 sleep
     }
     prefetch_done();
     }
-S_135 mulxs_b_r8h_r16l
+S_141 mulxs_b_r8h_r16l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -295,7 +295,7 @@ S_135 mulxs_b_r8h_r16l
     r16_w(m_IR[1], m_TMP1);
     internal(m_has_mac ? 2 : 11);
     prefetch_done();
-S_139 mulxs_w_r16h_r32l
+S_145 mulxs_w_r16h_r32l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -304,7 +304,7 @@ S_139 mulxs_w_r16h_r32l
     r32_w(m_IR[1], m_TMP1);
     internal(m_has_mac ? 3 : 19);
     prefetch_done();
-S_143 divxs_b_r8h_r16l
+S_149 divxs_b_r8h_r16l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -346,7 +346,7 @@ S_143 divxs_b_r8h_r16l
     r16_w(m_IR[1], (q & 0xff) | ((r & 0xff) << 8));
     }
     prefetch_done();
-S_166 divxs_w_r16h_r32l
+S_172 divxs_w_r16h_r32l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -388,7 +388,7 @@ S_166 divxs_w_r16h_r32l
     r32_w(m_IR[1], (q & 0xffff) | ((r & 0xffff) << 16));
     }
     prefetch_done();
-S_189 or_l_r32h_r32l
+S_195 or_l_r32h_r32l
     m_TMP1 = r32_r(m_IR[1] >> 4) | r32_r(m_IR[1]);
     set_nzv32(m_TMP1);
     r32_w(m_IR[1], m_TMP1);
@@ -396,7 +396,7 @@ S_189 or_l_r32h_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_192 xor_l_r32h_r32l
+S_198 xor_l_r32h_r32l
     m_TMP1 = r32_r(m_IR[1] >> 4) ^ r32_r(m_IR[1]);
     set_nzv32(m_TMP1);
     r32_w(m_IR[1], m_TMP1);
@@ -404,7 +404,7 @@ S_192 xor_l_r32h_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_195 and_l_r32h_r32l
+S_201 and_l_r32h_r32l
     m_TMP1 = r32_r(m_IR[1] >> 4) & r32_r(m_IR[1]);
     set_nzv32(m_TMP1);
     r32_w(m_IR[1], m_TMP1);
@@ -412,114 +412,114 @@ S_195 and_l_r32h_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_198 stc_ccr_r8l
+S_204 stc_ccr_r8l
     r8_w(m_IR[0], m_CCR);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_200 ldc_r8l_ccr
+S_206 ldc_r8l_ccr
     m_CCR = r8_r(m_IR[0]);
     update_irq_filter();
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_202 orc_imm8_ccr
+S_209 orc_imm8_ccr
     m_CCR |= m_IR[0];
     update_irq_filter();
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_204 xorc_imm8_ccr
+S_212 xorc_imm8_ccr
     m_CCR ^= m_IR[0];
     update_irq_filter();
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_206 andc_imm8_ccr
+S_215 andc_imm8_ccr
     m_CCR &= m_IR[0];
     update_irq_filter();
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_208 ldc_imm8_ccr
+S_218 ldc_imm8_ccr
     m_CCR = m_IR[0];
     update_irq_filter();
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_210 add_b_r8h_r8l
+S_221 add_b_r8h_r8l
     r8_w(m_IR[0], do_add8(r8_r(m_IR[0]), r8_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_213 add_w_r16h_r16l
+S_224 add_w_r16h_r16l
     r16_w(m_IR[0], do_add16(r16_r(m_IR[0]), r16_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_216 inc_b_one_r8l
+S_227 inc_b_one_r8l
     r8_w(m_IR[0], do_inc8(r8_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_219 add_l_r32h_r32l
+S_230 add_l_r32h_r32l
     r32_w(m_IR[0], do_add32(r32_r(m_IR[0]), r32_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_222 adds_l_one_r32l
+S_233 adds_l_one_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])+1);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_224 inc_w_one_r16l
+S_235 inc_w_one_r16l
     r16_w(m_IR[0], do_inc16(r16_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_227 inc_l_one_r32l
+S_238 inc_l_one_r32l
     r32_w(m_IR[0], do_inc32(r32_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_230 adds_l_two_r32l
+S_241 adds_l_two_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])+2);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_232 adds_l_four_r32l
+S_243 adds_l_four_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])+4);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_234 inc_w_two_r16l
+S_245 inc_w_two_r16l
     r16_w(m_IR[0], do_inc16(r16_r(m_IR[0]), 2));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_237 inc_l_two_r32l
+S_248 inc_l_two_r32l
     r32_w(m_IR[0], do_inc32(r32_r(m_IR[0]), 2));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_240 mov_b_r8h_r8l
+S_251 mov_b_r8h_r8l
     m_TMP1 = r8_r(m_IR[0] >> 4);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
@@ -527,7 +527,7 @@ S_240 mov_b_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_243 mov_w_r16h_r16l
+S_254 mov_w_r16h_r16l
     m_TMP1 = r16_r(m_IR[0] >> 4);
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -535,13 +535,13 @@ S_243 mov_w_r16h_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_246 addx_b_r8h_r8l
+S_257 addx_b_r8h_r8l
     r8_w(m_IR[0], do_addx8(r8_r(m_IR[0]), r8_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_249 daa_b_r8l
+S_260 daa_b_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP2 = 0;
     if(m_CCR & F_C) {
@@ -568,7 +568,7 @@ S_249 daa_b_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_252 mov_l_r32h_r32l
+S_263 mov_l_r32h_r32l
     m_TMP1 = r32_r(m_IR[0] >> 4);
     set_nzv32(m_TMP1);
     r32_w(m_IR[0], m_TMP1);
@@ -576,151 +576,151 @@ S_252 mov_l_r32h_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_255 shll_b_r8l
+S_266 shll_b_r8l
     r8_w(m_IR[0], do_shll8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_258 shll_w_r16l
+S_269 shll_w_r16l
     r16_w(m_IR[0], do_shll16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_261 shll_l_r32l
+S_272 shll_l_r32l
     r32_w(m_IR[0], do_shll32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_264 shal_b_r8l
+S_275 shal_b_r8l
     r8_w(m_IR[0], do_shal8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_267 shal_w_r16l
+S_278 shal_w_r16l
     r16_w(m_IR[0], do_shal16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_270 shal_l_r32l
+S_281 shal_l_r32l
     r32_w(m_IR[0], do_shal32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_273 shlr_b_r8l
+S_284 shlr_b_r8l
     r8_w(m_IR[0], do_shlr8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_276 shlr_w_r16l
+S_287 shlr_w_r16l
     r16_w(m_IR[0], do_shlr16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_279 shlr_l_r32l
+S_290 shlr_l_r32l
     r32_w(m_IR[0], do_shlr32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_282 shar_b_r8l
+S_293 shar_b_r8l
     r8_w(m_IR[0], do_shar8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_285 shar_w_r16l
+S_296 shar_w_r16l
     r16_w(m_IR[0], do_shar16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_288 shar_l_r32l
+S_299 shar_l_r32l
     r32_w(m_IR[0], do_shar32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_291 rotxl_b_r8l
+S_302 rotxl_b_r8l
     r8_w(m_IR[0], do_rotxl8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_294 rotxl_w_r16l
+S_305 rotxl_w_r16l
     r16_w(m_IR[0], do_rotxl16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_297 rotxl_l_r32l
+S_308 rotxl_l_r32l
     r32_w(m_IR[0], do_rotxl32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_300 rotl_b_r8l
+S_311 rotl_b_r8l
     r8_w(m_IR[0], do_rotl8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_303 rotl_w_r16l
+S_314 rotl_w_r16l
     r16_w(m_IR[0], do_rotl16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_306 rotl_l_r32l
+S_317 rotl_l_r32l
     r32_w(m_IR[0], do_rotl32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_309 rotxr_b_r8l
+S_320 rotxr_b_r8l
     r8_w(m_IR[0], do_rotxr8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_312 rotxr_w_r16l
+S_323 rotxr_w_r16l
     r16_w(m_IR[0], do_rotxr16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_315 rotxr_l_r32l
+S_326 rotxr_l_r32l
     r32_w(m_IR[0], do_rotxr32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_318 rotr_b_r8l
+S_329 rotr_b_r8l
     r8_w(m_IR[0], do_rotr8(r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_321 rotr_w_r16l
+S_332 rotr_w_r16l
     r16_w(m_IR[0], do_rotr16(r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_324 rotr_l_r32l
+S_335 rotr_l_r32l
     r32_w(m_IR[0], do_rotr32(r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_327 or_b_r8h_r8l
+S_338 or_b_r8h_r8l
     m_TMP1 = r8_r(m_IR[0] >> 4) | r8_r(m_IR[0]);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
@@ -728,7 +728,7 @@ S_327 or_b_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_330 xor_b_r8h_r8l
+S_341 xor_b_r8h_r8l
     m_TMP1 = r8_r(m_IR[0] >> 4) ^ r8_r(m_IR[0]);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
@@ -736,7 +736,7 @@ S_330 xor_b_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_333 and_b_r8h_r8l
+S_344 and_b_r8h_r8l
     m_TMP1 = r8_r(m_IR[0] >> 4) & r8_r(m_IR[0]);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
@@ -744,7 +744,7 @@ S_333 and_b_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_336 not_b_r8l
+S_347 not_b_r8l
     m_TMP1 = ~r8_r(m_IR[0]);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
@@ -752,7 +752,7 @@ S_336 not_b_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_339 not_w_r16l
+S_350 not_w_r16l
     m_TMP1 = ~r16_r(m_IR[0]);
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -760,7 +760,7 @@ S_339 not_w_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_342 not_l_r32l
+S_353 not_l_r32l
     m_TMP1 = ~r32_r(m_IR[0]);
     set_nzv32(m_TMP1);
     r32_w(m_IR[0], m_TMP1);
@@ -768,7 +768,7 @@ S_342 not_l_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_345 extu_w_r16l
+S_356 extu_w_r16l
     m_TMP1 = u8(r16_r(m_IR[0]));
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -776,7 +776,7 @@ S_345 extu_w_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_348 extu_l_r32l
+S_359 extu_l_r32l
     m_TMP1 = u16(r32_r(m_IR[0]));
     set_nzv32(m_TMP1);
     r32_w(m_IR[0], m_TMP1);
@@ -784,25 +784,25 @@ S_348 extu_l_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_351 neg_b_r8l
+S_362 neg_b_r8l
     r8_w(m_IR[0], do_sub8(0, r8_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_354 neg_w_r16l
+S_365 neg_w_r16l
     r16_w(m_IR[0], do_sub16(0, r16_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_357 neg_l_r32l
+S_368 neg_l_r32l
     r32_w(m_IR[0], do_sub32(0, r32_r(m_IR[0])));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_360 exts_w_r16l
+S_371 exts_w_r16l
     m_TMP1 = s8(r16_r(m_IR[0]));
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -810,7 +810,7 @@ S_360 exts_w_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_363 exts_l_r32l
+S_374 exts_l_r32l
     m_TMP1 = s16(r32_r(m_IR[0]));
     set_nzv32(m_TMP1);
     r32_w(m_IR[0], m_TMP1);
@@ -818,91 +818,91 @@ S_363 exts_l_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_366 sub_b_r8h_r8l
+S_377 sub_b_r8h_r8l
     r8_w(m_IR[0], do_sub8(r8_r(m_IR[0]), r8_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_369 sub_w_r16h_r16l
+S_380 sub_w_r16h_r16l
     r16_w(m_IR[0], do_sub16(r16_r(m_IR[0]), r16_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_372 dec_b_one_r8l
+S_383 dec_b_one_r8l
     r8_w(m_IR[0], do_dec8(r8_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_375 sub_l_r32h_r32l
+S_386 sub_l_r32h_r32l
     r32_w(m_IR[0], do_sub32(r32_r(m_IR[0]), r32_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_378 subs_l_one_r32l
+S_389 subs_l_one_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])-1);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_380 dec_w_one_r16l
+S_391 dec_w_one_r16l
     r16_w(m_IR[0], do_dec16(r16_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_383 dec_l_one_r32l
+S_394 dec_l_one_r32l
     r32_w(m_IR[0], do_dec32(r32_r(m_IR[0]), 1));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_386 subs_l_two_r32l
+S_397 subs_l_two_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])-2);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_388 subs_l_four_r32l
+S_399 subs_l_four_r32l
     r32_w(m_IR[0], r32_r(m_IR[0])-4);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_390 dec_w_two_r16l
+S_401 dec_w_two_r16l
     r16_w(m_IR[0], do_dec16(r16_r(m_IR[0]), 2));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_393 dec_l_two_r32l
+S_404 dec_l_two_r32l
     r32_w(m_IR[0], do_dec32(r32_r(m_IR[0]), 2));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_396 cmp_b_r8h_r8l
+S_407 cmp_b_r8h_r8l
     do_sub8(r8_r(m_IR[0]), r8_r(m_IR[0] >> 4));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_399 cmp_w_r16h_r16l
+S_410 cmp_w_r16h_r16l
     do_sub16(r16_r(m_IR[0]), r16_r(m_IR[0] >> 4));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_402 subx_b_r8h_r8l
+S_413 subx_b_r8h_r8l
     r8_w(m_IR[0], do_subx8(r8_r(m_IR[0]), r8_r(m_IR[0] >> 4)));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_405 das_b_r8l
+S_416 das_b_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP2 = 0;
     if(m_CCR & F_C) {
@@ -924,13 +924,13 @@ S_405 das_b_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_408 cmp_l_r32h_r32l
+S_419 cmp_l_r32h_r32l
     do_sub32(r32_r(m_IR[0]), r32_r(m_IR[0] >> 4));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_411 mov_b_abs8_r8u
+S_422 mov_b_abs8_r8u
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -938,7 +938,7 @@ S_411 mov_b_abs8_r8u
     set_nzv8(m_TMP1);
     r8_w(m_IR[0] >> 8, m_TMP1);
     prefetch_done();
-S_415 mov_b_r8u_abs8
+S_426 mov_b_r8u_abs8
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -946,7 +946,7 @@ S_415 mov_b_r8u_abs8
     set_nzv8(m_TMP1);
     write8(0xffffff00 | m_IR[0], m_TMP1);
     prefetch_done();
-S_419 bt_rel8
+S_430 bt_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -955,7 +955,7 @@ S_419 bt_rel8
     if(true)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_422 bf_rel8
+S_433 bf_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -964,7 +964,7 @@ S_422 bf_rel8
     if(false)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_425 bhi_rel8
+S_436 bhi_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -973,7 +973,7 @@ S_425 bhi_rel8
     if(!(m_CCR & (F_C|F_Z)))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_428 bls_rel8
+S_439 bls_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -982,7 +982,7 @@ S_428 bls_rel8
     if(m_CCR & (F_C|F_Z))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_431 bcc_rel8
+S_442 bcc_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -991,7 +991,7 @@ S_431 bcc_rel8
     if(!(m_CCR & F_C))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_434 bcs_rel8
+S_445 bcs_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1000,7 +1000,7 @@ S_434 bcs_rel8
     if(m_CCR & F_C)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_437 bne_rel8
+S_448 bne_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1009,7 +1009,7 @@ S_437 bne_rel8
     if(!(m_CCR & F_Z))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_440 beq_rel8
+S_451 beq_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1018,7 +1018,7 @@ S_440 beq_rel8
     if(m_CCR & F_Z)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_443 bvc_rel8
+S_454 bvc_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1027,7 +1027,7 @@ S_443 bvc_rel8
     if(!(m_CCR & F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_446 bvs_rel8
+S_457 bvs_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1036,7 +1036,7 @@ S_446 bvs_rel8
     if(m_CCR & F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_449 bpl_rel8
+S_460 bpl_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1045,7 +1045,7 @@ S_449 bpl_rel8
     if(!(m_CCR & F_N))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_452 bmi_rel8
+S_463 bmi_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1054,7 +1054,7 @@ S_452 bmi_rel8
     if(m_CCR & F_N)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_455 bge_rel8
+S_466 bge_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1063,7 +1063,7 @@ S_455 bge_rel8
     if(!((m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_458 blt_rel8
+S_469 blt_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1072,7 +1072,7 @@ S_458 blt_rel8
     if((m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_461 bgt_rel8
+S_472 bgt_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1081,7 +1081,7 @@ S_461 bgt_rel8
     if(!((m_CCR & F_Z) || (m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_464 ble_rel8
+S_475 ble_rel8
     m_TMP1 = m_PC + s8(m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1090,14 +1090,14 @@ S_464 ble_rel8
     if((m_CCR & F_Z) || (m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_467 mulxu_b_r8h_r16l
+S_478 mulxu_b_r8h_r16l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     r16_w(m_IR[0], u8(r16_r(m_IR[0])) * r8_r(m_IR[0] >> 4));
     internal(m_has_mac ? 2 : 11);
     prefetch_done();
-S_470 divxu_b_r8h_r16l
+S_481 divxu_b_r8h_r16l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1115,14 +1115,14 @@ S_470 divxu_b_r8h_r16l
     r16_w(m_IR[0], (q & 0xff) | ((r & 0xff) << 8));
     }
     prefetch_done();
-S_478 mulxu_w_r16h_r32l
+S_489 mulxu_w_r16h_r32l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     r32_w(m_IR[0], u16(r32_r(m_IR[0])) * r16_r(m_IR[0] >> 4));
     internal(m_has_mac ? 3 : 19);
     prefetch_done();
-S_481 divxu_w_r16h_r32l
+S_492 divxu_w_r16h_r32l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1140,7 +1140,7 @@ S_481 divxu_w_r16h_r32l
     r32_w(m_IR[0], (q & 0xffff) | ((r & 0xffff) << 16));
     }
     prefetch_done();
-S_489 rts
+S_500 rts
     m_PIR = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = r32_r(7);
@@ -1158,7 +1158,7 @@ S_489 rts
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_495 bsr_rel8
+S_506 bsr_rel8
     m_PIR = read16i(m_PC);
     m_TMP2 = m_PC;
     m_PC += s8(m_IR[0]);
@@ -1176,7 +1176,7 @@ S_495 bsr_rel8
     write16(m_TMP1, m_TMP2);
     }
     prefetch_done();
-S_500 rte
+S_511 rte
     m_PIR = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = r32_r(7);
@@ -1200,7 +1200,7 @@ S_500 rte
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_notrace();
-S_506 trapa_imm2
+S_518 trapa_imm2
     internal(1);
     m_TMP1 = r32_r(7) - 2;
     r32_w(7, m_TMP1);
@@ -1228,7 +1228,7 @@ S_506 trapa_imm2
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_514 bt_rel16
+S_527 bt_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1239,7 +1239,7 @@ S_514 bt_rel16
     if(true)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_518 bf_rel16
+S_531 bf_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1250,7 +1250,7 @@ S_518 bf_rel16
     if(false)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_522 bhi_rel16
+S_535 bhi_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1261,7 +1261,7 @@ S_522 bhi_rel16
     if(!(m_CCR & (F_C|F_Z)))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_526 bls_rel16
+S_539 bls_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1272,7 +1272,7 @@ S_526 bls_rel16
     if(m_CCR & (F_C|F_Z))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_530 bcc_rel16
+S_543 bcc_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1283,7 +1283,7 @@ S_530 bcc_rel16
     if(!(m_CCR & F_C))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_534 bcs_rel16
+S_547 bcs_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1294,7 +1294,7 @@ S_534 bcs_rel16
     if(m_CCR & F_C)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_538 bne_rel16
+S_551 bne_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1305,7 +1305,7 @@ S_538 bne_rel16
     if(!(m_CCR & F_Z))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_542 beq_rel16
+S_555 beq_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1316,7 +1316,7 @@ S_542 beq_rel16
     if(m_CCR & F_Z)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_546 bvc_rel16
+S_559 bvc_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1327,7 +1327,7 @@ S_546 bvc_rel16
     if(!(m_CCR & F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_550 bvs_rel16
+S_563 bvs_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1338,7 +1338,7 @@ S_550 bvs_rel16
     if(m_CCR & F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_554 bpl_rel16
+S_567 bpl_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1349,7 +1349,7 @@ S_554 bpl_rel16
     if(!(m_CCR & F_N))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_558 bmi_rel16
+S_571 bmi_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1360,7 +1360,7 @@ S_558 bmi_rel16
     if(m_CCR & F_N)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_562 bge_rel16
+S_575 bge_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1371,7 +1371,7 @@ S_562 bge_rel16
     if(!((m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_566 blt_rel16
+S_579 blt_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1382,7 +1382,7 @@ S_566 blt_rel16
     if((m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_570 bgt_rel16
+S_583 bgt_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1393,7 +1393,7 @@ S_570 bgt_rel16
     if(!((m_CCR & F_Z) || (m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V))
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_574 ble_rel16
+S_587 ble_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_PC + s16(m_IR[1]);
@@ -1404,7 +1404,7 @@ S_574 ble_rel16
     if((m_CCR & F_Z) || (m_CCR & (F_N|F_V)) == F_N || (m_CCR & (F_N|F_V)) == F_V)
     prefetch_switch(m_TMP1, m_TMP2);
     prefetch_done();
-S_578 jmp_r32h
+S_591 jmp_r32h
     m_PIR = read16i(m_PC);
     m_PC += 2;
     m_PC = r32_r(m_IR[0] >> 4);
@@ -1412,7 +1412,7 @@ S_578 jmp_r32h
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_581 jmp_abs24e
+S_594 jmp_abs24e
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     internal(1);
@@ -1421,7 +1421,7 @@ S_581 jmp_abs24e
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_585 jmp_abs8i
+S_598 jmp_abs8i
     m_PIR = read16i(m_PC);
     m_PC += 2;
     if(m_mode_advanced) {
@@ -1436,7 +1436,7 @@ S_585 jmp_abs8i
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_591 bsr_rel16
+S_604 bsr_rel16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     internal(1);
@@ -1456,7 +1456,7 @@ S_591 bsr_rel16
     write16(m_TMP1, m_TMP2);
     }
     prefetch_done();
-S_597 jsr_r32h
+S_610 jsr_r32h
     m_PIR = read16i(m_PC);
     m_TMP2 = m_PC;
     m_PC = r32_r(m_IR[0] >> 4);
@@ -1474,7 +1474,7 @@ S_597 jsr_r32h
     write16(m_TMP1, m_TMP2);
     }
     prefetch_done();
-S_602 jsr_abs24e
+S_615 jsr_abs24e
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     internal(1);
@@ -1494,7 +1494,7 @@ S_602 jsr_abs24e
     write16(m_TMP1, m_TMP2);
     }
     prefetch_done();
-S_608 jsr_abs8i
+S_621 jsr_abs8i
     m_PIR = read16i(m_PC);
     m_TMP2 = m_PC;
     if(m_mode_advanced) {
@@ -1518,7 +1518,7 @@ S_608 jsr_abs8i
     write16(m_TMP1, m_TMP2);
     }
     prefetch_done();
-S_615 bset_r8h_r8l
+S_628 bset_r8h_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 |= 1 << ((r8_r(m_IR[0] >> 4)) & 7);
     r8_w(m_IR[0], m_TMP1);
@@ -1526,7 +1526,7 @@ S_615 bset_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_617 bnot_r8h_r8l
+S_630 bnot_r8h_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 ^= 1 << ((r8_r(m_IR[0] >> 4)) & 7);
     r8_w(m_IR[0], m_TMP1);
@@ -1534,7 +1534,7 @@ S_617 bnot_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_619 bclr_r8h_r8l
+S_632 bclr_r8h_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 &= ~(1 << ((r8_r(m_IR[0] >> 4)) & 7));
     r8_w(m_IR[0], m_TMP1);
@@ -1542,7 +1542,7 @@ S_619 bclr_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_621 btst_r8h_r8l
+S_634 btst_r8h_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((r8_r(m_IR[0] >> 4)) & 7)))
     m_CCR &= ~F_Z;
@@ -1552,7 +1552,7 @@ S_621 btst_r8h_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_623 or_w_r16h_r16l
+S_636 or_w_r16h_r16l
     m_TMP1 = r16_r(m_IR[0] >> 4) | r16_r(m_IR[0]);
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -1560,7 +1560,7 @@ S_623 or_w_r16h_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_626 xor_w_r16h_r16l
+S_639 xor_w_r16h_r16l
     m_TMP1 = r16_r(m_IR[0] >> 4) ^ r16_r(m_IR[0]);
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -1568,7 +1568,7 @@ S_626 xor_w_r16h_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_629 and_w_r16h_r16l
+S_642 and_w_r16h_r16l
     m_TMP1 = r16_r(m_IR[0] >> 4) & r16_r(m_IR[0]);
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
@@ -1576,7 +1576,7 @@ S_629 and_w_r16h_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_632 bst_imm3_r8l
+S_645 bst_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_CCR & F_C)
     m_TMP1 |= 1 << ((m_IR[0] >> 4) & 7);
@@ -1587,7 +1587,7 @@ S_632 bst_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_634 bist_imm3_r8l
+S_647 bist_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(!(m_CCR & F_C))
     m_TMP1 |= 1 << ((m_IR[0] >> 4) & 7);
@@ -1598,7 +1598,7 @@ S_634 bist_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_636 mov_b_r32ih_r8l
+S_649 mov_b_r32ih_r8l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1606,7 +1606,7 @@ S_636 mov_b_r32ih_r8l
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_640 mov_b_r8l_r32ih
+S_653 mov_b_r8l_r32ih
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1614,7 +1614,7 @@ S_640 mov_b_r8l_r32ih
     set_nzv8(m_TMP1);
     write8(r32_r(m_IR[0] >> 4), m_TMP1);
     prefetch_done();
-S_644 mov_w_r32ih_r16l
+S_657 mov_w_r32ih_r16l
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1622,7 +1622,7 @@ S_644 mov_w_r32ih_r16l
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_648 mov_w_r16l_r32ih
+S_661 mov_w_r16l_r32ih
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
@@ -1630,7 +1630,7 @@ S_648 mov_w_r16l_r32ih
     set_nzv16(m_TMP1);
     write16(r32_r(m_IR[0] >> 4), m_TMP1);
     prefetch_done();
-S_652 mov_b_abs16_r8l
+S_665 mov_b_abs16_r8l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1640,7 +1640,7 @@ S_652 mov_b_abs16_r8l
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_657 mov_b_abs32_r8l
+S_670 mov_b_abs32_r8l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -1652,7 +1652,7 @@ S_657 mov_b_abs32_r8l
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_663 movfpe_abs16_r8l
+S_676 movfpe_abs16_r8l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     // TODO: timing
@@ -1663,7 +1663,7 @@ S_663 movfpe_abs16_r8l
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_668 mov_b_r8l_abs16
+S_681 mov_b_r8l_abs16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1673,7 +1673,7 @@ S_668 mov_b_r8l_abs16
     set_nzv8(m_TMP1);
     write8(s16(m_IR[1]), m_TMP1);
     prefetch_done();
-S_673 mov_b_r8l_abs32
+S_686 mov_b_r8l_abs32
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -1685,7 +1685,7 @@ S_673 mov_b_r8l_abs32
     set_nzv8(m_TMP1);
     write8((m_IR[1] << 16) | m_IR[2], m_TMP1);
     prefetch_done();
-S_679 movtpe_r8l_abs16
+S_692 movtpe_r8l_abs16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     // TODO: timing
@@ -1696,7 +1696,7 @@ S_679 movtpe_r8l_abs16
     set_nzv8(m_TMP1);
     write8(s16(m_IR[1]), m_TMP1);
     prefetch_done();
-S_684 mov_w_abs16_r16l
+S_697 mov_w_abs16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1706,7 +1706,7 @@ S_684 mov_w_abs16_r16l
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_689 mov_w_abs32_r16l
+S_702 mov_w_abs32_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -1718,7 +1718,7 @@ S_689 mov_w_abs32_r16l
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_695 mov_w_r16l_abs16
+S_708 mov_w_r16l_abs16
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1728,7 +1728,7 @@ S_695 mov_w_r16l_abs16
     set_nzv16(m_TMP1);
     write16(s16(m_IR[1]), m_TMP1);
     prefetch_done();
-S_700 mov_w_r16l_abs32
+S_713 mov_w_r16l_abs32
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -1740,7 +1740,7 @@ S_700 mov_w_r16l_abs32
     set_nzv16(m_TMP1);
     write16((m_IR[1] << 16) | m_IR[2], m_TMP1);
     prefetch_done();
-S_706 mov_b_r32ph_r8l
+S_719 mov_b_r32ph_r8l
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1752,7 +1752,7 @@ S_706 mov_b_r32ph_r8l
     set_nzv8(m_TMP1);
     r8_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_711 mov_b_r8l_pr32h
+S_724 mov_b_r8l_pr32h
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_NPC = m_PC & 0xffffff;
@@ -1764,7 +1764,7 @@ S_711 mov_b_r8l_pr32h
     set_nzv8(m_TMP1);
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_716 mov_w_r32ph_r16l
+S_729 mov_w_r32ph_r16l
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
@@ -1776,7 +1776,7 @@ S_716 mov_w_r32ph_r16l
     set_nzv16(m_TMP1);
     r16_w(m_IR[0], m_TMP1);
     prefetch_done();
-S_721 mov_w_r16l_pr32h
+S_734 mov_w_r16l_pr32h
     m_TMP1 = r16_r(m_IR[0]);
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_NPC = m_PC & 0xffffff;
@@ -1788,7 +1788,7 @@ S_721 mov_w_r16l_pr32h
     set_nzv16(m_TMP1);
     write16(m_TMP2, m_TMP1);
     prefetch_done();
-S_726 mov_b_r32d16h_r8l
+S_739 mov_b_r32d16h_r8l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1799,7 +1799,7 @@ S_726 mov_b_r32d16h_r8l
     set_nzv8(m_TMP2);
     r8_w(m_IR[0], m_TMP2);
     prefetch_done();
-S_731 mov_b_r8l_r32d16h
+S_744 mov_b_r8l_r32d16h
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1810,7 +1810,7 @@ S_731 mov_b_r8l_r32d16h
     set_nzv8(m_TMP2);
     write8(m_TMP1, m_TMP2);
     prefetch_done();
-S_736 mov_w_r32d16h_r16l
+S_749 mov_w_r32d16h_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1821,7 +1821,7 @@ S_736 mov_w_r32d16h_r16l
     set_nzv16(m_TMP2);
     r16_w(m_IR[0], m_TMP2);
     prefetch_done();
-S_741 mov_w_r16l_r32d16h
+S_754 mov_w_r16l_r32d16h
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_NPC = m_PC & 0xffffff;
@@ -1832,7 +1832,7 @@ S_741 mov_w_r16l_r32d16h
     set_nzv16(m_TMP2);
     write16(m_TMP1, m_TMP2);
     prefetch_done();
-S_746 bset_imm3_r8l
+S_759 bset_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 |= 1 << ((m_IR[0] >> 4) & 7);
     r8_w(m_IR[0], m_TMP1);
@@ -1840,7 +1840,7 @@ S_746 bset_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_748 bnot_imm3_r8l
+S_761 bnot_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 ^= 1 << ((m_IR[0] >> 4) & 7);
     r8_w(m_IR[0], m_TMP1);
@@ -1848,7 +1848,7 @@ S_748 bnot_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_750 bclr_imm3_r8l
+S_763 bclr_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     m_TMP1 &= ~(1 << ((m_IR[0] >> 4) & 7));
     r8_w(m_IR[0], m_TMP1);
@@ -1856,7 +1856,7 @@ S_750 bclr_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_752 btst_imm3_r8l
+S_765 btst_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7)))
     m_CCR &= ~F_Z;
@@ -1866,7 +1866,7 @@ S_752 btst_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_754 bor_imm3_r8l
+S_767 bor_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7)))
     m_CCR |= F_C;
@@ -1874,7 +1874,7 @@ S_754 bor_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_756 bior_imm3_r8l
+S_769 bior_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(!(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7))))
     m_CCR |= F_C;
@@ -1882,7 +1882,7 @@ S_756 bior_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_758 bxor_imm3_r8l
+S_771 bxor_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7)))
     m_CCR ^= F_C;
@@ -1890,7 +1890,7 @@ S_758 bxor_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_760 bixor_imm3_r8l
+S_773 bixor_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(!(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7))))
     m_CCR ^= F_C;
@@ -1898,7 +1898,7 @@ S_760 bixor_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_762 band_imm3_r8l
+S_775 band_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(!(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7))))
     m_CCR &= ~F_C;
@@ -1906,7 +1906,7 @@ S_762 band_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_764 biand_imm3_r8l
+S_777 biand_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7)))
     m_CCR &= ~F_C;
@@ -1914,7 +1914,7 @@ S_764 biand_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_766 bld_imm3_r8l
+S_779 bld_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7)))
     m_CCR |= F_C;
@@ -1924,7 +1924,7 @@ S_766 bld_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_768 bild_imm3_r8l
+S_781 bild_imm3_r8l
     m_TMP1 = r8_r(m_IR[0]);
     if(!(m_TMP1 & (1 << ((m_IR[0] >> 4) & 7))))
     m_CCR |= F_C;
@@ -1934,7 +1934,7 @@ S_768 bild_imm3_r8l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_770 mov_b_r32d32hh_r8l
+S_783 mov_b_r32d32hh_r8l
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -1947,7 +1947,7 @@ S_770 mov_b_r32d32hh_r8l
     set_nzv8(m_TMP2);
     r8_w(m_IR[1], m_TMP2);
     prefetch_done();
-S_776 mov_b_r8l_r32d32hh
+S_789 mov_b_r8l_r32d32hh
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -1960,7 +1960,7 @@ S_776 mov_b_r8l_r32d32hh
     set_nzv8(m_TMP2);
     write8(m_TMP1, m_TMP2);
     prefetch_done();
-S_782 mov_w_r32d32hh_r16l
+S_795 mov_w_r32d32hh_r16l
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -1973,7 +1973,7 @@ S_782 mov_w_r32d32hh_r16l
     set_nzv16(m_TMP2);
     r16_w(m_IR[1], m_TMP2);
     prefetch_done();
-S_788 mov_w_r16l_r32d32hh
+S_801 mov_w_r16l_r32d32hh
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_IR[3] = read16i(m_PC);
@@ -1986,7 +1986,7 @@ S_788 mov_w_r16l_r32d32hh
     set_nzv16(m_TMP2);
     write16(m_TMP1, m_TMP2);
     prefetch_done();
-S_794 mov_w_imm16_r16l
+S_807 mov_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     set_nzv16(m_IR[1]);
@@ -1995,7 +1995,7 @@ S_794 mov_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_798 add_w_imm16_r16l
+S_811 add_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     r16_w(m_IR[0], do_add16(r16_r(m_IR[0]), m_IR[1]));
@@ -2003,7 +2003,7 @@ S_798 add_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_802 cmp_w_imm16_r16l
+S_815 cmp_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     do_sub16(r16_r(m_IR[0]), m_IR[1]);
@@ -2011,7 +2011,7 @@ S_802 cmp_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_806 sub_w_imm16_r16l
+S_819 sub_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     r16_w(m_IR[0], do_sub16(r16_r(m_IR[0]), m_IR[1]));
@@ -2019,7 +2019,7 @@ S_806 sub_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_810 or_w_imm16_r16l
+S_823 or_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_IR[1] | r16_r(m_IR[0]);
@@ -2029,7 +2029,7 @@ S_810 or_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_814 xor_w_imm16_r16l
+S_827 xor_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_IR[1] ^ r16_r(m_IR[0]);
@@ -2039,7 +2039,7 @@ S_814 xor_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_818 and_w_imm16_r16l
+S_831 and_w_imm16_r16l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_TMP1 = m_IR[1] & r16_r(m_IR[0]);
@@ -2049,7 +2049,7 @@ S_818 and_w_imm16_r16l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_822 mov_l_imm32_r32l
+S_835 mov_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2061,7 +2061,7 @@ S_822 mov_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_827 add_l_imm32_r32l
+S_840 add_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2071,7 +2071,7 @@ S_827 add_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_832 cmp_l_imm32_r32l
+S_845 cmp_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2081,7 +2081,7 @@ S_832 cmp_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_837 sub_l_imm32_r32l
+S_850 sub_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2091,7 +2091,7 @@ S_837 sub_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_842 or_l_imm32_r32l
+S_855 or_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2103,7 +2103,7 @@ S_842 or_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_847 xor_l_imm32_r32l
+S_860 xor_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2115,7 +2115,7 @@ S_847 xor_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_852 and_l_imm32_r32l
+S_865 and_l_imm32_r32l
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_IR[2] = read16i(m_PC);
@@ -2127,7 +2127,7 @@ S_852 and_l_imm32_r32l
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_857 eepmov_b
+S_870 eepmov_b
     while(r8_r(4+8)) {
     m_TMP1 = read8(r32_r(5));
     write8(r32_r(6), m_TMP1);
@@ -2139,7 +2139,7 @@ S_857 eepmov_b
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_866 eepmov_w
+S_879 eepmov_w
     while(r16_r(4)) {
     m_TMP1 = read8(r32_r(5));
     write8(r32_r(6), m_TMP1);
@@ -2151,7 +2151,7 @@ S_866 eepmov_w
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_875 btst_r8h_r32ihh
+S_888 btst_r8h_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((r8_r(m_IR[1] >> 4)) & 7)))
@@ -2162,7 +2162,7 @@ S_875 btst_r8h_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_878 btst_imm3_r32ihh
+S_891 btst_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2173,7 +2173,7 @@ S_878 btst_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_881 bor_imm3_r32ihh
+S_894 bor_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2182,7 +2182,7 @@ S_881 bor_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_884 bior_imm3_r32ihh
+S_897 bior_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2191,7 +2191,7 @@ S_884 bior_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_887 bxor_imm3_r32ihh
+S_900 bxor_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2200,7 +2200,7 @@ S_887 bxor_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_890 bixor_imm3_r32ihh
+S_903 bixor_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2209,7 +2209,7 @@ S_890 bixor_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_893 band_imm3_r32ihh
+S_906 band_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2218,7 +2218,7 @@ S_893 band_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_896 biand_imm3_r32ihh
+S_909 biand_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2227,7 +2227,7 @@ S_896 biand_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_899 bld_imm3_r32ihh
+S_912 bld_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2238,7 +2238,7 @@ S_899 bld_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_902 bild_imm3_r32ihh
+S_915 bild_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2249,7 +2249,7 @@ S_902 bild_imm3_r32ihh
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_905 bset_r8h_r32ihh
+S_918 bset_r8h_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 |= 1 << ((r8_r(m_IR[1] >> 4)) & 7);
@@ -2258,7 +2258,7 @@ S_905 bset_r8h_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_909 bnot_r8h_r32ihh
+S_922 bnot_r8h_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 ^= 1 << ((r8_r(m_IR[1] >> 4)) & 7);
@@ -2267,7 +2267,7 @@ S_909 bnot_r8h_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_913 bclr_r8h_r32ihh
+S_926 bclr_r8h_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 &= ~(1 << ((r8_r(m_IR[1] >> 4)) & 7));
@@ -2276,7 +2276,7 @@ S_913 bclr_r8h_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_917 bst_imm3_r32ihh
+S_930 bst_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(m_CCR & F_C)
@@ -2288,7 +2288,7 @@ S_917 bst_imm3_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_921 bist_imm3_r32ihh
+S_934 bist_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     if(!(m_CCR & F_C))
@@ -2300,7 +2300,7 @@ S_921 bist_imm3_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_925 bset_imm3_r32ihh
+S_938 bset_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 |= 1 << ((m_IR[1] >> 4) & 7);
@@ -2309,7 +2309,7 @@ S_925 bset_imm3_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_929 bnot_imm3_r32ihh
+S_942 bnot_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 ^= 1 << ((m_IR[1] >> 4) & 7);
@@ -2318,7 +2318,7 @@ S_929 bnot_imm3_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_933 bclr_imm3_r32ihh
+S_946 bclr_imm3_r32ihh
     m_TMP2 = r32_r(m_IR[0] >> 4);
     m_TMP1 = read8(m_TMP2);
     m_TMP1 &= ~(1 << ((m_IR[1] >> 4) & 7));
@@ -2327,7 +2327,7 @@ S_933 bclr_imm3_r32ihh
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_937 btst_r8h_abs8
+S_950 btst_r8h_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((r8_r(m_IR[1] >> 4)) & 7)))
@@ -2338,7 +2338,7 @@ S_937 btst_r8h_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_940 btst_imm3_abs8
+S_953 btst_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2349,7 +2349,7 @@ S_940 btst_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_943 bor_imm3_abs8
+S_956 bor_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2358,7 +2358,7 @@ S_943 bor_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_946 bior_imm3_abs8
+S_959 bior_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2367,7 +2367,7 @@ S_946 bior_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_949 bxor_imm3_abs8
+S_962 bxor_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2376,7 +2376,7 @@ S_949 bxor_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_952 bixor_imm3_abs8
+S_965 bixor_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2385,7 +2385,7 @@ S_952 bixor_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_955 band_imm3_abs8
+S_968 band_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2394,7 +2394,7 @@ S_955 band_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_958 biand_imm3_abs8
+S_971 biand_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2403,7 +2403,7 @@ S_958 biand_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_961 bld_imm3_abs8
+S_974 bld_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7)))
@@ -2414,7 +2414,7 @@ S_961 bld_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_964 bild_imm3_abs8
+S_977 bild_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     if(!(m_TMP1 & (1 << ((m_IR[1] >> 4) & 7))))
@@ -2425,7 +2425,7 @@ S_964 bild_imm3_abs8
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_967 bset_r8h_abs8
+S_980 bset_r8h_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_TMP1 |= 1 << ((r8_r(m_IR[1] >> 4)) & 7);
@@ -2434,7 +2434,7 @@ S_967 bset_r8h_abs8
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_971 bnot_r8h_abs8
+S_984 bnot_r8h_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_TMP1 ^= 1 << ((r8_r(m_IR[1] >> 4)) & 7);
@@ -2443,7 +2443,7 @@ S_971 bnot_r8h_abs8
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_975 bclr_r8h_abs8
+S_988 bclr_r8h_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_TMP1 &= ~(1 << ((r8_r(m_IR[1] >> 4)) & 7));
@@ -2452,7 +2452,7 @@ S_975 bclr_r8h_abs8
     m_PC += 2;
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_979 bst_imm3_abs8
+S_992 bst_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_NPC = m_PC & 0xffffff;
@@ -2464,7 +2464,7 @@ S_979 bst_imm3_abs8
     m_TMP1 &= ~(1 << ((m_IR[1] >> 4) & 7));
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_983 bist_imm3_abs8
+S_996 bist_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_NPC = m_PC & 0xffffff;
@@ -2476,7 +2476,7 @@ S_983 bist_imm3_abs8
     m_TMP1 &= ~(1 << ((m_IR[1] >> 4) & 7));
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_987 bset_imm3_abs8
+S_1000 bset_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_NPC = m_PC & 0xffffff;
@@ -2485,7 +2485,7 @@ S_987 bset_imm3_abs8
     m_TMP1 |= 1 << ((m_IR[1] >> 4) & 7);
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_991 bnot_imm3_abs8
+S_1004 bnot_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_NPC = m_PC & 0xffffff;
@@ -2494,7 +2494,7 @@ S_991 bnot_imm3_abs8
     m_TMP1 ^= 1 << ((m_IR[1] >> 4) & 7);
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_995 bclr_imm3_abs8
+S_1008 bclr_imm3_abs8
     m_TMP2 = 0xffffff00 | m_IR[0];
     m_TMP1 = read8(m_TMP2);
     m_NPC = m_PC & 0xffffff;
@@ -2503,31 +2503,31 @@ S_995 bclr_imm3_abs8
     m_TMP1 &= ~(1 << ((m_IR[1] >> 4) & 7));
     write8(m_TMP2, m_TMP1);
     prefetch_done();
-S_999 add_b_imm8_r8u
+S_1012 add_b_imm8_r8u
     r8_w(m_IR[0] >> 8, do_add8(r8_r(m_IR[0] >> 8), m_IR[0]));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1002 addx_b_imm8_r8u
+S_1015 addx_b_imm8_r8u
     r8_w(m_IR[0] >> 8, do_addx8(r8_r(m_IR[0] >> 8), m_IR[0]));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1005 cmp_b_imm8_r8u
+S_1018 cmp_b_imm8_r8u
     do_sub8(r8_r(m_IR[0] >> 8), m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1008 subx_b_imm8_r8u
+S_1021 subx_b_imm8_r8u
     r8_w(m_IR[0] >> 8, do_subx8(r8_r(m_IR[0] >> 8), m_IR[0]));
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1011 or_b_imm8_r8u
+S_1024 or_b_imm8_r8u
     m_TMP1 = m_IR[0] | r8_r(m_IR[0] >> 8);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0] >> 8, m_TMP1);
@@ -2535,7 +2535,7 @@ S_1011 or_b_imm8_r8u
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1014 xor_b_imm8_r8u
+S_1027 xor_b_imm8_r8u
     m_TMP1 = m_IR[0] ^ r8_r(m_IR[0] >> 8);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0] >> 8, m_TMP1);
@@ -2543,7 +2543,7 @@ S_1014 xor_b_imm8_r8u
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1017 and_b_imm8_r8u
+S_1030 and_b_imm8_r8u
     m_TMP1 = m_IR[0] & r8_r(m_IR[0] >> 8);
     set_nzv8(m_TMP1);
     r8_w(m_IR[0] >> 8, m_TMP1);
@@ -2551,14 +2551,14 @@ S_1017 and_b_imm8_r8u
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1020 mov_b_imm8_r8u
+S_1033 mov_b_imm8_r8u
     set_nzv8(m_IR[0]);
     r8_w(m_IR[0] >> 8, m_IR[0]);
     m_NPC = m_PC & 0xffffff;
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done();
-S_1023 state_reset
+S_1036 state_reset
     m_CCR |= (m_has_hc ? F_I : F_H);
     m_EXR = EXR_I | EXR_NC;
     if(m_mode_advanced) {
@@ -2573,7 +2573,7 @@ S_1023 state_reset
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_1027 state_irq
+S_1041 state_irq
     internal(1);
     m_TMP1 = r32_r(7) - 2;
     r32_w(7, m_TMP1);
@@ -2602,63 +2602,63 @@ S_1027 state_irq
     m_PIR = read16i(m_PC);
     m_PC += 2;
     prefetch_done_noirq();
-S_1035 dispatch_0100
+S_1051 dispatch_0100
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x20000 | m_IR[1];
-S_1037 dispatch_01007800
+S_1053 dispatch_01007800
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x30000 | m_IR[2];
-S_1039 dispatch_0140
+S_1055 dispatch_0140
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x70000 | m_IR[1];
-S_1041 dispatch_01407800
+S_1057 dispatch_01407800
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x80000 | m_IR[2];
-S_1043 dispatch_01407880
+S_1059 dispatch_01407880
     m_IR[2] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x90000 | m_IR[2];
-S_1045 dispatch_01c0
+S_1061 dispatch_01c0
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0xe0000 | m_IR[1];
-S_1047 dispatch_01d0
+S_1063 dispatch_01d0
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0xf0000 | m_IR[1];
-S_1049 dispatch_01f0
+S_1065 dispatch_01f0
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x110000 | m_IR[1];
-S_1051 dispatch_7800
+S_1067 dispatch_7800
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x160000 | m_IR[1];
-S_1053 dispatch_7b5c
+S_1069 dispatch_7b5c
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x170000 | m_IR[1];
-S_1055 dispatch_7bd4
+S_1071 dispatch_7bd4
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x180000 | m_IR[1];
-S_1057 dispatch_7c00
+S_1073 dispatch_7c00
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x190000 | m_IR[1];
-S_1059 dispatch_7d00
+S_1075 dispatch_7d00
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x1a0000 | m_IR[1];
-S_1061 dispatch_7e00
+S_1077 dispatch_7e00
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x1b0000 | m_IR[1];
-S_1063 dispatch_7f00
+S_1079 dispatch_7f00
     m_IR[1] = read16i(m_PC);
     m_PC += 2;
     m_inst_state = 0x1c0000 | m_IR[1];

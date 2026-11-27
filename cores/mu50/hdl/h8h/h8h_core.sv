@@ -14,7 +14,10 @@
 // Bus: bus_req is held with the operation until bus_ack. Reads return the word (16-bit kinds)
 // or the byte in bus_rdata[7:0] (OP_R8). Addresses of 16-bit kinds are even.
 
-module h8h_core (
+module h8h_core #(
+    parameter bit DEBT = 1'b1   // 0: no wait for the states of the previous operation (the bus
+                                //    side keeps time: h8h_sys)
+) (
     input  logic        clk,
     input  logic        rst,
     input  logic        ce,
@@ -32,12 +35,15 @@ module h8h_core (
     input  logic        syscr_ue,         // SYSCR.UE
     input  logic        standby_pending,  // SLEEP enters software standby
     output logic [1:0]  irq_filter,       // update_irq_filter(): 0 none, 1 I, 2 I+UI masked
+    output logic        irq_filter_we,    // pulse: update_irq_filter() was called
     output logic        irq_taken,        // pulse: interrupt_taken()
     output logic [7:0]  irq_taken_vector,
     output logic        standby,
     output logic        illegal,
 
     output logic [63:0] vtime,
+    output logic [63:0] op_time,          // end of the requested operation (vtime + its cost)
+    input  logic [63:0] eat_to,           // SLEEP: the time eat-all-cycles jumps to
 
     // one pulse at every handler entry (MAME execute_run -> do_exec_full)
     output logic        tr_stb,
@@ -131,7 +137,7 @@ module h8h_core (
     logic [23:0]   inst_state, n_inst_state;
     logic [15:0]   rd;
     logic [1:0]    filter, n_filter;
-    logic          n_irq_taken, n_standby;
+    logic          n_irq_taken, n_standby, n_filter_we;
     logic [5:0]    debt;
     logic [31:0]   l_q, l_r, n_l_q, n_l_r;   // locals of DIVXS/DIVXU, across states
 
@@ -166,7 +172,7 @@ module h8h_core (
         n_tmp1 = tmp1; n_tmp2 = tmp2; n_pc = pc; n_npc = npc; n_pir = pir; n_ir = ir;
         n_ccr = ccr; n_exr = exr; n_tvec = tvec; n_tlvl = tlvl;
         n_inst_state = inst_state; n_filter = filter; n_l_q = l_q; n_l_r = l_r;
-        n_irq_taken = 1'b0; n_standby = 1'b0;
+        n_irq_taken = 1'b0; n_standby = 1'b0; n_filter_we = 1'b0;
         op_kind = OP_NONE; op_addr = 32'h0; op_data = 16'h0; op_cost = 6'd0;
         rf_we = RF_NONE; rf_idx = 4'h0; rf_val = 32'h0;
         alu_ld = 1'b0; alu_sel_n = alu_sel; alu_c_n = 32'h0; alu_a_n = 32'h0; alu_b_n = 32'h0;
@@ -189,16 +195,18 @@ module h8h_core (
 
     // an operation starts when the previous one's states have elapsed and the bus answers;
     // a division when the divider is done (FPGA clocks only, no states)
+    // bus operations, and SLEEP's eat-all-cycles, which the bus side answers with eat_to
     wire op_bus = op_kind == OP_F16 || op_kind == OP_R8 || op_kind == OP_R16 ||
-                  op_kind == OP_W8 || op_kind == OP_W16;
+                  op_kind == OP_W8 || op_kind == OP_W16 || op_kind == OP_EAT;
     wire go = op_kind == OP_NONE ? 1'b1 :
               op_kind == OP_DIV ? div_done :
-              (debt == 6'd0 && (!op_bus || bus_ack));
+              ((!DEBT || debt == 6'd0) && (!op_bus || bus_ack));
 
-    assign bus_req = op_bus && debt == 6'd0;
+    assign bus_req = op_bus && (!DEBT || debt == 6'd0);
     assign bus_kind = op_kind[2:0];
     assign bus_addr = (op_kind == OP_R8 || op_kind == OP_W8) ? op_addr[23:0] : {op_addr[23:1], 1'b0};
     assign bus_wdata = op_data;
+    assign op_time = vtime + {58'h0, op_cost};
 
     assign tr_stb = st == S_EXEC;
     assign tr_state = inst_state;
@@ -217,12 +225,13 @@ module h8h_core (
             tmp1 <= 32'h0; tmp2 <= 32'h0; pc <= 32'h0; npc <= 32'h0; pir <= 16'h0; ir <= '0;
             ccr <= 8'h0; exr <= 8'h0; tvec <= 8'h0; tlvl <= 8'hff; r <= '0;
             rd <= 16'h0; filter <= 2'd0; debt <= 6'd0; vtime <= 64'd0;
-            irq_taken <= 1'b0; irq_taken_vector <= 8'h0; standby <= 1'b0;
+            irq_taken <= 1'b0; irq_taken_vector <= 8'h0; standby <= 1'b0; irq_filter_we <= 1'b0;
             l_q <= 32'h0; l_r <= 32'h0;
             alu_sel <= '0; alu_c <= 32'h0; alu_a <= 32'h0; alu_b <= 32'h0;
             div_busy <= 1'b0; div_done <= 1'b0;
         end else begin
             irq_taken <= 1'b0;
+            irq_filter_we <= 1'b0;
             if (ce && debt != 6'd0)
                 debt <= debt - 6'd1;
 
@@ -274,13 +283,14 @@ module h8h_core (
                     irq_taken_vector <= n_tvec;
                 end
                 if (n_standby) standby <= 1'b1;
+                if (n_filter_we) irq_filter_we <= 1'b1;
                 if (op_kind != OP_NONE && op_kind != OP_DIV) begin
                     debt <= op_cost;
                     vtime <= vtime + {58'h0, op_cost};
                 end
                 if (op_kind == OP_EAT) begin
-                    debt <= 6'd1;
-                    vtime <= vtime + 64'd1;
+                    debt <= 6'd0;
+                    vtime <= eat_to;
                 end
                 if (op_kind == OP_R8) rd <= {8'h0, bus_rdata[7:0]};
                 else if (op_kind == OP_R16 || op_kind == OP_F16) rd <= bus_rdata;

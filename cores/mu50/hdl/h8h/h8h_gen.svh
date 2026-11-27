@@ -1068,6 +1068,22 @@ localparam logic [SW-1:0] S_1061 = 11'd1064;
 localparam logic [SW-1:0] S_1062 = 11'd1065;
 localparam logic [SW-1:0] S_1063 = 11'd1066;
 localparam logic [SW-1:0] S_1064 = 11'd1067;
+localparam logic [SW-1:0] S_1065 = 11'd1068;
+localparam logic [SW-1:0] S_1066 = 11'd1069;
+localparam logic [SW-1:0] S_1067 = 11'd1070;
+localparam logic [SW-1:0] S_1068 = 11'd1071;
+localparam logic [SW-1:0] S_1069 = 11'd1072;
+localparam logic [SW-1:0] S_1070 = 11'd1073;
+localparam logic [SW-1:0] S_1071 = 11'd1074;
+localparam logic [SW-1:0] S_1072 = 11'd1075;
+localparam logic [SW-1:0] S_1073 = 11'd1076;
+localparam logic [SW-1:0] S_1074 = 11'd1077;
+localparam logic [SW-1:0] S_1075 = 11'd1078;
+localparam logic [SW-1:0] S_1076 = 11'd1079;
+localparam logic [SW-1:0] S_1077 = 11'd1080;
+localparam logic [SW-1:0] S_1078 = 11'd1081;
+localparam logic [SW-1:0] S_1079 = 11'd1082;
+localparam logic [SW-1:0] S_1080 = 11'd1083;
 
 function automatic logic [39:0] h_do_add16(input logic [31:0] ccr_in, input logic [31:0] p_v1, input logic [31:0] p_v2);
     logic [31:0] ccr, l_res, l_v1, l_v2, ret;
@@ -2131,8 +2147,8 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     s = S_ILLEGAL;
     case (is[23:16])
     8'h01: case (is[15:0])
-        16'h0000: s = S_1023;
-        16'h0001: s = S_1027;
+        16'h0000: s = S_1036;
+        16'h0001: s = S_1041;
         default: s = S_ILLEGAL;
         endcase
     8'h00: case (is[15:8] & 8'hff)
@@ -2143,449 +2159,449 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
             endcase
         8'h01:
             case (is[7:0] & 8'hff)
-            8'h00: s = S_1035;
-            8'h40: s = S_1039;
-            8'h80: s = S_126;
-            8'hc0: s = S_1045;
-            8'hd0: s = S_1047;
-            8'hf0: s = S_1049;
+            8'h00: s = S_1051;
+            8'h40: s = S_1055;
+            8'h80: s = S_132;
+            8'hc0: s = S_1061;
+            8'hd0: s = S_1063;
+            8'hf0: s = S_1065;
             default: s = S_ILLEGAL;
             endcase
         8'h02:
             case (is[7:0] & 8'hf0)
-            8'h00: s = S_198;
+            8'h00: s = S_204;
             default: s = S_ILLEGAL;
             endcase
         8'h03:
             case (is[7:0] & 8'hf0)
-            8'h00: s = S_200;
+            8'h00: s = S_206;
             default: s = S_ILLEGAL;
             endcase
         8'h04:
-            s = S_202;
+            s = S_209;
         8'h05:
-            s = S_204;
+            s = S_212;
         8'h06:
-            s = S_206;
+            s = S_215;
         8'h07:
-            s = S_208;
+            s = S_218;
         8'h08:
-            s = S_210;
+            s = S_221;
         8'h09:
-            s = S_213;
+            s = S_224;
         8'h0a:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_216;
-            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_219;
+            8'h00, 8'h08: s = S_227;
+            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_230;
             default: s = S_ILLEGAL;
             endcase
         8'h0b:
             case (is[7:0] & 8'hf8)
-            8'h00: s = S_222;
-            8'h50, 8'h58: s = S_224;
-            8'h70: s = S_227;
-            8'h80: s = S_230;
-            8'h90: s = S_232;
-            8'hd0, 8'hd8: s = S_234;
-            8'hf0: s = S_237;
+            8'h00: s = S_233;
+            8'h50, 8'h58: s = S_235;
+            8'h70: s = S_238;
+            8'h80: s = S_241;
+            8'h90: s = S_243;
+            8'hd0, 8'hd8: s = S_245;
+            8'hf0: s = S_248;
             default: s = S_ILLEGAL;
             endcase
         8'h0c:
-            s = S_240;
+            s = S_251;
         8'h0d:
-            s = S_243;
+            s = S_254;
         8'h0e:
-            s = S_246;
+            s = S_257;
         8'h0f:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_249;
-            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_252;
+            8'h00, 8'h08: s = S_260;
+            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_263;
             default: s = S_ILLEGAL;
             endcase
         8'h10:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_255;
-            8'h10, 8'h18: s = S_258;
-            8'h30: s = S_261;
-            8'h80, 8'h88: s = S_264;
-            8'h90, 8'h98: s = S_267;
-            8'hb0: s = S_270;
+            8'h00, 8'h08: s = S_266;
+            8'h10, 8'h18: s = S_269;
+            8'h30: s = S_272;
+            8'h80, 8'h88: s = S_275;
+            8'h90, 8'h98: s = S_278;
+            8'hb0: s = S_281;
             default: s = S_ILLEGAL;
             endcase
         8'h11:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_273;
-            8'h10, 8'h18: s = S_276;
-            8'h30: s = S_279;
-            8'h80, 8'h88: s = S_282;
-            8'h90, 8'h98: s = S_285;
-            8'hb0: s = S_288;
+            8'h00, 8'h08: s = S_284;
+            8'h10, 8'h18: s = S_287;
+            8'h30: s = S_290;
+            8'h80, 8'h88: s = S_293;
+            8'h90, 8'h98: s = S_296;
+            8'hb0: s = S_299;
             default: s = S_ILLEGAL;
             endcase
         8'h12:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_291;
-            8'h10, 8'h18: s = S_294;
-            8'h30: s = S_297;
-            8'h80, 8'h88: s = S_300;
-            8'h90, 8'h98: s = S_303;
-            8'hb0: s = S_306;
+            8'h00, 8'h08: s = S_302;
+            8'h10, 8'h18: s = S_305;
+            8'h30: s = S_308;
+            8'h80, 8'h88: s = S_311;
+            8'h90, 8'h98: s = S_314;
+            8'hb0: s = S_317;
             default: s = S_ILLEGAL;
             endcase
         8'h13:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_309;
-            8'h10, 8'h18: s = S_312;
-            8'h30: s = S_315;
-            8'h80, 8'h88: s = S_318;
-            8'h90, 8'h98: s = S_321;
-            8'hb0: s = S_324;
+            8'h00, 8'h08: s = S_320;
+            8'h10, 8'h18: s = S_323;
+            8'h30: s = S_326;
+            8'h80, 8'h88: s = S_329;
+            8'h90, 8'h98: s = S_332;
+            8'hb0: s = S_335;
             default: s = S_ILLEGAL;
             endcase
         8'h14:
-            s = S_327;
+            s = S_338;
         8'h15:
-            s = S_330;
+            s = S_341;
         8'h16:
-            s = S_333;
+            s = S_344;
         8'h17:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_336;
-            8'h10, 8'h18: s = S_339;
-            8'h30: s = S_342;
-            8'h50, 8'h58: s = S_345;
-            8'h70: s = S_348;
-            8'h80, 8'h88: s = S_351;
-            8'h90, 8'h98: s = S_354;
-            8'hb0: s = S_357;
-            8'hd0, 8'hd8: s = S_360;
-            8'hf0: s = S_363;
+            8'h00, 8'h08: s = S_347;
+            8'h10, 8'h18: s = S_350;
+            8'h30: s = S_353;
+            8'h50, 8'h58: s = S_356;
+            8'h70: s = S_359;
+            8'h80, 8'h88: s = S_362;
+            8'h90, 8'h98: s = S_365;
+            8'hb0: s = S_368;
+            8'hd0, 8'hd8: s = S_371;
+            8'hf0: s = S_374;
             default: s = S_ILLEGAL;
             endcase
         8'h18:
-            s = S_366;
+            s = S_377;
         8'h19:
-            s = S_369;
+            s = S_380;
         8'h1a:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_372;
-            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_375;
+            8'h00, 8'h08: s = S_383;
+            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_386;
             default: s = S_ILLEGAL;
             endcase
         8'h1b:
             case (is[7:0] & 8'hf8)
-            8'h00: s = S_378;
-            8'h50, 8'h58: s = S_380;
-            8'h70: s = S_383;
-            8'h80: s = S_386;
-            8'h90: s = S_388;
-            8'hd0, 8'hd8: s = S_390;
-            8'hf0: s = S_393;
+            8'h00: s = S_389;
+            8'h50, 8'h58: s = S_391;
+            8'h70: s = S_394;
+            8'h80: s = S_397;
+            8'h90: s = S_399;
+            8'hd0, 8'hd8: s = S_401;
+            8'hf0: s = S_404;
             default: s = S_ILLEGAL;
             endcase
         8'h1c:
-            s = S_396;
+            s = S_407;
         8'h1d:
-            s = S_399;
+            s = S_410;
         8'h1e:
-            s = S_402;
+            s = S_413;
         8'h1f:
             case (is[7:0] & 8'hf8)
-            8'h00, 8'h08: s = S_405;
-            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_408;
+            8'h00, 8'h08: s = S_416;
+            8'h80, 8'h90, 8'ha0, 8'hb0, 8'hc0, 8'hd0, 8'he0, 8'hf0: s = S_419;
             default: s = S_ILLEGAL;
             endcase
         8'h20, 8'h21, 8'h22, 8'h23, 8'h24, 8'h25, 8'h26, 8'h27, 8'h28, 8'h29, 8'h2a, 8'h2b, 8'h2c, 8'h2d, 8'h2e, 8'h2f:
-            s = S_411;
-        8'h30, 8'h31, 8'h32, 8'h33, 8'h34, 8'h35, 8'h36, 8'h37, 8'h38, 8'h39, 8'h3a, 8'h3b, 8'h3c, 8'h3d, 8'h3e, 8'h3f:
-            s = S_415;
-        8'h40:
-            s = S_419;
-        8'h41:
             s = S_422;
+        8'h30, 8'h31, 8'h32, 8'h33, 8'h34, 8'h35, 8'h36, 8'h37, 8'h38, 8'h39, 8'h3a, 8'h3b, 8'h3c, 8'h3d, 8'h3e, 8'h3f:
+            s = S_426;
+        8'h40:
+            s = S_430;
+        8'h41:
+            s = S_433;
         8'h42:
-            s = S_425;
+            s = S_436;
         8'h43:
-            s = S_428;
+            s = S_439;
         8'h44:
-            s = S_431;
+            s = S_442;
         8'h45:
-            s = S_434;
+            s = S_445;
         8'h46:
-            s = S_437;
+            s = S_448;
         8'h47:
-            s = S_440;
+            s = S_451;
         8'h48:
-            s = S_443;
+            s = S_454;
         8'h49:
-            s = S_446;
+            s = S_457;
         8'h4a:
-            s = S_449;
+            s = S_460;
         8'h4b:
-            s = S_452;
+            s = S_463;
         8'h4c:
-            s = S_455;
+            s = S_466;
         8'h4d:
-            s = S_458;
+            s = S_469;
         8'h4e:
-            s = S_461;
+            s = S_472;
         8'h4f:
-            s = S_464;
+            s = S_475;
         8'h50:
-            s = S_467;
+            s = S_478;
         8'h51:
-            s = S_470;
+            s = S_481;
         8'h52:
             case (is[7:0] & 8'h08)
-            8'h00: s = S_478;
+            8'h00: s = S_489;
             default: s = S_ILLEGAL;
             endcase
         8'h53:
             case (is[7:0] & 8'h08)
-            8'h00: s = S_481;
+            8'h00: s = S_492;
             default: s = S_ILLEGAL;
             endcase
         8'h54:
             case (is[7:0] & 8'hff)
-            8'h70: s = S_489;
+            8'h70: s = S_500;
             default: s = S_ILLEGAL;
             endcase
         8'h55:
-            s = S_495;
+            s = S_506;
         8'h56:
             case (is[7:0] & 8'hff)
-            8'h70: s = S_500;
+            8'h70: s = S_511;
             default: s = S_ILLEGAL;
             endcase
         8'h57:
             case (is[7:0] & 8'hcf)
-            8'h00: s = S_506;
+            8'h00: s = S_518;
             default: s = S_ILLEGAL;
             endcase
         8'h58:
             case (is[7:0] & 8'hff)
-            8'h00: s = S_514;
-            8'h10: s = S_518;
-            8'h20: s = S_522;
-            8'h30: s = S_526;
-            8'h40: s = S_530;
-            8'h50: s = S_534;
-            8'h60: s = S_538;
-            8'h70: s = S_542;
-            8'h80: s = S_546;
-            8'h90: s = S_550;
-            8'ha0: s = S_554;
-            8'hb0: s = S_558;
-            8'hc0: s = S_562;
-            8'hd0: s = S_566;
-            8'he0: s = S_570;
-            8'hf0: s = S_574;
+            8'h00: s = S_527;
+            8'h10: s = S_531;
+            8'h20: s = S_535;
+            8'h30: s = S_539;
+            8'h40: s = S_543;
+            8'h50: s = S_547;
+            8'h60: s = S_551;
+            8'h70: s = S_555;
+            8'h80: s = S_559;
+            8'h90: s = S_563;
+            8'ha0: s = S_567;
+            8'hb0: s = S_571;
+            8'hc0: s = S_575;
+            8'hd0: s = S_579;
+            8'he0: s = S_583;
+            8'hf0: s = S_587;
             default: s = S_ILLEGAL;
             endcase
         8'h59:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_578;
+            8'h00: s = S_591;
             default: s = S_ILLEGAL;
             endcase
         8'h5a:
-            s = S_581;
+            s = S_594;
         8'h5b:
-            s = S_585;
+            s = S_598;
         8'h5c:
             case (is[7:0] & 8'hff)
-            8'h00: s = S_591;
+            8'h00: s = S_604;
             default: s = S_ILLEGAL;
             endcase
         8'h5d:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_597;
+            8'h00: s = S_610;
             default: s = S_ILLEGAL;
             endcase
         8'h5e:
-            s = S_602;
-        8'h5f:
-            s = S_608;
-        8'h60:
             s = S_615;
-        8'h61:
-            s = S_617;
-        8'h62:
-            s = S_619;
-        8'h63:
+        8'h5f:
             s = S_621;
+        8'h60:
+            s = S_628;
+        8'h61:
+            s = S_630;
+        8'h62:
+            s = S_632;
+        8'h63:
+            s = S_634;
         8'h64:
-            s = S_623;
+            s = S_636;
         8'h65:
-            s = S_626;
+            s = S_639;
         8'h66:
-            s = S_629;
+            s = S_642;
         8'h67:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_632;
-            8'h80: s = S_634;
+            8'h00: s = S_645;
+            8'h80: s = S_647;
             default: s = S_ILLEGAL;
             endcase
         8'h68:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_636;
-            8'h80: s = S_640;
+            8'h00: s = S_649;
+            8'h80: s = S_653;
             default: s = S_ILLEGAL;
             endcase
         8'h69:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_644;
-            8'h80: s = S_648;
+            8'h00: s = S_657;
+            8'h80: s = S_661;
             default: s = S_ILLEGAL;
             endcase
         8'h6a:
             case (is[7:0] & 8'hf0)
-            8'h00: s = S_652;
-            8'h20: s = S_657;
-            8'h40: s = S_663;
-            8'h80: s = S_668;
-            8'ha0: s = S_673;
-            8'hc0: s = S_679;
+            8'h00: s = S_665;
+            8'h20: s = S_670;
+            8'h40: s = S_676;
+            8'h80: s = S_681;
+            8'ha0: s = S_686;
+            8'hc0: s = S_692;
             default: s = S_ILLEGAL;
             endcase
         8'h6b:
             case (is[7:0] & 8'hf0)
-            8'h00: s = S_684;
-            8'h20: s = S_689;
-            8'h80: s = S_695;
-            8'ha0: s = S_700;
+            8'h00: s = S_697;
+            8'h20: s = S_702;
+            8'h80: s = S_708;
+            8'ha0: s = S_713;
             default: s = S_ILLEGAL;
             endcase
         8'h6c:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_706;
-            8'h80: s = S_711;
+            8'h00: s = S_719;
+            8'h80: s = S_724;
             default: s = S_ILLEGAL;
             endcase
         8'h6d:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_716;
-            8'h80: s = S_721;
+            8'h00: s = S_729;
+            8'h80: s = S_734;
             default: s = S_ILLEGAL;
             endcase
         8'h6e:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_726;
-            8'h80: s = S_731;
+            8'h00: s = S_739;
+            8'h80: s = S_744;
             default: s = S_ILLEGAL;
             endcase
         8'h6f:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_736;
-            8'h80: s = S_741;
+            8'h00: s = S_749;
+            8'h80: s = S_754;
             default: s = S_ILLEGAL;
             endcase
         8'h70:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_746;
+            8'h00: s = S_759;
             default: s = S_ILLEGAL;
             endcase
         8'h71:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_748;
+            8'h00: s = S_761;
             default: s = S_ILLEGAL;
             endcase
         8'h72:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_750;
+            8'h00: s = S_763;
             default: s = S_ILLEGAL;
             endcase
         8'h73:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_752;
+            8'h00: s = S_765;
             default: s = S_ILLEGAL;
             endcase
         8'h74:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_754;
-            8'h80: s = S_756;
+            8'h00: s = S_767;
+            8'h80: s = S_769;
             default: s = S_ILLEGAL;
             endcase
         8'h75:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_758;
-            8'h80: s = S_760;
+            8'h00: s = S_771;
+            8'h80: s = S_773;
             default: s = S_ILLEGAL;
             endcase
         8'h76:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_762;
-            8'h80: s = S_764;
+            8'h00: s = S_775;
+            8'h80: s = S_777;
             default: s = S_ILLEGAL;
             endcase
         8'h77:
             case (is[7:0] & 8'h80)
-            8'h00: s = S_766;
-            8'h80: s = S_768;
+            8'h00: s = S_779;
+            8'h80: s = S_781;
             default: s = S_ILLEGAL;
             endcase
         8'h78:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_1051;
+            8'h00: s = S_1067;
             default: s = S_ILLEGAL;
             endcase
         8'h79:
             case (is[7:0] & 8'hf0)
-            8'h00: s = S_794;
-            8'h10: s = S_798;
-            8'h20: s = S_802;
-            8'h30: s = S_806;
-            8'h40: s = S_810;
-            8'h50: s = S_814;
-            8'h60: s = S_818;
+            8'h00: s = S_807;
+            8'h10: s = S_811;
+            8'h20: s = S_815;
+            8'h30: s = S_819;
+            8'h40: s = S_823;
+            8'h50: s = S_827;
+            8'h60: s = S_831;
             default: s = S_ILLEGAL;
             endcase
         8'h7a:
             case (is[7:0] & 8'hf8)
-            8'h00: s = S_822;
-            8'h10: s = S_827;
-            8'h20: s = S_832;
-            8'h30: s = S_837;
-            8'h40: s = S_842;
-            8'h50: s = S_847;
-            8'h60: s = S_852;
+            8'h00: s = S_835;
+            8'h10: s = S_840;
+            8'h20: s = S_845;
+            8'h30: s = S_850;
+            8'h40: s = S_855;
+            8'h50: s = S_860;
+            8'h60: s = S_865;
             default: s = S_ILLEGAL;
             endcase
         8'h7b:
             case (is[7:0] & 8'hff)
-            8'h5c: s = S_1053;
-            8'hd4: s = S_1055;
+            8'h5c: s = S_1069;
+            8'hd4: s = S_1071;
             default: s = S_ILLEGAL;
             endcase
         8'h7c:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_1057;
+            8'h00: s = S_1073;
             default: s = S_ILLEGAL;
             endcase
         8'h7d:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_1059;
+            8'h00: s = S_1075;
             default: s = S_ILLEGAL;
             endcase
         8'h7e:
-            s = S_1061;
+            s = S_1077;
         8'h7f:
-            s = S_1063;
+            s = S_1079;
         8'h80, 8'h81, 8'h82, 8'h83, 8'h84, 8'h85, 8'h86, 8'h87, 8'h88, 8'h89, 8'h8a, 8'h8b, 8'h8c, 8'h8d, 8'h8e, 8'h8f:
-            s = S_999;
+            s = S_1012;
         8'h90, 8'h91, 8'h92, 8'h93, 8'h94, 8'h95, 8'h96, 8'h97, 8'h98, 8'h99, 8'h9a, 8'h9b, 8'h9c, 8'h9d, 8'h9e, 8'h9f:
-            s = S_1002;
+            s = S_1015;
         8'ha0, 8'ha1, 8'ha2, 8'ha3, 8'ha4, 8'ha5, 8'ha6, 8'ha7, 8'ha8, 8'ha9, 8'haa, 8'hab, 8'hac, 8'had, 8'hae, 8'haf:
-            s = S_1005;
+            s = S_1018;
         8'hb0, 8'hb1, 8'hb2, 8'hb3, 8'hb4, 8'hb5, 8'hb6, 8'hb7, 8'hb8, 8'hb9, 8'hba, 8'hbb, 8'hbc, 8'hbd, 8'hbe, 8'hbf:
-            s = S_1008;
+            s = S_1021;
         8'hc0, 8'hc1, 8'hc2, 8'hc3, 8'hc4, 8'hc5, 8'hc6, 8'hc7, 8'hc8, 8'hc9, 8'hca, 8'hcb, 8'hcc, 8'hcd, 8'hce, 8'hcf:
-            s = S_1011;
+            s = S_1024;
         8'hd0, 8'hd1, 8'hd2, 8'hd3, 8'hd4, 8'hd5, 8'hd6, 8'hd7, 8'hd8, 8'hd9, 8'hda, 8'hdb, 8'hdc, 8'hdd, 8'hde, 8'hdf:
-            s = S_1014;
+            s = S_1027;
         8'he0, 8'he1, 8'he2, 8'he3, 8'he4, 8'he5, 8'he6, 8'he7, 8'he8, 8'he9, 8'hea, 8'heb, 8'hec, 8'hed, 8'hee, 8'hef:
-            s = S_1017;
+            s = S_1030;
         8'hf0, 8'hf1, 8'hf2, 8'hf3, 8'hf4, 8'hf5, 8'hf6, 8'hf7, 8'hf8, 8'hf9, 8'hfa, 8'hfb, 8'hfc, 8'hfd, 8'hfe, 8'hff:
-            s = S_1020;
+            s = S_1033;
         default: s = S_ILLEGAL;
         endcase
     8'h02: case (is[15:8] & 8'hff)
@@ -2617,7 +2633,7 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
             endcase
         8'h78:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_1037;
+            8'h00: s = S_1053;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2635,33 +2651,33 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
         8'h69:
             case (is[7:0] & 8'h8f)
             8'h00: s = S_76;
-            8'h80: s = S_79;
+            8'h80: s = S_80;
             default: s = S_ILLEGAL;
             endcase
         8'h6b:
             case (is[7:0] & 8'hff)
-            8'h00: s = S_82;
-            8'h20: s = S_86;
-            8'h80: s = S_91;
-            8'ha0: s = S_95;
+            8'h00: s = S_83;
+            8'h20: s = S_88;
+            8'h80: s = S_94;
+            8'ha0: s = S_98;
             default: s = S_ILLEGAL;
             endcase
         8'h6d:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_100;
-            8'h80: s = S_104;
+            8'h00: s = S_103;
+            8'h80: s = S_108;
             default: s = S_ILLEGAL;
             endcase
         8'h6f:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_108;
-            8'h80: s = S_112;
+            8'h00: s = S_112;
+            8'h80: s = S_117;
             default: s = S_ILLEGAL;
             endcase
         8'h78:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_1041;
-            8'h80: s = S_1043;
+            8'h00: s = S_1057;
+            8'h80: s = S_1059;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2669,7 +2685,7 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h08: case (is[15:8] & 8'hff)
         8'h6b:
             case (is[7:0] & 8'hff)
-            8'h20: s = S_116;
+            8'h20: s = S_121;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2677,27 +2693,27 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h09: case (is[15:8] & 8'hff)
         8'h6b:
             case (is[7:0] & 8'hff)
-            8'ha0: s = S_121;
+            8'ha0: s = S_127;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
         endcase
     8'h0e: case (is[15:8] & 8'hff)
         8'h50:
-            s = S_135;
+            s = S_141;
         8'h52:
             case (is[7:0] & 8'h08)
-            8'h00: s = S_139;
+            8'h00: s = S_145;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
         endcase
     8'h0f: case (is[15:8] & 8'hff)
         8'h51:
-            s = S_143;
+            s = S_149;
         8'h53:
             case (is[7:0] & 8'h08)
-            8'h00: s = S_166;
+            8'h00: s = S_172;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2705,17 +2721,17 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h11: case (is[15:8] & 8'hff)
         8'h64:
             case (is[7:0] & 8'h88)
-            8'h00: s = S_189;
+            8'h00: s = S_195;
             default: s = S_ILLEGAL;
             endcase
         8'h65:
             case (is[7:0] & 8'h88)
-            8'h00: s = S_192;
+            8'h00: s = S_198;
             default: s = S_ILLEGAL;
             endcase
         8'h66:
             case (is[7:0] & 8'h88)
-            8'h00: s = S_195;
+            8'h00: s = S_201;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2723,14 +2739,14 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h16: case (is[15:8] & 8'hff)
         8'h6a:
             case (is[7:0] & 8'hf0)
-            8'h20: s = S_770;
-            8'ha0: s = S_776;
+            8'h20: s = S_783;
+            8'ha0: s = S_789;
             default: s = S_ILLEGAL;
             endcase
         8'h6b:
             case (is[7:0] & 8'hf0)
-            8'h20: s = S_782;
-            8'ha0: s = S_788;
+            8'h20: s = S_795;
+            8'ha0: s = S_801;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2738,7 +2754,7 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h17: case (is[15:8] & 8'hff)
         8'h59:
             case (is[7:0] & 8'hff)
-            8'h8f: s = S_857;
+            8'h8f: s = S_870;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2746,7 +2762,7 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h18: case (is[15:8] & 8'hff)
         8'h59:
             case (is[7:0] & 8'hff)
-            8'h8f: s = S_866;
+            8'h8f: s = S_879;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2754,36 +2770,36 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h19: case (is[15:8] & 8'hff)
         8'h63:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_875;
+            8'h00: s = S_888;
             default: s = S_ILLEGAL;
             endcase
         8'h73:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_878;
+            8'h00: s = S_891;
             default: s = S_ILLEGAL;
             endcase
         8'h74:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_881;
-            8'h80: s = S_884;
+            8'h00: s = S_894;
+            8'h80: s = S_897;
             default: s = S_ILLEGAL;
             endcase
         8'h75:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_887;
-            8'h80: s = S_890;
+            8'h00: s = S_900;
+            8'h80: s = S_903;
             default: s = S_ILLEGAL;
             endcase
         8'h76:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_893;
-            8'h80: s = S_896;
+            8'h00: s = S_906;
+            8'h80: s = S_909;
             default: s = S_ILLEGAL;
             endcase
         8'h77:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_899;
-            8'h80: s = S_902;
+            8'h00: s = S_912;
+            8'h80: s = S_915;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2791,38 +2807,38 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h1a: case (is[15:8] & 8'hff)
         8'h60:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_905;
+            8'h00: s = S_918;
             default: s = S_ILLEGAL;
             endcase
         8'h61:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_909;
+            8'h00: s = S_922;
             default: s = S_ILLEGAL;
             endcase
         8'h62:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_913;
+            8'h00: s = S_926;
             default: s = S_ILLEGAL;
             endcase
         8'h67:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_917;
-            8'h80: s = S_921;
+            8'h00: s = S_930;
+            8'h80: s = S_934;
             default: s = S_ILLEGAL;
             endcase
         8'h70:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_925;
+            8'h00: s = S_938;
             default: s = S_ILLEGAL;
             endcase
         8'h71:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_929;
+            8'h00: s = S_942;
             default: s = S_ILLEGAL;
             endcase
         8'h72:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_933;
+            8'h00: s = S_946;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2830,36 +2846,36 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h1b: case (is[15:8] & 8'hff)
         8'h63:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_937;
+            8'h00: s = S_950;
             default: s = S_ILLEGAL;
             endcase
         8'h73:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_940;
+            8'h00: s = S_953;
             default: s = S_ILLEGAL;
             endcase
         8'h74:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_943;
-            8'h80: s = S_946;
+            8'h00: s = S_956;
+            8'h80: s = S_959;
             default: s = S_ILLEGAL;
             endcase
         8'h75:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_949;
-            8'h80: s = S_952;
+            8'h00: s = S_962;
+            8'h80: s = S_965;
             default: s = S_ILLEGAL;
             endcase
         8'h76:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_955;
-            8'h80: s = S_958;
+            8'h00: s = S_968;
+            8'h80: s = S_971;
             default: s = S_ILLEGAL;
             endcase
         8'h77:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_961;
-            8'h80: s = S_964;
+            8'h00: s = S_974;
+            8'h80: s = S_977;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
@@ -2867,38 +2883,38 @@ function automatic logic [SW-1:0] decode(input logic [23:0] is);
     8'h1c: case (is[15:8] & 8'hff)
         8'h60:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_967;
+            8'h00: s = S_980;
             default: s = S_ILLEGAL;
             endcase
         8'h61:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_971;
+            8'h00: s = S_984;
             default: s = S_ILLEGAL;
             endcase
         8'h62:
             case (is[7:0] & 8'h0f)
-            8'h00: s = S_975;
+            8'h00: s = S_988;
             default: s = S_ILLEGAL;
             endcase
         8'h67:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_979;
-            8'h80: s = S_983;
+            8'h00: s = S_992;
+            8'h80: s = S_996;
             default: s = S_ILLEGAL;
             endcase
         8'h70:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_987;
+            8'h00: s = S_1000;
             default: s = S_ILLEGAL;
             endcase
         8'h71:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_991;
+            8'h00: s = S_1004;
             default: s = S_ILLEGAL;
             endcase
         8'h72:
             case (is[7:0] & 8'h8f)
-            8'h00: s = S_995;
+            8'h00: s = S_1008;
             default: s = S_ILLEGAL;
             endcase
         default: s = S_ILLEGAL;
