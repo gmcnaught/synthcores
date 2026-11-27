@@ -24,7 +24,8 @@ Word layout (LSB first), see upd7810_pkg.sv:
   [45:44] lskip      1 = skip args if L0 set, 2 = if L1 set
   [47:46] nargs      operand bytes read with RDOPARG
 """
-import json, re, sys
+import re
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))

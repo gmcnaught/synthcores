@@ -10,6 +10,7 @@ map; 120 bpm until the first tempo event). All tracks are merged; events at the 
 in track order, then file order. System exclusive messages start with F0; meta events other
 than tempo are dropped. Prints the event count and the length.
 """
+import pathlib
 import struct
 import sys
 
@@ -56,7 +57,7 @@ def read_track(data, p, end, track_no, out):
 def main():
     if len(sys.argv) != 3:
         raise SystemExit(__doc__)
-    data = open(sys.argv[1], "rb").read()
+    data = pathlib.Path(sys.argv[1]).read_bytes()
     if data[:4] != b"MThd":
         raise SystemExit(f"{sys.argv[1]}: not a Standard MIDI File")
     _, ntracks, division = struct.unpack(">HHH", data[8:14])

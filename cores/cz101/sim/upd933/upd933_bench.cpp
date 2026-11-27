@@ -2,7 +2,7 @@
 // license:BSD-3-Clause
 // uPD933 HDL against the C++ reference (MAME's model) on the same event lists.
 //
-//   upd933_bench [--real N] [--lead L] [--ext] [--base B] [--out DIR] FILE.ev...
+//   upd933_bench [--real N] [--lead L] [--ext] [--base B] [--out DIR] [--inject-error] FILE.ev...
 //     default ("fast"): now_tick jumps to each request's order tick (the CPU's logical time).
 //     --real N: now_tick advances one tick every N clocks (a 10 MHz counter at N x 10 MHz),
 //               clamped to the next request's order tick; requests are presented up to L ticks
@@ -15,6 +15,8 @@
 //     --ext: ext_timer = 1; the bench plays the board: on timer_arm it computes the expiry as the
 //            reference does (arming request's tick + timer_n * 250), forgets it on timer_cancel,
 //            and pulses timer_fire before the first request whose order tick reaches it.
+//     --inject-error: flip bit 0 of the HDL's sample 1000 (the comparator self-check: the run
+//                     must then report DIFF; tests/ci.sh).
 // Exit status 0 when every file matches in samples, IRQ changes (tick and level) and read data.
 #include "../../ref/upd933_ref.h"
 #include "Vupd933.h"
@@ -29,6 +31,8 @@
 using namespace upd933ref;
 
 namespace {
+
+bool inject_error = false;
 
 struct HdlResult {
 	std::vector<s32> samples;
@@ -60,7 +64,8 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 		top->clk = 0; top->eval();
 		top->clk = 1; top->eval();
 		h.cycles++;
-		if (top->sample_valid) h.samples.push_back(s32(top->sample_sum << 13) >> 13);
+		if (top->sample_valid)
+			h.samples.push_back((s32(top->sample_sum << 13) >> 13) ^ s32(inject_error && h.samples.size() == 1000));
 		if (top->irq_evt) h.irq.push_back({(top->irq_evt_tick - base) & TICK_MASK, u8(top->irq), 0});
 	};
 
@@ -134,6 +139,12 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 	for (int i = 0; i < 4; i++) clock();
 	h.late = top->late;
 	top->final();
+#if VM_COVERAGE
+	// a build with coverage (UPD933_COVERAGE=ON): one file per run, $UPD933_COV<n>.dat
+	static int cov_n = 0;
+	const char *cov = std::getenv("UPD933_COV");
+	ctx->coveragep()->write((std::string(cov ? cov : "upd933_cov") + std::to_string(cov_n++) + ".dat").c_str());
+#endif
 	return h;
 }
 
@@ -162,9 +173,10 @@ int main(int argc, char **argv)
 		else if (a == "--out" && i + 1 < argc) outdir = argv[++i];
 		else if (a == "--ext") ext = true;
 		else if (a == "--base" && i + 1 < argc) base = std::strtoull(argv[++i], nullptr, 0);
+		else if (a == "--inject-error") inject_error = true;
 		else files.push_back(a);
 	}
-	if (files.empty()) { fprintf(stderr, "usage: %s [--real N] [--lead L] [--ext] [--base B] [--out DIR] FILE.ev...\n", argv[0]); return 2; }
+	if (files.empty()) { fprintf(stderr, "usage: %s [--real N] [--lead L] [--ext] [--base B] [--out DIR] [--inject-error] FILE.ev...\n", argv[0]); return 2; }
 
 	int fails = 0;
 	for (const std::string &f : files)

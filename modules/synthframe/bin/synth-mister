@@ -104,7 +104,9 @@ peek)
 midi-stop)
     "${SSH[@]}" "killall -q midilink 2>/dev/null; [ -x $FAT/Scripts/zaparoo.sh ] && $FAT/Scripts/zaparoo.sh -service stop >/dev/null 2>&1; true" ;;
 midi-off)
-    # [u]: the pattern must not match this shell's own command line
+    # [u]: the pattern must not match this shell's own command line. The MiSTer's shell
+    # expands $p: single quotes on purpose.
+    # shellcheck disable=SC2016
     "${SSH[@]}" 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true' ;;
 sh)
     "${SSH[@]}" "$*" ;;

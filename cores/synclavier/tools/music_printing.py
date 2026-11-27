@@ -32,6 +32,7 @@ replaced in place.
 Nothing built here is committed (tests/test_repo_hygiene.py): NED's software
 is MIT-licensed source; users build their own copy.
 """
+import pathlib
 import os
 import shutil
 import struct
@@ -139,7 +140,7 @@ def patch_source(mplt):
     """Apply PATCHES to the MPLT source directory in place."""
     for name, old, new in PATCHES:
         path = os.path.join(mplt, name)
-        data = open(path, "rb").read()
+        data = pathlib.Path(path).read_bytes()
         if data.count(old) != 1:
             raise SystemExit("MPLT/%s: text to patch not found once: %r" % (name, old[:60]))
         with open(path, "wb") as _f: _f.write(data.replace(old, new))
@@ -236,7 +237,7 @@ def mplt_files(outdir):
     d = os.path.join(outdir, "mplt") if os.path.isdir(os.path.join(outdir, "mplt")) else outdir
     files = []
     for name, fname, typ in FILES:
-        data = open(os.path.join(d, fname), "rb").read()
+        data = pathlib.Path(os.path.join(d, fname)).read_bytes()
         files.append((name, able_text(data) if typ == 0 else data, typ))
     return files
 
@@ -255,7 +256,7 @@ def main(argv=None):
     if a.cmd == "build":
         build(a.software, a.outdir)
         return 0
-    disk = bytearray(open(a.image, "rb").read())
+    disk = bytearray(pathlib.Path(a.image).read_bytes())
     for name, action in install(disk, mplt_files(a.outdir)):
         print("W0:.SYSTEM:%-8s %s" % (name, action))
     with open(a.image, "wb") as _f: _f.write(disk)

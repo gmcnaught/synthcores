@@ -80,6 +80,7 @@ height: font rows 0-4 (top) or 5-9 (bottom), 4 lines each; reverse
 inverts all 20 lines of the cell. (The cursor, font row 8, is not drawn
 here: term_display.sv blinks it.)
 """
+import pathlib
 import os
 import sys
 
@@ -515,7 +516,7 @@ class Terminal:
 
 def main():
     t = Terminal()
-    t.feed(open(sys.argv[1], "rb").read())
+    t.feed(pathlib.Path(sys.argv[1]).read_bytes())
     for ln in t.text():
         print(ln)
 

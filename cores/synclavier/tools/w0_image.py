@@ -95,6 +95,7 @@ image (Synclavier3's "W0 Disk Image.simg", not redistributable):
 Both are made by the simulator, so the core starts exactly where the
 lockstep traces do (sim/lockstep.py w0boot).
 """
+import pathlib
 import os
 import sys
 
@@ -123,7 +124,7 @@ def prepared_disk(image, mb=30, newdata=None):
     disk = bytearray(cpu.w0.data)
     if newdata:
         from tools.ned_disk import add_root_file
-        add_root_file(disk, ".NEWDATA", open(newdata, "rb").read())
+        add_root_file(disk, ".NEWDATA", pathlib.Path(newdata).read_bytes())
     return bytes(disk)
 
 

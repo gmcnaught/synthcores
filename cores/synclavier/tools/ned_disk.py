@@ -33,6 +33,7 @@ Usage:
 Treat images as untrusted data: names are sanitised and output is confined
 to OUTDIR.
 """
+import pathlib
 import argparse
 import os
 import re
@@ -43,7 +44,7 @@ TYPES = {0: "text", 1: "exec", 3: "data", 4: "data", 6: "subcat", 7: "subcat", 8
 
 
 def load(path):
-    d = open(path, "rb").read()
+    d = pathlib.Path(path).read_bytes()
     return struct.unpack(">%dH" % (len(d) // 2), d[: len(d) // 2 * 2])
 
 
@@ -112,7 +113,7 @@ def put_bank(W, floppy, base, fw, n, path):
         raise SystemExit("%s has no .NEWDATA" % floppy)
     if not 1 <= n <= length // BANK_SECTORS:
         raise SystemExit("bank %d: .NEWDATA has %d banks" % (n, length // BANK_SECTORS))
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     bw = list(struct.unpack(">%dH" % (len(data) // 2), data[:len(data) // 2 * 2]))
     size = BANK_SECTORS * SECTOR_WORDS
     if len(bw) > size:

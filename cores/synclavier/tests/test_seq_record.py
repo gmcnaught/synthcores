@@ -6,6 +6,7 @@ With SYNCLAVIER_W0 naming a SYN-5.3 W0 image that holds .NEWDATA (e.g.
 W0-53.IMG from tools/w0_image.py), test_record_in_simulator records two
 short parts in the simulator and checks the saved .SQ1DATA (about 90 s).
 """
+import pathlib
 import os
 import struct
 import sys
@@ -208,7 +209,7 @@ def test_record_in_simulator():
     with tempfile.TemporaryDirectory() as d:
         out = os.path.join(d, "t.sseq")
         W, s = sr.record(p, image, 1, out, log=lambda m: None)
-        assert sr.words(open(out, "rb").read()) == W
+        assert sr.words(pathlib.Path(out).read_bytes()) == W
     assert sr.seq_header(W)["click_ms"] == 400 and sr.seq_header(W)["magic"] == "0o123462"
     for n, missing, extra, dt, dd in sr.compare(p, W):
         assert missing == 0 and extra == 0 and dt <= 10 and dd <= 60, (n, missing, extra, dt, dd)
@@ -275,7 +276,7 @@ def test_install():
         with open(seq, "wb") as _f: _f.write(struct.pack(">300H", *range(300)))
         out = os.path.join(d, "out.img")
         assert sr.main(["install", seq, "--w0", w0, "--slot", "5", "--out", out]) == 0
-        W = load_bytes(open(out, "rb").read())
+        W = load_bytes(pathlib.Path(out).read_bytes())
         files = [(p, t) for p, t, *_ in walk(W)]
         assert files.count(("/.SQ5DATA", 4)) == 1
         assert read_file(W, ".SQ5DATA")[:300] == list(range(300))

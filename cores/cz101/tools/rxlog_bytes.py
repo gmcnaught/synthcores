@@ -6,13 +6,14 @@
 
 Used to feed the same MIDI stream to the board's live-MIDI serializer (CZ_MIDI_BYTES).
 """
+import pathlib
 import sys
 
 P = 299_999_940_000          # attoseconds per CPU cycle
 BIT = 32_000_000_000_000     # 32 us at 31,250 baud, in attoseconds
 
 ch = []
-for line in open(sys.argv[1]):
+for line in pathlib.Path(sys.argv[1]).read_text().splitlines(keepends=True):
     s, a, lv = line.split()
     ch.append((int(s) * 10**18 + int(a), int(lv)))
 

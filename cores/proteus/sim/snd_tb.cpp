@@ -6,7 +6,9 @@
 // the FIFO drains them in front of sample k, the same timing as tools/proteus_model.py.
 // Writes the outputs as raw s16 LE L/R and checks the DDR3 capture ring and the status words.
 //
-// Usage: Vsnd_ctrl DEMO.bin OUT.raw SAMPLES [seed] [--no-tone] [--status-test]
+// Usage: Vsnd_ctrl DEMO.bin OUT.raw SAMPLES [seed] [--no-tone] [--status-test] [--inject-error]
+//   --inject-error: flip bit 0 of the left output of sample SAMPLES / 2 in OUT.raw (the
+//   comparator self-check: tests/test_snd_model.py --inject-error must then fail).
 //   --status-test: for a build with a short sample period (VFLAGS=-GSAMPLE_DIV=128, so most
 //   ticks are missed): resets the sound subsystem once at sample 8192 and checks the status
 //   words: missed deadlines saturate at 0xFFFF instead of wrapping, the reset epoch counts
@@ -40,10 +42,11 @@ int main(int argc, char **argv) {
 	FILE *out = fopen(argv[2], "wb"); if (!out) return 2;
 	long want = atol(argv[3]);
 	srand(argc > 4 && argv[4][0] != '-' ? atoi(argv[4]) : 1);
-	bool tone = true, status_test = false;
+	bool tone = true, status_test = false, inject_error = false;
 	for (int i = 4; i < argc; i++) {
 		if (!strcmp(argv[i], "--no-tone")) tone = false;
 		if (!strcmp(argv[i], "--status-test")) status_test = true;
+		if (!strcmp(argv[i], "--inject-error")) inject_error = true;
 	}
 
 	Verilated::commandArgs(argc, argv);
@@ -119,6 +122,7 @@ int main(int argc, char **argv) {
 		cycle();
 		if (t->sample_strobe) {
 			int16_t s[2] = { int16_t(t->out_l), int16_t(t->out_r) };
+			if (inject_error && got == want / 2) s[0] ^= 1;     // comparator self-check
 			fwrite(s, 2, 2, out); got++;
 			mags.push_back(uint16_t(std::max(std::abs(int(s[0])), std::abs(int(s[1])))));
 			if (status_test && got == 8192) {
@@ -160,8 +164,14 @@ int main(int argc, char **argv) {
 	FILE *chk = fopen(argv[2], "rb");
 	if (!chk || fread(o.data(), 1, o.size(), chk) != o.size()) { fprintf(stderr, "FAIL: cannot reread output\n"); return 1; }
 	fclose(chk);
+	if (inject_error && want / 2 < cap) o[(want / 2) * 4] ^= 1;   // the capture ring holds the true sample
 	if (memcmp(mem.data() + 0x1000000, o.data(), o.size())) { fprintf(stderr, "FAIL: capture ring differs from the output\n"); rc = 1; }
 	else fprintf(stderr, "capture ring matches %ld samples\n", cap);
+#if VM_COVERAGE
+	// a build with VFLAGS="--coverage-line --coverage-toggle" (scripts/coverage.sh); the file name
+	// comes from +verilator+coverage+file+NAME (default coverage.dat)
+	Verilated::threadContextp()->coveragep()->write();
+#endif
 	delete t;
 	return rc;
 }

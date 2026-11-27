@@ -23,6 +23,7 @@ tests/hdl/test_board.py checks that the file is up to date; the board
 bench (hdl/sim/lockstep.cpp, BOARD) reads the screen back with the same
 glyphs (glyphs()).
 """
+import pathlib
 import os
 import re
 
@@ -66,7 +67,7 @@ def special_graphics(font):
 
 def glyphs():
     """128 lists of 8 row bytes (0x00-0x1F: DEC special graphics)."""
-    rows = re.findall(r"\{\s*((?:0x[0-9A-Fa-f]{2}\s*,?\s*){8})\}", open(SRC).read())
+    rows = re.findall(r"\{\s*((?:0x[0-9A-Fa-f]{2}\s*,?\s*){8})\}", pathlib.Path(SRC).read_text())
     out = [[int(v, 16) for v in re.findall(r"0x([0-9A-Fa-f]{2})", r)] for r in rows]
     assert len(out) == 128 and all(len(g) == 8 for g in out)
     out[:32] = special_graphics(out)
@@ -80,7 +81,7 @@ def glyphs610():
     out = [[0] * 10 for _ in range(128)]
     enc = None
     rows, inb = [], False
-    for line in open(SRC610, encoding="latin-1"):
+    for line in pathlib.Path(SRC610).read_text(encoding="latin-1").splitlines(keepends=True):
         f = line.split()
         if not f:
             continue
@@ -117,7 +118,7 @@ def glyphs_glass():
     column across the rest of the cell so lines join: here bit 6 into bit 7
     for the box parts and scan lines (0x0B-0x18)."""
     out, code = [[0] * 10 for _ in range(128)], None
-    for line in open(SRCGLASS):
+    for line in pathlib.Path(SRCGLASS).read_text().splitlines(keepends=True):
         line = line.strip()
         if line.startswith("code "):
             code, row = int(line[5:], 16), 0

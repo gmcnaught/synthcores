@@ -13,7 +13,11 @@ BENCH_OUT is cz101_bench's stdout ("N instructions, C cycles, S samples, ..."). 
   - any sample in the common prefix differs.
 Prints "LABEL: identical N (Z non-zero), sha256 H" on success.
 """
-import hashlib, re, struct, sys
+import pathlib
+import hashlib
+import re
+import struct
+import sys
 
 MAX_LAG = 1000      # samples (25 ms): MAME brings its stream up to date at least once a frame
 
@@ -26,8 +30,8 @@ def ticks(a):       # 10 MHz tick of CPU cycle a: 3a - ceil(3a / 5,000,000)
 def main():
     mame_p, hdl_p, bench_p = sys.argv[1:4]
     label = sys.argv[4] if len(sys.argv) > 4 else "samples"
-    a, b = open(mame_p, "rb").read(), open(hdl_p, "rb").read()
-    m = re.search(r"(\d+) instructions, (\d+) cycles, (\d+) samples", open(bench_p).read())
+    a, b = pathlib.Path(mame_p).read_bytes(), pathlib.Path(hdl_p).read_bytes()
+    m = re.search(r"(\d+) instructions, (\d+) cycles, (\d+) samples", pathlib.Path(bench_p).read_text())
     fail = []
     if not m:
         fail.append(f"no sample count in {bench_p}")

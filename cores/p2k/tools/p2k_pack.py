@@ -21,6 +21,7 @@
 
 Prints each output's size and SHA-256.
 """
+import pathlib
 import argparse
 import hashlib
 import os
@@ -60,12 +61,12 @@ def main():
         if bool(a.dump) == bool(a.flash):
             ap.error("pack: give --dump or --flash")
         if a.flash:
-            img = open(a.flash, "rb").read()
+            img = pathlib.Path(a.flash).read_bytes()
         else:
             img = bytes(p2k_flash_image.build(a.dump, a.dli, clean=not a.keep_user))
         if len(img) != 0x200000:
             ap.error("the flash image must be 2 MB")
-        font = open(a.font, "rb").read()
+        font = pathlib.Path(a.font).read_bytes()
         if len(font) != 0x1000:
             ap.error("the character ROM must be 4 KB (hd44780_a00.bin)")
         done(a.out, img + font)
@@ -76,8 +77,8 @@ def main():
     else:
         if not (a.baby and a.big):
             ap.error("simm: give --baby and --big, or --blank")
-        baby = open(a.baby, "rb").read()
-        big = open(a.big, "rb").read()
+        baby = pathlib.Path(a.baby).read_bytes()
+        big = pathlib.Path(a.big).read_bytes()
         if len(baby) > 0x200000 or len(big) > 0x2000000:
             ap.error("Baby is at most 2 MB, Big at most 32 MB")
         if a.flash:

@@ -25,7 +25,15 @@ Mappings [OBS: `verify` against the Synclavier³ text exports of the
 "Original NED FM Timbre Libraries", 941 presets in 17 banks; see
 docs/timbre-libraries.md "Synclavier V banks"].
 """
-import argparse, bisect, glob, os, re, struct, sys, zipfile
+import pathlib
+import argparse
+import bisect
+import glob
+import os
+import re
+import struct
+import sys
+import zipfile
 
 FRAME_FLOATS = 112
 
@@ -162,7 +170,7 @@ def _norm(s):
 
 
 def _text_entry(path):
-    lines = open(path, encoding="latin1").read().splitlines()
+    lines = pathlib.Path(path).read_text(encoding="latin1").splitlines()
     co, tf = {}, {}
     for line in lines:
         s = line.split()

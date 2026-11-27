@@ -8,7 +8,9 @@ Writes {table: [[handler, oplen, cycles, cycles_skip, lmask], ...256]} for the t
 uPD7810/7811 uses: s_opXX_7810 (as "XX") and the prefixes 48, 4C, 4D, 60, 64, 70, 74.
 lmask: bit 0 = L0, bit 1 = L1 (the flags the opcode clears).
 """
-import json, re, sys
+import json
+import re
+import sys
 from pathlib import Path
 
 TABLES = {"XX": "s_opXX_7810", "48": "s_op48", "4C": "s_op4C", "4D": "s_op4D",

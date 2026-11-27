@@ -11,6 +11,7 @@ Exit status 1 if lcd, snd, pan or other differ (count or content), or ram with -
 with --mfp (RAM and MFP writes differ by sub-millisecond interrupt jitter, mister/README.md),
 or if either trace has no LCD or sound writes (an empty or wrong trace); otherwise 0.
 """
+import pathlib
 import argparse
 import sys
 
@@ -25,7 +26,7 @@ def norm(addr, data, mask):
 
 def load(path, hdl):
     out = {name: [] for name, _, _ in DEVICES}
-    for line in open(path):
+    for line in pathlib.Path(path).read_text().splitlines(keepends=True):
         p = line.split()
         if len(p) < 4:
             continue

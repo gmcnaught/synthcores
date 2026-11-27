@@ -20,7 +20,10 @@ SEEDS="0x1 0x10 0x12345678 0xdeadbeef"
 
 build() {   # name top warm clks sources...
     name=$1; top=$2; shift 2
-    verilator --cc --exe --build -O2 -Wno-fatal -Wno-lint -Wno-style --top-module "$top" \
+    # warnings are waived in cfg/lint.vlt (bin/hdl-lint), not by -Wno-fatal / -Wno-lint
+    # shellcheck disable=SC2046
+    verilator --cc --exe --build -O2 -Wno-style --top-module "$top" \
+        "$ROOT"/modules/synthframe/lint/common.vlt $(ls "$ROOT"/cores/*/cfg/lint.vlt "$ROOT"/modules/*/cfg/lint.vlt) \
         -I"$HERE" -I"$ROLAND/board" -I"$PANEL" \
         +define+LCD_BACK_HEX=\""$ROOT/cores/sc55/hdl/board/lcd_back.hex"\" \
         +define+SC55_PANEL_DIR=\""$ROOT/cores/sc55/hdl/panel/"\" -I"$ROOT/cores/sc55/hdl/panel" \

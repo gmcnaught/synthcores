@@ -210,12 +210,11 @@ def test_no_source():
 
 
 def _wav(path, ch, width, hz, frames):
-    w = wave.open(path, "wb")
-    w.setnchannels(ch)
-    w.setsampwidth(width)
-    w.setframerate(hz)
-    w.writeframes(frames)
-    w.close()
+    with wave.open(path, "wb") as w:
+        w.setnchannels(ch)
+        w.setsampwidth(width)
+        w.setframerate(hz)
+        w.writeframes(frames)
 
 
 def test_stm_source_tool():

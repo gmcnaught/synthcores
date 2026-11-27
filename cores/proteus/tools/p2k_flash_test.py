@@ -16,6 +16,7 @@ panel (P2K_KEYS) and checks that the change persists and the SIMM still plays:
 DIR holds big.bin, baby.bin (ROM ID 106, tools/p2k_build_simm.py) and flash_clean.nv. Needs
 P2K_MAME and P2K_ROMPATH as tools/p2k_corpus.py.
 """
+import pathlib
 import argparse
 import hashlib
 import os
@@ -58,13 +59,13 @@ def rom_id(big):
 
 def baby_ids(baby):
     """ROM IDs of the yh_1 (library header) objects of the Baby library at offset 0x10, with flags."""
-    d = open(baby, "rb").read()
+    d = pathlib.Path(baby).read_bytes()
     _, _, _, _, objs, _ = p2k_lib.walk(d, 0x10)
     return [(struct.unpack_from(">I", d, o[0] + 12)[0], o[4]) for o in objs if o[1] == "yh_1"]
 
 
 def checksums_ok(big):
-    img = open(big, "rb").read()
+    img = pathlib.Path(big).read_bytes()
     size = struct.unpack_from(">I", img, 4)[0]
     n, blk = p2k_simm.blocks(size)
     return all(p2k_simm.word_sum(img[i * blk:(i + 1) * blk]) == struct.unpack_from(">H", img, 0x68E + 2 * i)[0]
@@ -72,7 +73,7 @@ def checksums_ok(big):
 
 
 def sha(p):
-    return hashlib.sha256(open(p, "rb").read()).hexdigest()
+    return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
 
 
 def main():
@@ -116,9 +117,9 @@ def main():
         envp = {"P2K_SIMM1": big, "P2K_BABY1": baby, "P2K_FLASH1": "1",
                 "P2K_SNDLOG": os.path.join(d, "snd.log"), "P2K_SNDOUT": os.path.join(d, "snd.raw")}
         lcd, _ = mame(["-midiin", os.path.join(d, "in.mid")], d, envp, 16.0)
-        starts = sum(1 for ln in open(os.path.join(d, "snd.log")) if ln.split()[1:2] == ["G"] and
+        starts = sum(1 for ln in pathlib.Path(os.path.join(d, "snd.log")).read_text().splitlines() if ln.split()[1:2] == ["G"] and
                      int(ln.split()[0]) > 12 * 44100 and int(ln.split()[2], 16) & 0x3f == 0x1a)
-        raw = open(os.path.join(d, "snd.raw"), "rb").read()
+        raw = pathlib.Path(os.path.join(d, "snd.raw")).read_bytes()
         peak = max(abs(v) for v in struct.unpack(f"<{len(raw) // 2}h", raw)) if raw else 0
         hashes.append(sha(os.path.join(d, "snd.raw")))
         print(f"play run {rep}: voice starts {starts}, peak {peak}, LCD {lcd[-1] if lcd else None}")

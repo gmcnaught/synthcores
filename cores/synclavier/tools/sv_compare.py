@@ -12,6 +12,7 @@ when available: same output, ~6x faster). `report` measures both sets
 
 Key numbers: Synclavier V MIDI 69 (A 440) = ORK key 45; MIDI 60 = key 36.
 """
+import pathlib
 import argparse
 import concurrent.futures as cf
 import json
@@ -107,10 +108,10 @@ def render_one(image, out, test, env_clock=None):
            "--fm-log", os.path.join(out, name + ".csv"), "--wav", os.path.join(out, name + ".wav")]
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, errors="replace")
     ok = r.returncode == 0 and os.path.exists(os.path.join(out, name + ".wav"))
-    json.dump({"name": name, "text": kv, "note": note, "hold_s": hold, "release_s": rel,
-               "env_clock_ns": env_clock,
-               "note_on_s": 0.0, "encode_notes": notes, "ok": ok},
-              open(os.path.join(out, name + ".json"), "w"), indent=1)
+    pathlib.Path(os.path.join(out, name + ".json")).write_text(json.dumps(
+        {"name": name, "text": kv, "note": note, "hold_s": hold, "release_s": rel,
+         "env_clock_ns": env_clock,
+         "note_on_s": 0.0, "encode_notes": notes, "ok": ok}, indent=1))
     tail = [l for l in r.stdout.splitlines() if "[rtp]" in l][-3:]
     return name, ok, tail if ok else (r.stderr.splitlines()[-3:] or tail)
 
@@ -341,7 +342,7 @@ def cmd_report(a):
     res = {}
     for side, folder in (("sv", a.sv), ("sim", a.sim)):
         for js in sorted(glob.glob(os.path.join(folder, "*.json"))):
-            meta = json.load(open(js))
+            meta = json.loads(pathlib.Path(js).read_text())
             w = js[:-5] + ".wav"
             if not os.path.exists(w):
                 continue

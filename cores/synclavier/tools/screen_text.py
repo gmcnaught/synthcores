@@ -23,6 +23,7 @@ display in two bracketed fields (columns 11-26 and 29-44), row 1 the
 status counters, rows 2-11 the 160 button labels (row r = PBN 16(r-2)..);
 the display is then returned as its 32 characters (a string).
 """
+import pathlib
 import os
 import sys
 
@@ -33,7 +34,7 @@ sys.path.insert(0, ROOT)
 def read_image(path, threshold=96):
     """(width, height, pixels): one byte per pixel, nonzero = lit."""
     if path.lower().endswith(".pgm"):
-        d = open(path, "rb").read()
+        d = pathlib.Path(path).read_bytes()
         magic, size, _maxval, px = d.split(b"\n", 3)
         assert magic == b"P5"
         w, h = map(int, size.split())

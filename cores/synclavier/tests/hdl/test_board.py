@@ -12,6 +12,8 @@ Needs Verilator (skipped otherwise).
 
 Run:  pypy3 tests/hdl/test_board.py
 """
+import pathlib
+import glob
 import os
 import shutil
 import subprocess
@@ -23,12 +25,19 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
 from sim.lockstep import BUILD_DIR, check, record  # noqa: E402
 
+# hdl-lint's waiver files (cfg/lint.vlt of every core and module): a testbench warning fails the
+# build unless a waiver covers it (modules/synthframe/bin/hdl-lint)
+_REPO = os.path.join(ROOT, "..", "..")
+LINT_VLT = [os.path.join(_REPO, "modules", "synthframe", "lint", "common.vlt")] + sorted(
+    glob.glob(os.path.join(_REPO, "cores", "*", "cfg", "lint.vlt"))
+    + glob.glob(os.path.join(_REPO, "modules", "*", "cfg", "lint.vlt")))
+
 HAVE_VERILATOR = shutil.which("verilator") is not None
 
 
 def test_boot_defaults_up_to_date():
     from tools.gen_boot_defaults import PATH, text
-    assert open(PATH).read() == text(), "run python3 tools/gen_boot_defaults.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_boot_defaults.py"
 
 
 def test_boot_defaults_match_fresh_system():
@@ -43,7 +52,7 @@ def test_boot_defaults_match_fresh_system():
     from sim.lockstep import _Audio
     from sim.system import make_system
     got = [tuple(int(x) for x in m) for m in re.findall(
-        r"9'd\d+: boot_default = \{2'd(\d+), 3'd(\d+), 13'd(\d+), 64'd(\d+)\};", open(PATH).read())]
+        r"9'd\d+: boot_default = \{2'd(\d+), 3'd(\d+), 13'd(\d+), 64'd(\d+)\};", pathlib.Path(PATH).read_text())]
     cpu = make_system(floppy=True, synth=True)
     want = entries(cpu)
     assert len(want) > 16 and got[:len(want)] == want, "device/voice entries differ from state_image"
@@ -67,10 +76,10 @@ def test_vendor_attributes_listed():
         rel = os.path.relpath(path, ROOT).replace(os.sep, "/")
         if rel.startswith("hdl/sim/"):
             continue
-        for attrs in re.findall(r"\(\*\s*(.*?)\s*\*\)", open(path).read()):
+        for attrs in re.findall(r"\(\*\s*(.*?)\s*\*\)", pathlib.Path(path).read_text()):
             found.setdefault(rel, set()).update(a.split("=")[0].strip() for a in attrs.split(","))
     assert found == allowed, found
-    claude = open(os.path.join(ROOT, "..", "..", "CLAUDE.md")).read()
+    claude = pathlib.Path(os.path.join(ROOT, "..", "..", "CLAUDE.md")).read_text()
     vendor = claude[claude.index("**Vendor code:**"):claude.index("**ROMs:**")]
     for rel in allowed:
         assert os.path.basename(rel) in vendor, "CLAUDE.md does not list " + rel
@@ -78,24 +87,24 @@ def test_vendor_attributes_listed():
 
 def test_panel_labels_up_to_date():
     from tools.gen_panel_labels import PATH, text
-    assert open(PATH).read() == text(), "run python3 tools/gen_panel_labels.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_panel_labels.py"
 
 
 def test_midi_tables_up_to_date():
     from tools.gen_midi_tables import PATH, text
-    assert open(PATH).read() == text(), "run python3 tools/gen_midi_tables.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_midi_tables.py"
 
 
 def test_fm_tables_up_to_date():
     from tools.gen_fm_tables import PATH, text
-    assert open(PATH).read() == text(), "run python3 tools/gen_fm_tables.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_fm_tables.py"
 
 
 def test_font_up_to_date():
     from tools.gen_font import PATH, PATH610, text, text610, PATHGLASS, text_glass
-    assert open(PATH).read() == text(), "run python3 tools/gen_font.py"
-    assert open(PATH610).read() == text610(), "run python3 tools/gen_font.py"
-    assert open(PATHGLASS).read() == text_glass(), "run python3 tools/gen_font.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_font.py"
+    assert pathlib.Path(PATH610).read_text() == text610(), "run python3 tools/gen_font.py"
+    assert pathlib.Path(PATHGLASS).read_text() == text_glass(), "run python3 tools/gen_font.py"
 
 
 def _testbench(name, rtl, args=()):
@@ -103,7 +112,7 @@ def _testbench(name, rtl, args=()):
     with the RTL file(s) `rtl` (a path or a tuple of paths)."""
     mdir = os.path.join(BUILD_DIR, name)
     os.makedirs(mdir, exist_ok=True)
-    b = subprocess.run(["verilator", "--binary", "-Wno-fatal", "-Wno-WIDTH", "-Wno-UNUSED",
+    b = subprocess.run(["verilator", "--binary", "-Wno-UNUSED"] + LINT_VLT + [
                         "-I" + os.path.join(ROOT, "hdl/core"), "-I" + os.path.join(ROOT, "hdl/dev"),
                         "--top-module", name + "_tb", "-Mdir", mdir]
                        + [os.path.join(ROOT, r) for r in ((rtl,) if isinstance(rtl, str) else rtl)]
@@ -275,7 +284,7 @@ def test_term_display_readback():
         with open(src, "wb") as _f: _f.write(data)
         _testbench("term_display", ("hdl/core/term_display.sv", "hdl/core/tek_plane.sv"),
                    ["+frame=" + frame, "+input=" + src, "+vt640", "+rbout=" + rb])
-        got = open(rb, "rb").read()
+        got = pathlib.Path(rb).read_bytes()
     finally:
         shutil.rmtree(tmp)
     assert len(want) == 18 and any(len(w) > 10 for w in want)
@@ -304,7 +313,7 @@ def test_term_display_panel():
         w, h, px = read_frame(frame)
     finally:
         shutil.rmtree(tmp)
-    font, lab = glyphs(), labels()
+    _font, lab = glyphs(), labels()
     assert term[0] == "HELLO" and term[1] == "WORLD", term[:3]
     assert panel[1] == " Display  [1234]   Units 0004", panel[1]
     assert panel[2] == " Lag us 00012A3F   Underrun 0002   Overrun 0000   MIDI 0123 F8 Err 0000 9k6 P234", panel[2]

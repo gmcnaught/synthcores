@@ -18,7 +18,10 @@ random operands. Pointers are set before each memory access so all data accesses
         always lands on the filler; setups never follow MVI A, MVI L or LXI H directly
         (their L0/L1 string flags would skip the setup).
 """
-import random, re, sys
+import pathlib
+import random
+import re
+import sys
 
 SFR_NAMES = {"PA", "PB", "PC", "PD", "PF", "MKH", "MKL", "ANM", "SMH", "SML", "EOM", "ETMM",
              "TMM", "MM", "MCC", "MA", "MB", "MC", "MF", "TXB", "RXB", "TM0", "TM1", "CR0",
@@ -33,7 +36,7 @@ COMPARE = ("GTI", "LTI", "NEI", "EQI", "ONI", "OFFI")
 
 def load(path):
     ops = {}
-    for line in open(path):
+    for line in pathlib.Path(path).read_text().splitlines(keepends=True):
         t, op, name, ln = line.split()[:4]
         ln = int(ln.split("=")[1])
         enc = [int(op, 16)] if t == "XX" else [PREFIX[t], int(op, 16)]

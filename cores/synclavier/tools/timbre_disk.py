@@ -37,6 +37,7 @@ finds a patch's sound file through its W0:/W1: sound-file cache. Images
 over 32 MB use the catalog's high sector bits (tools/ned_disk.py) and need
 the core's 24-bit SCSI block addresses (hdl/core/sd_floppy.sv).
 """
+import pathlib
 import os
 import re
 import sys
@@ -138,7 +139,7 @@ def main(argv=None):
         sub, sep2, n = where.rpartition(":")
         if not (sep and sep2 and n.isdigit()):
             ap.error("--seq wants SUBCAT:N=FILE, e.g. DEMOS:1=chorale.sseq")
-        seqs.setdefault(sub.upper(), {})[int(n)] = open(path, "rb").read()
+        seqs.setdefault(sub.upper(), {})[int(n)] = pathlib.Path(path).read_bytes()
     if not a.libraries and not seqs and not a.samples:
         ap.error("nothing to put on the disk")
     samples = []
@@ -155,14 +156,14 @@ def main(argv=None):
         for lib in libs_s:
             for s in lib.sounds:
                 if s not in conv:
-                    conv[s] = caf_sound(open(cafs[s], "rb").read())
+                    conv[s] = caf_sound(pathlib.Path(cafs[s]).read_bytes())
             samples.append((lib.name, lib.newdata, [(s, conv[s]) for s in lib.sounds]))
     libs = []
     for arg in a.libraries:
         name, sep, path = arg.partition("=")
         if not sep:
             name, path = short_name(arg), arg
-        libs.append((name.upper(), open(path, "rb").read()))
+        libs.append((name.upper(), pathlib.Path(path).read_bytes()))
     disk = make(libs, a.mb, seqs, samples)
     with open(a.out, "wb") as _f: _f.write(disk)
     for name, data in libs:

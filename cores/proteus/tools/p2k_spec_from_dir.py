@@ -8,6 +8,7 @@ the samples' root keys (smpl chunk). One preset per instrument (up to MAX_PRESET
 
   p2k_spec_from_dir.py SAMPLE_DIR OUT.json [--id 4] [--name P2Ksy] [--budget BYTES]
 """
+import pathlib
 import argparse
 import collections
 import json
@@ -77,8 +78,8 @@ def main():
         instruments.append({"name": f"{category(folder)}:{name}"[:16], "files": keep, "stereo": stereo})
         if len(presets) < MAX_PRESETS:
             presets.append({"name": f"{category(folder)}:{name}"[:16], "instrument": len(instruments)})
-    json.dump({"id": a.id, "name": a.name, "instruments": instruments, "presets": presets},
-              open(a.out, "w"), indent=1)
+    pathlib.Path(a.out).write_text(json.dumps({"id": a.id, "name": a.name, "instruments": instruments,
+                                               "presets": presets}, indent=1))
     print(f"{len(instruments)} instruments, {len(presets)} presets, {used / 2**20:.1f} MiB of samples")
 
 

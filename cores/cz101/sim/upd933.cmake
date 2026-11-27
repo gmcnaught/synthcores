@@ -21,8 +21,15 @@ target_link_libraries(upd933_stimgen PRIVATE upd933_ref)
 add_executable(upd933_replay "${UPD933_SIM}/upd933_replay.cpp")
 target_link_libraries(upd933_replay PRIVATE upd933_ref)
 
+# UPD933_COVERAGE=ON: line and toggle coverage (scripts/coverage.sh); the bench writes
+# $UPD933_COV<n>.dat for each file it runs
+option(UPD933_COVERAGE "Verilator line and toggle coverage in upd933_bench" OFF)
+set(UPD933_VCOV "")
+if(UPD933_COVERAGE)
+    set(UPD933_VCOV --coverage-line --coverage-toggle)
+endif()
 add_executable(upd933_bench "${UPD933_SIM}/upd933_bench.cpp")
 target_link_libraries(upd933_bench PRIVATE upd933_ref)
 verilate(upd933_bench SOURCES "${UPD933_HDL}/upd933_mem.sv" "${UPD933_HDL}/upd933.sv"
          TOP_MODULE upd933 PREFIX Vupd933
-         VERILATOR_ARGS ${VFLAGS} "-GTABLE_DIR=\"${UPD933_HDL}/\"")
+         VERILATOR_ARGS ${VFLAGS} ${UPD933_VCOV} "-GTABLE_DIR=\"${UPD933_HDL}/\"")

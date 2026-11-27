@@ -22,12 +22,15 @@ OUT=out/mister; mkdir -p "$OUT"
 DATE=$(date +%Y%m%d)
 
 python3 tools/romset.py pack "$ROMS" "$OUT/boot.rom" --romset "$ROMSET" >/dev/null
+# $CORE_DIR and $DATE are this script's, expanded here on purpose (also below)
+# shellcheck disable=SC2029
 ssh "$DEV" "mkdir -p $CORE_DIR /media/fat/games/SC-55; rm -f /media/fat/_Other/SC55_*.rbf $CORE_DIR/SC55_*.rbf /media/fat/screenshots/SC-55/*.png"
 scp -q "$RBF" "$DEV:$CORE_DIR/SC55_$DATE.rbf"
 scp -q "$OUT/boot.rom" "$DEV:/media/fat/games/SC-55/boot.rom"
 # Zaparoo reopens ttyS1 every second and resets its speed (synclavierii notes)
 ssh "$DEV" "[ -x /media/fat/Scripts/zaparoo.sh ] && /media/fat/Scripts/zaparoo.sh -service stop >/dev/null 2>&1 || true"
 # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
+# shellcheck disable=SC2029
 ssh "$DEV" "timeout 10 sh -c 'echo load_core $CORE_DIR/SC55_$DATE.rbf > /dev/MiSTer_cmd'; sleep ${WAIT:-8}"
 if [ $# -gt 0 ]; then
     ssh "$DEV" "stty -F /dev/ttyS1 9600 raw -echo"

@@ -8,6 +8,7 @@ LOG: the HDL bench's CZ_TX_LOG ("CYCLE LEVEL"), or with --mame MAME's CZ_TX_LOG 
 ATTOSECONDS LEVEL", converted to CPU cycles as floor(T / P)). 31,250 baud, 8N1: each bit is
 sampled in its middle; a byte with a low stop bit prints as "CYCLE FE" (framing error).
 """
+import pathlib
 import bisect
 import sys
 
@@ -19,7 +20,7 @@ def main():
     mame = sys.argv[1] == "--mame"
     path = sys.argv[-1]
     ch = []
-    for line in open(path):
+    for line in pathlib.Path(path).read_text().splitlines(keepends=True):
         f = line.split()
         if mame:
             t = int(f[0]) * 10**18 + int(f[1]); ch.append((t // P, int(f[2])))
@@ -29,7 +30,6 @@ def main():
     def level(t):
         i = bisect.bisect_right(cyc, t) - 1
         return 1 if i < 0 else ch[i][1]
-    t_end = cyc[-1] if cyc else 0
     i = 0
     while i < len(ch):
         c, lv = ch[i]

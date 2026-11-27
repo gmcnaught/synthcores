@@ -13,6 +13,7 @@ Layout observed (Proteus 1SL001.ebl):
 
 Usage: ebl.py FILE_OR_DIR [...]   prints one line per sample
 """
+import pathlib
 import os
 import struct
 import sys
@@ -27,7 +28,7 @@ def chunks(data, off, end):
 
 
 def parse(path):
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     assert data[:4] == b"FORM" and data[8:12] == b"E5B0", path
     out = []
     for cid, body, size in chunks(data, 12, len(data)):

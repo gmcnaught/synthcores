@@ -10,8 +10,11 @@ itself also checks the DDR3 capture ring, missed sample deadlines and the status
 that the missed-deadline counter saturates and the epoch counts a reset (--status-test).
 
 The model runs under pypy3 (CLAUDE.md); without pypy3 it falls back to python3 (slower).
+--inject-error runs the first case only, with one HDL output bit flipped (snd_tb --inject-error):
+the comparator self-check, which must fail (tests/ci.sh).
 Exit status: 0 all passed, 1 a failure, 77 skipped (verilator missing).
 """
+import pathlib
 import os
 import shutil
 import subprocess
@@ -39,7 +42,9 @@ def main():
         tb = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(CORE, "build", "sim", "snd")],
                             check=True, stdout=subprocess.PIPE, text=True).stdout.strip().splitlines()[-1]
         fails = 0
-        for seed, gen, bench in CASES:
+        inject = "--inject-error" in sys.argv[1:]
+        for seed, gen, bench in (CASES[:1] if inject else CASES):
+            bench = bench + (["--inject-error"] if inject else [])
             img = os.path.join(tmp, f"rand{seed}.bin")
             hdl, ref = os.path.join(tmp, f"hdl{seed}.raw"), os.path.join(tmp, f"model{seed}.raw")
             subprocess.run([py, os.path.join(CORE, "tools", "snd_randimg.py"), img, str(seed)] + gen,
@@ -49,8 +54,8 @@ def main():
             model_opts = ["--no-tone"] if "--no-tone" in bench else []
             subprocess.run([py, os.path.join(CORE, "tools", "proteus_model.py"), img, ref,
                             "--ticks", str(SAMPLES)] + model_opts, check=True, stdout=subprocess.DEVNULL)
-            a = open(hdl, "rb").read() if os.path.exists(hdl) else b""
-            b = open(ref, "rb").read()
+            a = pathlib.Path(hdl).read_bytes() if os.path.exists(hdl) else b""
+            b = pathlib.Path(ref).read_bytes()
             name = f"seed {seed} {' '.join(gen + bench)}".strip()
             if r.returncode != 0:
                 print(f"FAIL {name}: bench exit {r.returncode}\n{r.stderr}")
@@ -64,6 +69,8 @@ def main():
                 fails += 1
             else:
                 print(f"ok   {name}: {SAMPLES} samples bit-identical")
+        if inject:
+            return 1 if fails else 0
         # status words under overload: SAMPLE_DIV=128 misses most ticks (review #16)
         env = dict(os.environ, VFLAGS="-GSAMPLE_DIV=128")
         tb2 = subprocess.run([os.path.join(CORE, "sim", "build.sh"), "snd", os.path.join(CORE, "build", "sim", "snd128")],

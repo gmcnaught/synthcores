@@ -5,6 +5,7 @@ PostScript side of tools/print_render.py.
 With SYNCLAVIER_W0_RAW (Synclavier3's "W0 Disk Image.simg") the install is
 checked on a real W0; with MUSIC_PRINTING_OUT (a `music_printing.py build`
 OUTDIR) too, the installed files are the built ones."""
+import pathlib
 import os
 import struct
 import sys
@@ -34,10 +35,10 @@ def test_patches_on_ned_source():
         raise unittest.SkipTest("NED_SOFTWARE not set")
     with tempfile.TemporaryDirectory() as d:
         for name in {n for n, _o, _n in music_printing.PATCHES}:
-            with open(os.path.join(d, name), "wb") as _f: _f.write(open(os.path.join(sw, "Able", "MPLT", name), "rb").read())
-        before = open(os.path.join(d, "MAINSORC"), "rb").read()
+            with open(os.path.join(d, name), "wb") as _f: _f.write(pathlib.Path(os.path.join(sw, "Able", "MPLT", name)).read_bytes())
+        before = pathlib.Path(os.path.join(d, "MAINSORC")).read_bytes()
         music_printing.patch_source(d)
-        after = open(os.path.join(d, "MAINSORC"), "rb").read()
+        after = pathlib.Path(os.path.join(d, "MAINSORC")).read_bytes()
     start = before.index(b"DISPLAY_MUSIC:procedure")
     end = before.index(b"end DISPLAY_MUSIC;")
     assert after[:start] == before[:start]

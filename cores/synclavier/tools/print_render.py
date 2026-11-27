@@ -29,6 +29,7 @@ Pages are 8.5 x 11 inches at 84 pixels per inch (714 x 924), 0.25 inch
 margins; the text cell is 8 x 14 pixels (the core's 8 x 8 font, rows 1.5
 times as in tools/vt100.py's graphics text).
 """
+import pathlib
 import os
 import struct
 import sys
@@ -250,14 +251,14 @@ def main(argv=None):
     if a.extract:
         if not a.capture:
             ap.error("--extract needs CAPTURE")
-        data = open(a.capture, "rb").read()
+        data = pathlib.Path(a.capture).read_bytes()
         data = data if a.raw else read_capture(data)
         with open(a.extract, "wb") as _f: _f.write(data)
         print("%s: %d bytes" % (a.extract, len(data)))
         return 0
     if not a.capture or not a.out:
         ap.error("CAPTURE and OUT are needed (or --blank FILE, --extract FILE)")
-    data = open(a.capture, "rb").read()
+    data = pathlib.Path(a.capture).read_bytes()
     if not a.raw:
         data = read_capture(data)
     base, ext = os.path.splitext(a.out)

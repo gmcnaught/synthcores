@@ -5,13 +5,14 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)
+root=$(cd "$core/../.." && pwd)     # hdl-lint waivers (cfg/lint.vlt) instead of -Wno-* options
 out=${1:-$core/build/system}
 mkdir -p "$out"
 out=$(cd "$out" && pwd)
 h=$core/hdl
 # shellcheck disable=SC2086
 verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mt32_core ${VDEFS:-} \
-    -Wno-fatal -Wno-WIDTH -Wno-UNUSED -Wno-DECLFILENAME -Wno-BLKSEQ \
+    -Wno-UNUSED -Wno-DECLFILENAME -Wno-BLKSEQ "$root"/modules/synthframe/lint/common.vlt "$root"/cores/*/cfg/lint.vlt "$root"/modules/*/cfg/lint.vlt \
     "-DMCS96_DECODE_HEX=\"$h/mcs96/mcs96_decode.hex\"" \
     -GPOW_HEX="\"$h/la32/mt32_la32_pow.hex\"" -GLOGSIN_HEX="\"$h/la32/mt32_la32_logsin.hex\"" \
     -F "$core/sim/files.f" "$here/mt32_sys_bench.cpp" \

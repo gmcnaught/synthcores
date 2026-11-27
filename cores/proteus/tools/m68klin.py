@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Linear 68000 disassembly of a byte range: m68klin.py IMAGE START END (hex)."""
+import pathlib
 import sys
 import capstone
-d = open(sys.argv[1], "rb").read()
+d = pathlib.Path(sys.argv[1]).read_bytes()
 s, e = int(sys.argv[2], 16), int(sys.argv[3], 16)
 md = capstone.Cs(capstone.CS_ARCH_M68K, capstone.CS_MODE_M68K_000)
 pc = s

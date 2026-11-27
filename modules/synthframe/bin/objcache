@@ -1,0 +1,15 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# OBJCACHE for Verilator's makefiles (verilator --build, sim/build.sh scripts): ccache, except
+# that a precompiled header (the "-x c++-header" compile of V<top>__pch.h) is cached per build
+# directory. A .gch holds the absolute path of its header, and ccache leaves the working
+# directory out of the hash when there is no -g, so with plain OBJCACHE=ccache a second checkout,
+# worktree or build folder gets the first one's .gch; once the first folder is gone, clang stops
+# with "malformed or corrupted precompiled file". The other compiles are cached as usual.
+#   OBJCACHE=/path/to/modules/synthframe/bin/objcache verilator --build ...
+case " $* " in
+    *" -x c++-header "*)
+        CCACHE_NAMESPACE="pch:$PWD${CCACHE_NAMESPACE:+:$CCACHE_NAMESPACE}"
+        export CCACHE_NAMESPACE ;;
+esac
+exec ccache "$@"

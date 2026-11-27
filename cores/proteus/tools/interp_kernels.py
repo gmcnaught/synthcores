@@ -43,8 +43,8 @@ third_party/mame/src/mame/emusys/proteus_snd.cpp (when that file exists; then re
 mame/patches/0001 from the MAME tree).
 """
 
+import pathlib
 import os
-import sys
 
 import numpy as np
 
@@ -155,7 +155,7 @@ def write_py(path, K):
 
 def write_mame(path, K):
     """Replace the rows of `constexpr s32 KERNELS[8][129] = { ... };` in proteus_snd.cpp."""
-    src = open(path).read()
+    src = pathlib.Path(path).read_text()
     head = "constexpr s32 KERNELS[8][129] = {\n"
     start = src.index(head) + len(head)
     end = src.index("};\n", start)

@@ -130,6 +130,8 @@ do_restore() {
         while read -r m; do case "$(target_of "$m")" in "$p"_*.rbf) have=1 ;; esac; done < "$d/MANIFEST"
         cur=$(for f in "$p"_*.rbf "_Other/${b}"_*.rbf "_Computer/${b}"_*.rbf; do if [ -f "$f" ]; then echo "$f"; fi; done)
         if [ $have = 0 ]; then
+            # $cur is a list of file names: one space between them, as the other messages
+            # shellcheck disable=SC2086
             [ -n "$cur" ] && echo "$c: kept" $cur "(no $b RBF in $d)"
             continue
         fi

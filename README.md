@@ -40,7 +40,12 @@ Each core's README gives its checks, the ROM dumps it needs and how to install i
 Clone with `git clone --recursive`. CI (`.github/workflows/`): `tests.yml` runs on every pull
 request: every `cores/<core>/tests/ci.sh` and `modules/<module>/tests/ci.sh` (each core's and
 module's ROM-free tests; exit 77 means skipped, and the run's summary page counts passes and
-skips), plus each touched core's test suite. `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
+skips), plus each touched core's test suite. The same workflow runs the lint gate
+(`modules/synthframe/bin/hdl-lint`, waivers in `cores/<core>/cfg/lint.vlt`) and the
+uptime-counter audit (`bin/counter-audit`, `cfg/counters.yaml`) in synthframe's `ci.sh`;
+ShellCheck and ruff (job `hygiene`, `scripts/precommit.sh --fast`, which can also be installed
+as the git pre-commit hook); and, report only, Verilator coverage (`scripts/coverage.sh`,
+artifact `coverage`) and verible (`scripts/verible-lint.sh`). `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
 one core on demand (the "Build RBF" workflow with `cores` set, which is how releases are built), for
 every core on a `v*` tag.
 

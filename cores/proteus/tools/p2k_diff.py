@@ -10,6 +10,7 @@ and plays note 60 vel 100 for 2 s. (SysEx parameter edits were sent and had no e
   p2k_diff.py diff BASE NAME
 Runs go to build/p2k/diff/NAME. SIMM images: build/p2k/simm/demo (tools/p2k_build_simm.py).
 """
+import pathlib
 import collections
 import os
 import re
@@ -23,10 +24,10 @@ OUT = os.path.join(ROOT, "build", "p2k", "diff")
 def build_simm(d, edits):
     """SIMM variant: tests/p2k_simm_demo.json with layer-0 parameter edits on preset 0."""
     import json
-    spec = json.load(open(os.path.join(ROOT, "tests", "p2k_simm_demo.json")))
+    spec = json.loads(pathlib.Path(os.path.join(ROOT, "tests", "p2k_simm_demo.json")).read_text())
     spec["presets"][0]["params"] = {str(k): v for k, v in edits}
     path = os.path.join(d, "spec.json")
-    json.dump(spec, open(path, "w"))
+    pathlib.Path(path).write_text(json.dumps(spec))
     simm = os.path.join(d, "simm")
     subprocess.run([sys.executable, os.path.join(ROOT, "tools", "p2k_build_simm.py"), path, simm],
                    check=True, cwd=ROOT, stdout=subprocess.DEVNULL)
@@ -60,7 +61,7 @@ LINE = re.compile(r"T ([\d.]+) (?:([0-9a-f]{8}) )?(MIDI|G v(\d+) (..) = (....)|H
 
 def parse(d):
     ev, midi = [], []
-    for l in open(os.path.join(d, "error.log"), errors="replace"):
+    for l in pathlib.Path(os.path.join(d, "error.log")).read_text(errors="replace").splitlines(keepends=True):
         m = LINE.search(l)
         if not m:
             continue
