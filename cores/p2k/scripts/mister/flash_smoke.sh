@@ -62,7 +62,8 @@ PY
 }
 # wait (up to LIMIT seconds) for the LCD text with the band green; screenshot to $1; $1.secs
 wait_main() {
-    local t0=$(date +%s)
+    local t0
+    t0=$(date +%s)
     while [ $(( $(date +%s) - t0 )) -lt "${2:-300}" ]; do
         sleep 2
         $M shot p2k "$1" >/dev/null 2>&1 || continue

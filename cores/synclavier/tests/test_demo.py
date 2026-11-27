@@ -6,6 +6,7 @@ library only; no disk images.
 
 Run:  pypy3 tests/test_demo.py
 """
+import pathlib
 import os
 import sys
 import tempfile
@@ -201,12 +202,12 @@ def test_write_mix():
         path = os.path.join(d, "m.wav")
         frames = [(2048, -2048), (32767, 0)]     # pcm_out.sv's frames (FM + poly), clipped
         n = demo.write_mix(path, frames, 3)
-        data = open(path, "rb").read()[44:]
+        data = pathlib.Path(path).read_bytes()[44:]
         assert struct.unpack("<6h", data) == (2048, -2048, 32767, 0, 0, 0) and n == 1
         n = demo.write_mix(path, frames, 2, gain=2.0)    # over full scale: clipped again
-        assert struct.unpack("<4h", open(path, "rb").read()[44:]) == (4096, -4096, 32767, 0) and n == 2
+        assert struct.unpack("<4h", pathlib.Path(path).read_bytes()[44:]) == (4096, -4096, 32767, 0) and n == 2
         n = demo.write_mix(path, frames, 2, gain=0.5)
-        assert struct.unpack("<4h", open(path, "rb").read()[44:]) == (1024, -1024, 16384, 0) and n == 1
+        assert struct.unpack("<4h", pathlib.Path(path).read_bytes()[44:]) == (1024, -1024, 16384, 0) and n == 1
 
 
 def test_baud():

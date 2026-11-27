@@ -1,0 +1,29 @@
+`verilator_config
+// hdl-lint waivers (modules/synthframe/bin/hdl-lint, `verilator --lint-only -Wall` on the MiSTer
+// top). Each waiver names a rule and a file; all but the style rules (DECLFILENAME, BLKSEQ,
+// PINCONNECTEMPTY, GENUNNAMED, TIMESCALEMOD, PROCASSINIT, UNUSEDPARAM) also name the message.
+// `hdl-lint --update CORE` appends waivers for new warnings; review them before committing.
+// Reviewed 2026-11-26: no waiver hides a functional bug. Notes on the non-style ones:
+// JV880.sv: VIDEO_ARX/ARY 12-bit constants (Template_MiSTer); midi_stretch ?: tests non-zero.
+
+lint_off -rule PINCONNECTEMPTY -file "*hdl/jv880_board.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_board.sv" -match "Signal is not used: 'lcd_on'"
+lint_off -rule PINCONNECTEMPTY -file "*hdl/jv880_lcd_video.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_lcd_video.sv" -match "Bits of signal are not used: 'l_line'[1]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_lcd_video.sv" -match "Signal is not used: 'd_dot'"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_lcd_video.sv" -match "Signal is not used: 'd_line'"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_lcd_video.sv" -match "Signal is not used: 'd_panel'"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_lcd_video.sv" -match "Signal is not used: 'l_fetch'"
+lint_off -rule DECLFILENAME -file "*mister/JV880.sv"
+lint_off -rule PINCONNECTEMPTY -file "*mister/JV880.sv"
+lint_off -rule PROCASSINIT -file "*mister/JV880.sv"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Bits of signal are not used: 'buttons'[0]"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Bits of signal are not used: 'status'[127:7]"
+lint_off -rule WIDTHTRUNC -file "*mister/JV880.sv" -match "Logical operator COND expects 1 bit on the Conditional Test, but Conditional Test's VARREF 'midi_stretch' generates 22 bits."
+lint_off -rule WIDTHEXPAND -file "*mister/JV880.sv" -match "Operator ASSIGNW expects 13 bits on the Assign RHS, but Assign RHS's CONST '12'h3' generates 12 bits."
+lint_off -rule WIDTHEXPAND -file "*mister/JV880.sv" -match "Operator ASSIGNW expects 13 bits on the Assign RHS, but Assign RHS's CONST '12'h4' generates 12 bits."
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Signal is not used: 'ioctl_index'"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Signal is not used: 'rom_ok'"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Signal is not used: 'running'"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Signal is not used: 'step_done'"
+lint_off -rule UNUSEDSIGNAL -file "*mister/JV880.sv" -match "Signal is not used: 'underruns'"

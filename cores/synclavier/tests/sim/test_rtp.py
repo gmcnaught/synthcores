@@ -20,7 +20,6 @@ S = 256
 def image_with(parts):
     """Words of a tiny .simg: root catalog of type-7 floppies, each holding
     one type-8 part. parts: list of (disk number, data sectors, total)."""
-    nfl = len(parts)
     W = [0] * (4 * S)
     base = 4
     for k, (disk, sectors, total) in enumerate(parts):

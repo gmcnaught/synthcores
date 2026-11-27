@@ -10,7 +10,8 @@ mkdir -p "$OUT"
 verilator --cc "$SND/p2k_ram.sv" "$SND/p2k_mul.sv" "$SND/p2k_snd_filt.sv" "$SND/p2k_fx_sine_rom.sv" "$SND/p2k_fx.sv" "$SND/p2k_snd.sv" \
   "$MEM/synthframe_mem_arb.sv" "$MEM/synthframe_mem_ddr3.sv" "$HERE/p2k_snd_bench.sv" \
   -I"$SND" --top-module p2k_snd_bench --exe "$HERE/p2k_snd_tb.cpp" \
-  -Mdir "$OUT/obj" -O3 -CFLAGS "-O2 -std=c++17" -Wall -Wno-fatal -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL ${VFLAGS:-} \
-  --build -j 8 -o "$OUT/p2k_snd_tb" > "$OUT/verilator.log" 2>&1 || { grep -E '%Error' "$OUT/verilator.log" | head -40; tail -20 "$OUT/verilator.log"; exit 1; }
+  -Mdir "$OUT/obj" -O3 -CFLAGS "-O2 -std=c++17" -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL ${VFLAGS:-} \
+  "$ROOT"/../../modules/synthframe/lint/common.vlt "$ROOT"/../*/cfg/lint.vlt "$ROOT"/../../modules/*/cfg/lint.vlt \
+  --build -j "${JOBS:-4}" -o "$OUT/p2k_snd_tb" > "$OUT/verilator.log" 2>&1 || { grep -E '%Error' "$OUT/verilator.log" | head -40; tail -20 "$OUT/verilator.log"; exit 1; }
 grep -E '%Warning' "$OUT/verilator.log" | head -40 >&2 || true
 echo "$OUT/p2k_snd_tb"

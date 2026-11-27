@@ -6,6 +6,7 @@ SYNCLAVIER_W0 set, SYN-5.3 printing: the Recorder Display's screen dump
 
 Run:  pypy3 tests/sim/test_printer.py
 """
+import pathlib
 import os
 import struct
 import sys
@@ -174,7 +175,7 @@ def test_extract():
         blk = print_render.header(len(body)) + body
         with open(cap, "wb") as _f: _f.write(blk.ljust(4096, b"\0"))
         assert print_render.main([cap, "--extract", out]) == 0
-        assert open(out, "rb").read() == body
+        assert pathlib.Path(out).read_bytes() == body
 
 
 def _syn53(**kw):

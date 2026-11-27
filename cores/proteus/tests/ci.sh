@@ -15,6 +15,7 @@
 #     Pillow, skips without it (not named test_*.py, so a plain loop over test_*.py that
 #     treats exit 77 as failure does not run it)
 #   - p2k/tests/ci.sh, if present
+#   - comparator self-check: test_snd_model.py --inject-error (one HDL output bit flipped) must fail
 # Needs: verilator (5.048), a C++17 compiler (g++-14 used when present, as in CI), python3,
 # Pillow (pip); pypy3 is used for the Proteus/1 model when present.
 set -euo pipefail
@@ -24,7 +25,7 @@ cd "$CORE"
 if [ -z "${PYTHON:-}" ] && command -v pypy3 >/dev/null; then PY=pypy3; else PY=${PYTHON:-python3}; fi
 PIL_PY=${PIL_PYTHON:-python3}
 # Verilator benches build incrementally under build/sim with ccache, one job by default
-if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE=ccache; fi
+if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE="$CORE/../../modules/synthframe/bin/objcache"; fi
 pass=0; skip=0; fail=0; failed=()
 
 run() {   # run NAME CMD...
@@ -46,6 +47,14 @@ for t in tests/test_*.py tests/*/test_*.py; do
   run "$t" "$PY" "$t"
 done
 run "tests/smoke_gate.py" "$PIL_PY" tests/smoke_gate.py
+# comparator self-check: one flipped HDL output bit must fail the Proteus/1 sound comparison
+inject_snd() {
+  local o rc=0
+  o=$("$PY" tests/test_snd_model.py --inject-error 2>&1) || rc=$?
+  if [ "$rc" -eq 0 ]; then echo "$o"; echo "test_snd_model.py passed with --inject-error"; return 1; fi
+  printf '%s\n' "$o" | grep "output differs from the model" || { echo "$o"; return 1; }
+}
+run "inject-error (test_snd_model.py --inject-error must fail)" inject_snd
 if [ -x p2k/tests/ci.sh ]; then run "p2k/tests/ci.sh" p2k/tests/ci.sh; fi
 
 summary="proteus ci: $pass passed, $skip skipped, $fail failed"

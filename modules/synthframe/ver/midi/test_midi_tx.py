@@ -3,7 +3,12 @@
 # synthframe_midi_tx: the serial line decodes back to the bytes pushed, at 31250 and at the
 # 9600 fallback; a burst faster than the wire waits in the FIFO; a burst past the FIFO drops
 # the bytes that do not fit and counts them. Clock 3.125 MHz (100 clocks a bit at 31250).
-import contextlib, os, pathlib, random, subprocess, sys
+import contextlib
+import os
+import pathlib
+import random
+import subprocess
+import sys
 
 here = pathlib.Path(__file__).resolve().parent
 hdl = here.parent.parent / "hdl" / "midi" / "synthframe_midi_tx.sv"
@@ -22,6 +27,13 @@ def run(work, name, pushes, alt):
     return got, dropped
 
 
+def lint_vlt():
+    """bin/hdl-lint's waiver files"""
+    repo = here.parent.parent.parent.parent
+    return [str(repo / "modules/synthframe/lint/common.vlt")] + sorted(
+        str(p) for p in [*repo.glob("cores/*/cfg/lint.vlt"), *repo.glob("modules/*/cfg/lint.vlt")])
+
+
 def main():
     random.seed(3)
     # kept between runs (out/ is ignored): Verilator and ccache rebuild only what changed
@@ -29,8 +41,9 @@ def main():
     os.makedirs(w, exist_ok=True)
     with contextlib.nullcontext(w):
         work = pathlib.Path(w)
-        # -Wno-WIDTHEXPAND: the 32-bit -G value for the longint CLK_HZ
-        b = subprocess.run(["verilator", "--cc", "--exe", "--build", "--build-jobs", os.environ.get("VERILATOR_JOBS", "1"), "-O2", "-Wall", "-Wno-DECLFILENAME", "-Wno-WIDTHEXPAND",
+        # the 32-bit -G value for the longint CLK_HZ is waived in cfg/lint.vlt (bin/hdl-lint)
+        b = subprocess.run(["verilator", "--cc", "--exe", "--build", "--build-jobs", os.environ.get("VERILATOR_JOBS", "1"), "-O2", "-Wall", "-Wno-DECLFILENAME",
+                            *lint_vlt(),
                             "--Mdir", str(work / "obj"), str(hdl), str(here / "tb_midi_tx.cpp"),
                             "--top-module", "synthframe_midi_tx", f"-GCLK_HZ={CLK}", f"-GDEPTH_BITS={DEPTH_BITS}"],
                            capture_output=True, text=True)

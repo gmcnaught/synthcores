@@ -43,6 +43,8 @@ scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
 # `synth-mister midi-stop` kills it; MidiLink holds ttyS1 and would read the replies. Stop the
 # loops too ([u]: the pattern must not match this shell's own command line).
 stop_midilink() {
+    # the MiSTer's shell expands $p and ${p#...}: single quotes on purpose
+    # shellcheck disable=SC2016
     $M sh 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true'
 }
 stop_midilink

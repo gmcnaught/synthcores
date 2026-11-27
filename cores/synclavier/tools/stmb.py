@@ -20,7 +20,14 @@ Words are big-endian 16-bit.
 Text -> parameter encodings: [OBS] where checked against the pairs (see
 `verify`), [INF] where taken from the NED source only.
 """
-import argparse, collections, glob, math, os, re, struct, sys
+import pathlib
+import argparse
+import collections
+import glob
+import math
+import os
+import struct
+import sys
 
 SUP, MOR, PINFO, TINFO = 0xFFFE, 0xFFFF, 0xFFFD, 0xFFFC
 NUM_PARAMS, PINFO_LEN, TINFO_LEN, NUM_MISC = 46, 32, 96, 8
@@ -49,7 +56,7 @@ def s16(x):
 # ---------------------------------------------------------------- bank I/O
 
 def read_words(path):
-    b = open(path, "rb").read()
+    b = pathlib.Path(path).read_bytes()
     return list(struct.unpack(">%dH" % (len(b) // 2), b[: len(b) // 2 * 2]))
 
 
@@ -173,7 +180,7 @@ def num(x):
 
 
 def parse_text(path):
-    lines = open(path, encoding="utf-8", errors="replace").read().split("\n")
+    lines = pathlib.Path(path).read_text(encoding="utf-8", errors="replace").split("\n")
     e = {"title": lines[0].strip(), "kv": [], "export": None}
     for l in lines[2:]:
         f = l.split()

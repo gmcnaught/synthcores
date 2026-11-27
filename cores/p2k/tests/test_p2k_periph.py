@@ -8,6 +8,8 @@ import os
 import subprocess
 import unittest
 
+from p2k_vlt import LINT_VLT  # tests/ is sys.path[0]
+
 CORE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(CORE))
 OUT = os.path.join(CORE, "build", "periph_tb")
@@ -20,8 +22,8 @@ class PeriphTest(unittest.TestCase):
         subprocess.run(["verilator", "--cc", os.path.join(ROOT, "cores", "proteus", "p2k", "rtl", "cpu", "mcf5206e_periph.sv"),
                         "--top-module", "mcf5206e_periph",
                         "--exe", os.path.join(CORE, "sim", "periph_tb.cpp"), "-Mdir", os.path.join(OUT, "obj"),
-                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-fatal", "-Wno-lint", "-Wno-style",
-                        "--build", "-j", "8", "-o", os.path.join(OUT, "periph_tb")],
+                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-style", *LINT_VLT,
+                        "--build", "-j", os.environ.get("VERILATOR_JOBS", "4"), "-o", os.path.join(OUT, "periph_tb")],
                        check=True, stdout=subprocess.DEVNULL)
 
     def test_random(self):

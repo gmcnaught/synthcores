@@ -3,6 +3,7 @@
 
   tools/p2k_fx_sine_gen.py      (run from cores/proteus)
 """
+import pathlib
 import re
 
 SRC = "p2k/model/p2k_sound.h"
@@ -10,7 +11,7 @@ OUT = "p2k/rtl/snd/p2k_fx_sine.svh"
 
 
 def main():
-    s = open(SRC).read()
+    s = pathlib.Path(SRC).read_text()
     key = "static const uint16_t q[1025] = {"
     body = s[s.index(key) + len(key):]
     body = body[:body.index("};")]

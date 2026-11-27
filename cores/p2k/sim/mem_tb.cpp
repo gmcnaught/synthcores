@@ -8,6 +8,8 @@
 //     --tiny  most DRAM accesses in 8 words (two 64-bit words): a write hit followed at once by a
 //             read of the same word (the cache line updated a clock after the write's ack)
 //     --gap0  no idle clocks between accesses (the CPU presents its next access after ack)
+//     --inject-error  flip bit 0 of the HDL's data for the read halfway through the run (the
+//             comparator self-check: the run must then report DIFFERENT; tests/test_p2k_mem.py)
 #include "Vp2k_mem.h"
 #include "verilated.h"
 
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
 {
 	long n_acc = 200000;
 	unsigned seed = 1;
-	bool tiny = false, gap0 = false;
+	bool tiny = false, gap0 = false, inject_error = false;
 	for (int i = 1; i < argc; i++)
 	{
 		const std::string a = argv[i];
@@ -112,6 +114,7 @@ int main(int argc, char **argv)
 		else if (a == "--seed" && i + 1 < argc) seed = unsigned(std::atoi(argv[++i]));
 		else if (a == "--tiny") tiny = true;
 		else if (a == "--gap0") gap0 = true;
+		else if (a == "--inject-error") inject_error = true;
 	}
 	std::mt19937 rng(seed);
 	model ref;
@@ -179,7 +182,7 @@ int main(int argc, char **argv)
 			top->eval();
 			if (top->ack)
 			{
-				const uint16_t got = top->rdata;
+				const uint16_t got = top->rdata ^ uint16_t(inject_error && !we && reads == n_acc / 2);
 				uint16_t exp = 0;
 				if (!we) exp = ref.read(pw, flash);
 				else ref.write(pw, flash, d, u, l);

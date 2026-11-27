@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Rebuild the G05 register file (32 channels x 64 words) from a P2K_TRACE error.log and print the
 EMU8000-style INIT arrays and the decoded reverb parameters.   p2k_g05state.py error.log"""
-import re,sys
+import pathlib
+import re
+import sys
 def state(path, tmax=25.5):
     regs=[[0]*64 for _ in range(32)]
-    for l in open(path,errors='replace'):
+    for l in pathlib.Path(path).read_text(errors='replace').splitlines(keepends=True):
         m=re.search(r'T ([\d.]+) ([0-9a-f]{8}) X (..) (..) = (....)',l)
         if m:
             if float(m.group(1))>tmax: break

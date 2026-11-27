@@ -49,6 +49,7 @@ VPK has 76 keys (MIDI 33-108); notes outside are moved by octaves. A
 part's key and clef are Music Notation's names: keys C G D A E B F# C# F
 Bf Ef Af Df Gf Cf (the major key of the signature), clefs G A (alto) T F.
 """
+import pathlib
 import argparse
 import os
 import re
@@ -114,7 +115,7 @@ def note_name(k):
 def read_text(path):
     p = Piece()
     part = None
-    for ln, line in enumerate(open(path, encoding="utf-8"), 1):
+    for ln, line in enumerate(pathlib.Path(path).read_text(encoding="utf-8").splitlines(keepends=True), 1):
         line = re.sub(r"(^|\s)#(\s.*)?$", "", line.rstrip("\n")).strip()   # '#' + space: comment
         if not line:
             continue
@@ -177,7 +178,7 @@ def read_midi(path):
     one part per (track, channel) with notes, in file order; beat = quarter
     note, beat_ms from the first Set Tempo (default 500), time and key from
     the first Time/Key Signature."""
-    d = open(path, "rb").read()
+    d = pathlib.Path(path).read_bytes()
     if d[:4] != b"MThd":
         raise ValueError("%s: not a Standard MIDI File" % path)
     hlen, fmt, ntrk, div = struct.unpack(">IHHH", d[4:14])
@@ -819,7 +820,7 @@ def with_slots(w0, slots, sectors=512):
     lacks (SYN-5.3 writes a sequence only over an existing file of enough
     sectors, 175-PRF5). Returns the copy's path."""
     from tools.ned_disk import add_file, load_bytes, walk
-    disk = bytearray(open(w0, "rb").read())
+    disk = bytearray(pathlib.Path(w0).read_bytes())
     have = {p for p, *_ in walk(load_bytes(disk))}
     for n in slots:
         if "/.SQ%dDATA" % n not in have:
@@ -942,15 +943,15 @@ def main(argv=None):
         from tools.ned_disk import add_file
         if not 0 <= a.slot <= 7:
             ap.error("--slot is 0-7")
-        disk = bytearray(open(a.w0, "rb").read())
-        data = open(a.sseq, "rb").read()
+        disk = bytearray(pathlib.Path(a.w0).read_bytes())
+        data = pathlib.Path(a.sseq).read_bytes()
         add_file(disk, ".SQ%dDATA" % a.slot, data, typ=4, replace=True)
         with open(a.out, "wb") as f:
             f.write(disk)
         print("%s: W0:.SQ%dDATA = %s (%d sectors)" % (a.out, a.slot, a.sseq, -(-len(data) // (2 * SECTOR))))
         return 0
     if a.cmd == "show":
-        W = words(open(a.sseq, "rb").read())
+        W = words(pathlib.Path(a.sseq).read_bytes())
         print(seq_header(W))
         for trk, t, k, d in seq_notes(W):
             print("track %2d  %7d ms  %-4s %5d ms" % (trk, t, note_name(k), d))

@@ -32,6 +32,41 @@ jobs:
       - name: synthcore unit tests
         run: python3 modules/synthframe/tests/synthcore/test_synthcore.py
 
+  # ShellCheck (scripts/, modules/synthframe/bin, cores/*/scripts) and ruff (ruff.toml) through
+  # scripts/precommit.sh --fast; hdl-lint and counter-audit run in modules/synthframe/tests/ci.sh.
+  hygiene:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck 0.11.0, ruff 0.17.6, PyYAML
+        run: |
+          curl -sSL https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz | tar -xJ -C /tmp
+          sudo install /tmp/shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          python3 -m pip install pyyaml ruff==0.17.6
+      - name: scripts/precommit.sh --fast
+        run: scripts/precommit.sh --fast
+
+  # Second HDL front end, advisory: verible-verilog-lint with a small rule set
+  # (scripts/verible-lint.sh). Findings are a warning annotation and the job summary; they never
+  # fail the check (continue-on-error covers an install failure too).
+  verible:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install verible v0.0-3946-g851d3ff4
+        run: |
+          v=v0.0-3946-g851d3ff4
+          curl -sSL "https://github.com/chipsalliance/verible/releases/download/$v/verible-$v-linux-static-x86_64.tar.gz" | tar -xz -C /tmp
+          echo "/tmp/verible-$v/bin" >> "$GITHUB_PATH"
+      - name: verible-verilog-lint (advisory)
+        run: |
+          rc=0; scripts/verible-lint.sh > verible.txt 2>&1 || rc=$?
+          cat verible.txt
+          { echo "### verible (advisory)"; tail -1 verible.txt; } >> "$GITHUB_STEP_SUMMARY"
+          # advisory: findings are a warning annotation, not a failed check
+          if [ "$rc" != 0 ]; then echo "::warning title=verible (advisory)::$(tail -1 verible.txt)"; fi
+
   changes:
     runs-on: ubuntu-24.04
     outputs:
@@ -145,6 +180,33 @@ jobs:
           done
           echo "### tests (${{ matrix.core }}): $pass passed, $skip skipped, $fail failed" >> "$GITHUB_STEP_SUMMARY"
           [ "$fail" = 0 ]
+
+  # Verilator line and toggle coverage of two ROM-free lockstep benches (CZ-101 uPD933, Proteus/1
+  # sound): report only, uploaded as the "coverage" artifact (annotated HDL, summary.txt). It
+  # never fails the run.
+  coverage:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./.github/actions/setup-sim
+      - name: Coverage
+        run: |
+          scripts/coverage.sh out/coverage
+          { echo "### Verilator coverage (report only)"; echo '```'; cat out/coverage/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: |
+            out/coverage/summary.txt
+            out/coverage/annotated
+            out/coverage/*.dat
+          if-no-files-found: ignore
 
   ci-list:
     runs-on: ubuntu-24.04

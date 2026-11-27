@@ -5,6 +5,7 @@ in an S slot of CONF_STR whose extension matches.
 
 Run:  pypy3 tests/test_mgl.py
 """
+import pathlib
 import glob
 import os
 import re
@@ -16,7 +17,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def conf_str():
     """Core name and {slot index: extension} from mister/Synclavier.sv."""
-    src = open(os.path.join(ROOT, "mister", "Synclavier.sv")).read()
+    src = pathlib.Path(os.path.join(ROOT, "mister", "Synclavier.sv")).read_text()
     name = re.search(r'^\s*"([A-Za-z0-9]+);', src, re.M).group(1)
     slots = {int(n): ext.upper()
              for n, ext in re.findall(r'^\s*"S(\d+),([A-Za-z0-9]+),', src, re.M)}
@@ -34,7 +35,7 @@ def test_core_name():
     assert name == "Synclavier", name
     # mister/build.sh runs the shared synthframe build.sh with the project name, which names
     # the RBF <project>_YYYYMMDD.rbf (modules/synthframe/tests/build/run.sh checks that)
-    build = open(os.path.join(ROOT, "mister", "build.sh")).read()
+    build = pathlib.Path(os.path.join(ROOT, "mister", "build.sh")).read_text()
     assert '/modules/synthframe/target/mister/build.sh" "$here" %s ' % name in build, \
         "build.sh must build project %s, so the RBF is <core>_YYYYMMDD.rbf" % name
 

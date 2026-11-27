@@ -7,6 +7,7 @@ Layout [O: flash v1.24 dump 0xA0000, OS 2.26 0x1037DEC]:
 
   p2k_lib.py FILE OFFSET [--swap]   (--swap: file is the byte-swapped 28F160 dump)
 """
+import pathlib
 import collections
 import struct
 import sys
@@ -26,7 +27,7 @@ def walk(d, off):
 
 
 if __name__ == "__main__":
-    d = open(sys.argv[1], "rb").read()
+    d = pathlib.Path(sys.argv[1]).read_bytes()
     if "--swap" in sys.argv:
         d = bytes(b for i in range(0, len(d), 2) for b in (d[i + 1], d[i]))
     typ, size, n, x, objs, p = walk(d, int(sys.argv[2], 0))

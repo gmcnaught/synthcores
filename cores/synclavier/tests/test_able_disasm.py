@@ -3,6 +3,7 @@
 
 Run:  pypy3 tests/test_able_disasm.py
 """
+import pathlib
 import os
 import re
 import sys
@@ -19,7 +20,7 @@ def test_listing_matches():
 
 
 def test_relative_targets():
-    text = open(LISTING, "rb").read().decode("latin-1").replace("\r", "\n").splitlines()
+    text = pathlib.Path(LISTING).read_bytes().decode("latin-1").replace("\r", "\n").splitlines()
     labels, refs = {}, []
     for ln in text:
         m = re.match(r"^\s+([0-7]{6})\s+([0-7]{6})\s+\d+\s+(\S+):\s", ln)

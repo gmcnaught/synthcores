@@ -5,12 +5,13 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)
+root=$(cd "$core/../.." && pwd)     # hdl-lint waivers (cfg/lint.vlt) instead of -Wno-* options
 out=${1:-$core/build/lcd}
 mkdir -p "$out"
 out=$(cd "$out" && pwd)
 h=$core/hdl
 verilator --cc --exe --build -O2 -j "${JOBS:-4}" --top-module tb_lcd \
-    -Wno-fatal -Wno-lint -Wno-style \
+    -Wno-style "$root"/modules/synthframe/lint/common.vlt "$root"/cores/*/cfg/lint.vlt "$root"/modules/*/cfg/lint.vlt \
     "+define+MT32_FONT_HEX=\"$h/mt32_lcd_font.hex\"" "+define+MT32_PANEL_DIR=\"$h/panel/\"" \
     -F "$core/sim/files.f" "$here/tb_lcd.sv" "$here/lcd_bench.cpp" \
     -CFLAGS "-O2 -std=c++17" \

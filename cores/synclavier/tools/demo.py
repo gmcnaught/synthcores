@@ -53,6 +53,7 @@ import argparse
 import json
 import math
 import os
+import pathlib
 import shlex
 import struct
 import subprocess
@@ -172,7 +173,7 @@ def parse(path, text=None):
     base = os.path.dirname(os.path.abspath(path))
     t = 0.0
     if text is None:
-        text = open(path, encoding="utf-8").read()
+        text = pathlib.Path(path).read_text(encoding="utf-8")
     for ln, raw in enumerate(text.splitlines(), 1):
         line = re.sub(r"(^|\s)#(\s.*)?$", "", raw).strip()
         if not line:

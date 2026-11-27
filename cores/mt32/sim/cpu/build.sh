@@ -15,7 +15,7 @@ src=$out/src
 python3 "$core/ref/prepare_src.py" "$root/modules/nuked-mt32" "$src"
 cp "$here/i8x9x.h" "$src/mame/i8x9x.h"
 verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mcs96 \
-    -Wno-fatal -Wno-WIDTH -Wno-UNUSED \
+    -Wno-UNUSED "$root"/modules/synthframe/lint/common.vlt "$root"/cores/*/cfg/lint.vlt "$root"/modules/*/cfg/lint.vlt \
     "-DMCS96_DECODE_HEX=\"$core/hdl/mcs96/mcs96_decode.hex\"" \
     -F "$core/sim/files.f" \
     "$src/mt32.cpp" "$src/la32.cpp" "$src/rv2.cpp" "$src/lcd.cpp" \

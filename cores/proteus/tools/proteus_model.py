@@ -7,9 +7,9 @@ the HDL (mister/rtl/proteus_snd.sv) must match its output sample for sample.
 Usage: proteus_model.py DEMO.bin OUT.raw [--ticks N] [--wav OUT.wav] [--no-tone]
 OUT.raw: per output sample, two little-endian s16 (left, right).
 """
+import pathlib
 import argparse
 import array
-import struct
 import sys
 import wave
 
@@ -122,7 +122,7 @@ class Chip:
 
 
 def load(path):
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     rom = array.array("h", data[:SAMPLE_BYTES])
     if sys.byteorder == "little":
         rom.byteswap()  # big-endian words in the image
@@ -174,12 +174,11 @@ def main():
         out.byteswap()
     with open(a.out, "wb") as _f: _f.write(out.tobytes())
     if a.wav:
-        w = wave.open(a.wav, "wb")
-        w.setnchannels(2)
-        w.setsampwidth(2)
-        w.setframerate(39062)
-        w.writeframes(out.tobytes())
-        w.close()
+        with wave.open(a.wav, "wb") as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(39062)
+            w.writeframes(out.tobytes())
     print(f"{total} samples")
 
 

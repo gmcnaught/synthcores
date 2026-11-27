@@ -55,7 +55,8 @@ print(n if band[1] > 0xa0 and band[0] < 0x60 else 0)
 PY
 }
 wait_main() {
-    local t0=$(date +%s)
+    local t0
+    t0=$(date +%s)
     while [ $(( $(date +%s) - t0 )) -lt "${2:-240}" ]; do
         sleep 2
         $M shot p2k "$1" >/dev/null 2>&1 || continue

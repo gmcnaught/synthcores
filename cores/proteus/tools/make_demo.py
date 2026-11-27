@@ -19,6 +19,7 @@ samples with times < t before applying it.
 
 Usage: make_demo.py TRACE REBUILT_BASE PROTOLOGIC_DIR OUT.bin [--from SEC] [--to SEC]
 """
+import pathlib
 import argparse
 import math
 import struct
@@ -27,8 +28,8 @@ FS = 39062.5
 
 
 def protologic_image(d):
-    lo = [open(f"{d}/ip50{c}.bin", "rb").read() for c in (5, 6, 7, 8)]
-    hi = [open(f"{d}/ip70{c}.bin", "rb").read() for c in (5, 6, 7, 8)]
+    lo = [pathlib.Path(f"{d}/ip50{c}.bin").read_bytes() for c in (5, 6, 7, 8)]
+    hi = [pathlib.Path(f"{d}/ip70{c}.bin").read_bytes() for c in (5, 6, 7, 8)]
     out = bytearray(0x400000)
     for n in range(0x200000):
         out[2 * n] = hi[n & 3][n >> 2]
@@ -38,7 +39,7 @@ def protologic_image(d):
 
 def parse_trace(path, t_from, t_to):
     """Yield (tick, event) in trace order; sound/pan writes only."""
-    for line in open(path):
+    for line in pathlib.Path(path).read_text().splitlines(keepends=True):
         p = line.split()
         if len(p) < 6 or p[2] != "W" or p[1] not in ("snd", "pan"):
             continue
@@ -82,7 +83,7 @@ def main():
     ap.add_argument("--to", dest="t_to", type=float, default=1e9)
     a = ap.parse_args()
 
-    base = open(a.base, "rb").read()
+    base = pathlib.Path(a.base).read_bytes()
     assert len(base) == 0x400000
     samples = base + protologic_image(a.protologic)
     writes = list(parse_trace(a.trace, a.t_from, a.t_to))

@@ -12,6 +12,7 @@ what p2k/model/p2k_render produces with the same options:
 Results go to build/p2k/snd_check/<case>.<mode>/ (hdl.raw, ref.raw, bench output) and a summary line
 per case and mode. Exit 1 on any difference.
 """
+import pathlib
 import argparse
 import hashlib
 import json
@@ -48,7 +49,7 @@ def main():
     a = ap.parse_args()
     if not a.simm:
         raise SystemExit("set P2K_SIMMDIR (or --simm)")
-    man = json.load(open(MANIFEST))["cases"]
+    man = json.loads(pathlib.Path(MANIFEST).read_text())["cases"]
     cases = a.cases.split(",") if a.cases else list(man)
     modes = a.modes.split(",")
     big = os.path.join(a.simm, "big.bin")

@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Verilator lint gate: `verilator --lint-only -Wall` on each core's MiSTer top level (`emu`).
+
+    hdl-lint                    lint every core; exit 1 on any warning no waiver covers
+    hdl-lint sc55 mt32          some cores
+    hdl-lint --update [CORE..]  append a waiver for each warning not yet waived (then review them)
+    hdl-lint --vlt              print every waiver file, one per line (for bench builds)
+    hdl-lint --waive-log LOG    append waivers for the warnings in a bench's Verilator log
+    hdl-lint --no-waivers CORE  lint without the cores' waivers (must fail: CI's self-check)
+
+The file list is the core's generated sim/files.f (synthcore) plus mister/<Name>.sv, the MiSTer
+framework's sys/hps_io.sv and lint stand-ins: modules/synthframe/lint (the Quartus PLL,
+build_id.v) and cores/<core>/cfg/lint_stubs.sv when present (P2K: the VHDL TG68K kernel's ports).
+
+Waivers live with the file they waive, in Verilator configuration files:
+  cores/<core>/cfg/lint.vlt     the core's own HDL (also P2K's files under cores/proteus/p2k)
+  modules/<module>/cfg/lint.vlt shared HDL (synthframe, roland)
+  modules/synthframe/lint/common.vlt  the MiSTer framework (sys/) and the lint stand-ins
+Every waiver names a rule and a file; all but the style rules in FILE_SCOPED also name the
+message (-match), so a new warning of the same rule in the same file is not waived. No waiver
+names a line, so edits above a waived line do not break the gate. All waiver files are passed on
+every run, so a core that shares a file gets its waivers too.
+"""
+import argparse
+import os
+import re
+import subprocess
+import sys
+
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+LINT = os.path.join(ROOT, "modules", "synthframe", "lint")
+# Style rules waived for a whole file: they say nothing about behaviour.
+FILE_SCOPED = {"DECLFILENAME", "BLKSEQ", "PINCONNECTEMPTY", "GENUNNAMED", "TIMESCALEMOD",
+               "PROCASSINIT", "UNUSEDPARAM"}
+WARN = re.compile(r"^%(Warning|Error)-([A-Z0-9_]+): (.+?):(\d+):(\d+): (.*)$")
+
+
+def cores():
+    d = os.path.join(ROOT, "cores")
+    return sorted(c for c in os.listdir(d) if os.path.isfile(os.path.join(d, c, "sim", "files.f")))
+
+
+NO_WAIVERS = False
+
+
+def vlt_files():
+    """Every waiver file, common.vlt first."""
+    out = [os.path.join(LINT, "common.vlt")]
+    if NO_WAIVERS:
+        return out
+    for base in ("cores", "modules"):
+        for name in sorted(os.listdir(os.path.join(ROOT, base))):
+            p = os.path.join(ROOT, base, name, "cfg", "lint.vlt")
+            if os.path.isfile(p):
+                out.append(p)
+    return out
+
+
+def read_f(path):
+    """(defines, incdirs, files) of a synthcore files.f, as absolute paths."""
+    d = os.path.dirname(path)
+    defs, inc, files = [], [], []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("//"):
+                continue
+            if line.startswith("+incdir+"):
+                inc.append(os.path.normpath(os.path.join(d, line[8:])))
+            elif line.startswith("+define+"):
+                defs.append(line[8:])
+            else:
+                files.append(os.path.normpath(os.path.join(d, line)))
+    return defs, inc, files
+
+
+def mister_top(core):
+    d = os.path.join(ROOT, "cores", core, "mister")
+    with open(os.path.join(ROOT, "cores", core, "cfg", "core.yaml")) as f:
+        name = re.search(r"^name:\s*(\S+)", f.read(), re.M).group(1)
+    return os.path.join(d, name + ".sv")
+
+
+def command(core):
+    cdir = os.path.join(ROOT, "cores", core)
+    defs, inc, files = read_f(os.path.join(cdir, "sim", "files.f"))
+    files = files + [mister_top(core), os.path.join(cdir, "mister", "sys", "hps_io.sv"),
+                     os.path.join(LINT, "mister_stubs.sv")]
+    stubs = os.path.join(cdir, "cfg", "lint_stubs.sv")
+    if os.path.isfile(stubs):
+        files.append(stubs)
+    cmd = ["verilator", "--lint-only", "-Wall", "--top-module", "emu", "--error-limit", "100000",
+           "-I" + os.path.join(cdir, "mister"), "-I" + LINT]
+    cmd += ["+define+" + d for d in defs] + ["-I" + i for i in inc]
+    return cmd + vlt_files() + files
+
+
+def owner(path):
+    """(waiver file, -file glob) for a source file."""
+    rel = os.path.relpath(os.path.realpath(path), ROOT)
+    parts = rel.split(os.sep)
+    if "sys" in parts:          # reached through each core's mister/sys symlink
+        return os.path.join(LINT, "common.vlt"), "*mister/sys/" + parts[-1]
+    if rel.startswith(os.path.join("modules", "synthframe", "lint")):
+        return os.path.join(LINT, "common.vlt"), "*" + rel
+    if parts[0] in ("cores", "modules") and len(parts) > 2:
+        return os.path.join(ROOT, parts[0], parts[1], "cfg", "lint.vlt"), "*" + "/".join(parts[2:])
+    return None, "*" + rel
+
+
+def parse(text, cwd):
+    found = []
+    for line in text.splitlines():
+        m = WARN.match(line)
+        if m:
+            kind, rule, path, ln, _, msg = m.groups()
+            found.append((rule, os.path.normpath(os.path.join(cwd, path)), int(ln), msg, kind))
+    return found
+
+
+def lint(core):
+    """List of (rule, path, line, message, kind) left after the waivers; None if Verilator stopped."""
+    p = subprocess.run(command(core), cwd=ROOT, capture_output=True, text=True)
+    found = parse(p.stderr, ROOT)
+    if p.returncode != 0 and not found:
+        sys.stderr.write(p.stderr)
+        return None
+    return found
+
+
+def vlt_escape(msg):
+    # -match takes * and ? as wildcards; a literal quote would end the string
+    return re.sub(r'[*?"\\]', "?", msg)
+
+
+def update(found):
+    """Append one waiver per distinct (file, rule, message) to the owning lint.vlt."""
+    new = {}
+    for rule, path, ln, msg, _ in found:
+        vlt, glob = owner(path)
+        if vlt is None:
+            print(f"hdl-lint: no waiver file owns {path}", file=sys.stderr)
+            continue
+        if rule in FILE_SCOPED or vlt.endswith("common.vlt"):
+            entry = f'lint_off -rule {rule} -file "{glob}"'
+        else:
+            entry = f'lint_off -rule {rule} -file "{glob}" -match "{vlt_escape(msg)}"'
+        new.setdefault(vlt, {})[entry] = f"{os.path.relpath(path, ROOT)}:{ln}"
+    for vlt, entries in new.items():
+        old = open(vlt).read() if os.path.isfile(vlt) else "`verilator_config\n"
+        add = [e for e in entries if e not in old]
+        if not add:
+            continue
+        os.makedirs(os.path.dirname(vlt), exist_ok=True)
+        with open(vlt, "w") as f:
+            f.write(old.rstrip("\n") + "\n\n// hdl-lint --update: review each waiver below\n")
+            for e in sorted(add, key=lambda e: (e.split('-file "')[1], e)):
+                f.write(e + "\n")
+        print(f"hdl-lint: {len(add)} waiver(s) added to {os.path.relpath(vlt, ROOT)}")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("cores", nargs="*")
+    ap.add_argument("--update", action="store_true", help="waive every warning found (review after)")
+    ap.add_argument("--vlt", action="store_true", help="print the waiver files")
+    ap.add_argument("--waive-log", metavar="LOG", help="waive the warnings in a Verilator log")
+    ap.add_argument("--log-dir", default=".", help="directory the --waive-log paths are relative to")
+    ap.add_argument("--no-waivers", action="store_true",
+                    help="only common.vlt (CI's check that the gate fails on a warning)")
+    ap.add_argument("--print-command", action="store_true")
+    a = ap.parse_args()
+    global NO_WAIVERS
+    NO_WAIVERS = a.no_waivers
+    if a.vlt:
+        print("\n".join(vlt_files()))
+        return 0
+    if a.waive_log:
+        with open(a.waive_log) as f:
+            update(parse(f.read(), os.path.abspath(a.log_dir)))
+        return 0
+    todo = a.cores or cores()
+    bad = 0
+    for core in todo:
+        if a.print_command:
+            print(" ".join(command(core)))
+            continue
+        found = lint(core)
+        if found is None:
+            print(f"hdl-lint {core}: Verilator failed")
+            bad += 1
+            continue
+        if a.update:
+            update(found)
+            found = lint(core) or []
+        for rule, path, ln, msg, kind in found:
+            print(f"%{kind}-{rule}: {os.path.relpath(path, ROOT)}:{ln}: {msg}")
+        print(f"hdl-lint {core}: {len(found)} unwaived warning(s)")
+        bad += bool(found)
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

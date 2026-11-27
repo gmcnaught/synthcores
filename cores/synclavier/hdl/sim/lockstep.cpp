@@ -26,6 +26,8 @@
 //
 // Usage: V<top> TRACE [max_instructions]
 // Exit 0 on full agreement, 1 on the first mismatch (with context).
+// LOCKSTEP_INJECT_ERROR=N flips bit 0 of the HDL's instruction word at completed instruction N
+// before the comparison (the comparator self-check: tests/hdl/test_lockstep.py expects a MISMATCH).
 
 #include <algorithm>
 #include <cstdarg>
@@ -582,6 +584,8 @@ int main(int argc, char** argv) {
 #endif
 
     uint64_t n = 0, time_ns = 0, clear_cycles = 0, regs_checked = 0;
+    const char* inj = std::getenv("LOCKSTEP_INJECT_ERROR");
+    const uint64_t inject_at = inj ? std::strtoull(inj, nullptr, 10) : ~0ull;
     uint32_t held = 0;                 // held-read clocks in the current read
     bool check_regs = false, check_time = false;
     uint64_t snap_time = 0;
@@ -783,11 +787,12 @@ int main(int argc, char** argv) {
             if (t.peek() != 'I') fail(n, "HDL completes %06o, trace has '%c'", top->instr_pc, t.peek());
             t.u8();
             uint16_t pc = t.u16(), w = t.u16();
-            std::snprintf(buf, sizeof buf, "%06o %06o", top->instr_pc, top->instr_word);
+            const uint16_t hw = top->instr_word ^ uint16_t(n == inject_at);
+            std::snprintf(buf, sizeof buf, "%06o %06o", top->instr_pc, hw);
             history.push_back(buf);
             if (history.size() > 16) history.pop_front();
-            if (pc != top->instr_pc || w != top->instr_word)
-                fail(n, "HDL completed %06o %06o, Python %06o %06o", top->instr_pc, top->instr_word, pc, w);
+            if (pc != top->instr_pc || w != hw)
+                fail(n, "HDL completed %06o %06o, Python %06o %06o", top->instr_pc, hw, pc, w);
             n++;
             if (t.peek() == 'D') {               // the registers it changed, and the flags
                 t.u8();

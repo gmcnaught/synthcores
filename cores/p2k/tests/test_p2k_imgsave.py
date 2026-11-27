@@ -8,6 +8,8 @@ import os
 import subprocess
 import unittest
 
+from p2k_vlt import LINT_VLT  # tests/ is sys.path[0]
+
 CORE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(CORE, "build", "imgsave_tb")
 
@@ -18,8 +20,8 @@ class ImgsaveTest(unittest.TestCase):
         os.makedirs(OUT, exist_ok=True)
         subprocess.run(["verilator", "--cc", os.path.join(CORE, "hdl", "p2k_imgsave.sv"), "--top-module", "p2k_imgsave",
                         "--exe", os.path.join(CORE, "sim", "imgsave_tb.cpp"), "-Mdir", os.path.join(OUT, "obj"),
-                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-fatal", "-Wno-lint", "-Wno-style",
-                        "--build", "-j", "8", "-o", os.path.join(OUT, "imgsave_tb")],
+                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-style", *LINT_VLT,
+                        "--build", "-j", os.environ.get("VERILATOR_JOBS", "4"), "-o", os.path.join(OUT, "imgsave_tb")],
                        check=True, stdout=subprocess.DEVNULL)
 
     def test_seeds(self):

@@ -4,11 +4,14 @@
 # waves (saturation), a sine sweep and random samples, at 40 kHz input (1250 clocks at 50 MHz)
 # and in bursts of 6 inputs on consecutive clocks (through the input queue).
 #   tests/resample/run.sh [L M TAPS HEX]     default: 12 5 80 hdl/audio/synthframe_resample_40k_96k.hex
+# INJECT_ERROR=1 flips one output bit in the bench (+inject_error): the comparison must then fail.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 L=${1:-12}; M=${2:-5}; TAPS=${3:-80}; HEX=${4:-hdl/audio/synthframe_resample_40k_96k.hex}
 W=${RESAMPLE_WORK:-out/tests/resample-$L-$M}; mkdir -p "$W/obj"   # kept: rebuilds are incremental
-verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
+# warnings are waived in cfg/lint.vlt (bin/hdl-lint), not by -Wno-* options
+verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 --Mdir "$W/obj" \
+    lint/common.vlt ../../cores/*/cfg/lint.vlt ../*/cfg/lint.vlt \
     hdl/audio/synthframe_resample.sv tests/resample/tb.cpp --top-module synthframe_resample \
     -GL=$L -GM=$M -GTAPS=$TAPS "-GCOEF_HEX=\"$PWD/$HEX\"" >/dev/null
 "$(command -v pypy3 || command -v python3)" - "$W/in.txt" <<'PY'
@@ -21,7 +24,7 @@ v += [(random.randint(-32768, 32767), random.randint(-32768, 32767)) for _ in ra
 open(sys.argv[1], "w").write("".join(f"{l} {r}\n" for l, r in v))
 PY
 for gap in 1250 0; do
-    "$W/obj/Vsynthframe_resample" "$W/in.txt" "$W/out_$gap.txt" $gap
+    "$W/obj/Vsynthframe_resample" "$W/in.txt" "$W/out_$gap.txt" $gap ${INJECT_ERROR:++inject_error}
     pypy3 - "$HEX" "$L" "$M" "$TAPS" "$W/in.txt" "$W/out_$gap.txt" "$gap" <<'PY'
 import sys
 sys.path.insert(0, "tools")

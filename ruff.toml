@@ -1,0 +1,8 @@
+# ruff (Python lint): scripts/precommit.sh and CI (tests.yml, job "hygiene").
+# Rules: pyflakes (F), pycodestyle E4 (imports) and E9 (syntax), and SIM115, open() outside a
+# context manager (PyPy closes such files only at GC; PR #69).
+target-version = "py310"
+extend-exclude = ["modules/nuked-sc55", "modules/nuked-mt32", "cores/*/third_party", "cores/proteus/mame"]
+
+[lint]
+select = ["E4", "E9", "F", "SIM115"]

@@ -14,6 +14,7 @@ renderers, which draw over the art.
   panel_art.py PANEL.yaml --hdl DIR --name NAME                NAME_panel_map.hex, NAME_panel_tiles.hex,
                                                                NAME_panel.svh in DIR
 """
+import pathlib
 import os
 import re
 import argparse
@@ -123,7 +124,6 @@ def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
     W, H = spec.get('size', [800, 600])
     th = spec.get('theme', {})
     bg = rgb(th.get('background', '#101828'))
-    case = rgb(th.get('case', '#2b2b2f'))
     ink = rgb(th.get('ink', '#e8e8e8'))
     dim = rgb(th.get('dim', '#9a9aa2'))
     hint = rgb(th.get('hint', '#d8b040'))
@@ -402,7 +402,7 @@ localparam logic [24*{n}-1:0] PANEL_LIT = {{
                 f'// Element i lights (LED) or shows pressed (button) while its expression is 1.\n')
         for i, k in enumerate(r['dyn'], 1):
             f.write(f'assign panel_state[{i}] = {k[1]};   // {k[0]} at {k[2][0]},{k[2][1]}\n')
-        f.write(f"assign panel_state[0] = 1'b0;\n")
+        f.write("assign panel_state[0] = 1'b0;\n")
 
 
 def main():
@@ -418,7 +418,7 @@ def main():
     ap.add_argument('--lcd-image', nargs=5, metavar=('PNG', 'X', 'Y', 'W', 'H'),
                     help='mock-up only: paste this region of a screenshot into the LCD')
     a = ap.parse_args()
-    spec = yaml.safe_load(open(a.panel))
+    spec = yaml.safe_load(pathlib.Path(a.panel).read_text())
     if a.lcd_image:
         for e in spec['elements']:
             if e['type'] == 'lcd':

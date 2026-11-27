@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Read mono/stereo 16-bit WAV files with smpl chunks (root key, loop) for the P2K SIMM builder."""
+import pathlib
 import struct
 
 
 def read_wav(path):
-    d = open(path, "rb").read()
+    d = pathlib.Path(path).read_bytes()
     assert d[:4] == b"RIFF" and d[8:12] == b"WAVE", path
     p, info = 12, {"loop": None, "root": 60, "fine": 0}
     while p + 8 <= len(d):

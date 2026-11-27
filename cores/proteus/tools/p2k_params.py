@@ -7,6 +7,7 @@ address layer 0 (record +0xA4); layer n adds n * 0xCC.
 
   p2k_params.py [OS.bin]      print the table
 """
+import pathlib
 import struct
 import sys
 
@@ -16,7 +17,7 @@ LAYER0, LAYER_SIZE = 0xA4, 0xCC
 
 
 def table(os_image="build/p2k/p2k226.bin"):
-    d = open(os_image, "rb").read()
+    d = pathlib.Path(os_image).read_bytes()
     t = {}
     for o in range(TABLE[0] - OS_BASE, TABLE[1] - OS_BASE, 12):
         pid, off = struct.unpack_from(">H4xH", d, o)

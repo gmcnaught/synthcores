@@ -39,6 +39,7 @@ when that key is an exact octave (+-12) from the PT.TRA key (+ PT.TUN
 semitones) and its pitch class is the file name's note. PT.TRA's low byte
 moves by the 12; its high byte is kept.
 """
+import pathlib
 import argparse
 import cmath
 import math
@@ -146,7 +147,7 @@ def caf_samples(data):
 
 def _scan_one(item):
     name, path = item
-    samples, rate = caf_samples(open(path, "rb").read())
+    samples, rate = caf_samples(pathlib.Path(path).read_bytes())
     return name, measure(samples, rate), rate
 
 
@@ -183,7 +184,7 @@ def read_table(path=TABLE):
     out = {}
     if not os.path.exists(path):
         return out
-    for line in open(path, encoding="utf-8"):
+    for line in pathlib.Path(path).read_text(encoding="utf-8").splitlines(keepends=True):
         if line.startswith("#") or not line.strip():
             continue
         n, _m, _margin, _rate, key, basis = line.rstrip("\n").split("\t")

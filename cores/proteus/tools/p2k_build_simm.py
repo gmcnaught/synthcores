@@ -14,6 +14,7 @@ SPEC:
   Presets start from the first user preset of the flash dump ("kb1:DynamicGrand"), layers 1-3 off.
 Writes OUTDIR/big.bin (32 MB) and OUTDIR/baby.bin (2 MB); MAME: P2K_SIMM1=big.bin P2K_BABY1=baby.bin.
 """
+import pathlib
 import json
 import math
 import os
@@ -148,14 +149,14 @@ def build(spec, template):
 def user_preset_template(flash_path):
     """First pr01 record (980 bytes) of the user bank in the byte-swapped flash dump at 0xA0000."""
     import p2k_lib
-    d = open(flash_path, "rb").read()
+    d = pathlib.Path(flash_path).read_bytes()
     _, _, _, _, objs, _ = p2k_lib.walk(d, 0xA0000)
     o = next(o for o in objs if o[1] == "pr01")
     return d[o[0] + 12:o[0] + o[2]]
 
 
 def main():
-    spec = json.load(open(sys.argv[1]))
+    spec = json.loads(pathlib.Path(sys.argv[1]).read_text())
     out = sys.argv[2]
     os.makedirs(out, exist_ok=True)
     tmpl = user_preset_template(spec.get("flash", "build/p2k/flash124.bin"))
