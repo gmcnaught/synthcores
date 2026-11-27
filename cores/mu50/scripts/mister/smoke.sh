@@ -9,10 +9,12 @@
 # pack through an MGL (as the OSD's "Load ROM pack": saves/MU50/mu50_smoke.sav is mounted), waits
 # BOOT seconds (default 10), screenshots (boot), plays tests/midi/basic.txt over the UART at
 # 9600 baud (synthframe_midi_rx also takes 9600), screenshots (end); presses U (Util) and
-# screenshots (key); opens and closes the OSD (autosave) and copies the save file.
-# Writes OUTDIR/{boot,end,key}.png, save.sav and result.txt. Exit 1 if the core is not running
-# (band not green), an underrun was seen, the LCD is blank at boot, MIDI or the key did not
-# change the LCD, or the save file is not 64 KB.
+# screenshots (key); MIDI out: tty_midi_xfer.py at 31,250 baud sends XG System On twice and
+# the bulk dump requests of tests/midi/dump.txt and reads the answer, which must be MAME's
+# (tests/midi/dump.out); opens and closes the OSD (autosave) and copies the save file.
+# Writes OUTDIR/{boot,end,key}.png, midi_out.txt, save.sav and result.txt. Exit 1 if the core
+# is not running (band not green), an underrun was seen, the LCD is blank at boot, MIDI or the
+# key did not change the LCD, MIDI out differs from MAME's, or the save file is not 64 KB.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
@@ -42,9 +44,12 @@ $M sh "python3 /tmp/play_tty.py /tmp/basic.txt $SECS"
 $M shot mu50 "$OUT/end.png" >/dev/null
 keys text:u sleep:2
 $M shot mu50 "$OUT/key.png" >/dev/null
+scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+$M sh "python3 /tmp/tty_midi_xfer.py --baud 31250 6 F043104C00007E00F7 F043104C00007E00F7 F043204C000000F7 F043204C080000F7" > "$OUT/midi_out.txt"
 keys F12 sleep:3 ESC sleep:1
 rm -f "$OUT/save.sav"
 scp -q "$MISTER:/media/fat/saves/MU50/mu50_smoke.sav" "$OUT/save.sav" 2>/dev/null || true
+grep -v '^#' tests/midi/dump.out > "$OUT/midi_out_expected.txt"
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
 # mu50_lcd_video.sv, 800 x 600 frame: the LCD panel at (80, 120), 640 x 220, dot on 102018;
 # synthframe_status_strip at (16, 560): band at x 0-199 (green running, amber loading, blue ROM
@@ -84,8 +89,12 @@ print(f"lcd_lit_pixels_boot: {lit(boot)}")
 print(f"midi_changed_lcd: {endp.tobytes() != boot.tobytes()}")
 print(f"key_changed_lcd: {key.tobytes() != endp.tobytes()}")
 print(f"save_bytes: {sav}")
+got = open(f"{out}/midi_out.txt").read().split()
+want = open(f"{out}/midi_out_expected.txt").read().split()
+mo = [b.upper() for b in got] == [b.upper() for b in want]
+print(f"midi_out: {len(got)} bytes, {'MAME' if mo else 'differs from MAME'}")
 ok = (s[2] == "running" and und == "never" and lit(boot) > 0 and endp.tobytes() != boot.tobytes()
-      and key.tobytes() != endp.tobytes() and sav == 65536)
+      and key.tobytes() != endp.tobytes() and sav == 65536 and mo)
 print("PASS" if ok else "FAIL")
 sys.exit(0 if ok else 1)
 EOF

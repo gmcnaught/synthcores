@@ -13,6 +13,11 @@
 // bits in virtual time: start bit, 8 data bits LSB first, stop bit, 320 states (31,250 baud)
 // each, a byte starting no earlier than the end of the previous one. Each edge goes in through
 // the board's pre stage as MAME's midi port does (h8h_sys: inj_*, rx_*).
+//
+// MIDI out. SCI1's transmit line changes in virtual time, and the CPU may run up to AHEAD states
+// ahead of real time, longer than a bit (320 states). So the line is read back as bytes in
+// virtual time (a receiver that samples bit k at t0 + 320 k + 160, t0 the start bit's falling
+// edge) and the bytes go out at 31,250 baud in real time (synthframe_midi_tx).
 module mu50_top #(
     parameter longint CLK_HZ = 50_000_000
 ) (
@@ -216,6 +221,41 @@ module mu50_top #(
     assign pre_ack = pre_req && !edge_due && !rx_busy && pace_ok && !nv_pause;
     assign core_idle = pre_req;     // between CPU operations
 
+    // ---------------------------------------------------------------- MIDI out
+    logic          sci_txd, tx_prev, tx_busy, tx_valid;
+    logic [3:0]    tx_k;               // bits sampled: 0 start check, 1-8 data, 9 stop
+    logic [7:0]    tx_byte;
+    logic [TW-1:0] tx_t;               // the next sample point
+    always_ff @(posedge clk) begin
+        tx_valid <= 1'b0;
+        if (core_rst) begin
+            tx_prev <= 1'b1;
+            tx_busy <= 1'b0;
+        end else begin
+            tx_prev <= sci_txd;
+            if (!tx_busy) begin
+                if (tx_prev && !sci_txd) begin          // start bit
+                    tx_busy <= 1'b1;
+                    tx_k <= 4'd0;
+                    tx_t <= vtime[TW-1:0] + TW'(160);
+                end
+            end else if (vtime[TW-1:0] >= tx_t) begin
+                tx_t <= tx_t + TW'(320);
+                tx_k <= tx_k + 4'd1;
+                if (tx_k == 4'd0 && sci_txd) tx_busy <= 1'b0;   // a glitch, not a start bit
+                else if (tx_k >= 4'd1 && tx_k <= 4'd8) tx_byte <= {sci_txd, tx_byte[7:1]};
+                else if (tx_k == 4'd9) begin
+                    tx_busy <= 1'b0;
+                    tx_valid <= sci_txd;                // a framing error drops the byte
+                end
+            end
+        end
+    end
+    synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_out (
+        .clk, .rst(core_rst), .alt, .valid(tx_valid), .data(tx_byte), .txd(uart_txd),
+        .busy(), .dropped()
+    );
+
     // ---------------------------------------------------------------- the board
     logic        smp_valid, lcd_on, r_line, r_at_ac;
     logic [17:0] smp_l, smp_r;
@@ -233,7 +273,7 @@ module mu50_top #(
         .pre_req, .pre_time, .pre_ack,
         .inj_pending, .inj_pos(ser_t), .inj_time(ser_t),
         .rx_req, .rx_val(ser_bits[ser_k]), .rx_now(ser_t), .rx_done,
-        .midi_tx(uart_txd),
+        .midi_tx(sci_txd),
         .keys, .leds, .contrast,
         .r_line, .r_pos, .r_row, .r_code, .r_cg_bits, .r_at_ac, .lcd_on,
         .nv_we, .nv_addr, .nv_wdata, .nv_rdata, .ram_written,
