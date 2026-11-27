@@ -181,7 +181,10 @@ module mu50_board #(
 
     // ---------------------------------------------------------------- work RAM
     // two byte-wide true dual-port RAMs (even and odd bytes): port A the CPU, port B the save
-    logic [7:0]  ram_e [32768], ram_o [32768];
+    // Quartus: no read-during-write check (as cores/cz101/hdl/cz101_board.sv); the CPU and the
+    // save never use a byte in the clock it is written. Other tools ignore the attribute.
+    (* ramstyle = "no_rw_check" *) logic [7:0] ram_e [32768];
+    (* ramstyle = "no_rw_check" *) logic [7:0] ram_o [32768];
     logic [7:0]  ram_qe, ram_qo;
     wire  [15:0] ram_q = {ram_qe, ram_qo};
     logic [14:0] ram_a;
@@ -189,32 +192,22 @@ module mu50_board #(
     logic [15:0] ram_wd;
     logic [7:0]  nv_qe, nv_qo;
     logic        nv_odd;
-    // Intel's true dual-port template (a port's write returns the new data on that port); the
-    // CPU never reads a byte in the clock it writes it
-    always_ff @(posedge clk)
-        if (ram_we_hi) begin
-            ram_e[ram_a] <= ram_wd[15:8];
-            ram_qe <= ram_wd[15:8];
-        end else
-            ram_qe <= ram_e[ram_a];
-    always_ff @(posedge clk)
-        if (nv_we && !nv_addr[0]) begin
-            ram_e[nv_addr[15:1]] <= nv_wdata;
-            nv_qe <= nv_wdata;
-        end else
-            nv_qe <= ram_e[nv_addr[15:1]];
-    always_ff @(posedge clk)
-        if (ram_we_lo) begin
-            ram_o[ram_a] <= ram_wd[7:0];
-            ram_qo <= ram_wd[7:0];
-        end else
-            ram_qo <= ram_o[ram_a];
-    always_ff @(posedge clk)
-        if (nv_we && nv_addr[0]) begin
-            ram_o[nv_addr[15:1]] <= nv_wdata;
-            nv_qo <= nv_wdata;
-        end else
-            nv_qo <= ram_o[nv_addr[15:1]];
+    always_ff @(posedge clk) begin
+        if (ram_we_hi) ram_e[ram_a] <= ram_wd[15:8];
+        ram_qe <= ram_e[ram_a];
+    end
+    always_ff @(posedge clk) begin
+        if (nv_we && !nv_addr[0]) ram_e[nv_addr[15:1]] <= nv_wdata;
+        nv_qe <= ram_e[nv_addr[15:1]];
+    end
+    always_ff @(posedge clk) begin
+        if (ram_we_lo) ram_o[ram_a] <= ram_wd[7:0];
+        ram_qo <= ram_o[ram_a];
+    end
+    always_ff @(posedge clk) begin
+        if (nv_we && nv_addr[0]) ram_o[nv_addr[15:1]] <= nv_wdata;
+        nv_qo <= ram_o[nv_addr[15:1]];
+    end
     always_ff @(posedge clk) nv_odd <= nv_addr[0];
     assign nv_rdata = nv_odd ? nv_qo : nv_qe;
     assign ram_written = ram_we_hi || ram_we_lo;
