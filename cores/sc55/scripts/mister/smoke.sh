@@ -83,8 +83,12 @@ print("lcd_sha: " + (hashlib.sha256(lcd.tobytes()).hexdigest() if lcd else "none
 model = int(open(f"{out}/model").read().strip() or "0", 16)
 rx = bytes.fromhex(open(f"{out}/midi_out.txt").read())
 dt1 = bytes.fromhex("f041104212400000000400003cf7")
-midi_ok = rx.count(0xFE) >= 2 and (model < 2 or dt1 in rx)
-print(f"midi_out: model {model}, {len(rx)} bytes, {rx.count(0xFE)} FE, DT1 {'yes' if dt1 in rx else 'no'}: "
-      f"{bytes(b for b in rx if b != 0xFE).hex(' ')}")
+# System real-time bytes (F8-FF, here Active Sensing FE) may come in the middle of a SysEx
+# message (MIDI 1.0): the SC-155mk2 sends FE inside its DT1. Match the DT1 without them.
+msg = bytes(b for b in rx if b < 0xF8)
+dt1_ok = dt1 in msg
+midi_ok = rx.count(0xFE) >= 2 and (model < 2 or dt1_ok)
+print(f"midi_out: model {model}, {len(rx)} bytes, {rx.count(0xFE)} FE, DT1 {'yes' if dt1_ok else 'no'}: "
+      f"{msg.hex(' ')}")
 sys.exit(0 if band == "running" and und_s == "never" and lag_s == "never" and midi_ok else 1)
 EOF
