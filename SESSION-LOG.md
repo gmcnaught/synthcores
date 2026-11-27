@@ -21,7 +21,15 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   read of a port (no peripherals yet). MAME's TRAPA pushes its own address. Quartus, CPU alone:
   18,325 ALMs and ~10 MHz as first generated; 5,108 ALMs and +5.3 ns at 50 MHz with a shared
   ALU, an iterative divider and one register write port.
-- **Next:** U2 (peripherals) and U3 (SWP00 on synthetic write streams).
+- **U3 (branch `mu50-u3`):** SWP00 HDL (`hdl/swp00/`: voices, MEG executor running MAME's
+  effects code compiled by `tools/swp00_meg_gen.py`) against `ref/swp00_ref` (MAME's code as a
+  C++ class). Corpus `basic` byte-identical to MAME (794,099 sample pairs); four random stimuli,
+  one per MEG variant, identical with every channel record and MEG register checked each sample.
+  Write timing: n = floor(s * 441 / 100000) + 1. MAME patch 0002: read log (MU_SND_RLOG) and the
+  missing stream updates in `waverom_val_r` / `meg_control_w`. MAME's s32 overflow is undefined
+  C; the core and reference wrap. Quartus, SWP00 alone: 5,066 ALMs, +3.3 ns at 50 MHz; corpus
+  518 clocks a sample on average (budget 1,134 at 50 MHz).
+- **Next:** U2 (peripherals), then U4 (system bench: CPU + SWP00).
 
 ## P2K release v20261125 (2026-11-25)
 

@@ -36,12 +36,16 @@ def main() -> None:
     ap.add_argument("program", type=pathlib.Path)
     ap.add_argument("rompath", type=pathlib.Path)
     ap.add_argument("--bios", default="v105", choices=sorted(BIOS_FILES))
+    ap.add_argument("--wave", type=pathlib.Path, help="a 4 MB wave ROM image (default zeros)")
     a = ap.parse_args()
     d = a.rompath / "mu50"
     d.mkdir(parents=True, exist_ok=True)
     (d / BIOS_FILES[a.bios]).write_bytes(rom_file_bytes(a.program.read_bytes()))
-    for w in WAVE_FILES:
-        (d / w).write_bytes(bytes(WAVE_SIZE))
+    wave = a.wave.read_bytes() if a.wave else bytes(2 * WAVE_SIZE)
+    if len(wave) != 2 * WAVE_SIZE:
+        raise SystemExit(f"{a.wave}: {len(wave)} bytes, want {2 * WAVE_SIZE}")
+    for i, w in enumerate(WAVE_FILES):
+        (d / w).write_bytes(wave[i * WAVE_SIZE:(i + 1) * WAVE_SIZE])
     lcd = a.rompath / "mulcd"
     lcd.mkdir(exist_ok=True)
     svg = b'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40"></svg>\n'

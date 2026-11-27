@@ -8,6 +8,7 @@
 #   MU_TRACE=file MU_TRACE_LIMIT=n   H8 trace (one line per instruction, plus writes), exit after n
 #   MU_BUS=1                         also every bus access (fetches, reads, writes)
 #   MU_SND_LOG=file                  every CPU write to the SWP00 with CPU states and sample count
+#   MU_SND_RLOG=file                 every CPU read of the SWP00, the same way (patch 0002)
 #   MU_SAMPLES=file                  raw 44.1 kHz samples, int32 L/R
 set -euo pipefail
 MAME="${MAME_MU50:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)/mame-mu50/mu50}"

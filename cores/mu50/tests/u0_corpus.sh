@@ -16,6 +16,7 @@ mkdir -p "$W"
 SECS=18
 out=""
 for s in "$HERE"/tests/midi/*.txt; do
+    [ "$(basename "$s")" = expected.txt ] && continue
     n=$(basename "$s" .txt)
     python3 "$ROOT/modules/synthframe/tools/midi/mkmidi.py" "$s" "$W/$n.mid"
     for r in 1 2; do
