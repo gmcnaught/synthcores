@@ -36,9 +36,13 @@ run_case() {
     done
     rm -f "$d"/*.txt
 }
+# at most JOBS cases at once: wait for the oldest before starting another (a count of
+# `jobs -p` in a command substitution kept listing finished jobs and never dropped)
+pids=()
 for c in $cases; do
-    while [ "$(jobs -p | wc -l)" -ge "${JOBS:-4}" ]; do sleep 1; done
+    if [ "${#pids[@]}" -ge "${JOBS:-4}" ]; then wait "${pids[0]}" || true; pids=("${pids[@]:1}"); fi
     run_case "$c" > "$tmp/$c.result" 2>&1 &
+    pids+=($!)
 done
 wait
 pass=0; fail=0
