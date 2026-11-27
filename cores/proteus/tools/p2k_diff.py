@@ -38,7 +38,8 @@ def run(name, edits, note=60, vel=100):
     os.makedirs(d, exist_ok=True)
     simm = build_simm(d, edits)
     script = ["14.0 cc 1 0 4", "14.0 cc 1 32 0", "14.1 pc 1 0", f"15.0 on 1 {note} {vel}", f"17.0 off 1 {note}"]
-    open(os.path.join(d, "script.txt"), "w").write("\n".join(script) + "\n")
+    with open(os.path.join(d, "script.txt"), "w") as fh:
+        fh.write("\n".join(script) + "\n")
     mid = os.path.join(d, "run.mid")
     subprocess.run([sys.executable, os.path.join(ROOT, "..", "..", "modules", "synthframe", "tools", "midi", "mkmidi.py"), os.path.join(d, "script.txt"), mid], check=True)
     nv = os.path.join(ROOT, "build", "p2k", "simm", "demo", "flash_clean.nv")

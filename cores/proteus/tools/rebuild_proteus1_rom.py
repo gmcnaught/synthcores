@@ -286,10 +286,13 @@ def main():
         return [(rom[n] >> (8 * lane)) & 0xFF for n in range(p, WORDS, 4)]
 
     os.makedirs(a.out_dir, exist_ok=True)
-    open(os.path.join(a.out_dir, "proteus1_waves.bin"), "wb").write(to_bytes(rom))
+    with open(os.path.join(a.out_dir, "proteus1_waves.bin"), "wb") as fh:
+        fh.write(to_bytes(rom))
     for p in range(4):
-        open(os.path.join(a.out_dir, f"rebuilt_hi{p}.bin"), "wb").write(bytes(chip_bytes(p, 1)))
-        open(os.path.join(a.out_dir, f"rebuilt_lo{p}.bin"), "wb").write(bytes(chip_bytes(p, 0)))
+        with open(os.path.join(a.out_dir, f"rebuilt_hi{p}.bin"), "wb") as fh:
+            fh.write(bytes(chip_bytes(p, 1)))
+        with open(os.path.join(a.out_dir, f"rebuilt_lo{p}.bin"), "wb") as fh:
+            fh.write(bytes(chip_bytes(p, 0)))
 
     with open(os.path.join(a.out_dir, "rebuild_report.txt"), "w") as f:
         tiers = {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0, "F": 0, "G": 0, "H": 0}
