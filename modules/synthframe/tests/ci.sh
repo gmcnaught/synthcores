@@ -20,7 +20,7 @@ S=modules/synthframe
 # one make job unless VERILATOR_JOBS says otherwise; build folders persist in $S/out/tests
 PY=$(command -v pypy3 || command -v python3)
 PYY=$PY; "$PY" -c 'import yaml' 2>/dev/null || PYY=python3     # synthcore needs PyYAML
-command -v ccache >/dev/null && export OBJCACHE=${OBJCACHE:-ccache}
+command -v ccache >/dev/null && export OBJCACHE=${OBJCACHE:-$PWD/$S/bin/objcache}   # not plain ccache: see bin/objcache
 export VERILATOR_JOBS=${VERILATOR_JOBS:-1}
 run "no ROMs in the repository" "$PY" $S/tests/hygiene/test_no_roms.py
 run "generate regions (Quartus 17.0 needs generate ... endgenerate)" "$PY" $S/tests/hdl_style/test_generate_regions.py

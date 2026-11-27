@@ -25,7 +25,7 @@ cd "$CORE"
 if [ -z "${PYTHON:-}" ] && command -v pypy3 >/dev/null; then PY=pypy3; else PY=${PYTHON:-python3}; fi
 PIL_PY=${PIL_PYTHON:-python3}
 # Verilator benches build incrementally under build/sim with ccache, one job by default
-if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE=ccache; fi
+if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE="$CORE/../../modules/synthframe/bin/objcache"; fi
 pass=0; skip=0; fail=0; failed=()
 
 run() {   # run NAME CMD...

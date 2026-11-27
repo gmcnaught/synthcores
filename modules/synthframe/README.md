@@ -33,6 +33,17 @@ options, so a new warning in a bench build fails that build too.
 
 Review what `--update` appends: a width or multi-driver warning can be a real bug.
 
+## ccache
+
+Set `OBJCACHE` to `bin/objcache` (an absolute path), not to plain `ccache`, for Verilator
+`--build` benches and the `sim/build.sh` scripts. The `ci.sh` scripts that turn ccache on
+already do. A Verilator build compiles a precompiled header (`V<top>__pch.h`), and the `.gch`
+holds the header's absolute path. Without `-g`, ccache leaves the working directory out of the
+hash. With plain `ccache`, a second worktree, checkout or temporary build folder gets the first
+one's `.gch`, and clang stops with "malformed or corrupted precompiled file". `bin/objcache`
+caches each precompiled header under its build directory (`CCACHE_NAMESPACE`) and every other
+compile as usual. A build folder that already has a foreign `.gch` needs that file deleted once.
+
 ## MiSTer backups
 
 `synth-mister install` backs up first: every core's installed RBFs and root MGLs go to

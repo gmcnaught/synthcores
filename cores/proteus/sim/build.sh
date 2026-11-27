@@ -26,7 +26,8 @@ MEM="$CORE/../../modules/synthframe/hdl/mem"
 BENCH=${1:?usage: sim/build.sh snd|mfp|unit|core|sys [OUTDIR]}
 OUT="${2:-$CORE/build/sim/$BENCH}"
 mkdir -p "$OUT"
-if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE=ccache; fi
+# ccache through bin/objcache: plain ccache would share a precompiled header between checkouts
+if [ -z "${OBJCACHE+x}" ] && command -v ccache >/dev/null; then export OBJCACHE="$CORE/../../modules/synthframe/bin/objcache"; fi
 ROOT="$CORE/../.."
 FLAGS=(-O3 -Wno-style "$ROOT"/modules/synthframe/lint/common.vlt "$ROOT"/cores/*/cfg/lint.vlt "$ROOT"/modules/*/cfg/lint.vlt
        --x-assign fast --x-initial fast -CFLAGS "-O2 -std=c++17" -j "${BUILD_JOBS:-1}")
