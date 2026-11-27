@@ -280,6 +280,17 @@ The SWP00 and the wave ROM are the same in all four.
 
 ## Open questions
 
+- **Timing reference (user, 2026-11-27):** the core follows MAME's timing until better data
+  exists; later it should follow the real MU50's. What is MAME's rather than the chip's, so the
+  places to change with hardware captures (a logic analyser on the H8 bus, the SCI and the LCD):
+  every bus access 2 states with no wait states (the H8/3003's bus controller has wait states
+  and ASTCR, which MAME leaves unmapped); TRAPA pushing its own address; ICR writes keeping one
+  byte; timer phase 0; the lazy event model and its timeslice edges (MIDI pin changes, the LCD
+  busy flag after floor(t_w + n / 270 kHz)); the SWP00's sample boundary rule
+  (floor(s * 441 / 100000) + 1) and MAME's reimplemented MEG programs. The generator
+  (`tools/h8h_gen.py`) keeps access order and costs in one place, so wait states are a cost
+  change there.
+
 - **Licence (default, following the CZ-101):** MIT, as the rest of the repository. The core is
   written from MAME's BSD-3-Clause sources, so `NOTICE` keeps MAME's notice and names the
   authors; `ref/` and `mame/patches/` stay BSD-3-Clause.

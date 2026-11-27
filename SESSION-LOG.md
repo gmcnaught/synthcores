@@ -29,7 +29,14 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   missing stream updates in `waverom_val_r` / `meg_control_w`. MAME's s32 overflow is undefined
   C; the core and reference wrap. Quartus, SWP00 alone: 5,066 ALMs, +3.3 ns at 50 MHz; corpus
   518 clocks a sample on average (budget 1,134 at 50 MHz).
-- **Next:** U2 (peripherals), then U4 (system bench: CPU + SWP00).
+- **U2 (branch `mu50-u2`, PR #80):** H8/3003 peripherals in MAME's lazy event model; the v1.05
+  firmware identical to MAME for 12 s of boot and MIDI (27,789,525 instruction lines). MAME's
+  timeslice edges matter: MIDI pin changes and the LCD busy flag follow measured rules.
+- **U4 (branch `mu50-u4`, PR #81):** the whole board from power-on gives the corpus sample file
+  identical to MAME's (794,099 pairs); 2.66 FPGA clocks a CPU state with 1-clock memories.
+- **U5 (branch `mu50-u5`, in progress):** MiSTer top (DDR3 memories with a program ROM cache,
+  pacing, MIDI from MidiLink, audio, NVRAM, LCD video); its bench's bus hash over 4 s equals the
+  board bench's; 4.44 clocks a state with a 12-clock DDR3 model.
 
 ## P2K release v20261125 (2026-11-25)
 
