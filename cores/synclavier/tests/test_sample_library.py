@@ -70,13 +70,15 @@ def _library(root):
     """Folders PNODTA40 (2 banks), HPCDTA40, SYNDTA40 and NED_TL23."""
     def stmb(folder, banks):
         os.makedirs(os.path.join(root, folder))
-        open(os.path.join(root, folder, "*NEWDATA.stmb"), "wb").write(bank_bytes(banks, 192)[0])
+        with open(os.path.join(root, folder, "*NEWDATA.stmb"), "wb") as fh:
+            fh.write(bank_bytes(banks, 192)[0])
     stmb("PNODTA40", [[timbre("PIANO A", ["PNOA", "PNOB"])], [timbre("PIANO B", ["PNOB"])]])
     stmb("HPCDTA40", [[timbre("HPC", ["HPC1"]), None, timbre("HPC 2", ["PNOA", "GONE"])]])
     stmb("SYNDTA40", [[timbre("SYN", ["SYN1"])]])
     os.makedirs(os.path.join(root, "NED_TL23"))
     for k, n in enumerate(["PNOA", "PNOB", "HPC1", "SYN1", "XTRA"]):
-        open(os.path.join(root, "NED_TL23", n + ".caf"), "wb").write(caf([k] * (100 + k)))
+        with open(os.path.join(root, "NED_TL23", n + ".caf"), "wb") as fh:
+            fh.write(caf([k] * (100 + k)))
 
 
 def test_libraries_and_disk():

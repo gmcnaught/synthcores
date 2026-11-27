@@ -160,8 +160,10 @@ def main():
     os.makedirs(out, exist_ok=True)
     tmpl = user_preset_template(spec.get("flash", "build/p2k/flash124.bin"))
     big, baby, info = build(spec, tmpl)
-    open(os.path.join(out, "big.bin"), "wb").write(big)
-    open(os.path.join(out, "baby.bin"), "wb").write(baby)
+    with open(os.path.join(out, "big.bin"), "wb") as fh:
+        fh.write(big)
+    with open(os.path.join(out, "baby.bin"), "wb") as fh:
+        fh.write(baby)
     print(info)
 
 
