@@ -5,7 +5,10 @@
 // (kind, address, data, time) and the FPGA clocks per CPU state; mu50_bench --bushash gives the
 // same hash for the same run on the board alone (memories in C++ arrays).
 //
-//   mu50_top_bench PACK.rom SAMPLES [--lat N]      (DDR3 read latency in clocks, default 12)
+//   mu50_top_bench PACK.rom SAMPLES [--lat N] [--rx RXLOG] [--pace]
+// --lat: DDR3 read latency in clocks (default 12). --rx: MAME's MU_RX_LOG; its bytes are sent on
+// the UART at 31,250 baud, each when the CPU reaches the time MAME's started. --pace: real-time
+// pacing on (prints the audio FIFO underruns).
 #include "Vmu50_top.h"
 #include "Vmu50_top___024root.h"
 #include "verilated.h"
@@ -28,8 +31,40 @@ int main(int argc, char **argv) {
     }
     const uint64_t want = strtoull(argv[2], nullptr, 0);
     int lat = 12;
-    for (int i = 3; i + 1 < argc; i += 2)
-        if (!strcmp(argv[i], "--lat")) lat = atoi(argv[i + 1]);
+    bool pace = false;
+    struct Mb { uint64_t t; uint8_t b; };
+    std::deque<Mb> mbytes;
+    for (int i = 3; i < argc; i++) {
+        if (!strcmp(argv[i], "--lat") && i + 1 < argc) lat = atoi(argv[++i]);
+        else if (!strcmp(argv[i], "--pace")) pace = true;
+        else if (!strcmp(argv[i], "--rx") && i + 1 < argc) {
+            // decode MAME's pin changes (320 states a bit) back into bytes and start times
+            FILE *g = fopen(argv[++i], "r");
+            if (!g) { perror(argv[i]); return 1; }
+            int sci, val; unsigned long long p, nw;
+            std::vector<std::pair<uint64_t, int>> ev;
+            while (fscanf(g, "%d %llu %llu %d", &sci, &p, &nw, &val) == 4)
+                if (sci == 1) ev.push_back({nw, val});
+            fclose(g);
+            int level = 1;
+            size_t k = 0;
+            auto at = [&](uint64_t t) {       // line level at time t
+                while (k < ev.size() && ev[k].first <= t) { level = ev[k].second; k++; }
+                return level;
+            };
+            for (size_t j = 0; j < ev.size(); j++) {
+                if (ev[j].second == 0 && (j == 0 || ev[j - 1].second == 1)) {
+                    uint64_t t0 = ev[j].first;
+                    if (!mbytes.empty() && t0 < mbytes.back().t + 3200) continue;
+                    k = 0; level = 1;
+                    uint8_t b = 0;
+                    for (int bit = 0; bit < 8; bit++) b |= at(t0 + 320 * (bit + 1) + 160) << bit;
+                    mbytes.push_back({t0, b});
+                }
+            }
+            fprintf(stderr, "%zu MIDI bytes\n", mbytes.size());
+        }
+    }
 
     const uint32_t W0 = 0x30000000 >> 3;
     std::vector<uint64_t> ddr(0x70000, 0xdeadbeefcafef00dULL);   // garbage until written
@@ -41,7 +76,7 @@ int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
     auto *c = new Vmu50_top;
     auto *r = c->rootp;
-    c->rst = 1; c->user_reset = 0; c->pace_enable = 0; c->gain = 0; c->uart_rxd = 1; c->ps2_key = 0;
+    c->rst = 1; c->user_reset = 0; c->pace_enable = pace; c->gain = 0; c->uart_rxd = 1; c->ps2_key = 0;
     c->img_mounted = 0; c->img_readonly = 0; c->img_size = 0; c->sd_ack = 0; c->save_req = 0;
     c->osd_open = 0; c->autosave = 0; c->DDRAM_BUSY = 0; c->DDRAM_DOUT_READY = 0;
     c->ioctl_download = 0; c->ioctl_wr = 0;
@@ -94,7 +129,20 @@ int main(int argc, char **argv) {
     uint64_t run_start = 0;
     // profile: clocks by the bus sequencer's state (h8h_sys b) and, in B_ACC, the board's (x)
     uint64_t prof_b[8] = {0}, prof_x[16] = {0};
+    // UART: 31,250 baud at 50 MHz = 1600 clocks a bit
+    int u_bit = -1; uint64_t u_next = 0; uint16_t u_frame = 0;
     while (samples < want) {
+        if (u_bit < 0 && !mbytes.empty() && r->mu50_top__DOT__vtime >= mbytes.front().t) {
+            u_frame = (1 << 9) | (mbytes.front().b << 1);   // start 0, data, stop 1
+            mbytes.pop_front();
+            u_bit = 0; u_next = clk;
+        }
+        if (u_bit >= 0 && clk >= u_next) {
+            c->uart_rxd = (u_frame >> u_bit) & 1;
+            u_bit++; u_next = clk + 1600;
+            if (u_bit == 10) u_bit = -1;
+        }
+        if (u_bit < 0 && clk >= u_next) c->uart_rxd = 1;
         tick();
         if (!run_start && r->mu50_top__DOT__running) run_start = clk;
         if (r->mu50_top__DOT__board__DOT__bl_stb) {
@@ -115,8 +163,9 @@ int main(int argc, char **argv) {
     printf("loaded in %llu clocks; %llu samples, %llu accesses, bus hash %016llx\n",
            (unsigned long long)t_load, (unsigned long long)samples, (unsigned long long)accesses,
            (unsigned long long)h);
-    printf("CPU at %llu states, %.2f clocks a state (DDR3 latency %d)\n", (unsigned long long)vt,
-           (double)(clk - run_start) / (double)vt, lat);
+    printf("CPU at %llu states, %.2f clocks a state (DDR3 latency %d), %.1f clocks a sample, underruns %d\n",
+           (unsigned long long)vt, (double)(clk - run_start) / (double)vt, lat,
+           (double)(clk - run_start) / (double)samples, (int)c->underruns);
     const char *bn[8] = {"idle (CPU states)", "pre", "access", "events", "inject", "events2", "ack", "?"};
     const char *xn[16] = {"x_idle", "rom", "ram", "ram2", "swp_t", "swp", "swp_w", "ack", "gen", "", "", "", "", "", "", ""};
     double tot = (double)(clk - run_start);

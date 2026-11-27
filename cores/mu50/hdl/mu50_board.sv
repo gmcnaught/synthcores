@@ -355,8 +355,12 @@ module mu50_board #(
         endcase
     end
 
+    // the RAM starts zeroed (MAME's NVRAM without a file): block RAM powers up at 0 on the FPGA;
+    // Verilator randomises it (--x-initial unique), so the benches clear it
+`ifdef VERILATOR
     initial for (int i = 0; i < 32768; i++) begin
         ram_e[i] = 8'h0;
         ram_o[i] = 8'h0;
     end
+`endif
 endmodule
