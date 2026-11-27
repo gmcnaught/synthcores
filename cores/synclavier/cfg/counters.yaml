@@ -1,0 +1,37 @@
+# Wrap table for modules/synthframe/bin/counter-audit: one row per free-running time counter
+# (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
+# folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
+# Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why").
+# Voice time in ns, 64 bits since review 2026-11-26 sync-hdl.md #1 (the 48-bit version wrapped
+# after 78.2 h): 2^64 ns is 585 years. The Verilator benches start it near the old 2^48 point
+# with +voice_t0.
+counters:
+  - name: now
+    file: hdl/dev/dev_poly.sv
+    width: 64
+    clock: voice time in ns (+tick_ns a tick)
+    wraps: 585 years
+    handling: 64 bits; every compare is relative to t0
+    test: tests/hdl/test_board.py test_dev_poly_wrap, test_poly_wrap (+voice_t0 near 2^48; CI)
+  - name: next_rate
+    file: hdl/dev/dev_poly.sv
+    width: 64
+    clock: voice time in ns
+    wraps: 585 years
+    handling: 64 bits; deadline compares (<=) stay ordered
+    test: tests/hdl/test_board.py test_dev_poly_wrap (CI)
+  - name: next_env
+    file: hdl/dev/dev_poly.sv
+    width: 64
+    clock: voice time in ns
+    wraps: 585 years
+    handling: 64 bits; deadline compares (<=) stay ordered
+    test: tests/hdl/test_board.py test_dev_poly_wrap (CI)
+  - name: now
+    file: hdl/dev/poly_box.sv
+    width: 64
+    clock: voice time in ns
+    wraps: 585 years
+    handling: 64 bits; nb < t_head needs no wrap
+    test: tests/hdl/test_board.py test_poly_box_wrap, test_poly_wrap (CI)

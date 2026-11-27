@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+"""Uptime-counter audit: every free-running time counter needs a row in a wrap table.
+
+    counter-audit              check every core; exit 1 on a counter with no row, or a stale row
+    counter-audit sc55 mt32    some cores
+    counter-audit --list       print every counter found (file, name, width)
+    counter-audit --ignore-table cores/cz101/cfg/counters.yaml    must fail (CI self-check)
+
+A counter is a register (a variable or output port written in an edge-triggered always block)
+32 bits or wider whose name contains cycle, tick, time or deadline, is now (or ends in _now), or
+starts with next_. The
+script elaborates each core's MiSTer top level (`emu`, the same file list as bin/hdl-lint) with
+`verilator --json-only`, so widths are the elaborated ones and only HDL the core builds is seen.
+The MiSTer framework (sys/) is left out.
+
+Each counter needs a row in the wrap table of the file's owner, as for the lint waivers:
+cores/<core>/cfg/counters.yaml for a core's HDL (P2K's files under cores/proteus/p2k go in
+cores/proteus/cfg/counters.yaml), modules/<module>/cfg/counters.yaml for shared HDL:
+
+    counters:
+      - name: tick                 # the variable
+        file: hdl/upd933/upd933.sv # from the owner's folder
+        width: 40
+        clock: clk 40 kHz sample tick
+        wraps: 317 days           # at that clock, or "never" with the reason in handling
+        handling: modular compare (deadline - now) < 2^39   # how a wrap is survived
+        test: tests/upd933_test.sh tick wrap   # the test that crosses it, or "none: <why>"
+
+A row whose counter no longer exists, or whose width differs, is an error too. A table may also
+list a time base whose name the pattern misses (CZ-101 vcyc, MT-32 tc); it is checked the same way.
+Needs PyYAML (pip install pyyaml) and Verilator 5.
+"""
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+_spec = importlib.util.spec_from_loader(
+    "hdl_lint", importlib.machinery.SourceFileLoader("hdl_lint", os.path.join(HERE, "hdl-lint")))
+lint = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(lint)
+ROOT = lint.ROOT
+NAME = re.compile(r"cycle|tick|time|deadline|^now$|_now$|^next_", re.I)
+FIELDS = ("name", "file", "width", "clock", "wraps", "handling", "test")
+
+
+def walk(n, fn):
+    if isinstance(n, dict):
+        fn(n)
+        for v in n.values():
+            if isinstance(v, (dict, list)):
+                walk(v, fn)
+    elif isinstance(n, list):
+        for x in n:
+            walk(x, fn)
+
+
+def width(types, addr, depth=0):
+    """(bits, unpacked) of a dtype, or (None, False) if not a plain vector."""
+    t = types.get(addr)
+    if t is None or depth > 8:
+        return None, False
+    kind = t.get("type")
+    if kind == "BASICDTYPE":
+        r = t.get("range")
+        if r is None:
+            return {"int": 32, "integer": 32, "longint": 64, "time": 64, "shortint": 16,
+                    "byte": 8}.get(t.get("keyword"), 1), False
+        hi, lo = (int(x) for x in r.split(":"))
+        return abs(hi - lo) + 1, False
+    if kind == "REFDTYPE":
+        return width(types, t.get("refDTypep") or t.get("subDTypep"), depth + 1)
+    if kind == "PACKARRAYDTYPE":
+        w, _ = width(types, t.get("subDTypep") or t.get("refDTypep"), depth + 1)
+        r = t.get("range") or t.get("declRange")
+        if w and r:
+            hi, lo = (int(x) for x in r.split(":"))
+            return w * (abs(hi - lo) + 1), False
+        return None, False
+    if kind == "UNPACKARRAYDTYPE":
+        w, _ = width(types, t.get("subDTypep") or t.get("refDTypep"), depth + 1)
+        return w, True
+    return None, False
+
+
+def counters(core):
+    """{(owner yaml, file from owner dir, name): (width, unpacked, path:line)}"""
+    with tempfile.TemporaryDirectory() as tmp:
+        cmd = lint.command(core)
+        cmd[cmd.index("--lint-only")] = "--json-only"
+        cmd += ["--Mdir", tmp, "--json-only-output", os.path.join(tmp, "t.json"),
+                "--json-only-meta-output", os.path.join(tmp, "m.json"), "-Wno-fatal", "-Wno-lint",
+                "-Wno-style"]
+        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        if p.returncode:
+            sys.stderr.write(p.stderr[-3000:])
+            raise SystemExit(f"counter-audit {core}: Verilator failed")
+        with open(os.path.join(tmp, "t.json")) as f:
+            tree = json.load(f)
+        with open(os.path.join(tmp, "m.json")) as f:
+            meta = json.load(f)
+    files = {k: v.get("filename") for k, v in meta.get("files", {}).items()}
+    types = {}
+    walk(tree, lambda n: types.__setitem__(n["addr"], n) if "DTYPE" in n.get("type", "") and "addr" in n else None)
+    found = {}
+    clocked = set()         # variables written in an edge-triggered always block: registers
+
+    def always(n):
+        if n.get("type") != "ALWAYS" or '"edgeType": "POS"' not in json.dumps(n.get("sentreep")) \
+                and '"edgeType": "NEG"' not in json.dumps(n.get("sentreep")):
+            return
+        walk(n.get("stmtsp"), lambda m: clocked.add(m.get("varp"))
+             if m.get("type") == "VARREF" and m.get("access") in ("WR", "RW") else None)
+
+    walk(tree.get("modulesp", tree), always)
+
+    def var(n):
+        if n.get("type") != "VAR" or n.get("lifetime") != "VSTATICI" or n.get("addr") not in clocked \
+                or not (n.get("varType") == "VAR" or n.get("direction") == "OUTPUT"):
+            return
+        name = n.get("origName") or n["name"]
+        w, unpacked = width(types, n.get("dtypep"))
+        if w is None or w < 32:
+            return
+        fid, line = n["loc"].split(",")[0], n["loc"].split(",")[1].split(":")[0]
+        path = files.get(fid, "")
+        if not path:
+            return
+        path = os.path.normpath(os.path.join(ROOT, path))
+        rel = os.path.relpath(os.path.realpath(path), ROOT)
+        parts = rel.split(os.sep)
+        if "sys" in parts or rel.startswith(os.path.join("modules", "synthframe", "lint")) \
+                or rel.endswith("lint_stubs.sv"):
+            return
+        owner = os.path.join(parts[0], parts[1], "cfg", "counters.yaml")
+        key = (owner, "/".join(parts[2:]), name)
+        (found if NAME.search(name) else others)[key] = (w, unpacked, f"{rel}:{line}")
+
+    others = {}
+    walk(tree.get("modulesp", tree), var)
+    return found, others
+
+
+def load(owner):
+    path = os.path.join(ROOT, owner)
+    if not os.path.isfile(path):
+        return None
+    import yaml
+    with open(path) as f:
+        d = yaml.safe_load(f) or {}
+    return d.get("counters") or []
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("cores", nargs="*")
+    ap.add_argument("--list", action="store_true", help="print the counters found")
+    ap.add_argument("--ignore-table", metavar="PATH", action="append", default=[],
+                    help="read this table as empty (CI's check that the audit fails without it)")
+    a = ap.parse_args()
+    todo = a.cores or lint.cores()
+    found, others = {}, {}
+    for core in todo:
+        f, o = counters(core)
+        found.update(f)
+        others.update(o)
+    if a.list:
+        for (owner, file, name), (w, unp, loc) in sorted(found.items(), key=lambda x: x[1][2]):
+            print(f"{loc}\t{name}\t{w}{' (array)' if unp else ''}\t-> {owner}")
+        return 0
+    errors = []
+    tables = {os.path.join(b, n, "cfg", "counters.yaml") for b in ("cores", "modules")
+              for n in os.listdir(os.path.join(ROOT, b))}
+    owners = sorted({k[0] for k in found} | (tables if not a.cores else set()))
+    rows = {}
+    for owner in owners:
+        table = None if owner in a.ignore_table else load(owner)
+        if table is None:
+            continue
+        for i, r in enumerate(table):
+            missing = [k for k in FIELDS if not str(r.get(k, "")).strip()]
+            if missing:
+                errors.append(f"{owner} row {i + 1} ({r.get('name')}): no {', '.join(missing)}")
+            rows[(owner, r.get("file"), r.get("name"))] = r
+    for key, (w, unp, loc) in sorted(found.items(), key=lambda x: x[1][2]):
+        r = rows.get(key)
+        if r is None:
+            errors.append(f"{loc}: {key[2]} ({w} bits{', array' if unp else ''}) has no row in {key[0]}")
+    for key, r in rows.items():
+        hit = found.get(key) or others.get(key)
+        if hit and int(r.get("width", 0)) != hit[0]:
+            errors.append(f"{hit[2]}: {key[2]} is {hit[0]} bits, {key[0]} says {r.get('width')}")
+        elif not hit and not a.cores:   # gone (checked only when every core was elaborated)
+            errors.append(f"{key[0]}: row {key[2]} ({key[1]}) matches no register of 32 bits or more")
+    for e in errors:
+        print(e)
+    print(f"counter-audit: {len(found)} counter(s), {len(errors)} problem(s)")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

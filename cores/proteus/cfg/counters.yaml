@@ -1,0 +1,16 @@
+# Wrap table for modules/synthframe/bin/counter-audit: one row per free-running time counter
+# (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
+# folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
+# Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why").
+# Review 2026-11-26 p2k.md and proteus1.md (uptime audits): nothing in either core wraps in a way
+# that changes behaviour. p2k_snd's 48-bit sample counter (smp, 202 years) is named so the
+# pattern misses it.
+counters:
+  - name: stat_div_cycles
+    file: p2k/rtl/snd/p2k_snd.sv
+    width: 32
+    clock: clk_sys 88.2 MHz, +1 a clock spent in the loop-modulo divider
+    wraps: 48.7 s if the divider ran every clock
+    handling: measurement output only; no logic reads it
+    test: "none: a statistic, its wrap changes no behaviour"

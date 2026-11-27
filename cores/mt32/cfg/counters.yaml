@@ -1,0 +1,74 @@
+# Wrap table for modules/synthframe/bin/counter-audit: one row per free-running time counter
+# (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
+# folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
+# Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why").
+# Times: MAME's total_cycles() (the 8098's 12 MHz clock) and the LA32 cycle count (8,192,000 a
+# second; the CPU runs to la32 x 375 / 256). All 64 bits since review 2026-11-26 mt32.md #1, as
+# Nuked-MT32's uint64_t: 2^64 / 12e6 s is 48,700 years. tests/wrap_check.sh crosses the two
+# points where the 48-bit versions failed (la32 x 375 past 2^48 at 25.45 h, and 2^48 CPU cycles
+# at 271 days).
+counters:
+  - name: la32_cycle
+    file: hdl/mt32_sound.sv
+    width: 64
+    clock: LA32 cycle, +8 a slot (8,192,000 a second)
+    wraps: 71,000 years
+    handling: 64 bits as the reference; the CPU target (la32_cycle x 375) >> 8 is a 64-bit product
+    test: tests/wrap_check.sh la32 (MT32_SIM_LA32_START; ROMs, local)
+  - name: total_cycles
+    file: hdl/mcs96/mcs96.sv
+    width: 64
+    clock: 12 MHz CPU clock
+    wraps: 48,700 years
+    handling: 64 bits as MAME's total_cycles()
+    test: tests/wrap_check.sh cpu (MCS96_SIM_TC_START; ROMs, local)
+  - name: tc
+    file: hdl/mcs96/mcs96.sv
+    width: 64
+    clock: 12 MHz CPU clock (the time base total_cycles comes from)
+    wraps: 48,700 years
+    handling: 64 bits; listed by hand (the name pattern misses it)
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: upd_time
+    file: hdl/mcs96/mcs96.sv
+    width: 64
+    clock: 12 MHz CPU clock
+    wraps: 48,700 years
+    handling: 64 bits as tc
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: ev_time
+    file: hdl/mcs96/mcs96_periph.sv
+    width: 64
+    clock: 12 MHz CPU clock
+    wraps: 48,700 years
+    handling: 64 bits as tc
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: serial_timer
+    file: hdl/mcs96/mcs96_periph.sv
+    width: 64
+    clock: 12 MHz CPU clock (0 = idle)
+    wraps: 48,700 years
+    handling: 64 bits as tc
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: base2
+    file: hdl/mcs96/mcs96_periph.sv
+    width: 64
+    clock: 12 MHz CPU clock (timer 2 origin)
+    wraps: 48,700 years
+    handling: 64 bits; listed by hand (the name pattern misses it)
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: uart_cycles
+    file: hdl/mt32_board.sv
+    width: 64
+    clock: 12 MHz CPU clock (0 = idle)
+    wraps: 48,700 years
+    handling: 64 bits as Nuked-MT32's uart_cycles
+    test: tests/wrap_check.sh cpu (ROMs, local)
+  - name: lcd_cycles
+    file: hdl/mt32_lcd.sv
+    width: 64
+    clock: 12 MHz CPU clock
+    wraps: 48,700 years
+    handling: 64 bits as Nuked-MT32's lcd_cycles
+    test: tests/wrap_check.sh cpu (ROMs, local)
