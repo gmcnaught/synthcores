@@ -20,11 +20,17 @@
 # opens and closes: save 2. Both saves must be 8 KB; save 1's battery RAM must differ from the
 # pack's init_ram, including internal tone 2 (0880-08FF); save 2 must hold the same internal
 # tone 2, and the same tone buffers (0300-03FF) as save 1, where internal tone 2 was selected
-# too: the firmware recalled the written tone after the reload.
-# Writes OUTDIR/{boot,end,nv_changed,nv_reloaded}.png, midi_out.txt, save1.sav, save2.sav and
-# result.txt. Exit 1 if the core is not running (band not green), an underrun was seen, the LCD is
-# blank at boot, MIDI did not change the LCD, the program change did not come out, or a save
-# file is wrong.
+# too: the firmware recalled the written tone after the reload. A screenshot after each save
+# (saved1, saved2: the reload resets the audio FIFO and its underrun count, so each save is
+# checked before it) must show no underrun: a save must not stop the audio.
+# Power: the OSD's Power (F12, DOWN, ENTER, ESC) off: the firmware powers down, the LCD is dark
+# (MAME m_power = 0) and no underrun is seen while powered down (power_off); on again: the board
+# restarts, the band is green and the LCD is lit (power_on).
+# Writes OUTDIR/{boot,end,nv_changed,saved1,nv_reloaded,saved2,power_off,power_on}.png,
+# midi_out.txt, save1.sav, save2.sav and result.txt. Exit 1 if the core is not running (band not
+# green), an underrun was seen (end, saved1, saved2, power_off), the LCD is blank at boot, MIDI did
+# not change the LCD, the program change did not come out, a save file is wrong, the LCD is lit
+# while powered off, or the core does not restart with a lit LCD.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
@@ -66,12 +72,20 @@ rm -f "$OUT/save1.sav" "$OUT/save2.sav"
 keys down:y sleep:0.4 text:4 sleep:0.3 F2 sleep:0.5 up:y sleep:1
 $M shot cz101 "$OUT/nv_changed.png" >/dev/null
 keys F12 sleep:3 ESC sleep:1
+$M shot cz101 "$OUT/saved1.png" >/dev/null
 scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/save1.sav" 2>/dev/null || true
 $M load /tmp/cz101_smoke.mgl; sleep "${BOOT:-8}"
 keys text:4 sleep:1 F2 sleep:1
 $M shot cz101 "$OUT/nv_reloaded.png" >/dev/null
 keys F12 sleep:3 ESC sleep:1
+$M shot cz101 "$OUT/saved2.png" >/dev/null
 scp -q "$MISTER:/media/fat/saves/CZ-101/cz101_smoke.sav" "$OUT/save2.sav" 2>/dev/null || true
+
+# Power off (OSD), then on again
+keys F12 sleep:1 DOWN sleep:0.5 ENTER sleep:0.5 ESC sleep:3
+$M shot cz101 "$OUT/power_off.png" >/dev/null
+keys F12 sleep:1 DOWN sleep:0.5 ENTER sleep:0.5 ESC sleep:"${BOOT:-8}"
+$M shot cz101 "$OUT/power_on.png" >/dev/null
 python3 -I - "$OUT" "$PACK" <<'EOF' | tee "$OUT/result.txt"
 # cz101_lcd_video.sv, 800 x 600 frame: the LCD (MAME's 97 x 19 pixels at 4x) at (206, 46),
 # 388 x 76, background 8a9294, dot on 3f3b3e; synthframe_status_strip at (12, 562): band at
@@ -102,8 +116,14 @@ s = strip(end)
 if not s:
     print("band: not found"); sys.exit(1)
 k = end.size[0] / 800
-und = end.getpixel((s[0] + int(300 * k), s[1] + int(10 * k)))[:3]
-und_s = {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(und, "?%02x%02x%02x" % und)
+def underrun(name):
+    im = Image.open(f"{out}/{name}.png").convert("RGB")
+    u = im.getpixel((s[0] + int(300 * k), s[1] + int(10 * k)))[:3]
+    return {(0x30, 0x38, 0x48): "never", (0x90, 0x20, 0x20): "seen", (0xff, 0x40, 0x40): "now"}.get(u, "?%02x%02x%02x" % u)
+def band(name):
+    im = Image.open(f"{out}/{name}.png").convert("RGB")
+    return BAND.get(im.getpixel((s[0] + int(100 * k), s[1] + int(10 * k)))[:3], "?")
+und_s = underrun("end")
 boot, endp = panel("boot", s), panel("end", s)
 changed, reloaded = panel("nv_changed", s), panel("nv_reloaded", s)
 def load(name):
@@ -132,7 +152,17 @@ print(f"save2_bytes: {len(s2)}")
 print(f"internal_tone_2_kept_after_reload: {kept}")
 print(f"tone_recalled_after_reload: {recalled}")
 print(f"lcd_after_reload_same_as_before: {reloaded.tobytes() == changed.tobytes()}")
+und_saves = {n: underrun(n) for n in ("saved1", "saved2", "power_off")}
+print(f"underrun_after_save1: {und_saves['saved1']}")
+print(f"underrun_after_save2: {und_saves['saved2']}")
+off, on = panel("power_off", s), panel("power_on", s)
+off_dark = lit(off) == 0
+print(f"power_off_lcd_dark: {off_dark} (lit pixels {lit(off)})")
+print(f"underrun_while_powered_off: {und_saves['power_off']}")
+on_ok = band("power_on") == "running" and lit(on) > 100
+print(f"power_on_restarts: {on_ok} (band {band('power_on')}, lit pixels {lit(on)})")
 ok = (s[2] == "running" and und_s == "never" and lit(boot) > 100 and endp.tobytes() != boot.tobytes()
-      and pc and sz == 8192 and ram != init and written and kept and recalled)
+      and pc and sz == 8192 and ram != init and written and kept and recalled
+      and all(v == "never" for v in und_saves.values()) and off_dark and on_ok)
 sys.exit(0 if ok else 1)
 EOF

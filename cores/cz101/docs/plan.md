@@ -81,8 +81,9 @@ construction.
     - `cores/cz101/hdl/upd7810/` (CPU and peripherals);
     - `cores/cz101/hdl/upd933/`.
   If a later core needs the uPD7810 (Juno-106, TR-909 per brief §2), it moves to `modules/`.
-- From synthframe: `midi_rx` is not needed (MIDI enters the CPU's own serial port as bits);
-  `audio_fifo`, `nvsave` (RAM and cartridge to the SD card).
+- From synthframe: `midi_rx` (the MiSTer UART's bytes, which the board's serializer sends to
+  the CPU's own serial port as bits; see "MIDI in"), `audio_fifo`, `nvsave` (RAM and cartridge
+  to the SD card).
 - HD44780: `modules/synthframe/hdl/panel/synthframe_hd44780.sv` (MIT, MAME's hd44780) with
   the busy flag in CPU cycles; `hdl/cz101_lcd.sv` is the pin side (port A data, port C
   E/RW/RS). The LCD is drawn with `synthframe_charlcd` and `synthframe_vtiming`.
@@ -144,13 +145,19 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   pitch wheel at given CPU cycles, in the bench (`CZ_KEYS`, `CZ_WHEEL`) and in MAME (patch 0001,
   same variables); MAME also logs its TxD line (`CZ_TX_LOG`).
 - **Time:** the tick counter for the uPD933 is incremental, and the board's cycle comparisons
-  are wrap-safe, so the core runs past the 32-bit `vcyc` wrap (21 minutes).
+  are wrap-safe, so the core runs past the 32-bit `vcyc` wrap (21 minutes). The uPD933 compares
+  its 40-bit ticks modulo 2^40, so it also runs past the tick wrap (30.5 h); the IRQ timer keeps
+  deadlines of 2^31 cycles or more (envelopes moving away from their target) in 2^31-cycle
+  periods. `tests/board_test.sh` and `tests/wrap_run.sh` start the tick time just before the wrap.
 - **RAM:** one 8 KB block: 0000-0FFF battery RAM, 1000-17FF RA-3 cartridge (OSD; MAME's RA-3
   is 4 KB behind a 2 KB window). `synthframe_nvsave` saves all 8 KB to
   `saves/CZ-101/<pack>.sav` with the CPU running; the board's `nv_written` makes it write the
   file again, paused, when the firmware wrote the RAM during the first pass.
-- **Power:** the OSD Power switch asserts /NMI when off (the firmware powers down); switching
-  it on after a power-down resets the board (RAM kept), as a power cycle.
+- **Power:** the OSD Power switch asserts /NMI when off (the firmware powers down; /NMI changes
+  at an instruction boundary, as MAME's input change between timeslices); switching it on after
+  a power-down resets the board (RAM kept), as a power cycle. While powered down (also by Auto
+  power off with the switch on) the CPU is held in reset, the LCD is dark (`m_power` is set only
+  when the switch turns on) and board time goes on, so the uPD933 keeps making silent samples.
 - **Keys:** MAME's PC-key assignments for the panel (`hdl/cz101_kbd.sv`); notes come from MIDI.
 - **Pitch wheel (AN1):** the first joystick's Y axis, 127 - Y (-127 up = 0xFF, centre 0x7F),
   or its up/down directions (0xFF / 0x00), as MAME's paddle on the joystick's Y switches.

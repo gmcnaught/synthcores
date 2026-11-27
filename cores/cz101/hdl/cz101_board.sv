@@ -12,6 +12,7 @@
 //     P = 14,999,997, so the edge cycles are generated exactly by a remainder counter.
 //   - uPD933 IRQ changes caused by the CPU's own accesses (MAME queues them through
 //     synchronize(): applied at the next boundary).
+//   - the Power switch's /NMI (an input change between MAME's timeslices).
 // The uPD933 runs on 10 MHz ticks: an access at cycle a is at tick floor(a P / 1e11)
 // = 3a - ceil(3a / 5,000,000).
 
@@ -55,7 +56,7 @@ module cz101_board #(
     output logic [7:0]  nv_rdata,
     output logic        nv_written,     // the CPU wrote the battery RAM or cartridge this clock
     output logic        powered_down,   // the firmware switched the power off (CPU in reset)
-    output logic [31:0] cycles,         // vcyc: machine cycles of virtual time
+    output logic [31:0] cycles,         // vt: machine cycles of virtual time (vcyc while the CPU runs)
 
     // outputs
     output logic [15:0] leds,           // MAME m_leds[0..15]
@@ -108,6 +109,7 @@ module cz101_board #(
     logic        at_boundary, ev_done;
     logic        cpu_reset;          // power-down holds the CPU in reset (MAME INPUT_LINE_RESET)
     logic        rx_line;            // m_midi_rx
+    logic        nmi_ev;             // /NMI (Power switch off), changed at instruction boundaries
 
     upd7811 #(.DECODE_HEX(DECODE_HEX)) cpu (
         .clk, .reset(reset || cpu_reset), .cyc_ce,
@@ -118,7 +120,7 @@ module cz101_board #(
         .pa_out, .pb_out, .pc_out, .pd_out, .pf_out,
         .pa_we, .pb_we, .pc_we, .pd_we, .pf_we,
         .an, .rxd(rx_line), .txd(midi_tx), .sck_edge, .sck_level,
-        .nmi_line(!power_on), .int1_line, .int1_rise, .pa_rd, .int2_line(1'b0),
+        .nmi_line(nmi_ev), .int1_line, .int1_rise, .pa_rd, .int2_line(1'b0),
         .vcyc, .acc_time, .at_boundary, .ev_done,
         .insn_done, .insn_cc, .insn_pc, .insn_op, .insn_op2, .halt_cycle, .irq_taken,
         .irq_taken_vec, .r_v, .r_a, .r_b, .r_c, .r_d, .r_e, .r_h, .r_l, .r_ea, .r_sp, .r_pc,
@@ -164,6 +166,7 @@ module cz101_board #(
     // port latches as MAME's driver sees them
     logic [7:0] port_b;             // m_port_b (key row select, uPD933 /CS)
     logic       power;              // m_power
+    logic       power_on_q;
 
     // ------------------------------------------------------------------ uPD933
     logic        s_req, s_ack, s_settled, s_irq, s_irq_evt, s_late, s_busy;
@@ -201,15 +204,27 @@ module cz101_board #(
     logic [76:0] div_num;           // n S, shifted out MSB first
     logic [39:0] div_rem;
     logic [37:0] div_q;
-    logic [31:0] tmr_cycle;         // boundary cycle the timer fires at
+    logic [31:0] tmr_cycle;         // boundary cycle the timer fires at, once tmr_far = 0
+    // The deadline can be up to 2^37 cycles ahead (an envelope moving away from its target makes
+    // MAME's remaining time wrap: up to 2^29 samples). The 32-bit compare below is valid for less
+    // than 2^31 cycles, so the deadline is kept as tmr_far periods of 2^31 cycles plus
+    // div_q[30:0]: each time vcyc reaches tmr_cycle while tmr_far != 0, one period is used up.
+    logic [6:0]  tmr_far;
+    logic        tmr_hi;            // bit 31 added to tmr_cycle by the periods used up
+    wire  [31:0] tmr_ahead = vcyc - tmr_cycle;   // wrap-safe tmr_cycle <= vcyc: bit 31 clear
 
     always_ff @(posedge clk) begin
         if (reset) begin
-            tmr_valid <= 1'b0; div_busy <= 1'b0; mul_busy <= 1'b0;
+            tmr_valid <= 1'b0; div_busy <= 1'b0; mul_busy <= 1'b0; tmr_far <= 7'd0; tmr_hi <= 1'b0;
         end else begin
             if (t_cancel || t_fire) tmr_valid <= 1'b0;
+            if (tmr_valid && tmr_far != 7'd0 && !tmr_ahead[31]) begin
+                tmr_far <= tmr_far - 7'd1;
+                tmr_hi <= !tmr_hi;
+            end
             if (t_arm) begin
                 arm_base <= arm_time;
+                tmr_hi <= 1'b0;
                 // n S by shift and add (32 clocks), then n S / P by restoring division (77)
                 mul_n <= t_n; div_num <= 77'h0; div_i <= 7'd32;
                 mul_busy <= 1'b1; div_busy <= 1'b0; tmr_valid <= 1'b0;
@@ -224,25 +239,23 @@ module cz101_board #(
                 end
             end else if (div_busy) begin
                 logic [39:0] r;
+                logic [37:0] q;
                 r = {div_rem[38:0], div_num[76]};
                 div_num <= {div_num[75:0], 1'b0};
-                if (r >= {1'b0, P_AS}) begin
-                    div_rem <= r - {1'b0, P_AS};
-                    div_q <= {div_q[36:0], 1'b1};
-                end else begin
-                    div_rem <= r;
-                    div_q <= {div_q[36:0], 1'b0};
-                end
+                q = {div_q[36:0], r >= {1'b0, P_AS}};
+                div_q <= q;
+                div_rem <= (r >= {1'b0, P_AS}) ? r - {1'b0, P_AS} : r;
                 div_i <= div_i - 7'd1;
                 if (div_i == 7'd1) begin
                     div_busy <= 1'b0;
                     tmr_valid <= 1'b1;
+                    tmr_far <= q[37:31];
                 end
             end
         end
     end
     // quotient settles the clock div_busy falls
-    always_comb tmr_cycle = arm_base + div_q[31:0];
+    always_comb tmr_cycle = arm_base + {tmr_hi, div_q[30:0]};
     assign sample_valid = s_valid;
     assign sample = s_out;
     assign sample_sum = s_sum;
@@ -255,23 +268,42 @@ module cz101_board #(
         return t - (t + 40'd4999999) / 40'd5000000;
     endfunction
 
-    // now_tick = ticks(vcyc), kept incrementally: 3 tv = 5,000,000 tq + tr, where tv follows
-    // vcyc one clock late (vcyc moves by at most an instruction's cycle count a clock); the
-    // tick of any time a = tv + e (0 <= e < 512: vcyc, an access time) comes from that state.
-    // Unlike ticks(), it keeps counting when the 32-bit vcyc wraps (after 21 minutes).
+    // Board time vt: vcyc while the CPU runs. A firmware power-down (PC3 = 0) holds the CPU in
+    // reset, which returns vcyc to 0; MAME's machine time goes on and its uPD933 stream keeps
+    // running (silence). vt then continues from the last vcyc, one cycle per cyc_ce while the
+    // uPD933 is settled (as the CPU would wait for it at a boundary). Only a board reset (the
+    // MiSTer's Power on) ends a power-down, so vt = vcyc whenever the CPU runs.
+    logic        down_q;           // cpu_reset one clock late: vcyc is still valid in the first clock
+    logic [31:0] vdown;
+    wire  [31:0] vt = down_q ? vdown : vcyc;
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            down_q <= 1'b0; vdown <= 32'h0;
+        end else begin
+            down_q <= cpu_reset;
+            if (!down_q) vdown <= vcyc;
+            else if (cyc_ce && s_settled) vdown <= vdown + 32'd1;
+        end
+    end
+
+    // now_tick = ticks(vt), kept incrementally: 3 tv = 5,000,000 tq + tr, where tv follows
+    // vt one clock late (vt moves by at most an instruction's cycle count a clock); the
+    // tick of any time a = tv + e (0 <= e < 512: vt, an access time) comes from that state.
+    // Unlike ticks(), it keeps counting when the 32-bit vcyc wraps (after 21 minutes). The 40-bit
+    // tick time wraps after 30.5 h; the uPD933 compares ticks modulo 2^40.
     localparam logic [22:0] T_DIV = 23'd5000000;
     logic [31:0] tv;               // vcyc the state belongs to
     logic [39:0] t3;               // 3 vcyc (not wrapped)
     logic [39:0] tq;
     logic [22:0] tr;
-    wire  [31:0] tdv = vcyc - tv;
+    wire  [31:0] tdv = vt - tv;
     always_ff @(posedge clk) begin
-        if (reset || cpu_reset) begin
+        if (reset) begin
             tv <= 32'h0; t3 <= 40'h0; tq <= 40'h0; tr <= 23'h0;
         end else if (tdv != 32'h0) begin
             logic [23:0] r;
             r = {1'b0, tr} + 24'(3 * tdv[8:0]);
-            tv <= vcyc;
+            tv <= vt;
             t3 <= t3 + 40'(3 * tdv[8:0]);
             if (r >= {1'b0, T_DIV}) begin tr <= 23'(r - {1'b0, T_DIV}); tq <= tq + 40'd1; end
             else tr <= r[22:0];
@@ -287,11 +319,13 @@ module cz101_board #(
         if (r >= {1'b0, T_DIV}) begin r = r - {1'b0, T_DIV}; q = q + 40'd1; end
         return t3 + 40'(3 * e) - q - ((r != 24'h0) ? 40'd1 : 40'd0);
     endfunction
-    always_comb now_tick = tick_at(vcyc);
+    always_comb now_tick = tick_at(vt);
     // synthesis translate_off
-    always_ff @(posedge clk) if (!reset && !cpu_reset) begin
-        if (now_tick != ticks(vcyc)) $fatal(1, "now_tick %0d != ticks(%0d)", now_tick, vcyc);
-        if (32'(acc_time - tv) >= 32'd512 || tdv >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
+    logic [39:0] sim_tick_base = 40'h0;   // cz101_bench CZ_TICK_BASE: tick time at reset (t3 and the uPD933 start there)
+    always_ff @(posedge clk) if (!reset) begin
+        if (now_tick - sim_tick_base != ticks(vt)) $fatal(1, "now_tick %0d != base + ticks(%0d)", now_tick, vt);
+        if (tdv >= 32'd512) $fatal(1, "vt %0d tv %0d", vt, tv);
+        if (!cpu_reset && !down_q && 32'(acc_time - tv) >= 32'd512) $fatal(1, "acc_time %0d vcyc %0d tv %0d", acc_time, vcyc, tv);
     end
     // synthesis translate_on
 
@@ -311,7 +345,7 @@ module cz101_board #(
     assign pa_in = lcd_db;
     assign lcd_power = power;
     assign powered_down = cpu_reset;
-    assign cycles = vcyc;
+    assign cycles = vt;
 
     // ------------------------------------------------------------------ external bus
     typedef enum logic [2:0] { B_IDLE, B_MEM, B_SND, B_SND_WAIT, B_DONE } bus_t;
@@ -333,11 +367,15 @@ module cz101_board #(
             s_req <= 1'b0;
             port_b <= 8'h00;
             power <= 1'b0;
+            power_on_q <= 1'b0;
             cpu_reset <= 1'b0;
             led_latch[0] <= 8'hFF; led_latch[1] <= 8'hFF; led_latch[2] <= 8'hFF; led_latch[3] <= 8'hFF;
             pb_pending <= 1'b0; rst_pending <= 1'b0;
         end else begin
-            if (power_on) power <= 1'b1;
+            // MAME power_w: m_power = 1 when the switch turns on (the first clock after reset
+            // counts as that edge: CZ_POWER_ON). A power-down clears it until the next edge.
+            power_on_q <= power_on;
+            if (power_on && !power_on_q) power <= 1'b1;
 
             // port writes (MAME port_b_w / port_c_w), in the clock the CPU performs them
             if (pb_we) begin
@@ -446,7 +484,6 @@ module cz101_board #(
 
     wire sck_due = !sck_ahead[31];
     wire [31:0] sck_ahead = vcyc - sck_cyc;      // wrap-safe sck_cyc <= vcyc
-    wire [31:0] tmr_ahead = vcyc - tmr_cycle;
     wire [31:0] rx_ahead  = vcyc - rx_cycle;
     wire [31:0] rx_before = rx_edge - sck_k;
 
@@ -460,7 +497,7 @@ module cz101_board #(
             // first edge at 250 ns: c_1 = floor(E / P) = 0, remainder E
             sck_cyc <= 32'd0; sck_rem <= E_U; sck_lvl_next <= 1'b1; sck_k <= 32'd1;
             rx_line <= 1'b1;
-            irq_prev <= 1'b0; irq_seen_rise <= 1'b0; int1_line <= 1'b0;
+            irq_prev <= 1'b0; irq_seen_rise <= 1'b0; int1_line <= 1'b0; nmi_ev <= 1'b0;
             ev_done <= 1'b0; t_fire <= 1'b0; fire_wait <= 2'd0;
         end else begin
             if (s_irq && !irq_prev) irq_seen_rise <= 1'b1;
@@ -471,12 +508,16 @@ module cz101_board #(
             else if (fire_wait != 2'd0) fire_wait <= fire_wait - 2'd1;
             if (at_boundary && !ev_done && s_settled && bus_st == B_IDLE && !pb_pending && !rst_pending
                 && !div_busy && !mul_busy && !t_arm && !t_fire && fire_wait == 2'd0) begin
-                if (tmr_valid && !tmr_ahead[31]) begin
+                if (tmr_valid && tmr_far == 7'd0 && !tmr_ahead[31]) begin
                     t_fire <= 1'b1;           // MAME timer_tick at D (before this instruction)
                 end else if (irq_seen_rise || int1_line != s_irq) begin
                     int1_rise <= irq_seen_rise;
                     int1_line <= s_irq;
                     irq_seen_rise <= 1'b0;
+                end else if (nmi_ev != !power_on) begin
+                    // MAME power_w changes INPUT_LINE_NMI between timeslices, so the CPU sees it
+                    // before an instruction, never while it pushes for an interrupt it took
+                    nmi_ev <= !power_on;
                 end else if (rx_valid && !rx_pop && !rx_ahead[31] && (!sck_due || rx_before[31])) begin
                     rx_line <= rx_level;
                     rx_pop <= 1'b1;
@@ -485,14 +526,13 @@ module cz101_board #(
                     sck_edge <= 1'b1;
                     sck_level <= sck_lvl_next;
                     sck_lvl_next <= !sck_lvl_next;
-                    if (ser_active) begin
+                    // a byte's 10 bits take 1,280 edges; the edge that ends a stop bit starts
+                    // the next queued byte
+                    if (ser_active && !(ser_cnt == 7'd127 && ser_left == 4'd0)) begin
                         if (ser_cnt == 7'd127) begin
-                            if (ser_left == 4'd0) ser_active <= 1'b0;   // stop bit sent
-                            else begin
-                                rx_line <= ser_sh[0];
-                                ser_sh <= {1'b1, ser_sh[8:1]};
-                                ser_left <= ser_left - 4'd1;
-                            end
+                            rx_line <= ser_sh[0];
+                            ser_sh <= {1'b1, ser_sh[8:1]};
+                            ser_left <= ser_left - 4'd1;
                         end
                         ser_cnt <= ser_cnt + 7'd1;
                     end else if (midi_valid && !midi_pop) begin
@@ -502,7 +542,7 @@ module cz101_board #(
                         ser_cnt <= 7'd0;
                         ser_active <= 1'b1;
                         midi_pop <= 1'b1;
-                    end
+                    end else ser_active <= 1'b0;                      // stop bit sent, idle
                     if (sck_rem + E_U >= P_U) begin
                         sck_rem <= sck_rem + E_U - P_U;
                         sck_cyc <= sck_cyc + 32'd1;

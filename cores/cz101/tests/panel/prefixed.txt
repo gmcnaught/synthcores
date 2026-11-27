@@ -1,0 +1,8 @@
+# CZ-101 panel test for tests/c4_run.sh: a key press inside a prefixed key-matrix read.
+# The firmware reads key row 9 with MOV A,(B800) (70 69, 17 cycles) at 46E0. With
+# tests/midi/basic.txt the read that first sees Preset in tests/panel/basic.txt starts at CPU
+# cycle 10,002,411. MAME's keys_r() runs at total_cycles() = the instruction's end for prefixed
+# opcodes, so a press at cycle 10,002,416 (5 cycles into the read) is seen by that read. The
+# bench must apply panel events at the access time (acc_time), not at the instruction start.
+3.0007243  key Preset
+3.6  key Tone 3

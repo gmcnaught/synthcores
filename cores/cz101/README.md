@@ -18,6 +18,9 @@ The MiSTer screen: the front panel from MAME's `cz101.lay` with the LCD above it
 | uPD933 | standalone copy of MAME's model on synthetic stimuli | identical |
 | Board | `tests/c4_run.sh tests/midi/basic.txt 6500000`: real firmware, boot and MIDI playback | 6.5 M instructions (17.9 s) and 716,728 samples identical to MAME, SHA-256 08745dc2…0eb7; the same through the MiSTer's live-MIDI path |
 | Panel keys, pitch wheel, MIDI out | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/basic.txt`: the same, plus tone selection and pitch-wheel moves at the same CPU cycles in MAME and the HDL | trace and 717,228 samples identical, SHA-256 472320fd…08a9; the 63 MIDI-out bytes (program changes, the wheel's pitch bends) identical, each within 19 CPU cycles of MAME's |
+| Key inside a prefixed read | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/prefixed.txt`: Preset pressed 5 cycles into a `MOV A,(B800)` key read (MAME's `keys_r()` runs at the instruction's end) | trace and 716,894 samples identical to MAME, SHA-256 a8fcea99…08d0; the 2 MIDI-out bytes identical |
+| CI (no ROMs) | `tests/ci.sh`: the uPD933 gate (`tests/upd933_test.sh`) and `tests/board_test.sh` (short uPD7811 programs on the board bench) | uPD933 identical to the reference, also across the 40-bit tick wrap; samples continue across the wrap and after a firmware power-down (LCD dark); a far IRQ-timer deadline does not fire early; /NMI never changes an interrupt's vector mid-push; live-MIDI bytes 1,280 SCK edges apart |
+| Tick wrap (30.5 h) | `tests/wrap_run.sh`: the firmware from power-on with the tick time 2 s before 2^40 | 2 M instructions: trace and 219,359 samples identical to a run from tick 0 |
 | Battery RAM across a reload | `tests/reload_run.sh`: write preset 3 into internal tone 2 (`tests/panel/write.txt`), restart from that RAM, select internal tone 2 | the tone is kept; the firmware's tone buffers (0300-03FF) equal those with preset 3 selected |
 | Pitch wheel | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/wheel.txt`: five wheel moves during a held note | trace and 716,620 samples identical to MAME, SHA-256 4fd2c703…9035 (the sound-chip writes first differ from the plain run 4 ms after the first move) |
 | Quartus (Windows build host) | `winbuild.sh cz101` | 14,577 ALMs (35 %), 37 DSP; timing met (core clock setup slack +4.13 ns at 50 MHz) |
@@ -72,7 +75,7 @@ keypad):
 | ← / → | Cursor | End / Home | Env. Step down / up |
 | Insert | Env. Point Sustain | Delete | Env. Point End |
 
-The 49 music keys and the pitch wheel are not mapped; play notes over MIDI.
+The 49 music keys are not mapped; play notes over MIDI. The pitch wheel is on the joystick (step 4).
 
 OSD switches: **Power** (off asserts /NMI and the firmware powers down; on again resets the
 board with the RAM kept), **RA-3 cartridge**, **Memory protect**, **Auto power off**.
