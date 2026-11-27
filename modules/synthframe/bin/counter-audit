@@ -26,8 +26,10 @@ cores/proteus/cfg/counters.yaml), modules/<module>/cfg/counters.yaml for shared 
         wraps: 317 days           # at that clock, or "never" with the reason in handling
         handling: modular compare (deadline - now) < 2^39   # how a wrap is survived
         test: tests/upd933_test.sh tick wrap   # the test that crosses it, or "none: <why>"
+        status: tested            # tested | untested (wrap handled, no test crosses it) | no wrap
 
-A row whose counter no longer exists, or whose width differs, is an error too. A table may also
+A row whose counter no longer exists, or whose width differs, is an error too. Rows with status
+"untested" are printed as GAP lines (and counted in the last line) but do not fail the audit. A table may also
 list a time base whose name the pattern misses (CZ-101 vcyc, MT-32 tc); it is checked the same way.
 Needs PyYAML (pip install pyyaml) and Verilator 5.
 """
@@ -48,7 +50,8 @@ lint = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(lint)
 ROOT = lint.ROOT
 NAME = re.compile(r"cycle|tick|time|deadline|^now$|_now$|^next_", re.I)
-FIELDS = ("name", "file", "width", "clock", "wraps", "handling", "test")
+FIELDS = ("name", "file", "width", "clock", "wraps", "handling", "test", "status")
+STATUS = ("tested", "untested", "no wrap")
 
 
 def walk(n, fn):
@@ -188,6 +191,9 @@ def main():
             missing = [k for k in FIELDS if not str(r.get(k, "")).strip()]
             if missing:
                 errors.append(f"{owner} row {i + 1} ({r.get('name')}): no {', '.join(missing)}")
+            elif r["status"] not in STATUS:
+                errors.append(f"{owner} row {i + 1} ({r.get('name')}): status {r['status']!r}, "
+                              f"not one of {', '.join(STATUS)}")
             rows[(owner, r.get("file"), r.get("name"))] = r
     for key, (w, unp, loc) in sorted(found.items(), key=lambda x: x[1][2]):
         r = rows.get(key)
@@ -199,9 +205,14 @@ def main():
             errors.append(f"{hit[2]}: {key[2]} is {hit[0]} bits, {key[0]} says {r.get('width')}")
         elif not hit and not a.cores:   # gone (checked only when every core was elaborated)
             errors.append(f"{key[0]}: row {key[2]} ({key[1]}) matches no register of 32 bits or more")
+    gaps = [(k, r) for k, r in sorted(rows.items(), key=lambda x: (x[0][0], x[0][1] or "", x[0][2] or ""))
+            if r.get("status") == "untested"]
+    for (owner, file, name), r in gaps:
+        print(f"GAP {owner}: {name} ({file}) wraps after {r.get('wraps')}; {r.get('test')}")
     for e in errors:
         print(e)
-    print(f"counter-audit: {len(found)} counter(s), {len(errors)} problem(s)")
+    print(f"counter-audit: {len(found)} counter(s), {len(errors)} problem(s), "
+          f"{len(gaps)} untested wrap(s) (GAP)")
     return 1 if errors else 0
 
 

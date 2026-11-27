@@ -2,7 +2,9 @@
 # (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
 # folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
 # Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
-# handling (how the wrap is survived), test (the test that crosses it, or "none: why").
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why"), status:
+# tested, untested (the wrap is handled but no test crosses it: counter-audit prints it as a GAP)
+# or no wrap (not reached in practice, as a 64-bit time, or not a time).
 # MCU cycles: 20 MHz (SC-55, SC-155, JV-880) or 24 MHz (mk2, SC-155mk2); the sub-MCU (mk2) runs 5
 # cycles to the MCU's 1. All 64 bits since review 2026-11-26 roland.md #9/#10, as the model's
 # uint64_t: 2^64 / 24e6 s is 24,000 years. --cycle-base (cores/sc55/sim/common/cycle_base.h)
@@ -15,6 +17,7 @@ counters:
     wraps: 24,000 years
     handling: 64 bits as the model
     test: cores/sc55/tests/test_mcu_lockstep.py and test_system_lockstep.py --cycle-base (ROMs; skipped in CI)
+    status: no wrap
   - name: frt_deadline
     file: hdl/mcu/sc55_mcu.sv
     width: 64
@@ -22,6 +25,7 @@ counters:
     wraps: 48,000 years
     handling: 64 bits; a sim check (near) stops on a deadline far from the timer time
     test: cores/sc55/tests/test_mcu_lockstep.py --cycle-base (ROMs)
+    status: no wrap
   - name: tmr_deadline
     file: hdl/mcu/sc55_mcu.sv
     width: 64
@@ -29,6 +33,7 @@ counters:
     wraps: 48,000 years
     handling: 64 bits as frt_deadline
     test: cores/sc55/tests/test_mcu_lockstep.py --cycle-base (ROMs)
+    status: no wrap
   - name: pcm_cycles
     file: hdl/pcm/sc55_pcm.sv
     width: 64
@@ -36,6 +41,7 @@ counters:
     wraps: 24,000 years
     handling: compared with the target on a narrow signed difference (pc_lag), wrap-safe
     test: cores/sc55/tests/test_system_lockstep.py --cycle-base (ROMs)
+    status: no wrap
   - name: cycles
     file: hdl/submcu/sc55_submcu.sv
     width: 64
@@ -43,6 +49,7 @@ counters:
     wraps: 4,900 years
     handling: 64 bits; compared with the MCU target as a 65-bit signed difference
     test: cores/sc55/tests/test_mcu_lockstep.py --cycle-base WRAP_SM5 (mk2 ROMs)
+    status: no wrap
   - name: timer_cycles
     file: hdl/submcu/sc55_submcu.sv
     width: 64
@@ -50,3 +57,4 @@ counters:
     wraps: 4,900 years
     handling: 65-bit signed difference tlag = cycles - timer_cycles
     test: cores/sc55/tests/test_mcu_lockstep.py --cycle-base WRAP_SM5 (mk2 ROMs)
+    status: no wrap

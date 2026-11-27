@@ -2,7 +2,9 @@
 # (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
 # folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
 # Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
-# handling (how the wrap is survived), test (the test that crosses it, or "none: why").
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why"), status:
+# tested, untested (the wrap is handled but no test crosses it: counter-audit prints it as a GAP)
+# or no wrap (not reached in practice, as a 64-bit time, or not a time).
 # Times: the 10 MHz uPD933 tick (40 bits, 2^40 / 1e7 = 30.5 h) and CPU cycles (3,333,334 a
 # second, 32 bits, 2^32 / 3.33e6 = 21.5 min). Review 2026-11-26 cz101.md #1 (fixed: t_ge).
 counters:
@@ -13,6 +15,7 @@ counters:
     wraps: 30.5 h
     handling: the uPD933 compares ticks modulo 2^40 (t_ge), valid while two ticks are less than 2^39 (15 h) apart
     test: tests/board_test.sh wrap and tests/upd933_test.sh --base (CI); tests/wrap_run.sh (firmware, ROMs, local)
+    status: tested
   - name: pb_tick
     file: hdl/cz101_board.sv
     width: 40
@@ -20,6 +23,7 @@ counters:
     wraps: 30.5 h
     handling: copied into s_tick; compared modulo 2^40 as s_tick
     test: tests/board_test.sh wrap (CI); tests/wrap_run.sh (ROMs, local)
+    status: tested
   - name: tmr_deadline
     file: hdl/upd933/upd933.sv
     width: 40
@@ -27,6 +31,7 @@ counters:
     wraps: 30.5 h
     handling: t_ge modulo 2^40; an internal timer deadline is at most 250 x 2^30 ticks (7.5 h) ahead
     test: tests/upd933_test.sh --base (CI)
+    status: tested
   - name: next_bnd
     file: hdl/upd933/upd933.sv
     width: 40
@@ -34,6 +39,7 @@ counters:
     wraps: 30.5 h
     handling: t_ge modulo 2^40 against now_tick / req_tick, which stay within a few samples of it
     test: tests/board_test.sh wrap and tests/upd933_test.sh --base (CI)
+    status: tested
   - name: irq_evt_tick
     file: hdl/upd933/upd933.sv
     width: 40
@@ -41,6 +47,7 @@ counters:
     wraps: 30.5 h
     handling: a time stamp handed to the board with the IRQ event; only differences are used
     test: tests/board_test.sh wrap (CI)
+    status: tested
   - name: timer_n
     file: hdl/upd933/upd933.sv
     width: 32
@@ -48,6 +55,7 @@ counters:
     wraps: never (a load value, not a counter)
     handling: MAME's remaining-time wrap gives up to 390,427,742 samples; the board divides it into far steps (tmr_far)
     test: tests/board_test.sh irqtimer (CI)
+    status: no wrap
   - name: arm_time
     file: hdl/cz101_board.sv
     width: 32
@@ -55,6 +63,7 @@ counters:
     wraps: 21.5 min
     handling: only differences are used (arm_base + n S / P; tmr_ahead = vcyc - tmr_cycle, sign bit), modulo 2^32
     test: "none: no bench runs 21.5 min of CPU time; tests/board_test.sh irqtimer checks deadlines more than 2^31 cycles ahead (CI)"
+    status: untested
   - name: pb_time
     file: hdl/cz101_board.sv
     width: 32
@@ -62,6 +71,7 @@ counters:
     wraps: 21.5 min
     handling: copied into arm_time; differences only, as arm_time
     test: "none: as arm_time"
+    status: untested
   - name: rt_cycles
     file: mister/CZ101.sv
     width: 32
@@ -69,6 +79,7 @@ counters:
     wraps: 21.5 min
     handling: lag = rt_cycles - cycles modulo 2^32, sign bit; both wrap together; resynced on every board reset
     test: "none: the MiSTer top is not simulated; every hardware session past 21.5 min crosses it"
+    status: untested
   - name: vcyc
     file: hdl/upd7810/upd7810_core.sv
     width: 32
@@ -76,3 +87,4 @@ counters:
     wraps: 21.5 min
     handling: "listed by hand (the name pattern misses it): every user takes differences modulo 2^32 (now_tick's incremental 3 vt / 5,000,000 state, LCD busy s - t_w, tmr_ahead); a $fatal in sim checks acc_time - tv < 512"
     test: "none: no bench runs 21.5 min of CPU time"
+    status: untested
