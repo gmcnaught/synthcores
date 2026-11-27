@@ -139,6 +139,12 @@ HdlResult run_hdl(const std::vector<Event> &ev, unsigned real_n, u64 lead, bool 
 	for (int i = 0; i < 4; i++) clock();
 	h.late = top->late;
 	top->final();
+#if VM_COVERAGE
+	// a build with coverage (UPD933_COVERAGE=ON): one file per run, $UPD933_COV<n>.dat
+	static int cov_n = 0;
+	const char *cov = std::getenv("UPD933_COV");
+	ctx->coveragep()->write((std::string(cov ? cov : "upd933_cov") + std::to_string(cov_n++) + ".dat").c_str());
+#endif
 	return h;
 }
 

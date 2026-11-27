@@ -146,6 +146,33 @@ jobs:
           echo "### tests (${{ matrix.core }}): $pass passed, $skip skipped, $fail failed" >> "$GITHUB_STEP_SUMMARY"
           [ "$fail" = 0 ]
 
+  # Verilator line and toggle coverage of two ROM-free lockstep benches (CZ-101 uPD933, Proteus/1
+  # sound): report only, uploaded as the "coverage" artifact (annotated HDL, summary.txt). It
+  # never fails the run.
+  coverage:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      CXX: g++-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: ./.github/actions/setup-sim
+      - name: Coverage
+        run: |
+          scripts/coverage.sh out/coverage
+          { echo "### Verilator coverage (report only)"; echo '```'; cat out/coverage/summary.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: |
+            out/coverage/summary.txt
+            out/coverage/annotated
+            out/coverage/*.dat
+          if-no-files-found: ignore
+
   ci-list:
     runs-on: ubuntu-24.04
     outputs:

@@ -167,6 +167,11 @@ int main(int argc, char **argv) {
 	if (inject_error && want / 2 < cap) o[(want / 2) * 4] ^= 1;   // the capture ring holds the true sample
 	if (memcmp(mem.data() + 0x1000000, o.data(), o.size())) { fprintf(stderr, "FAIL: capture ring differs from the output\n"); rc = 1; }
 	else fprintf(stderr, "capture ring matches %ld samples\n", cap);
+#if VM_COVERAGE
+	// a build with VFLAGS="--coverage-line --coverage-toggle" (scripts/coverage.sh); the file name
+	// comes from +verilator+coverage+file+NAME (default coverage.dat)
+	Verilated::threadContextp()->coveragep()->write();
+#endif
 	delete t;
 	return rc;
 }
