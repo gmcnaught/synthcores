@@ -37,7 +37,9 @@ Each core's README gives its checks, the ROM dumps it needs and how to install i
   it needs.
 
 Clone with `git clone --recursive`. CI (`.github/workflows/`): `tests.yml` runs on every pull
-request, for the cores a change touches. `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
+request: every `cores/<core>/tests/ci.sh` and `modules/<module>/tests/ci.sh` (each core's and
+module's ROM-free tests; exit 77 means skipped, and the run's summary page counts passes and
+skips), plus each touched core's test suite. `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
 one core on demand (the "Build RBF" workflow with `cores` set, which is how releases are built), for
 every core on a `v*` tag.
 

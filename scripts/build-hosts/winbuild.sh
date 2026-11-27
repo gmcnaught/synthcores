@@ -7,14 +7,15 @@
 #
 # WINBUILD (default "winbuild", an ~/.ssh/config host) must accept SSH key logins and run
 # PowerShell, with Quartus Lite 17.0 at C:\intelFPGA_lite\17.0 and Git for Windows (bash, tar)
-# installed; scripts/build-hosts/enable-windows-sshd.ps1 sets up the SSH side. Sends cores/CORE
-# and modules/ (without the reference-model submodules; symlinks resolved, so mister/sys comes
-# along).
+# installed; scripts/build-hosts/enable-windows-sshd.ps1 sets up the SSH side. Sends cores/CORE,
+# modules/ (without the reference-model submodules; symlinks resolved, so mister/sys comes
+# along) and any other directory CORE's cfg/files.yaml uses (`synthcore deps CORE`, e.g. the
+# P2K's CPU and sound RTL in cores/proteus/p2k/rtl). Needs PyYAML for synthcore.
 #
 # Every build is a full compile in its own folder, C:\synthbuild\<id>, removed afterwards
 # (KEEP=1 keeps it). Quartus Lite has no Rapid Recompile or partial recompilation, so builds of
 # different cores, or of one core with different seeds, run side by side. SEED=N overrides the
-# fitter seed (the core's build.sh reads it as <CORE>_SEED). The core's mister/build.sh runs
+# fitter seed (every core's build.sh reads SEED). The core's mister/build.sh runs
 # under Git Bash; the RBF, the Quartus reports and build.log come back to OUTDIR (default
 # out/winbuild/CORE-<id>). Exits with build.sh's status (non-zero on a failed compile or
 # negative slack).
@@ -31,18 +32,13 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$OUT"
 SSH=(ssh -o BatchMode=yes -o ControlPath=none "$HOST")
 
-# tracked files of the core and of modules/ (shared HDL: synthframe, roland, ...), without the
-# reference-model submodules; -h stores what the symlinks point to
-# (the P2K core also takes the CPU and sound RTL from cores/proteus/p2k/rtl)
-EXTRA=()
-[ "$CORE" = p2k ] && EXTRA=(cores/proteus/p2k/rtl)
-(cd "$ROOT" && git ls-files -z -- "cores/$CORE" "${EXTRA[@]}" modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
+# tracked files of the core, of the directories its files.yaml takes from other cores, and of
+# modules/ (shared HDL: synthframe, roland, ...), without the reference-model submodules; -h
+# stores what the symlinks point to
+DEPS=$(python3 "$ROOT/modules/synthframe/bin/synthcore" deps "$CORE") || { echo "synthcore deps $CORE failed" >&2; exit 2; }
+# shellcheck disable=SC2086  # one directory a line, no spaces
+(cd "$ROOT" && git ls-files -z -- "cores/$CORE" $DEPS modules ':!modules/nuked-sc55' ':!modules/nuked-mt32' |
     COPYFILE_DISABLE=1 tar --null -T - -czhf "$TMP/src.tgz" --exclude "cores/$CORE/third_party/nuked-sc55")
-
-case "$CORE" in
-    proteus) BUILD="bash mister/build.sh" ;;
-    *) BUILD="mister/build.sh _out" ;;
-esac
 
 # the script that runs on the host, under Git Bash
 cat > "$TMP/remote.sh" <<REMOTE
@@ -51,7 +47,7 @@ W=/c/synthbuild/$ID
 mkdir -p "\$W" && cd "\$W" || exit 1
 tar -xzf /c/synthbuild/$ID-src.tgz && rm -f /c/synthbuild/$ID-src.tgz
 cd cores/$CORE || exit 1
-SC55_SEED='$SEED' SYNCLAVIER_SEED='$SEED' JV880_SEED='$SEED' MT32_SEED='$SEED' $BUILD > mister/build.out 2>&1
+SEED='$SEED' bash mister/build.sh _out > mister/build.out 2>&1
 echo \$? > mister/build.status
 tar -czf /c/synthbuild/$ID-out.tgz mister/build.out mister/build.status mister/build.log \
     mister/_out mister/output_files 2>/dev/null
@@ -74,6 +70,6 @@ fi
 status=$(tr -d '\r\n ' < "$OUT/mister/build.status" 2>/dev/null || echo 1)
 grep -E "Logic utilization|Total registers|Total block memory bits|Total DSP" "$OUT"/mister/output_files/*.fit.summary 2>/dev/null || true
 grep -E "^Slack|^Type" "$OUT"/mister/output_files/*.sta.summary 2>/dev/null | paste - - | sort -t: -k3 -n | head -3 || true
-find "$OUT/mister" \( -path "*_out*" -name "*.rbf" \) -o -name "Proteus.rbf" 2>/dev/null | sed 's/^/rbf: /'
+find "$OUT/mister" -path "*_out*" -name "*.rbf" 2>/dev/null | sed 's/^/rbf: /'
 echo "winbuild $ID: build.sh exit $status after $(( $(date +%s) - start )) s; output in $OUT"
 exit "$status"

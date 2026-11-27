@@ -559,7 +559,7 @@ def hw(a):
         g.write(PLAYER)
     subprocess.run(["scp", "-q", f.name, "%s:/tmp/demo_events.json" % a.host], check=True)
     subprocess.run(["scp", "-q", g.name, "%s:/tmp/demo_player.py" % a.host], check=True)
-    subprocess.run(["scp", "-q", os.path.join(ROOT, "scripts", "mister", "mister_keys.py"),
+    subprocess.run(["scp", "-q", os.path.join(ROOT, "..", "..", "modules", "synthframe", "tools", "mister", "mister_keys.py"),
                     "%s:/tmp/mister_keys.py" % a.host], check=True)
     return subprocess.run(["ssh", "-t", a.host, "python3 /tmp/demo_player.py /tmp/demo_events.json %s"
                            % shlex.quote(str(s.record))]).returncode
