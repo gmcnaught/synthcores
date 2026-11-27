@@ -69,9 +69,16 @@ Unknown, to check in step 1:
   the reply. Fixed for the JV-880 in `ref/patch_ref.py` FIXES and in `sc55_mcu.sv`: the byte
   time starts when TDRE sets, and an SCR write requests TXI = TIE && TDRE. Afterwards the reply
   is the same 75 bytes, and the LCD returns to "Perf … I-01:Syn Lead" about 1 s later, with
-  SYSTEM working again (`tests/test_jv880_ref.py` `test_panel_after_rq1`). The SC-55 models keep
-  the reference's transmitter (no symptom).
-- **mk1:** no RQ1 reply in any variant; Active Sensing only.
+  SYSTEM working again (`tests/test_jv880_ref.py` `test_panel_after_rq1`).
+- **mk1 after an RQ1 (synthcores #52).** The mk1 v1.21 firmware starts its DT1 reply the same
+  way: it sets SCR.TIE (SCR 0x7c → 0xfc) while TDRE is 1. With the reference's transmitter no TXI
+  came, so the reply never went out, and the firmware sent nothing after it, not even Active
+  Sensing. The probe above saw "no RQ1 reply" for this reason. The fix now covers every model
+  whose MIDI port is the main MCU's SCI (mk1, SC-155, JV-880). The mk1 answers the master-tune
+  RQ1 with `F0 41 10 42 12 40 00 00 00 04 00 00 3C F7`, as the mk2 does, then Active Sensing
+  resumes. The SC-155 Rev1 firmware does not answer the RQ1, before or after the fix, and its
+  Active Sensing continues. `board_lockstep --rx-baud 9600` sends the MIDI over `uart_rxd`
+  through `synthframe_midi_rx` (`tests/test_system_lockstep.py` `test_board_serial_rq1`).
 - **Clocks:** the boards run the reference at 600 ns a step of 12 cycles (20 MHz). An SCI byte
   is 150 µs of model time against 320 µs on the wire, so the FIFO holds the difference. The
   board benches check that the 512-byte FIFO drops no byte of the 75-byte JV-880 reply.

@@ -9,16 +9,21 @@ fork departs from Nuked-SC55's original:
     overflows in loud chords (the 20-bit mix wrapped from full negative to full positive). The
     SC-55 models keep the plain add (none of their tests overflow; saturating them costs the
     SC-55 core its timing). The jv880.mid integration-test hash is unchanged.
-  - JV-880: the SCI transmitter behaves as the H8/532's. The H8's SCI is double-buffered: when
+  - mk1, SC-155, JV-880 (the models whose MIDI port is the main MCU's SCI): the SCI transmitter
+    behaves as the H8/532's. The H8's SCI is double-buffered: when
     the CPU clears TDRE while the line is idle, TDR moves to the shift register and TDRE sets
     again at once; the next byte waits only for the shift register (one byte time). TXI is
-    requested while TDRE and TIE are both 1, so setting TIE with TDRE 1 interrupts. The model
+    requested while TDRE and TIE are both 1, so setting TIE with TDRE 1 interrupts (H8/532
+    Hardware Manual 14.3.3 p. 266: "The TDR and TSR function as a double buffer"; 14.4 p. 268:
+    the TXI request signal is obtained from TDRE, enabled by SCR.TIE). The model
     instead holds TDRE at 0 for 3000 cycles after each clear and requests TXI only as TDRE
     sets. The JV-880 firmware sends from its TXI handler and enables TIE to start a transfer,
     so after a reply to an RQ1 it missed the interrupt that ends the transfer: the LCD stayed at
     "Now bulk sending" (or blank) and the panel took no keys until a reset. With this fix the
-    reply is the same bytes and the panel returns after ~1 s. The SC-55 models keep the model's
-    transmitter (no symptom; their tests and hashes stay as they are).
+    reply is the same bytes and the panel returns after ~1 s. The SC-55 mk1 firmware v1.21 starts
+    its reply to an RQ1 the same way (SCR.TIE set while TDRE is 1): with the model's transmitter it
+    never got the interrupt, sent no reply, and sent nothing after it, not even Active Sensing
+    (synthcores #52). The mk2 and SC-155mk2 send MIDI from the sub-MCU and keep the model's code.
 
 The hooks only observe: with no hook installed, the hooked backend behaves exactly like the
 plain one (checked by tests/test_ref_patch.py, which renders with both builds and compares the
@@ -56,25 +61,26 @@ FIXES = [
      "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n",
      "void PCM_Update(pcm_t& pcm, uint64_t cycles)\n{\n"
      "    g_addclip20_saturate = pcm.mcu->is_jv880;\n"),
-    # JV-880 SCI transmitter (see above): the 3000-cycle byte time starts when TDR moves to the
-    # shift register (TDRE sets), not at the CPU's clear; TXI follows TIE while TDRE is 1.
+    # mk1, SC-155, JV-880 SCI transmitter (see above): the 3000-cycle byte time starts when TDR
+    # moves to the shift register (TDRE sets), not at the CPU's clear; TXI follows TIE while TDRE
+    # is 1. The condition is the model's own test for the main MCU's UART (MCU_Step).
     ("backend/mcu.cpp",
      "            mcu.dev_register[address] &= ~0x80;\n"
      "            mcu.uart_tx_delay = mcu.cycles + 3000;",
      "            mcu.dev_register[address] &= ~0x80;\n"
-     "            if (!mcu.is_jv880) // JV-880: double-buffered (ref/patch_ref.py FIXES)\n"
+     "            if (!(mcu.is_mk1 || mcu.is_jv880 || mcu.is_scb55)) // the SCI is double-buffered (ref/patch_ref.py FIXES)\n"
      "                mcu.uart_tx_delay = mcu.cycles + 3000;"),
     ("backend/mcu.cpp",
      "    mcu.dev_register[DEV_SSR] |= 0x80;\n"
      "    MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);",
      "    mcu.dev_register[DEV_SSR] |= 0x80;\n"
-     "    if (mcu.is_jv880) // JV-880: the shift register is busy one byte time (ref/patch_ref.py FIXES)\n"
+     "    if (mcu.is_mk1 || mcu.is_jv880 || mcu.is_scb55) // the shift register is busy one byte time (ref/patch_ref.py FIXES)\n"
      "        mcu.uart_tx_delay = mcu.cycles + 3000;\n"
      "    MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX, (mcu.dev_register[DEV_SCR] & 0x80) != 0);"),
     ("backend/mcu.cpp",
      "    case DEV_SCR:\n        break;",
      "    case DEV_SCR:\n"
-     "        if (mcu.is_jv880) // JV-880: TXI = TIE && TDRE (ref/patch_ref.py FIXES)\n"
+     "        if (mcu.is_mk1 || mcu.is_jv880 || mcu.is_scb55) // TXI = TIE && TDRE (ref/patch_ref.py FIXES)\n"
      "            MCU_Interrupt_SetRequest(mcu, INTERRUPT_SOURCE_UART_TX,\n"
      "                                     (data & 0x80) != 0 && (mcu.dev_register[DEV_SSR] & 0x80) != 0);\n"
      "        break;"),

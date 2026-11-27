@@ -149,5 +149,43 @@ def test_mk2_upstream_hash():
     print("    SHA-256", got)
 
 
+DT1_MASTER_TUNE = bytes.fromhex("f0 41 10 42 12 40 00 00 00 04 00 00 3c f7")   # the reference's reply (smoke.sh)
+
+
+def test_board_serial_rq1():
+    """synthcores #52: MIDI in over uart_rxd at 9600 baud, through synthframe_midi_rx's speed
+    detection, as the MiSTer smoke sends it (8 x 00, GM reset, then the GS RQ1 for master tune).
+    The mk1 firmware starts its DT1 reply by setting SCR.TIE while TDRE is 1; with the model's
+    single-buffered SCI no TXI came, and the core sent nothing after the RQ1 (not even Active
+    Sensing), and the note after it stayed silent. The SC-155 shares the transmitter; its firmware
+    does not answer the RQ1 (before or after the fix). On uart_txd, read at 9600 as the host does:
+    the mk1's DT1, then Active Sensing (FE) again; the note sounds; the HDL in lockstep with the
+    model throughout."""
+    exe = need_file(SIM_BUILD / "board_lockstep", "board bench")
+    sys.path.insert(0, str(ROOT / "tools"))
+    import romset
+    for rs, reply in (("mk1-v1.21", DT1_MASTER_TUNE), ("sc155-rev1", b"")):
+        need_roms(rs)
+        with tempfile.TemporaryDirectory() as d:
+            pack = pathlib.Path(d) / "boot.rom"
+            pack.write_bytes(romset.pack(ROM_DIR, rs))
+            r = subprocess.run([str(exe), "--roms", str(ROM_DIR), "--romset", rs, "--pack", str(pack), "--steps", "3000000",
+                                "--rx-baud", "9600", "--midi-at", "1000000:0000000000000000f07e7f0901f7",
+                                "--midi-at", "1300000:f0411042114000000000043cf7", "--midi-at", "1400000:903c7f"],
+                               capture_output=True, text=True)
+        ok = [l for l in r.stdout.splitlines() if l.startswith("OK:")]
+        line = [l for l in r.stdout.splitlines() if l.startswith("serial MIDI in")]
+        assert r.returncode == 0 and ok and line, f"{rs}:\n{r.stdout[-2000:]}\n{r.stderr[-3000:]}"
+        require_sound(ok[0])
+        out = bytes.fromhex(line[0].split("baud:", 2)[2])
+        print(f"    {rs}: MIDI out at 9600: {out.hex(' ')}")
+        # FE every ~400 k steps from step 760 k; the RQ1 is in at about 1.34 M
+        if reply:
+            assert reply in out, f"{rs}: no DT1 reply to the RQ1: {out.hex(' ')}"
+            assert out[:out.index(reply)] == b"\xfe" and out[out.index(reply) + len(reply):] == b"\xfe" * 4, out.hex(" ")
+        else:
+            assert out == b"\xfe" * 5, f"{rs}: {out.hex(' ')}"
+
+
 if __name__ == "__main__":
     run(globals())

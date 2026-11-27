@@ -787,9 +787,9 @@ module sc55_mcu #(
                                 dev[7'h68] <= v;
                             end else if (a16[6:0] == 7'h5c) begin
                                 // SSR: flag clears, then the whole register is overwritten (reference behaviour)
-                                // JV-880: the SCI is double-buffered, so the byte time starts when TDRE sets
-                                // (below), not here (ref/patch_ref.py FIXES)
-                                if (!d[7] && ssr_rd[7]) begin if (!jv880) begin uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1; end int_req[20] <= 1'b0; end
+                                // mk1, SC-155, JV-880: the SCI is double-buffered, so the byte time starts when
+                                // TDRE sets (below), not here (ref/patch_ref.py FIXES)
+                                if (!d[7] && ssr_rd[7]) begin if (mk2) begin uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1; end int_req[20] <= 1'b0; end
                                 // MIDI out: TDR written, then TDRE written 0 (the SCI is double-buffered;
                                 // patch_ref.py's tx hook)
                                 if (!d[7] && tdr_written) begin tx_stb <= 1'b1; tx_byte <= dev[7'h5b]; tdr_written <= 1'b0; end
@@ -806,8 +806,9 @@ module sc55_mcu #(
                                     if (led_arm[1]) jv_leds[9:5] <= d[4:0];
                                     led_arm <= 2'b00;
                                 end
-                                // SCR, JV-880: TXI is requested while TIE and TDRE are both 1 (ref/patch_ref.py FIXES)
-                                if (a16[6:0] == 7'h5a && jv880) int_req[20] <= d[7] && dev[7'h5c][7];
+                                // SCR, mk1, SC-155, JV-880: TXI is requested while TIE and TDRE are both 1
+                                // (ref/patch_ref.py FIXES)
+                                if (a16[6:0] == 7'h5a && !mk2) int_req[20] <= d[7] && dev[7'h5c][7];
                             end
                         end else if (a16 >= 16'hfb80 && dev[7'h79][7]) ;   // on-chip RAM: write port below
                         else if (a16 < 16'he000) ;                          // SRAM: write port below
@@ -943,7 +944,7 @@ module sc55_mcu #(
                         end else d = dev[7'h5c];
                         if (!mk2 && dev[7'h5a][5] && !d[7] && !(txd_pend && cyc_lt(cycles, uart_tx_delay))) begin
                             d = d | 8'h80;
-                            if (jv880) begin uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1; end   // shift register busy one byte time
+                            uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1;   // shift register busy one byte time
                             int_req[20] <= dev[7'h5a][7];
                         end
                         dev[7'h5c] <= d;
