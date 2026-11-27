@@ -40,3 +40,12 @@ add_executable(mu50sys_bench_dbg mu50sys_bench.cpp)
 verilate(mu50sys_bench_dbg SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_periph.sv" "${HDL}/h8h/h8h_sys.sv"
          INCLUDE_DIRS "${HDL}/h8h" TOP_MODULE h8h_sys PREFIX Vh8h_sys VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ +define+H8H_DEBUG)
 
+# the whole MU50 board on the real ROMs: corpus samples against MAME's (U4)
+set(SF "${CMAKE_CURRENT_SOURCE_DIR}/../../../modules/synthframe/hdl")
+add_executable(mu50_bench mu50_bench.cpp)
+verilate(mu50_bench SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_periph.sv" "${HDL}/h8h/h8h_sys.sv"
+         "${HDL}/swp00/swp00_pkg.sv" "${HDL}/swp00/swp00_meg.sv" "${HDL}/swp00/swp00.sv"
+         "${SF}/panel/synthframe_hd44780.sv" "${HDL}/mu50_lcd.sv" "${HDL}/mu50_board.sv"
+         INCLUDE_DIRS "${HDL}/h8h" "${HDL}/swp00" TOP_MODULE mu50_board PREFIX Vmu50_board
+         VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ -Wno-PINCONNECTEMPTY)
+
