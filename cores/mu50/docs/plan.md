@@ -123,6 +123,25 @@ CZ-101's tables were generated from MAME's.
 
 U1 and U3 run in parallel: they share nothing but the bench.
 
+## Status (2026-11-27)
+
+| # | Result |
+|---|---|
+| U0 | Without ROMs, done: `../mame-mu50` (upstream `db140b2d`) with `mame/patches/0001-mu50-logging.patch`; `tools/mame-mu50.sh`; test-ROM mode (`tools/mu50_testrom.py`); `tests/u0_check.sh` passes. The MIDI corpus waits for the ROMs |
+
+U0 findings [OBS]:
+- **Program ROM file order:** MAME's `ROM_LOAD16_WORD_SWAP` wants each byte pair of the CPU
+  image swapped in the file. A reset vector of 00000100 written unswapped was read as 00000001.
+- **Reset:** the CPU reads the vector as two words (000000, 000002) and runs from its low 24
+  bits; the first instruction starts at state 6.
+- **State counts** (t0): MOV.W #imm,Rd 4; MOV.L #imm,ERd 6; MOV.W Rs,@ERd 4 (the write lands at
+  the end, state 20 for an instruction starting at 16); BRA 4. Each is 2 states per bus access.
+- **SWP00 write timing:** a CPU write at state s (counted after the access) is applied after
+  floor(s × 44,100 / 10⁷) + 1 samples: state 18 after 1 sample, state 393,236 (39.32 ms) after
+  1,735. One second makes 44,101 samples. The exact rule at sample boundaries (MAME's
+  attosecond periods) is pinned in U3.
+- **Determinism:** two runs give identical traces, write logs and samples.
+
 ## Variants (after U5)
 
 | Variant | Difference from the MU50 [OBS, MAME] | Core change |

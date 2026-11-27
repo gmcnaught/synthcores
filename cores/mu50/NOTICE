@@ -1,0 +1,61 @@
+Yamaha MU50 core
+Copyright (c) 2026 The synthcores contributors
+
+Yamaha and MU50 are trademarks of Yamaha Corporation. This project is
+independent and is not affiliated with, endorsed by or supported by Yamaha.
+
+This directory contains:
+
+  * The core's own files, under the MIT licence (LICENSE).
+
+  * Work derived from MAME (https://www.mamedev.org/), BSD-3-Clause. The
+    HDL and its generated tables are written or generated from these MAME
+    sources:
+      - src/mame/yamaha/ymmu50.cpp: R. Belmont, Olivier Galibert
+      - src/mame/yamaha/mulcd.cpp: R. Belmont, Olivier Galibert
+      - src/devices/cpu/h8/: Olivier Galibert
+      - src/devices/sound/swp00.cpp: Olivier Galibert
+      - src/devices/video/hd44780.cpp: Sandro Ronco
+    The core's MIT terms apply to that work together with the BSD-3-Clause
+    notice below, which must be kept with it. The MAME authors' names are
+    given as credit only; they do not endorse this core.
+
+  * Files that remain BSD-3-Clause (MAME's licence):
+      - mame/patches/: a logging patch to MAME's own files, used only to
+        produce the reference traces.
+
+It does not contain the MU50's program ROM, its wave ROM or the HD44780
+character ROM.
+
+----------------------------------------------------------------------------
+MAME: BSD-3-Clause
+
+Copyright (c) R. Belmont, Olivier Galibert, Sandro Ronco and the other MAME
+contributors
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
