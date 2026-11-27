@@ -4,7 +4,8 @@
 #   1. tests/upd933_test.sh: uPD933 HDL against the C++ copy of MAME's model (tables, synthetic
 #      stimuli, slow time base, external timer, 40-bit tick wrap, MAME-log path);
 #   2. tests/board_test.sh: cz101_bench with short uPD7811 programs (sample rate, tick wrap,
-#      firmware power-down, far IRQ timer deadline, /NMI during interrupts, live-MIDI serializer).
+#      firmware power-down, far IRQ timer deadline, /NMI during interrupts, live-MIDI serializer);
+#   3. comparator self-check: upd933_bench --inject-error flips one HDL sample bit and must fail.
 # The ROM and MAME lockstep (tests/c4_run.sh, tests/reload_run.sh, tests/wrap_run.sh) runs locally.
 # Needs cmake, a C++20 compiler, Verilator 5, python3 (pypy3 if present); ninja optional.
 # SECONDS_PER_STIM (default 5 here) sets the length of each uPD933 stimulus; CZ101_JOBS the build
@@ -36,5 +37,16 @@ if build_bench; then
 else
     failed=$((failed + 1)); echo "== board: FAIL (cz101_bench did not build)"
 fi
+# comparator self-check: one flipped bit in the HDL's samples must make upd933_bench report DIFF
+inject_upd933() {
+    local d="$out/upd933/inject"
+    mkdir -p "$d"
+    "$out/upd933_stimgen" 1 1 "$d/s1.ev" >/dev/null || return 1
+    if "$out/upd933_bench" --inject-error "$d/s1.ev" >"$d/out.txt" 2>&1; then
+        echo "upd933_bench passed with --inject-error"; return 1
+    fi
+    grep '^DIFF' "$d/out.txt"
+}
+step "inject-error (upd933_bench must report DIFF)" inject_upd933
 echo "cz101 ci: $pass passed, $failed failed"
 [ "$failed" = 0 ]

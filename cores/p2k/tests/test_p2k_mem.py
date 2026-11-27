@@ -40,6 +40,14 @@ class MemTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0)
             self.assertIn("identical", r.stdout)
 
+    def test_inject_error(self):
+        """Comparator self-check: one flipped bit in one HDL read must be reported."""
+        r = subprocess.run([os.path.join(OUT, "mem_tb"), "--accesses", "20000", "--seed", "1", "--inject-error"],
+                           capture_output=True, text=True)
+        print(r.stdout.strip(), r.stderr.strip()[:500])
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("DIFFERENT", r.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

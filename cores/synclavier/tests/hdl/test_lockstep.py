@@ -33,6 +33,21 @@ def _check(cpu, n, **kw):
     return got
 
 
+def test_inject_error():
+    """Comparator self-check: one flipped bit in the HDL's instruction word must be a MISMATCH."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    with tempfile.NamedTemporaryFile(suffix=".trace", delete=False) as f:
+        path = f.name
+    os.environ["LOCKSTEP_INJECT_ERROR"] = "1500"
+    try:
+        assert record(random_cpu(1000), path, 3000) == 3000
+        ok, text = check(path)
+    finally:
+        del os.environ["LOCKSTEP_INJECT_ERROR"]
+        os.unlink(path)
+    assert not ok and "MISMATCH at instruction 1500" in text, text
+
 def test_random_programs():
     if not HAVE_VERILATOR:
         raise unittest.SkipTest("verilator not found")

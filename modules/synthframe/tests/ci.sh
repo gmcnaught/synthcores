@@ -34,6 +34,7 @@ run "synth-mister backup/restore (fake SD card)" $S/tests/synth-mister/run.sh
 run "mister/build.sh wrappers (fake Quartus)" $S/tests/build/run.sh
 run "synthframe_resample 40k->96k (CZ-101)" $S/tests/resample/run.sh
 run "synthframe_resample 32k->96k (MT-32)" $S/tests/resample/run.sh 3 1 80 hdl/audio/synthframe_resample_32k_96k.hex
+run "synthframe_resample inject-error (one flipped output bit must fail the comparison)" sh -c "INJECT_ERROR=1 $S/tests/resample/run.sh 2>&1 | grep 'FAIL at output'"
 run "MIDI helpers (mkmidi, smf2events, play_tty, tty_midi_xfer)" "$PY" $S/tests/midi_tools/test_midi_tools.py
 run "synthframe_mem_ddr3 (DDR3 model, resets with reads in flight)" $S/tests/mem_ddr3/run.sh
 run "synthframe_nvsave (hps_io SD model, user reset)" $S/tests/nvsave/run.sh
