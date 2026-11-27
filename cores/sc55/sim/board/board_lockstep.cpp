@@ -17,11 +17,13 @@
 //        (16 is about real time at 50 MHz for the mk1).
 //        [--drop-hdl-from STEP] (bench self-test): discard the HDL's samples from STEP on, as a PCM
 //        that stops late in the run would; the end-of-run count check must then fail.
+//        [--gain G]: the board's gain input. [--out-hash]: print a hash of every board output over every clock (common/out_hash.h).
 #include "Vsc55_board.h"
 #include "Vsc55_board___024root.h"
 #include "verilated.h"
 
 #include "../common/midi_demo.h"
+#include "../common/out_hash.h"
 #include "../common/uart_decode.h"
 #include "ref_hooks.h"
 #include "emu.h"
@@ -97,6 +99,7 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 
 int main(int argc, char** argv)
 {
+    int gain = 0;   // --gain G: the board's output gain input (0..3, 6 dB steps)
     std::string rom_dir, pack_path, romset = "mk1-v1.21";
     uint64_t    steps = 6'000'000, seed = 1;
     uint64_t    drop_hdl_from = ~0ull, cur_step = 0;
@@ -138,6 +141,8 @@ int main(int argc, char** argv)
         else if (a == "--stall-at" && i + 2 < argc) { stall_at = std::strtoull(argv[++i], nullptr, 0); stall_len = std::strtoull(argv[++i], nullptr, 0); }
         else if (a == "--ddr-busy" && i + 1 < argc) busy_mod = std::atoi(argv[++i]);
         else if (a == "--ddr-lat" && i + 2 < argc) { lat_min = std::atoi(argv[++i]); lat_max = std::atoi(argv[++i]); }
+        else if (a == "--out-hash") out_hash_enable();
+        else if (a == "--gain" && i + 1 < argc) gain = std::atoi(argv[++i]) & 3;
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
     std::ifstream pf(pack_path, std::ios::binary);
@@ -243,11 +248,11 @@ int main(int argc, char** argv)
         }
         t->clk = 0; t->clk_vid = 0; t->eval();
         // a byte from synthframe_midi_rx goes into the MCU's buffer at this edge
-        if (rx_baud && t->rootp->sc55_board__DOT__rx_valid && t->running && !t->rootp->sc55_board__DOT__core__DOT__midi_full)
+        if (rx_baud && t->rootp->sc55_board__DOT__common__DOT__rx_valid && t->running && !t->rootp->sc55_board__DOT__core__DOT__midi_full)
         {
-            hdl_rx.push_back(t->rootp->sc55_board__DOT__rx_data);
+            hdl_rx.push_back(t->rootp->sc55_board__DOT__common__DOT__rx_data);
             ++rx_hdl_bytes;
-            if (rx_trace) printf("step %" PRIu64 ": MIDI in %02x (speed %s)\n", cur_step, t->rootp->sc55_board__DOT__rx_data, t->midi_alt ? "alt" : "standard");
+            if (rx_trace) printf("step %" PRIu64 ": MIDI in %02x (speed %s)\n", cur_step, t->rootp->sc55_board__DOT__common__DOT__rx_data, t->midi_alt ? "alt" : "standard");
         }
         if (rx_trace)
         {
@@ -311,6 +316,21 @@ int main(int argc, char** argv)
             }
         }
         t->clk = 1; t->clk_vid = 1; t->eval();
+        if (g_out_hash.on)
+        {
+            OutHash& o = g_out_hash;
+            o.add((uint16_t)t->audio_l | (uint64_t)(uint16_t)t->audio_r << 16 | (uint64_t)t->underruns << 32 | (uint64_t)t->overruns << 48);
+            o.add((uint64_t)t->sample_valid | (uint64_t)t->rom_ok << 1 | (uint64_t)t->running << 2 | (uint64_t)t->step_done << 3 |
+                  (uint64_t)t->midi_seen << 4 | (uint64_t)t->midi_alt << 5 | (uint64_t)t->ioctl_wait << 6 | (uint64_t)t->uart_txd << 7 |
+                  (uint64_t)t->vid_hs << 8 | (uint64_t)t->vid_vs << 9 | (uint64_t)t->vid_hblank << 10 | (uint64_t)t->vid_vblank << 11 |
+                  (uint64_t)t->lcd_pix << 12 | (uint64_t)t->DDRAM_RD << 13 | (uint64_t)t->DDRAM_WE << 14 |
+                  (uint64_t)t->vid_r << 16 | (uint64_t)t->vid_g << 24 | (uint64_t)t->vid_b << 32 | (uint64_t)t->lcd_x << 40 | (uint64_t)t->lcd_y << 50);
+            o.add((uint32_t)t->sample_l | (uint64_t)(uint32_t)t->sample_r << 32);
+            o.add((uint64_t)t->lag_us | (uint64_t)t->dbg_pc << 32 | (uint64_t)t->dbg_cp << 48);
+            o.add((uint64_t)t->DDRAM_ADDR | (uint64_t)t->DDRAM_BURSTCNT << 32 | (uint64_t)t->DDRAM_BE << 40);
+            o.add(t->DDRAM_DIN);
+            ++o.clocks;
+        }
         t->clk_vid = 0;
         ++clocks;
         if (t->sample_valid && cur_step < drop_hdl_from) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
@@ -319,7 +339,7 @@ int main(int argc, char** argv)
 
     t->clk_vid = 0;
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
-    t->midi_inject = 0; t->buttons = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0;
+    t->midi_inject = 0; t->buttons = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = gain;
     for (int i = 0; i < 8; ++i) tick();
     t->rst = 0;
     tick();
@@ -414,7 +434,7 @@ int main(int argc, char** argv)
                 ++lag_reports;
                 printf("lag +%u us at clock %" PRIu64 " (step %" PRIu64 "), %.2f clocks/step over the last 2,000-step window start, credit %" PRId64 "\n",
                        t->lag_us - lag_before, clocks - c0, steps0, (double)(clocks - win_c0) / (double)std::max<uint64_t>(1, steps0 % 2000),
-                       (int64_t)R->sc55_board__DOT__pacer__DOT__credit);
+                       (int64_t)R->sc55_board__DOT__common__DOT__pacer__DOT__credit);
             }
             if (t->step_done && (steps0 % 2000) == 0)
             {
@@ -625,7 +645,7 @@ int main(int argc, char** argv)
                          (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
         tick();
     {
-        const unsigned dropped = t->rootp->sc55_board__DOT__midi_out__DOT__dropped;
+        const unsigned dropped = t->rootp->sc55_board__DOT__common__DOT__midi_out__DOT__dropped;
         if (!speed_matched) { fprintf(stderr, "MIDI in: synthframe_midi_rx never matched the line's %" PRId64 " baud\n", rx_baud); return 1; }
         if (tx_skip_ref || tx_skip_line)
         {

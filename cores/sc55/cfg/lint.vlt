@@ -6,6 +6,7 @@
 // Reviewed 2026-11-26: no waiver hides a functional bug. Notes on the non-style ones:
 // SC55.sv: VIDEO_ARX/ARY constants (Template_MiSTer); midi_stretch ?: tests non-zero.
 
+lint_off -rule PINCONNECTEMPTY -file "*modules/roland/hdl/board/roland_board_common.sv"
 lint_off -rule UNUSEDSIGNAL -file "*hdl/board/lcd_video.sv" -match "Bits of signal are not used: 'buttons'[31:23,15,7,2:1]"
 lint_off -rule UNUSEDSIGNAL -file "*hdl/board/lcd_video.sv" -match "Signal is not driven, nor used: 'vis1'"
 lint_off -rule PINCONNECTEMPTY -file "*hdl/board/sc55_board.sv"

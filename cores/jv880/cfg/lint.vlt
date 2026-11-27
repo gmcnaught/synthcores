@@ -6,6 +6,7 @@
 // Reviewed 2026-11-26: no waiver hides a functional bug. Notes on the non-style ones:
 // JV880.sv: VIDEO_ARX/ARY 12-bit constants (Template_MiSTer); midi_stretch ?: tests non-zero.
 
+lint_off -rule PINCONNECTEMPTY -file "*modules/roland/hdl/board/roland_board_common.sv"
 lint_off -rule PINCONNECTEMPTY -file "*hdl/jv880_board.sv"
 lint_off -rule UNUSEDSIGNAL -file "*hdl/jv880_board.sv" -match "Signal is not used: 'lcd_on'"
 lint_off -rule PINCONNECTEMPTY -file "*hdl/jv880_lcd_video.sv"
