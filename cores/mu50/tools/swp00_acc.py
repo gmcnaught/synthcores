@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: MIT
 """Compact SWP00 access list from MAME's logs, for the committed U3 cases.
 
-Usage: swp00_acc.py SND_LOG RD_LOG NSAMPLES OUT.acc.gz
+Usage: swp00_acc.py SND_LOG RD_LOG NSAMPLES OUT.acc
 
 Merges MU_SND_LOG (writes) and MU_SND_RLOG (reads) in CPU order, splits 16-bit accesses into
 bytes (the even address first) and keeps those that act before sample NSAMPLES. One line per
 byte access:  "<samples since the previous line> <address hex> <data hex>"  for a write,
 "<samples since the previous line> r<address hex>" for a read. swp00_bench --acc reads it.
 """
-import gzip
 import sys
 
 
@@ -35,7 +34,7 @@ def main():
                 else:
                     lines.append("%d r%x" % (before - prev, a))
                 prev = before
-    with gzip.open(out, "wt", compresslevel=9) as f:
+    with open(out, "w") as f:
         f.write("\n".join(lines) + "\n")
 
 

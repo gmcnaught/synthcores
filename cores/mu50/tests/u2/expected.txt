@@ -1,3 +1,3 @@
-# program lines sha256: MAME's trace of tests/u2/PROGRAM.bin.gz on the mu50 machine, the first
+# program lines sha256: MAME's trace of tests/u2/PROGRAM.hex (hex text) on the mu50 machine, the first
 # <lines> instruction lines with their writes (tools/u2_periph_prog.py)
 periph 3000 d56d720639d21074b6c9435d7b61251e5043e99ce240db495d453cc068d87c5a

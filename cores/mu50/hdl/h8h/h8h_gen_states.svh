@@ -2,10191 +2,10191 @@
 // machine, included inside its case (st).
 
 S_0: begin // nop
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1;
 end
 S_1: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_2: begin // mov_l_r32ih_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_3;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_3;
 end
 S_3: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    op_kind = OP_R16;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_4;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  op_kind = OP_R16;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_4;
 end
 S_4: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_5;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_5;
 end
 S_5: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_6;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_6;
 end
 S_6: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_7: begin // mov_l_r32l_r32ih
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_8;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_8;
 end
 S_8: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_9;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_9;
 end
 S_9: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp2;
-    op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_10;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp2;
+  op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_10;
 end
 S_10: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_11;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_11;
 end
 S_11: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_12: begin // mov_l_abs16_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_13;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_13;
 end
 S_13: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_14;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_14;
 end
 S_14: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp2 = c_s16({16'h0, n_ir[2]});
-    op_kind = OP_R16;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_15;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp2 = c_s16({16'h0, n_ir[2]});
+  op_kind = OP_R16;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_15;
 end
 S_15: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_16;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_16;
 end
 S_16: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_17;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_17;
 end
 S_17: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_18: begin // mov_l_abs32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_19;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_19;
 end
 S_19: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_20;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_20;
 end
 S_20: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_21;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_21;
 end
 S_21: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp2 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
-    op_kind = OP_R16;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_22;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp2 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
+  op_kind = OP_R16;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_22;
 end
 S_22: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_23;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_23;
 end
 S_23: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_24;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_24;
 end
 S_24: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_25: begin // mov_l_r32l_abs16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_26;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_26;
 end
 S_26: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_27;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_27;
 end
 S_27: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
-    n_tmp2 = c_s16({16'h0, n_ir[2]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_28;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
+  n_tmp2 = c_s16({16'h0, n_ir[2]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_28;
 end
 S_28: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp2;
-    op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_29;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp2;
+  op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_29;
 end
 S_29: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_30;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_30;
 end
 S_30: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_31: begin // mov_l_r32l_abs32
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_32;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_32;
 end
 S_32: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_33;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_33;
 end
 S_33: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_34;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_34;
 end
 S_34: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
-    n_tmp2 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_35;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
+  n_tmp2 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_35;
 end
 S_35: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp2;
-    op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_36;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp2;
+  op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_36;
 end
 S_36: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_37;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_37;
 end
 S_37: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_38: begin // mov_l_r32ph_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_39;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_39;
 end
 S_39: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_40;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_40;
 end
 S_40: begin // after internal
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    op_kind = OP_R16;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_41;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  op_kind = OP_R16;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_41;
 end
 S_41: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_42;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_42;
 end
 S_42: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    n_tmp2 = ((n_tmp2) + (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_43;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  n_tmp2 = ((n_tmp2) + (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_43;
 end
 S_43: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_44: begin // mov_l_r32l_pr32h
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_45;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_45;
 end
 S_45: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_46;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_46;
 end
 S_46: begin // after internal
-    n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    n_tmp2 = ((n_tmp2) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_47;
+  n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  n_tmp2 = ((n_tmp2) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_47;
 end
 S_47: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp2;
-    op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_48;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp2;
+  op_data = t16(c_u16(((n_tmp1) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_48;
 end
 S_48: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp2) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_49;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp2) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_49;
 end
 S_49: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_50: begin // mov_l_r32d16h_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_51;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_51;
 end
 S_51: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_52;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_52;
 end
 S_52: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_53;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_53;
 end
 S_53: begin // after read16
-    n_tmp2 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_54;
+  n_tmp2 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_54;
 end
 S_54: begin // after read16
-    n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp2;
-    n_st = S_55;
+  n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp2;
+  n_st = S_55;
 end
 S_55: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp2;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp2;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_56: begin // mov_l_r32l_r32d16h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_57;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_57;
 end
 S_57: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_58;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_58;
 end
 S_58: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
-    n_tmp2 = r32_r(r, {16'h0, n_ir[1]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp2;
-    n_st = S_59;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
+  n_tmp2 = r32_r(r, {16'h0, n_ir[1]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp2;
+  n_st = S_59;
 end
 S_59: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_60;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_60;
 end
 S_60: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_61;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_61;
 end
 S_61: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_62: begin // mov_l_r32d32hh_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_63;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_63;
 end
 S_63: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_64;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_64;
 end
 S_64: begin // after read16i
-    n_ir[4] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_65;
+  n_ir[4] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_65;
 end
 S_65: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_66;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_66;
 end
 S_66: begin // after read16
-    n_tmp2 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_67;
+  n_tmp2 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_67;
 end
 S_67: begin // after read16
-    n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp2;
-    n_st = S_68;
+  n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp2;
+  n_st = S_68;
 end
 S_68: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[2]});
-    rf_val = n_tmp2;
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[2]});
+  rf_val = n_tmp2;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_69: begin // mov_l_r32l_r32d32hh
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_70;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_70;
 end
 S_70: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_71;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_71;
 end
 S_71: begin // after read16i
-    n_ir[4] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_72;
+  n_ir[4] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_72;
 end
 S_72: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
-    n_tmp2 = r32_r(r, {16'h0, n_ir[2]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp2;
-    n_st = S_73;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
+  n_tmp2 = r32_r(r, {16'h0, n_ir[2]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp2;
+  n_st = S_73;
 end
 S_73: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_74;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_74;
 end
 S_74: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_75;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_75;
 end
 S_75: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_76: begin // ldc_w_r32ih_ccr
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_77;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_77;
 end
 S_77: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_78;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_78;
 end
 S_78: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_79;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_79;
 end
 S_79: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_80: begin // stc_w_ccr_r32ih
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_81;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_81;
 end
 S_81: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_82;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_82;
 end
 S_82: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_83: begin // ldc_w_abs16_ccr
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_84;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_84;
 end
 S_84: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_85;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_85;
 end
 S_85: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = c_s16({16'h0, n_ir[2]});
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_86;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = c_s16({16'h0, n_ir[2]});
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_86;
 end
 S_86: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_87;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_87;
 end
 S_87: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_88: begin // ldc_w_abs32_ccr
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_89;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_89;
 end
 S_89: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_90;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_90;
 end
 S_90: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_91;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_91;
 end
 S_91: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_92;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_92;
 end
 S_92: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_93;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_93;
 end
 S_93: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_94: begin // stc_w_ccr_abs16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_95;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_95;
 end
 S_95: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_96;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_96;
 end
 S_96: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = c_s16({16'h0, n_ir[2]});
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_97;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = c_s16({16'h0, n_ir[2]});
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_97;
 end
 S_97: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_98: begin // stc_w_ccr_abs32
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_99;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_99;
 end
 S_99: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_100;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_100;
 end
 S_100: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_101;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_101;
 end
 S_101: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_102;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (((({16'h0, n_ir[2]}) << (32'h00000010))) | ({16'h0, n_ir[3]}));
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_102;
 end
 S_102: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_103: begin // ldc_w_r32ph_ccr
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_104;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_104;
 end
 S_104: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_105;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_105;
 end
 S_105: begin // after internal
-    n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
-    rf_val = ((n_tmp1) + (32'h00000002));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_106;
+  n_tmp1 = r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
+  rf_val = ((n_tmp1) + (32'h00000002));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_106;
 end
 S_106: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_107;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_107;
 end
 S_107: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_108: begin // stc_w_ccr_pr32h
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_109;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_109;
 end
 S_109: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_110;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_110;
 end
 S_110: begin // after internal
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_111;
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[1]}) >> (32'h00000004)));
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_111;
 end
 S_111: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_112: begin // ldc_w_r32d16h_ccr
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_113;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_113;
 end
 S_113: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_114;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_114;
 end
 S_114: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_115;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_115;
 end
 S_115: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_116;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_116;
 end
 S_116: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_117: begin // stc_w_ccr_r32d16h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_118;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_118;
 end
 S_118: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_119;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_119;
 end
 S_119: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_120;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[2]})));
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_120;
 end
 S_120: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_121: begin // ldc_w_r32d32hh_ccr
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_122;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_122;
 end
 S_122: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_123;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_123;
 end
 S_123: begin // after read16i
-    n_ir[4] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_124;
+  n_ir[4] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_124;
 end
 S_124: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_125;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_125;
 end
 S_125: begin // after read16
-    n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_126;
+  n_ccr = t8(c_u8((({16'h0, rd}) >> (32'h00000008))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_126;
 end
 S_126: begin // after update_irq_filter
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_127: begin // stc_w_ccr_r32d32hh
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_128;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_128;
 end
 S_128: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_129;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_129;
 end
 S_129: begin // after read16i
-    n_ir[4] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_130;
+  n_ir[4] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_130;
 end
 S_130: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
-    op_cost = 6'd2;
-    n_st = S_131;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) + ((({16'h0, n_ir[3]}) << (32'h00000010))))) + ({16'h0, n_ir[4]}));
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | ({24'h0, n_ccr}))));
+  op_cost = 6'd2;
+  n_st = S_131;
 end
 S_131: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_132: begin // sleep
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_133;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_133;
 end
 S_133: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_st = (({31'h0, standby_pending}) != '0) ? S_134 : S_136;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_st = (({31'h0, standby_pending}) != '0) ? S_134 : S_136;
 end
 S_134: begin // then
-    n_standby = 1'b1;
-    n_standby = 1'b1;
-    n_standby = 1'b1;
-    n_st = S_135;
+  n_standby = 1'b1;
+  n_standby = 1'b1;
+  n_standby = 1'b1;
+  n_st = S_135;
 end
 S_135: begin // join
-    n_st = S_EXEC;
+  n_st = S_EXEC;
 end
 S_136: begin // else
-    n_st = S_137;
+  n_st = S_137;
 end
 S_137: begin // while
-    n_st = (({31'h0, ({24'h0, irq_vector}) == '0}) != '0) ? S_138 : S_139;
+  n_st = (({31'h0, ({24'h0, irq_vector}) == '0}) != '0) ? S_138 : S_139;
 end
 S_138: begin // do
-    op_kind = OP_EAT;
-    op_cost = 6'd0;
-    n_st = S_140;
+  op_kind = OP_EAT;
+  op_cost = 6'd0;
+  n_st = S_140;
 end
 S_139: begin // done
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_135;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_135;
 end
 S_140: begin // eat
-    n_st = S_137;
+  n_st = S_137;
 end
 S_141: begin // mulxs_b_r8h_r16l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_142;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_142;
 end
 S_142: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((c_s8(r16_r(r, {16'h0, n_ir[1]}))) * (c_s8(r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZ16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_143;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((c_s8(r16_r(r, {16'h0, n_ir[1]}))) * (c_s8(r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZ16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_143;
 end
 S_143: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = c_u16(n_tmp1);
-    op_kind = OP_INT;
-    op_cost = 6'd12;
-    n_st = S_144;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = c_u16(n_tmp1);
+  op_kind = OP_INT;
+  op_cost = 6'd12;
+  n_st = S_144;
 end
 S_144: begin // after internal
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_145: begin // mulxs_w_r16h_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_146;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_146;
 end
 S_146: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((c_s16(r32_r(r, {16'h0, n_ir[1]}))) * (c_s16(r16_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZ32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_147;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((c_s16(r32_r(r, {16'h0, n_ir[1]}))) * (c_s16(r16_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZ32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_147;
 end
 S_147: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    op_kind = OP_INT;
-    op_cost = 6'd20;
-    n_st = S_148;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  op_kind = OP_INT;
+  op_cost = 6'd20;
+  n_st = S_148;
 end
 S_148: begin // after internal
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_149: begin // divxs_b_r8h_r16l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_150;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_150;
 end
 S_150: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd12;
-    n_st = S_151;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd12;
+  n_st = S_151;
 end
 S_151: begin // after internal
-    n_tmp1 = c_s16(r16_r(r, {16'h0, n_ir[1]}));
-    n_tmp2 = c_s8(r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))));
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
-    n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_152 : S_154;
+  n_tmp1 = c_s16(r16_r(r, {16'h0, n_ir[1]}));
+  n_tmp2 = c_s8(r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))));
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
+  n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_152 : S_154;
 end
 S_152: begin // then
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    n_st = S_153;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  n_st = S_153;
 end
 S_153: begin // join
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_154: begin // else
-    n_st = ((((n_tmp2) & (32'h80000000))) != '0) ? S_155 : S_157;
+  n_st = ((((n_tmp2) & (32'h80000000))) != '0) ? S_155 : S_157;
 end
 S_155: begin // then
-    n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_158 : S_160;
+  n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_158 : S_160;
 end
 S_156: begin // join
-    if (({31'h0, $signed(n_l_q) < $signed(32'h00000000)}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
-    end
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = c_u16(((((n_l_q) & (32'h000000ff))) | (((((n_l_r) & (32'h000000ff))) << (32'h00000008)))));
-    n_st = S_153;
+  if (({31'h0, $signed(n_l_q) < $signed(32'h00000000)}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
+  end
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = c_u16(((((n_l_q) & (32'h000000ff))) | (((((n_l_r) & (32'h000000ff))) << (32'h00000008)))));
+  n_st = S_153;
 end
 S_157: begin // else
-    n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_165 : S_167;
+  n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_165 : S_167;
 end
 S_158: begin // then
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_161;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_161;
 end
 S_159: begin // join
-    n_st = S_156;
+  n_st = S_156;
 end
 S_160: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_163;
+  div_a_n = n_tmp1;
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_163;
 end
 S_161: begin // after div
-    f0 = div_q;
-    n_l_q = f0;
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_162;
+  f0 = div_q;
+  n_l_q = f0;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_162;
 end
 S_162: begin // after div
-    f1 = div_r;
-    n_l_r = ('0 - (f1));
-    n_st = S_159;
+  f1 = div_r;
+  n_l_r = ('0 - (f1));
+  n_st = S_159;
 end
 S_163: begin // after div
-    f2 = div_q;
-    n_l_q = ('0 - (f2));
-    div_a_n = n_tmp1;
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_164;
+  f2 = div_q;
+  n_l_q = ('0 - (f2));
+  div_a_n = n_tmp1;
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_164;
 end
 S_164: begin // after div
-    f3 = div_r;
-    n_l_r = f3;
-    n_st = S_159;
+  f3 = div_r;
+  n_l_r = f3;
+  n_st = S_159;
 end
 S_165: begin // then
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_168;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_168;
 end
 S_166: begin // join
-    n_st = S_156;
+  n_st = S_156;
 end
 S_167: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_170;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_170;
 end
 S_168: begin // after div
-    f4 = div_q;
-    n_l_q = ('0 - (f4));
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_169;
+  f4 = div_q;
+  n_l_q = ('0 - (f4));
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_169;
 end
 S_169: begin // after div
-    f5 = div_r;
-    n_l_r = ('0 - (f5));
-    n_st = S_166;
+  f5 = div_r;
+  n_l_r = ('0 - (f5));
+  n_st = S_166;
 end
 S_170: begin // after div
-    f6 = div_q;
-    n_l_q = f6;
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_171;
+  f6 = div_q;
+  n_l_q = f6;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_171;
 end
 S_171: begin // after div
-    f7 = div_r;
-    n_l_r = f7;
-    n_st = S_166;
+  f7 = div_r;
+  n_l_r = f7;
+  n_st = S_166;
 end
 S_172: begin // divxs_w_r16h_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_173;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_173;
 end
 S_173: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd20;
-    n_st = S_174;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd20;
+  n_st = S_174;
 end
 S_174: begin // after internal
-    n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
-    n_tmp2 = c_s16(r16_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))));
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
-    n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_175 : S_177;
+  n_tmp1 = r32_r(r, {16'h0, n_ir[1]});
+  n_tmp2 = c_s16(r16_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004))));
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
+  n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_175 : S_177;
 end
 S_175: begin // then
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    n_st = S_176;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  n_st = S_176;
 end
 S_176: begin // join
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_177: begin // else
-    n_st = ((((n_tmp2) & (32'h80000000))) != '0) ? S_178 : S_180;
+  n_st = ((((n_tmp2) & (32'h80000000))) != '0) ? S_178 : S_180;
 end
 S_178: begin // then
-    n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_181 : S_183;
+  n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_181 : S_183;
 end
 S_179: begin // join
-    if (({31'h0, $signed(n_l_q) < $signed(32'h00000000)}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
-    end
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = ((((n_l_q) & (32'h0000ffff))) | (((((n_l_r) & (32'h0000ffff))) << (32'h00000010))));
-    n_st = S_176;
+  if (({31'h0, $signed(n_l_q) < $signed(32'h00000000)}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
+  end
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = ((((n_l_q) & (32'h0000ffff))) | (((((n_l_r) & (32'h0000ffff))) << (32'h00000010))));
+  n_st = S_176;
 end
 S_180: begin // else
-    n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_188 : S_190;
+  n_st = ((((n_tmp1) & (32'h80000000))) != '0) ? S_188 : S_190;
 end
 S_181: begin // then
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_184;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_184;
 end
 S_182: begin // join
-    n_st = S_179;
+  n_st = S_179;
 end
 S_183: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_186;
+  div_a_n = n_tmp1;
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_186;
 end
 S_184: begin // after div
-    f0 = div_q;
-    n_l_q = f0;
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_185;
+  f0 = div_q;
+  n_l_q = f0;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_185;
 end
 S_185: begin // after div
-    f1 = div_r;
-    n_l_r = ('0 - (f1));
-    n_st = S_182;
+  f1 = div_r;
+  n_l_r = ('0 - (f1));
+  n_st = S_182;
 end
 S_186: begin // after div
-    f2 = div_q;
-    n_l_q = ('0 - (f2));
-    div_a_n = n_tmp1;
-    div_b_n = ('0 - (n_tmp2));
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_187;
+  f2 = div_q;
+  n_l_q = ('0 - (f2));
+  div_a_n = n_tmp1;
+  div_b_n = ('0 - (n_tmp2));
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_187;
 end
 S_187: begin // after div
-    f3 = div_r;
-    n_l_r = f3;
-    n_st = S_182;
+  f3 = div_r;
+  n_l_r = f3;
+  n_st = S_182;
 end
 S_188: begin // then
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_191;
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_191;
 end
 S_189: begin // join
-    n_st = S_179;
+  n_st = S_179;
 end
 S_190: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_193;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_193;
 end
 S_191: begin // after div
-    f4 = div_q;
-    n_l_q = ('0 - (f4));
-    div_a_n = ('0 - (n_tmp1));
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_192;
+  f4 = div_q;
+  n_l_q = ('0 - (f4));
+  div_a_n = ('0 - (n_tmp1));
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_192;
 end
 S_192: begin // after div
-    f5 = div_r;
-    n_l_r = ('0 - (f5));
-    n_st = S_189;
+  f5 = div_r;
+  n_l_r = ('0 - (f5));
+  n_st = S_189;
 end
 S_193: begin // after div
-    f6 = div_q;
-    n_l_q = f6;
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_194;
+  f6 = div_q;
+  n_l_q = f6;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_194;
 end
 S_194: begin // after div
-    f7 = div_r;
-    n_l_r = f7;
-    n_st = S_189;
+  f7 = div_r;
+  n_l_r = f7;
+  n_st = S_189;
 end
 S_195: begin // or_l_r32h_r32l
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) | (r32_r(r, {16'h0, n_ir[1]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_196;
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) | (r32_r(r, {16'h0, n_ir[1]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_196;
 end
 S_196: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_197;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_197;
 end
 S_197: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_198: begin // xor_l_r32h_r32l
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) ^ (r32_r(r, {16'h0, n_ir[1]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_199;
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) ^ (r32_r(r, {16'h0, n_ir[1]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_199;
 end
 S_199: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_200;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_200;
 end
 S_200: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_201: begin // and_l_r32h_r32l
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (r32_r(r, {16'h0, n_ir[1]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_202;
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (r32_r(r, {16'h0, n_ir[1]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_202;
 end
 S_202: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_203;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_203;
 end
 S_203: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_204: begin // stc_ccr_r8l
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = {24'h0, n_ccr};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_205;
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = {24'h0, n_ccr};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_205;
 end
 S_205: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_206: begin // ldc_r8l_ccr
-    n_ccr = t8(r8_r(r, {16'h0, n_ir[0]}));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_207;
+  n_ccr = t8(r8_r(r, {16'h0, n_ir[0]}));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_207;
 end
 S_207: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_208;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_208;
 end
 S_208: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_209: begin // orc_imm8_ccr
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | ({16'h0, n_ir[0]}))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_210;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | ({16'h0, n_ir[0]}))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_210;
 end
 S_210: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_211;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_211;
 end
 S_211: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_212: begin // xorc_imm8_ccr
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ ({16'h0, n_ir[0]}))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_213;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ ({16'h0, n_ir[0]}))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_213;
 end
 S_213: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_214;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_214;
 end
 S_214: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_215: begin // andc_imm8_ccr
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) & ({16'h0, n_ir[0]}))));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_216;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) & ({16'h0, n_ir[0]}))));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_216;
 end
 S_216: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_217;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_217;
 end
 S_217: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_218: begin // ldc_imm8_ccr
-    n_ccr = t8(c_u8({16'h0, n_ir[0]}));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_219;
+  n_ccr = t8(c_u8({16'h0, n_ir[0]}));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_219;
 end
 S_219: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_220;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_220;
 end
 S_220: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_221: begin // add_b_r8h_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_222;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_222;
 end
 S_222: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_223;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_223;
 end
 S_223: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_224: begin // add_w_r16h_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_225;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_225;
 end
 S_225: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_226;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_226;
 end
 S_226: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_227: begin // inc_b_one_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_INC8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u8(32'h00000001);
-    n_st = S_228;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_INC8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u8(32'h00000001);
+  n_st = S_228;
 end
 S_228: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_229;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_229;
 end
 S_229: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_230: begin // add_l_r32h_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_231;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_231;
 end
 S_231: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_232;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_232;
 end
 S_232: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_233: begin // adds_l_one_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000001));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_234;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000001));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_234;
 end
 S_234: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_235: begin // inc_w_one_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_INC16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u16(32'h00000001);
-    n_st = S_236;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_INC16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u16(32'h00000001);
+  n_st = S_236;
 end
 S_236: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_237;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_237;
 end
 S_237: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_238: begin // inc_l_one_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_INC32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = 32'h00000001;
-    n_st = S_239;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_INC32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = 32'h00000001;
+  n_st = S_239;
 end
 S_239: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_240;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_240;
 end
 S_240: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_241: begin // adds_l_two_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_242;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_242;
 end
 S_242: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_243: begin // adds_l_four_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000004));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_244;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) + (32'h00000004));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_244;
 end
 S_244: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_245: begin // inc_w_two_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_INC16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u16(32'h00000002);
-    n_st = S_246;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_INC16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u16(32'h00000002);
+  n_st = S_246;
 end
 S_246: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_247;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_247;
 end
 S_247: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_248: begin // inc_l_two_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_INC32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = 32'h00000002;
-    n_st = S_249;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_INC32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = 32'h00000002;
+  n_st = S_249;
 end
 S_249: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_250;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_250;
 end
 S_250: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_251: begin // mov_b_r8h_r8l
-    n_tmp1 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_252;
+  n_tmp1 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_252;
 end
 S_252: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_253;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_253;
 end
 S_253: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_254: begin // mov_w_r16h_r16l
-    n_tmp1 = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_255;
+  n_tmp1 = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_255;
 end
 S_255: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_256;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_256;
 end
 S_256: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_257: begin // addx_b_r8h_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADDX8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_258;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADDX8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_258;
 end
 S_258: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_259;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_259;
 end
 S_259: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_260: begin // daa_b_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = 32'h00000000;
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
-        if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000030)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000003)}) != 32'h0)}) != '0) begin
-          n_tmp2 = 32'h00000066;
-        end
-      end else begin
-        if (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000020)}) != '0) begin
-          n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != 32'h0) ? (32'h00000060) : (32'h00000066));
-        end
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = 32'h00000000;
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
+      if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000030)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000003)}) != 32'h0)}) != '0) begin
+        n_tmp2 = 32'h00000066;
       end
     end else begin
-      if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
-        if (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000003)}) != '0) begin
-          n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000090)}) != 32'h0) ? (32'h00000006) : (32'h00000066));
-        end
-      end else begin
-        if (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != '0) begin
-          n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000090)}) != 32'h0) ? (32'h00000000) : (32'h00000060));
-        end else begin
-          n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000080)}) != 32'h0) ? (32'h00000006) : (32'h00000066));
-        end
+      if (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000020)}) != '0) begin
+        n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != 32'h0) ? (32'h00000060) : (32'h00000066));
       end
     end
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    alu_b_n = c_u8(n_tmp2);
-    n_st = S_261;
+  end else begin
+    if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
+      if (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000003)}) != '0) begin
+        n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000090)}) != 32'h0) ? (32'h00000006) : (32'h00000066));
+      end
+    end else begin
+      if (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != '0) begin
+        n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000090)}) != 32'h0) ? (32'h00000000) : (32'h00000060));
+      end else begin
+        n_tmp2 = ((({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000080)}) != 32'h0) ? (32'h00000006) : (32'h00000066));
+      end
+    end
+  end
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  alu_b_n = c_u8(n_tmp2);
+  n_st = S_261;
 end
 S_261: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_262;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_262;
 end
 S_262: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_263: begin // mov_l_r32h_r32l
-    n_tmp1 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_264;
+  n_tmp1 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_264;
 end
 S_264: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_265;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_265;
 end
 S_265: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_266: begin // shll_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLL8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_267;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLL8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_267;
 end
 S_267: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_268;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_268;
 end
 S_268: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_269: begin // shll_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLL16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_270;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLL16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_270;
 end
 S_270: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_271;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_271;
 end
 S_271: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_272: begin // shll_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLL32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_273;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLL32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_273;
 end
 S_273: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_274;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_274;
 end
 S_274: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_275: begin // shal_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAL8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_276;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAL8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_276;
 end
 S_276: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_277;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_277;
 end
 S_277: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_278: begin // shal_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAL16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_279;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAL16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_279;
 end
 S_279: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_280;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_280;
 end
 S_280: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_281: begin // shal_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAL32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_282;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAL32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_282;
 end
 S_282: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_283;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_283;
 end
 S_283: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_284: begin // shlr_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLR8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_285;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLR8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_285;
 end
 S_285: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_286;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_286;
 end
 S_286: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_287: begin // shlr_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLR16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_288;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLR16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_288;
 end
 S_288: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_289;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_289;
 end
 S_289: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_290: begin // shlr_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHLR32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_291;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHLR32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_291;
 end
 S_291: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_292;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_292;
 end
 S_292: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_293: begin // shar_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAR8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_294;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAR8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_294;
 end
 S_294: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_295;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_295;
 end
 S_295: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_296: begin // shar_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAR16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_297;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAR16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_297;
 end
 S_297: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_298;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_298;
 end
 S_298: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_299: begin // shar_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SHAR32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_300;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SHAR32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_300;
 end
 S_300: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_301;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_301;
 end
 S_301: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_302: begin // rotxl_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXL8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_303;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXL8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_303;
 end
 S_303: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_304;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_304;
 end
 S_304: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_305: begin // rotxl_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXL16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_306;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXL16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_306;
 end
 S_306: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_307;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_307;
 end
 S_307: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_308: begin // rotxl_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXL32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_309;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXL32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_309;
 end
 S_309: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_310;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_310;
 end
 S_310: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_311: begin // rotl_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTL8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_312;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTL8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_312;
 end
 S_312: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_313;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_313;
 end
 S_313: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_314: begin // rotl_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTL16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_315;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTL16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_315;
 end
 S_315: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_316;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_316;
 end
 S_316: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_317: begin // rotl_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTL32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_318;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTL32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_318;
 end
 S_318: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_319;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_319;
 end
 S_319: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_320: begin // rotxr_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXR8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_321;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXR8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_321;
 end
 S_321: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_322;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_322;
 end
 S_322: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_323: begin // rotxr_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXR16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_324;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXR16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_324;
 end
 S_324: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_325;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_325;
 end
 S_325: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_326: begin // rotxr_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTXR32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_327;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTXR32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_327;
 end
 S_327: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_328;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_328;
 end
 S_328: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_329: begin // rotr_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTR8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_330;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTR8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_330;
 end
 S_330: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_331;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_331;
 end
 S_331: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_332: begin // rotr_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTR16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_333;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTR16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_333;
 end
 S_333: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_334;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_334;
 end
 S_334: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_335: begin // rotr_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ROTR32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_336;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ROTR32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_336;
 end
 S_336: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_337;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_337;
 end
 S_337: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_338: begin // or_b_r8h_r8l
-    n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) | (r8_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_339;
+  n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) | (r8_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_339;
 end
 S_339: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_340;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_340;
 end
 S_340: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_341: begin // xor_b_r8h_r8l
-    n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) ^ (r8_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_342;
+  n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) ^ (r8_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_342;
 end
 S_342: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_343;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_343;
 end
 S_343: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_344: begin // and_b_r8h_r8l
-    n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (r8_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_345;
+  n_tmp1 = ((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (r8_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_345;
 end
 S_345: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_346;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_346;
 end
 S_346: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_347: begin // not_b_r8l
-    n_tmp1 = (~(r8_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_348;
+  n_tmp1 = (~(r8_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_348;
 end
 S_348: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_349;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_349;
 end
 S_349: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_350: begin // not_w_r16l
-    n_tmp1 = (~(r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_351;
+  n_tmp1 = (~(r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_351;
 end
 S_351: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_352;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_352;
 end
 S_352: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_353: begin // not_l_r32l
-    n_tmp1 = (~(r32_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_354;
+  n_tmp1 = (~(r32_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_354;
 end
 S_354: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_355;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_355;
 end
 S_355: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_356: begin // extu_w_r16l
-    n_tmp1 = c_u8(r16_r(r, {16'h0, n_ir[0]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_357;
+  n_tmp1 = c_u8(r16_r(r, {16'h0, n_ir[0]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_357;
 end
 S_357: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_358;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_358;
 end
 S_358: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_359: begin // extu_l_r32l
-    n_tmp1 = c_u16(r32_r(r, {16'h0, n_ir[0]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_360;
+  n_tmp1 = c_u16(r32_r(r, {16'h0, n_ir[0]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_360;
 end
 S_360: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_361;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_361;
 end
 S_361: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_362: begin // neg_b_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(32'h00000000);
-    alu_b_n = r8_r(r, {16'h0, n_ir[0]});
-    n_st = S_363;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(32'h00000000);
+  alu_b_n = r8_r(r, {16'h0, n_ir[0]});
+  n_st = S_363;
 end
 S_363: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_364;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_364;
 end
 S_364: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_365: begin // neg_w_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(32'h00000000);
-    alu_b_n = r16_r(r, {16'h0, n_ir[0]});
-    n_st = S_366;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(32'h00000000);
+  alu_b_n = r16_r(r, {16'h0, n_ir[0]});
+  n_st = S_366;
 end
 S_366: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_367;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_367;
 end
 S_367: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_368: begin // neg_l_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = 32'h00000000;
-    alu_b_n = r32_r(r, {16'h0, n_ir[0]});
-    n_st = S_369;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = 32'h00000000;
+  alu_b_n = r32_r(r, {16'h0, n_ir[0]});
+  n_st = S_369;
 end
 S_369: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_370;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_370;
 end
 S_370: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_371: begin // exts_w_r16l
-    n_tmp1 = c_s8(r16_r(r, {16'h0, n_ir[0]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_372;
+  n_tmp1 = c_s8(r16_r(r, {16'h0, n_ir[0]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_372;
 end
 S_372: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_373;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_373;
 end
 S_373: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_374: begin // exts_l_r32l
-    n_tmp1 = c_s16(r32_r(r, {16'h0, n_ir[0]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_375;
+  n_tmp1 = c_s16(r32_r(r, {16'h0, n_ir[0]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_375;
 end
 S_375: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_376;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_376;
 end
 S_376: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_377: begin // sub_b_r8h_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_378;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_378;
 end
 S_378: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_379;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_379;
 end
 S_379: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_380: begin // sub_w_r16h_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_381;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_381;
 end
 S_381: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_382;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_382;
 end
 S_382: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_383: begin // dec_b_one_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_DEC8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u8(32'h00000001);
-    n_st = S_384;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_DEC8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u8(32'h00000001);
+  n_st = S_384;
 end
 S_384: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_385;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_385;
 end
 S_385: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_386: begin // sub_l_r32h_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_387;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_387;
 end
 S_387: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_388;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_388;
 end
 S_388: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_389: begin // subs_l_one_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000001));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_390;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000001));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_390;
 end
 S_390: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_391: begin // dec_w_one_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_DEC16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u16(32'h00000001);
-    n_st = S_392;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_DEC16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u16(32'h00000001);
+  n_st = S_392;
 end
 S_392: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_393;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_393;
 end
 S_393: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_394: begin // dec_l_one_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_DEC32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = 32'h00000001;
-    n_st = S_395;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_DEC32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = 32'h00000001;
+  n_st = S_395;
 end
 S_395: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_396;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_396;
 end
 S_396: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_397: begin // subs_l_two_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_398;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_398;
 end
 S_398: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_399: begin // subs_l_four_r32l
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000004));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_400;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((r32_r(r, {16'h0, n_ir[0]})) - (32'h00000004));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_400;
 end
 S_400: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_401: begin // dec_w_two_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_DEC16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = c_u16(32'h00000002);
-    n_st = S_402;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_DEC16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = c_u16(32'h00000002);
+  n_st = S_402;
 end
 S_402: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_403;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_403;
 end
 S_403: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_404: begin // dec_l_two_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_DEC32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = 32'h00000002;
-    n_st = S_405;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_DEC32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = 32'h00000002;
+  n_st = S_405;
 end
 S_405: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_406;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_406;
 end
 S_406: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_407: begin // cmp_b_r8h_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_408;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_408;
 end
 S_408: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_409;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_409;
 end
 S_409: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_410: begin // cmp_w_r16h_r16l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_411;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_411;
 end
 S_411: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_412;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_412;
 end
 S_412: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_413: begin // subx_b_r8h_r8l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUBX8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_414;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUBX8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_414;
 end
 S_414: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_415;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_415;
 end
 S_415: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_416: begin // das_b_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = 32'h00000000;
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
-        if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) >= (32'h00000060)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) >= (32'h00000006)}) != 32'h0)}) != '0) begin
-          n_tmp2 = 32'h0000009a;
-        end
-      end else begin
-        if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) >= (32'h00000070)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != 32'h0)}) != '0) begin
-          n_tmp2 = 32'h000000a0;
-        end
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = 32'h00000000;
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
+      if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) >= (32'h00000060)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) >= (32'h00000006)}) != 32'h0)}) != '0) begin
+        n_tmp2 = 32'h0000009a;
       end
     end else begin
-      if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
-        if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000080)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) >= (32'h00000006)}) != 32'h0)}) != '0) begin
-          n_tmp2 = 32'h000000fa;
-        end
+      if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) >= (32'h00000070)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) <= (32'h00000009)}) != 32'h0)}) != '0) begin
+        n_tmp2 = 32'h000000a0;
       end
     end
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    alu_b_n = c_u8(n_tmp2);
-    n_st = S_417;
+  end else begin
+    if (({31'h0, ((32'h00000001) != 32'h0) && (((({24'h0, n_ccr}) & (32'h00000020))) != 32'h0)}) != '0) begin
+      if (({31'h0, (({31'h0, (((n_tmp1) & (32'h000000f0))) <= (32'h00000080)}) != 32'h0) && (({31'h0, (((n_tmp1) & (32'h0000000f))) >= (32'h00000006)}) != 32'h0)}) != '0) begin
+        n_tmp2 = 32'h000000fa;
+      end
+    end
+  end
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  alu_b_n = c_u8(n_tmp2);
+  n_st = S_417;
 end
 S_417: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_418;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_418;
 end
 S_418: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_419: begin // cmp_l_r32h_r32l
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_st = S_420;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_st = S_420;
 end
 S_420: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_421;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_421;
 end
 S_421: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_422: begin // mov_b_abs8_r8u
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_423;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_423;
 end
 S_423: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R8;
-    op_addr = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_cost = 6'd2;
-    n_st = S_424;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R8;
+  op_addr = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_cost = 6'd2;
+  n_st = S_424;
 end
 S_424: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_425;
+  n_tmp1 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_425;
 end
 S_425: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_426: begin // mov_b_r8u_abs8
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_427;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_427;
 end
 S_427: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_428;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_428;
 end
 S_428: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_429;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_429;
 end
 S_429: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_430: begin // bt_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_431;
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_431;
 end
 S_431: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_432;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_432;
 end
 S_432: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    n_npc = n_tmp1 & 32'h00ffffff;
-    n_pc = n_tmp1 + 32'h2;
-    n_pir = t16(c_u16(n_tmp2));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  n_npc = n_tmp1 & 32'h00ffffff;
+  n_pc = n_tmp1 + 32'h2;
+  n_pir = t16(c_u16(n_tmp2));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_433: begin // bf_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_434;
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_434;
 end
 S_434: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_435;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_435;
 end
 S_435: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_436: begin // bhi_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_437;
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_437;
 end
 S_437: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_438;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_438;
 end
 S_438: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000005))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_439: begin // bls_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_440;
-end
-S_440: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_441;
-end
-S_441: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000005))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_442: begin // bcc_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_443;
-end
-S_443: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_444;
-end
-S_444: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_445: begin // bcs_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_446;
-end
-S_446: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_447;
-end
-S_447: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_448: begin // bne_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_449;
-end
-S_449: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_450;
-end
-S_450: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000004))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_451: begin // beq_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_452;
-end
-S_452: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_453;
-end
-S_453: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000004))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_454: begin // bvc_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_455;
-end
-S_455: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_456;
-end
-S_456: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000002))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_457: begin // bvs_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_458;
-end
-S_458: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_459;
-end
-S_459: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000002))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_460: begin // bpl_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_461;
-end
-S_461: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_462;
-end
-S_462: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000008))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_463: begin // bmi_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_464;
-end
-S_464: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_465;
-end
-S_465: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000008))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_466: begin // bge_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_467;
-end
-S_467: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_468;
-end
-S_468: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_469: begin // blt_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_470;
-end
-S_470: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_471;
-end
-S_471: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_472: begin // bgt_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_473;
-end
-S_473: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_474;
-end
-S_474: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_475: begin // ble_rel8
-    n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_476;
-end
-S_476: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_477;
-end
-S_477: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_478: begin // mulxu_b_r8h_r16l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_479;
-end
-S_479: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(((c_u8(r16_r(r, {16'h0, n_ir[0]}))) * (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004))))));
-    op_kind = OP_INT;
-    op_cost = 6'd12;
-    n_st = S_480;
-end
-S_480: begin // after internal
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_481: begin // divxu_b_r8h_r16l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_482;
-end
-S_482: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd12;
-    n_st = S_483;
-end
-S_483: begin // after internal
-    n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
-    if ((((n_tmp2) & (32'h00000080))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
-    end
-    n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_484 : S_486;
-end
-S_484: begin // then
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    n_st = S_485;
-end
-S_485: begin // join
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_486: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_487;
-end
-S_487: begin // after div
-    f0 = div_q;
-    n_l_q = f0;
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_488;
-end
-S_488: begin // after div
-    f1 = div_r;
-    n_l_r = f1;
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(((((n_l_q) & (32'h000000ff))) | (((((n_l_r) & (32'h000000ff))) << (32'h00000008)))));
-    n_st = S_485;
-end
-S_489: begin // mulxu_w_r16h_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_490;
-end
-S_490: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((c_u16(r32_r(r, {16'h0, n_ir[0]}))) * (r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))));
-    op_kind = OP_INT;
-    op_cost = 6'd20;
-    n_st = S_491;
-end
-S_491: begin // after internal
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_492: begin // divxu_w_r16h_r32l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_493;
-end
-S_493: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd12;
-    n_st = S_494;
-end
-S_494: begin // after internal
-    n_tmp1 = r32_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
-    if ((((n_tmp2) & (32'h00000080))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
-    end
-    n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_495 : S_497;
-end
-S_495: begin // then
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    n_st = S_496;
-end
-S_496: begin // join
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_497: begin // else
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_498;
-end
-S_498: begin // after div
-    f0 = div_q;
-    n_l_q = f0;
-    div_a_n = n_tmp1;
-    div_b_n = n_tmp2;
-    div_signed_n = 1'b0;
-    op_kind = OP_DIV;
-    op_addr = 32'h0;
-    op_cost = 6'd0;
-    n_st = S_499;
-end
-S_499: begin // after div
-    f1 = div_r;
-    n_l_r = f1;
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = ((((n_l_q) & (32'h0000ffff))) | (((((n_l_r) & (32'h0000ffff))) << (32'h00000010))));
-    n_st = S_496;
-end
-S_500: begin // rts
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_501;
-end
-S_501: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, 32'h00000007);
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_502;
-end
-S_502: begin // after read16
-    n_tmp2 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_503;
-end
-S_503: begin // after read16
-    n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = ((n_tmp1) + (32'h00000004));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_504;
-end
-S_504: begin // after internal
-    n_pc = n_tmp2;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_505;
-end
-S_505: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_506: begin // bsr_rel8
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_507;
-end
-S_507: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_tmp2 = n_pc;
-    n_pc = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_508;
-end
-S_508: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_509;
-end
-S_509: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_510;
-end
-S_510: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_511: begin // rte
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_512;
-end
-S_512: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r32_r(r, 32'h00000007);
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_513;
-end
-S_513: begin // after read16
-    n_tmp2 = {16'h0, rd};
-    n_ccr = t8(c_u8(((n_tmp2) >> (32'h00000008))));
-    n_tmp2 = ((((n_tmp2) & (32'h000000ff))) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_514;
-end
-S_514: begin // after read16
-    n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = ((n_tmp1) + (32'h00000004));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_515;
-end
-S_515: begin // after internal
-    n_pc = n_tmp2;
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_516;
-end
-S_516: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_517;
-end
-S_517: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_518: begin // trapa_imm2
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_519;
-end
-S_519: begin // after internal
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(n_npc));
-    op_cost = 6'd2;
-    n_st = S_520;
-end
-S_520: begin // after write16
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | (((((n_npc) >> (32'h00000010))) & (32'h000000ff))))));
-    op_cost = 6'd2;
-    n_st = S_521;
-end
-S_521: begin // after write16
-    n_ccr = n_ccr | (syscr_ue ? 8'h80 : 8'hc0);
-    n_tvec = t8(((32'h00000008) + ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000003)))));
-    op_kind = OP_F16;
-    op_addr = ((32'h00000004) * ({24'h0, n_tvec}));
-    op_cost = 6'd2;
-    n_st = S_522;
-end
-S_522: begin // after read16i
-    n_ir[0] = t16({16'h0, rd});
-    op_kind = OP_F16;
-    op_addr = ((((32'h00000004) * ({24'h0, n_tvec}))) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_523;
-end
-S_523: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_524;
-end
-S_524: begin // after internal
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_525;
-end
-S_525: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_526;
-end
-S_526: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
-end
-S_527: begin // bt_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_528;
-end
-S_528: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_529;
-end
-S_529: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_530;
-end
-S_530: begin // after read16i
-    n_tmp2 = {16'h0, rd};
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000005))) == '0}) != '0) begin
     n_npc = n_tmp1 & 32'h00ffffff;
     n_pc = n_tmp1 + 32'h2;
     n_pir = t16(c_u16(n_tmp2));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_439: begin // bls_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_440;
+end
+S_440: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_441;
+end
+S_441: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000005))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_442: begin // bcc_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_443;
+end
+S_443: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_444;
+end
+S_444: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_445: begin // bcs_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_446;
+end
+S_446: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_447;
+end
+S_447: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_448: begin // bne_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_449;
+end
+S_449: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_450;
+end
+S_450: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000004))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_451: begin // beq_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_452;
+end
+S_452: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_453;
+end
+S_453: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000004))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_454: begin // bvc_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_455;
+end
+S_455: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_456;
+end
+S_456: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000002))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_457: begin // bvs_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_458;
+end
+S_458: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_459;
+end
+S_459: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000002))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_460: begin // bpl_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_461;
+end
+S_461: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_462;
+end
+S_462: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000008))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_463: begin // bmi_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_464;
+end
+S_464: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_465;
+end
+S_465: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000008))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_466: begin // bge_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_467;
+end
+S_467: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_468;
+end
+S_468: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_469: begin // blt_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_470;
+end
+S_470: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_471;
+end
+S_471: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_472: begin // bgt_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_473;
+end
+S_473: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_474;
+end
+S_474: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_475: begin // ble_rel8
+  n_tmp1 = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_476;
+end
+S_476: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_477;
+end
+S_477: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_478: begin // mulxu_b_r8h_r16l
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_479;
+end
+S_479: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(((c_u8(r16_r(r, {16'h0, n_ir[0]}))) * (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004))))));
+  op_kind = OP_INT;
+  op_cost = 6'd12;
+  n_st = S_480;
+end
+S_480: begin // after internal
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_481: begin // divxu_b_r8h_r16l
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_482;
+end
+S_482: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd12;
+  n_st = S_483;
+end
+S_483: begin // after internal
+  n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
+  if ((((n_tmp2) & (32'h00000080))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
+  end
+  n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_484 : S_486;
+end
+S_484: begin // then
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  n_st = S_485;
+end
+S_485: begin // join
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_486: begin // else
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_487;
+end
+S_487: begin // after div
+  f0 = div_q;
+  n_l_q = f0;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_488;
+end
+S_488: begin // after div
+  f1 = div_r;
+  n_l_r = f1;
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(((((n_l_q) & (32'h000000ff))) | (((((n_l_r) & (32'h000000ff))) << (32'h00000008)))));
+  n_st = S_485;
+end
+S_489: begin // mulxu_w_r16h_r32l
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_490;
+end
+S_490: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((c_u16(r32_r(r, {16'h0, n_ir[0]}))) * (r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))));
+  op_kind = OP_INT;
+  op_cost = 6'd20;
+  n_st = S_491;
+end
+S_491: begin // after internal
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_492: begin // divxu_w_r16h_r32l
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_493;
+end
+S_493: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd12;
+  n_st = S_494;
+end
+S_494: begin // after internal
+  n_tmp1 = r32_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffff3))));
+  if ((((n_tmp2) & (32'h00000080))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000008))));
+  end
+  n_st = (({31'h0, (n_tmp2) == '0}) != '0) ? S_495 : S_497;
+end
+S_495: begin // then
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  n_st = S_496;
+end
+S_496: begin // join
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_497: begin // else
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_498;
+end
+S_498: begin // after div
+  f0 = div_q;
+  n_l_q = f0;
+  div_a_n = n_tmp1;
+  div_b_n = n_tmp2;
+  div_signed_n = 1'b0;
+  op_kind = OP_DIV;
+  op_addr = 32'h0;
+  op_cost = 6'd0;
+  n_st = S_499;
+end
+S_499: begin // after div
+  f1 = div_r;
+  n_l_r = f1;
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = ((((n_l_q) & (32'h0000ffff))) | (((((n_l_r) & (32'h0000ffff))) << (32'h00000010))));
+  n_st = S_496;
+end
+S_500: begin // rts
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_501;
+end
+S_501: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, 32'h00000007);
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_502;
+end
+S_502: begin // after read16
+  n_tmp2 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_503;
+end
+S_503: begin // after read16
+  n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = ((n_tmp1) + (32'h00000004));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_504;
+end
+S_504: begin // after internal
+  n_pc = n_tmp2;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_505;
+end
+S_505: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_506: begin // bsr_rel8
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_507;
+end
+S_507: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_tmp2 = n_pc;
+  n_pc = ((n_pc) + (c_s8({16'h0, n_ir[0]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_508;
+end
+S_508: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_509;
+end
+S_509: begin // after write16
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_510;
+end
+S_510: begin // after write16
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_511: begin // rte
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_512;
+end
+S_512: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r32_r(r, 32'h00000007);
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_513;
+end
+S_513: begin // after read16
+  n_tmp2 = {16'h0, rd};
+  n_ccr = t8(c_u8(((n_tmp2) >> (32'h00000008))));
+  n_tmp2 = ((((n_tmp2) & (32'h000000ff))) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_514;
+end
+S_514: begin // after read16
+  n_tmp2 = ((n_tmp2) | ({16'h0, rd}));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = ((n_tmp1) + (32'h00000004));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_515;
+end
+S_515: begin // after internal
+  n_pc = n_tmp2;
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_516;
+end
+S_516: begin // after update_irq_filter
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_517;
+end
+S_517: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_518: begin // trapa_imm2
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_519;
+end
+S_519: begin // after internal
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(n_npc));
+  op_cost = 6'd2;
+  n_st = S_520;
+end
+S_520: begin // after write16
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | (((((n_npc) >> (32'h00000010))) & (32'h000000ff))))));
+  op_cost = 6'd2;
+  n_st = S_521;
+end
+S_521: begin // after write16
+  n_ccr = n_ccr | (syscr_ue ? 8'h80 : 8'hc0);
+  n_tvec = t8(((32'h00000008) + ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000003)))));
+  op_kind = OP_F16;
+  op_addr = ((32'h00000004) * ({24'h0, n_tvec}));
+  op_cost = 6'd2;
+  n_st = S_522;
+end
+S_522: begin // after read16i
+  n_ir[0] = t16({16'h0, rd});
+  op_kind = OP_F16;
+  op_addr = ((((32'h00000004) * ({24'h0, n_tvec}))) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_523;
+end
+S_523: begin // after read16i
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_524;
+end
+S_524: begin // after internal
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_525;
+end
+S_525: begin // after update_irq_filter
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_526;
+end
+S_526: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
+end
+S_527: begin // bt_rel16
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_528;
+end
+S_528: begin // after read16i
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_529;
+end
+S_529: begin // after read16i
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_530;
+end
+S_530: begin // after read16i
+  n_tmp2 = {16'h0, rd};
+  n_npc = n_tmp1 & 32'h00ffffff;
+  n_pc = n_tmp1 + 32'h2;
+  n_pir = t16(c_u16(n_tmp2));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_531: begin // bf_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_532;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_532;
 end
 S_532: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_533;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_533;
 end
 S_533: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_534;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_534;
 end
 S_534: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_535: begin // bhi_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_536;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_536;
 end
 S_536: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_537;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_537;
 end
 S_537: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_538;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_538;
 end
 S_538: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000005))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000005))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_539: begin // bls_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_540;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_540;
 end
 S_540: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_541;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_541;
 end
 S_541: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_542;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_542;
 end
 S_542: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000005))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000005))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_543: begin // bcc_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_544;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_544;
 end
 S_544: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_545;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_545;
 end
 S_545: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_546;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_546;
 end
 S_546: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_547: begin // bcs_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_548;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_548;
 end
 S_548: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_549;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_549;
 end
 S_549: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_550;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_550;
 end
 S_550: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_551: begin // bne_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_552;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_552;
 end
 S_552: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_553;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_553;
 end
 S_553: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_554;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_554;
 end
 S_554: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000004))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000004))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_555: begin // beq_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_556;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_556;
 end
 S_556: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_557;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_557;
 end
 S_557: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_558;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_558;
 end
 S_558: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000004))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000004))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_559: begin // bvc_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_560;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_560;
 end
 S_560: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_561;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_561;
 end
 S_561: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_562;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_562;
 end
 S_562: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000002))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000002))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_563: begin // bvs_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_564;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_564;
 end
 S_564: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_565;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_565;
 end
 S_565: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_566;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_566;
 end
 S_566: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000002))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000002))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_567: begin // bpl_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_568;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_568;
 end
 S_568: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_569;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_569;
 end
 S_569: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_570;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_570;
 end
 S_570: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000008))) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000008))) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_571: begin // bmi_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_572;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_572;
 end
 S_572: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_573;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_573;
 end
 S_573: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_574;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_574;
 end
 S_574: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (((({24'h0, n_ccr}) & (32'h00000008))) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (((({24'h0, n_ccr}) & (32'h00000008))) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_575: begin // bge_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_576;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_576;
 end
 S_576: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_577;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_577;
 end
 S_577: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_578;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_578;
 end
 S_578: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_579: begin // blt_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_580;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_580;
 end
 S_580: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_581;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_581;
 end
 S_581: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_582;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_582;
 end
 S_582: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_583: begin // bgt_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_584;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_584;
 end
 S_584: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_585;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_585;
 end
 S_585: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_586;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_586;
 end
 S_586: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, ({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, ({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) == '0}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_587: begin // ble_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_588;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_588;
 end
 S_588: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_589;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_589;
 end
 S_589: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_590;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_590;
 end
 S_590: begin // after read16i
-    n_tmp2 = {16'h0, rd};
-    if (({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
-      n_npc = n_tmp1 & 32'h00ffffff;
-      n_pc = n_tmp1 + 32'h2;
-      n_pir = t16(c_u16(n_tmp2));
-    end
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_tmp2 = {16'h0, rd};
+  if (({31'h0, (({31'h0, (((({24'h0, n_ccr}) & (32'h00000004))) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000008)}) != 32'h0)}) != 32'h0) || (({31'h0, ((({24'h0, n_ccr}) & (32'h0000000a))) == (32'h00000002)}) != 32'h0)}) != '0) begin
+    n_npc = n_tmp1 & 32'h00ffffff;
+    n_pc = n_tmp1 + 32'h2;
+    n_pir = t16(c_u16(n_tmp2));
+  end
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_591: begin // jmp_r32h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_592;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_592;
 end
 S_592: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_pc = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_593;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_pc = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_593;
 end
 S_593: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_594: begin // jmp_abs24e
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_595;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_595;
 end
 S_595: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_596;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_596;
 end
 S_596: begin // after internal
-    n_pc = (((((({16'h0, n_ir[0]}) & (32'h000000ff))) << (32'h00000010))) | ({16'h0, n_ir[1]}));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_597;
+  n_pc = (((((({16'h0, n_ir[0]}) & (32'h000000ff))) << (32'h00000010))) | ({16'h0, n_ir[1]}));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_597;
 end
 S_597: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_598: begin // jmp_abs8i
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_599;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_599;
 end
 S_599: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R16;
-    op_addr = (({16'h0, n_ir[0]}) & (32'h000000ff));
-    op_cost = 6'd2;
-    n_st = S_600;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R16;
+  op_addr = (({16'h0, n_ir[0]}) & (32'h000000ff));
+  op_cost = 6'd2;
+  n_st = S_600;
 end
 S_600: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = (((({16'h0, n_ir[0]}) & (32'h000000ff))) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_601;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = (((({16'h0, n_ir[0]}) & (32'h000000ff))) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_601;
 end
 S_601: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    n_pc = n_tmp1;
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_602;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  n_pc = n_tmp1;
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_602;
 end
 S_602: begin // after internal
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_603;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_603;
 end
 S_603: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_604: begin // bsr_rel16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_605;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_605;
 end
 S_605: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_606;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_606;
 end
 S_606: begin // after internal
-    n_tmp2 = n_pc;
-    n_pc = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_607;
+  n_tmp2 = n_pc;
+  n_pc = ((n_pc) + (c_s16({16'h0, n_ir[1]})));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_607;
 end
 S_607: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_608;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_608;
 end
 S_608: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_609;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_609;
 end
 S_609: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_610: begin // jsr_r32h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_611;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_611;
 end
 S_611: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_tmp2 = n_pc;
-    n_pc = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_612;
+  n_pir = t16({16'h0, rd});
+  n_tmp2 = n_pc;
+  n_pc = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_612;
 end
 S_612: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_613;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_613;
 end
 S_613: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_614;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_614;
 end
 S_614: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_615: begin // jsr_abs24e
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_616;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_616;
 end
 S_616: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_617;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_617;
 end
 S_617: begin // after internal
-    n_tmp2 = n_pc;
-    n_pc = (((((({16'h0, n_ir[0]}) & (32'h000000ff))) << (32'h00000010))) | ({16'h0, n_ir[1]}));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_618;
+  n_tmp2 = n_pc;
+  n_pc = (((((({16'h0, n_ir[0]}) & (32'h000000ff))) << (32'h00000010))) | ({16'h0, n_ir[1]}));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_618;
 end
 S_618: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_619;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_619;
 end
 S_619: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_620;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_620;
 end
 S_620: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_621: begin // jsr_abs8i
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_622;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_622;
 end
 S_622: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_tmp2 = n_pc;
-    op_kind = OP_R16;
-    op_addr = (({16'h0, n_ir[0]}) & (32'h000000ff));
-    op_cost = 6'd2;
-    n_st = S_623;
+  n_pir = t16({16'h0, rd});
+  n_tmp2 = n_pc;
+  op_kind = OP_R16;
+  op_addr = (({16'h0, n_ir[0]}) & (32'h000000ff));
+  op_cost = 6'd2;
+  n_st = S_623;
 end
 S_623: begin // after read16
-    n_tmp1 = (({16'h0, rd}) << (32'h00000010));
-    op_kind = OP_R16;
-    op_addr = (((({16'h0, n_ir[0]}) & (32'h000000ff))) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_624;
+  n_tmp1 = (({16'h0, rd}) << (32'h00000010));
+  op_kind = OP_R16;
+  op_addr = (((({16'h0, n_ir[0]}) & (32'h000000ff))) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_624;
 end
 S_624: begin // after read16
-    n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
-    n_pc = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_625;
+  n_tmp1 = ((n_tmp1) | ({16'h0, rd}));
+  n_pc = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_625;
 end
 S_625: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
-    op_cost = 6'd2;
-    n_st = S_626;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000004));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(((n_tmp2) >> (32'h00000010))));
+  op_cost = 6'd2;
+  n_st = S_626;
 end
 S_626: begin // after write16
-    op_kind = OP_W16;
-    op_addr = ((n_tmp1) + (32'h00000002));
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_627;
+  op_kind = OP_W16;
+  op_addr = ((n_tmp1) + (32'h00000002));
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_627;
 end
 S_627: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_628: begin // bset_r8h_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_629;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_629;
 end
 S_629: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_630: begin // bnot_r8h_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_631;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_631;
 end
 S_631: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_632: begin // bclr_r8h_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_633;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_633;
 end
 S_633: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_634: begin // btst_r8h_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_635;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_635;
 end
 S_635: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_636: begin // or_w_r16h_r16l
-    n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) | (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_637;
+  n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) | (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_637;
 end
 S_637: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_638;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_638;
 end
 S_638: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_639: begin // xor_w_r16h_r16l
-    n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) ^ (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_640;
+  n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) ^ (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_640;
 end
 S_640: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_641;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_641;
 end
 S_641: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_642: begin // and_w_r16h_r16l
-    n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_643;
+  n_tmp1 = ((r16_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) & (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_643;
 end
 S_643: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_644;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_644;
 end
 S_644: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_645: begin // bst_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_646;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_646;
 end
 S_646: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_647: begin // bist_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_648;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_648;
 end
 S_648: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_649: begin // mov_b_r32ih_r8l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_650;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_650;
 end
 S_650: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R8;
-    op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_cost = 6'd2;
-    n_st = S_651;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R8;
+  op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_cost = 6'd2;
+  n_st = S_651;
 end
 S_651: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_652;
+  n_tmp1 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_652;
 end
 S_652: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_653: begin // mov_b_r8l_r32ih
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_654;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_654;
 end
 S_654: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_655;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_655;
 end
 S_655: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_656;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_656;
 end
 S_656: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_657: begin // mov_w_r32ih_r16l
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_658;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_658;
 end
 S_658: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R16;
-    op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_cost = 6'd2;
-    n_st = S_659;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R16;
+  op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_cost = 6'd2;
+  n_st = S_659;
 end
 S_659: begin // after read16
-    n_tmp1 = {16'h0, rd};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_660;
+  n_tmp1 = {16'h0, rd};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_660;
 end
 S_660: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_661: begin // mov_w_r16l_r32ih
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_662;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_662;
 end
 S_662: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_663;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_663;
 end
 S_663: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_664;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_664;
 end
 S_664: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_665: begin // mov_b_abs16_r8l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_666;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_666;
 end
 S_666: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_667;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_667;
 end
 S_667: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R8;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_cost = 6'd2;
-    n_st = S_668;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R8;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_cost = 6'd2;
+  n_st = S_668;
 end
 S_668: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_669;
+  n_tmp1 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_669;
 end
 S_669: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_670: begin // mov_b_abs32_r8l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_671;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_671;
 end
 S_671: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_672;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_672;
 end
 S_672: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_673;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_673;
 end
 S_673: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R8;
-    op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    op_cost = 6'd2;
-    n_st = S_674;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R8;
+  op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  op_cost = 6'd2;
+  n_st = S_674;
 end
 S_674: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_675;
+  n_tmp1 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_675;
 end
 S_675: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_676: begin // movfpe_abs16_r8l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_677;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_677;
 end
 S_677: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_678;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_678;
 end
 S_678: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R8;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_cost = 6'd2;
-    n_st = S_679;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R8;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_cost = 6'd2;
+  n_st = S_679;
 end
 S_679: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_680;
+  n_tmp1 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_680;
 end
 S_680: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_681: begin // mov_b_r8l_abs16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_682;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_682;
 end
 S_682: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_683;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_683;
 end
 S_683: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_684;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_684;
 end
 S_684: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_685;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_685;
 end
 S_685: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_686: begin // mov_b_r8l_abs32
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_687;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_687;
 end
 S_687: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_688;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_688;
 end
 S_688: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_689;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_689;
 end
 S_689: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_690;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_690;
 end
 S_690: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_691;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_691;
 end
 S_691: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_692: begin // movtpe_r8l_abs16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_693;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_693;
 end
 S_693: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_694;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_694;
 end
 S_694: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_695;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_695;
 end
 S_695: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_696;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_696;
 end
 S_696: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_697: begin // mov_w_abs16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_698;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_698;
 end
 S_698: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_699;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_699;
 end
 S_699: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R16;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_cost = 6'd2;
-    n_st = S_700;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R16;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_cost = 6'd2;
+  n_st = S_700;
 end
 S_700: begin // after read16
-    n_tmp1 = {16'h0, rd};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_701;
+  n_tmp1 = {16'h0, rd};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_701;
 end
 S_701: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_702: begin // mov_w_abs32_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_703;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_703;
 end
 S_703: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_704;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_704;
 end
 S_704: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_705;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_705;
 end
 S_705: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_R16;
-    op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    op_cost = 6'd2;
-    n_st = S_706;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_R16;
+  op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  op_cost = 6'd2;
+  n_st = S_706;
 end
 S_706: begin // after read16
-    n_tmp1 = {16'h0, rd};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_707;
+  n_tmp1 = {16'h0, rd};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_707;
 end
 S_707: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_708: begin // mov_w_r16l_abs16
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_709;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_709;
 end
 S_709: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_710;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_710;
 end
 S_710: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_711;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_711;
 end
 S_711: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = c_s16({16'h0, n_ir[1]});
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_712;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = c_s16({16'h0, n_ir[1]});
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_712;
 end
 S_712: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_713: begin // mov_w_r16l_abs32
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_714;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_714;
 end
 S_714: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_715;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_715;
 end
 S_715: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_716;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_716;
 end
 S_716: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_717;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_717;
 end
 S_717: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_718;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_718;
 end
 S_718: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_719: begin // mov_b_r32ph_r8l
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_720;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_720;
 end
 S_720: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_721;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_721;
 end
 S_721: begin // after internal
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_722;
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_722;
 end
 S_722: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp2 = ((n_tmp2) + (32'h00000001));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_723;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp2 = ((n_tmp2) + (32'h00000001));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_723;
 end
 S_723: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_724: begin // mov_b_r8l_pr32h
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_725;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_725;
 end
 S_725: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_726;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_726;
 end
 S_726: begin // after internal
-    n_tmp2 = ((n_tmp2) - (32'h00000001));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_727;
+  n_tmp2 = ((n_tmp2) - (32'h00000001));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_727;
 end
 S_727: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_728;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_728;
 end
 S_728: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_729: begin // mov_w_r32ph_r16l
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_730;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_730;
 end
 S_730: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_731;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_731;
 end
 S_731: begin // after internal
-    op_kind = OP_R16;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_732;
+  op_kind = OP_R16;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_732;
 end
 S_732: begin // after read16
-    n_tmp1 = {16'h0, rd};
-    n_tmp2 = ((n_tmp2) + (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_733;
+  n_tmp1 = {16'h0, rd};
+  n_tmp2 = ((n_tmp2) + (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_733;
 end
 S_733: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_734: begin // mov_w_r16l_pr32h
-    n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_735;
+  n_tmp1 = r16_r(r, {16'h0, n_ir[0]});
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_735;
 end
 S_735: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_736;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_736;
 end
 S_736: begin // after internal
-    n_tmp2 = ((n_tmp2) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
-    rf_val = n_tmp2;
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_737;
+  n_tmp2 = ((n_tmp2) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000004)));
+  rf_val = n_tmp2;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_737;
 end
 S_737: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp2;
-    op_data = t16(c_u16(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_738;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp2;
+  op_data = t16(c_u16(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_738;
 end
 S_738: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_739: begin // mov_b_r32d16h_r8l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_740;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_740;
 end
 S_740: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_741;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_741;
 end
 S_741: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
-    op_kind = OP_R8;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_742;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
+  op_kind = OP_R8;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_742;
 end
 S_742: begin // after read8
-    n_tmp2 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp2);
-    n_st = S_743;
+  n_tmp2 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp2);
+  n_st = S_743;
 end
 S_743: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp2);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp2);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_744: begin // mov_b_r8l_r32d16h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_745;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_745;
 end
 S_745: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_746;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_746;
 end
 S_746: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
-    n_tmp2 = r8_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp2);
-    n_st = S_747;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
+  n_tmp2 = r8_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp2);
+  n_st = S_747;
 end
 S_747: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = n_tmp1;
-    op_data = t16(c_u8(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_748;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = n_tmp1;
+  op_data = t16(c_u8(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_748;
 end
 S_748: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_749: begin // mov_w_r32d16h_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_750;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_750;
 end
 S_750: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_751;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_751;
 end
 S_751: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_752;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_752;
 end
 S_752: begin // after read16
-    n_tmp2 = {16'h0, rd};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp2);
-    n_st = S_753;
+  n_tmp2 = {16'h0, rd};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp2);
+  n_st = S_753;
 end
 S_753: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp2);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp2);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_754: begin // mov_w_r16l_r32d16h
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_755;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_755;
 end
 S_755: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_756;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_756;
 end
 S_756: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
-    n_tmp2 = r16_r(r, {16'h0, n_ir[0]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp2);
-    n_st = S_757;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + (c_s16({16'h0, n_ir[1]})));
+  n_tmp2 = r16_r(r, {16'h0, n_ir[0]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp2);
+  n_st = S_757;
 end
 S_757: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_758;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_758;
 end
 S_758: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_759: begin // bset_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_760;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_760;
 end
 S_760: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_761: begin // bnot_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_762;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_762;
 end
 S_762: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_763: begin // bclr_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_764;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))));
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_764;
 end
 S_764: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_765: begin // btst_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_766;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_766;
 end
 S_766: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_767: begin // bor_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_768;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_768;
 end
 S_768: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_769: begin // bior_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_770;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_770;
 end
 S_770: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_771: begin // bxor_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_772;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_772;
 end
 S_772: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_773: begin // bixor_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_774;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_774;
 end
 S_774: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_775: begin // band_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_776;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_776;
 end
 S_776: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_777: begin // biand_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_778;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_778;
 end
 S_778: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_779: begin // bld_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_780;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_780;
 end
 S_780: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_781: begin // bild_imm3_r8l
-    n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_782;
+  n_tmp1 = r8_r(r, {16'h0, n_ir[0]});
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[0]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_782;
 end
 S_782: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_783: begin // mov_b_r32d32hh_r8l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_784;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_784;
 end
 S_784: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_785;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_785;
 end
 S_785: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_786;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_786;
 end
 S_786: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_787;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_787;
 end
 S_787: begin // after read8
-    n_tmp2 = {24'h0, rd[7:0]};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp2);
-    n_st = S_788;
+  n_tmp2 = {24'h0, rd[7:0]};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp2);
+  n_st = S_788;
 end
 S_788: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = c_u8(n_tmp2);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = c_u8(n_tmp2);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_789: begin // mov_b_r8l_r32d32hh
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_790;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_790;
 end
 S_790: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_791;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_791;
 end
 S_791: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_792;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_792;
 end
 S_792: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
-    n_tmp2 = r8_r(r, {16'h0, n_ir[1]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp2);
-    n_st = S_793;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
+  n_tmp2 = r8_r(r, {16'h0, n_ir[1]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp2);
+  n_st = S_793;
 end
 S_793: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W8;
-    op_addr = n_tmp1;
-    op_data = t16(c_u8(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_794;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W8;
+  op_addr = n_tmp1;
+  op_data = t16(c_u8(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_794;
 end
 S_794: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_795: begin // mov_w_r32d32hh_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_796;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_796;
 end
 S_796: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_797;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_797;
 end
 S_797: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_798;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_798;
 end
 S_798: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
-    op_kind = OP_R16;
-    op_addr = n_tmp1;
-    op_cost = 6'd2;
-    n_st = S_799;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
+  op_kind = OP_R16;
+  op_addr = n_tmp1;
+  op_cost = 6'd2;
+  n_st = S_799;
 end
 S_799: begin // after read16
-    n_tmp2 = {16'h0, rd};
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp2);
-    n_st = S_800;
+  n_tmp2 = {16'h0, rd};
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp2);
+  n_st = S_800;
 end
 S_800: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[1]});
-    rf_val = c_u16(n_tmp2);
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[1]});
+  rf_val = c_u16(n_tmp2);
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_801: begin // mov_w_r16l_r32d32hh
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_802;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_802;
 end
 S_802: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_803;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_803;
 end
 S_803: begin // after read16i
-    n_ir[3] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_804;
+  n_ir[3] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_804;
 end
 S_804: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
-    n_tmp2 = r16_r(r, {16'h0, n_ir[1]});
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp2);
-    n_st = S_805;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((((r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)))) + ((({16'h0, n_ir[2]}) << (32'h00000010))))) + ({16'h0, n_ir[3]}));
+  n_tmp2 = r16_r(r, {16'h0, n_ir[1]});
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp2);
+  n_st = S_805;
 end
 S_805: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(n_tmp2));
-    op_cost = 6'd2;
-    n_st = S_806;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(n_tmp2));
+  op_cost = 6'd2;
+  n_st = S_806;
 end
 S_806: begin // after write16
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_807: begin // mov_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_808;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_808;
 end
 S_808: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = {16'h0, n_ir[1]};
-    n_st = S_809;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = {16'h0, n_ir[1]};
+  n_st = S_809;
 end
 S_809: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = {16'h0, n_ir[1]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_810;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = {16'h0, n_ir[1]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_810;
 end
 S_810: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_811: begin // add_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_812;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_812;
 end
 S_812: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = {16'h0, n_ir[1]};
-    n_st = S_813;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = {16'h0, n_ir[1]};
+  n_st = S_813;
 end
 S_813: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_814;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_814;
 end
 S_814: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_815: begin // cmp_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_816;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_816;
 end
 S_816: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = {16'h0, n_ir[1]};
-    n_st = S_817;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = {16'h0, n_ir[1]};
+  n_st = S_817;
 end
 S_817: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_818;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_818;
 end
 S_818: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_819: begin // sub_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_820;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_820;
 end
 S_820: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r16_r(r, {16'h0, n_ir[0]});
-    alu_b_n = {16'h0, n_ir[1]};
-    n_st = S_821;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r16_r(r, {16'h0, n_ir[0]});
+  alu_b_n = {16'h0, n_ir[1]};
+  n_st = S_821;
 end
 S_821: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_822;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_822;
 end
 S_822: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_823: begin // or_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_824;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_824;
 end
 S_824: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (({16'h0, n_ir[1]}) | (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_825;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (({16'h0, n_ir[1]}) | (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_825;
 end
 S_825: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_826;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_826;
 end
 S_826: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_827: begin // xor_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_828;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_828;
 end
 S_828: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (({16'h0, n_ir[1]}) ^ (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_829;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (({16'h0, n_ir[1]}) ^ (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_829;
 end
 S_829: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_830;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_830;
 end
 S_830: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_831: begin // and_w_imm16_r16l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_832;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_832;
 end
 S_832: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (({16'h0, n_ir[1]}) & (r16_r(r, {16'h0, n_ir[0]})));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV16;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u16(n_tmp1);
-    n_st = S_833;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (({16'h0, n_ir[1]}) & (r16_r(r, {16'h0, n_ir[0]})));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV16;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u16(n_tmp1);
+  n_st = S_833;
 end
 S_833: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W16;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = c_u16(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_834;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W16;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = c_u16(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_834;
 end
 S_834: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_835: begin // mov_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_836;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_836;
 end
 S_836: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_837;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_837;
 end
 S_837: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_838;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_838;
 end
 S_838: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_839;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_839;
 end
 S_839: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_840: begin // add_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_841;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_841;
 end
 S_841: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_842;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_842;
 end
 S_842: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    n_st = S_843;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  n_st = S_843;
 end
 S_843: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_844;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_844;
 end
 S_844: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_845: begin // cmp_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_846;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_846;
 end
 S_846: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_847;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_847;
 end
 S_847: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    n_st = S_848;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  n_st = S_848;
 end
 S_848: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_849;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_849;
 end
 S_849: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_850: begin // sub_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_851;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_851;
 end
 S_851: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_852;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_852;
 end
 S_852: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r32_r(r, {16'h0, n_ir[0]});
-    alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
-    n_st = S_853;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r32_r(r, {16'h0, n_ir[0]});
+  alu_b_n = (((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}));
+  n_st = S_853;
 end
 S_853: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_854;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_854;
 end
 S_854: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_855: begin // or_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_856;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_856;
 end
 S_856: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_857;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_857;
 end
 S_857: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) | ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_858;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) | ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_858;
 end
 S_858: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_859;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_859;
 end
 S_859: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_860: begin // xor_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_861;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_861;
 end
 S_861: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_862;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_862;
 end
 S_862: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) ^ ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_863;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) ^ ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_863;
 end
 S_863: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_864;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_864;
 end
 S_864: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_865: begin // and_l_imm32_r32l
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_866;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_866;
 end
 S_866: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_867;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_867;
 end
 S_867: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) & ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV32;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = n_tmp1;
-    n_st = S_868;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((r32_r(r, {16'h0, n_ir[0]})) & ((((({16'h0, n_ir[1]}) << (32'h00000010))) | ({16'h0, n_ir[2]}))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV32;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = n_tmp1;
+  n_st = S_868;
 end
 S_868: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W32;
-    rf_idx = t4({16'h0, n_ir[0]});
-    rf_val = n_tmp1;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_869;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W32;
+  rf_idx = t4({16'h0, n_ir[0]});
+  rf_val = n_tmp1;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_869;
 end
 S_869: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_870: begin // eepmov_b
-    n_st = S_871;
+  n_st = S_871;
 end
 S_871: begin // while
-    n_st = ((r8_r(r, 32'h0000000c)) != '0) ? S_872 : S_873;
+  n_st = ((r8_r(r, 32'h0000000c)) != '0) ? S_872 : S_873;
 end
 S_872: begin // do
-    op_kind = OP_R8;
-    op_addr = r32_r(r, 32'h00000005);
-    op_cost = 6'd2;
-    n_st = S_874;
+  op_kind = OP_R8;
+  op_addr = r32_r(r, 32'h00000005);
+  op_cost = 6'd2;
+  n_st = S_874;
 end
 S_873: begin // done
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_878;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_878;
 end
 S_874: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    op_kind = OP_W8;
-    op_addr = r32_r(r, 32'h00000006);
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_875;
+  n_tmp1 = {24'h0, rd[7:0]};
+  op_kind = OP_W8;
+  op_addr = r32_r(r, 32'h00000006);
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_875;
 end
 S_875: begin // after write8
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000005);
-    rf_val = ((r32_r(r, 32'h00000005)) + (32'h00000001));
-    n_st = S_876;
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000005);
+  rf_val = ((r32_r(r, 32'h00000005)) + (32'h00000001));
+  n_st = S_876;
 end
 S_876: begin // after register write
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000006);
-    rf_val = ((r32_r(r, 32'h00000006)) + (32'h00000001));
-    n_st = S_877;
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000006);
+  rf_val = ((r32_r(r, 32'h00000006)) + (32'h00000001));
+  n_st = S_877;
 end
 S_877: begin // after register write
-    rf_we = RF_W8;
-    rf_idx = t4(32'h0000000c);
-    rf_val = c_u8(((r8_r(r, 32'h0000000c)) - (32'h00000001)));
-    n_st = S_871;
+  rf_we = RF_W8;
+  rf_idx = t4(32'h0000000c);
+  rf_val = c_u8(((r8_r(r, 32'h0000000c)) - (32'h00000001)));
+  n_st = S_871;
 end
 S_878: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_879: begin // eepmov_w
-    n_st = S_880;
+  n_st = S_880;
 end
 S_880: begin // while
-    n_st = ((r16_r(r, 32'h00000004)) != '0) ? S_881 : S_882;
+  n_st = ((r16_r(r, 32'h00000004)) != '0) ? S_881 : S_882;
 end
 S_881: begin // do
-    op_kind = OP_R8;
-    op_addr = r32_r(r, 32'h00000005);
-    op_cost = 6'd2;
-    n_st = S_883;
+  op_kind = OP_R8;
+  op_addr = r32_r(r, 32'h00000005);
+  op_cost = 6'd2;
+  n_st = S_883;
 end
 S_882: begin // done
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_887;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_887;
 end
 S_883: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    op_kind = OP_W8;
-    op_addr = r32_r(r, 32'h00000006);
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_884;
+  n_tmp1 = {24'h0, rd[7:0]};
+  op_kind = OP_W8;
+  op_addr = r32_r(r, 32'h00000006);
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_884;
 end
 S_884: begin // after write8
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000005);
-    rf_val = ((r32_r(r, 32'h00000005)) + (32'h00000001));
-    n_st = S_885;
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000005);
+  rf_val = ((r32_r(r, 32'h00000005)) + (32'h00000001));
+  n_st = S_885;
 end
 S_885: begin // after register write
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000006);
-    rf_val = ((r32_r(r, 32'h00000006)) + (32'h00000001));
-    n_st = S_886;
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000006);
+  rf_val = ((r32_r(r, 32'h00000006)) + (32'h00000001));
+  n_st = S_886;
 end
 S_886: begin // after register write
-    rf_we = RF_W16;
-    rf_idx = t4(32'h00000004);
-    rf_val = c_u16(((r16_r(r, 32'h00000004)) - (32'h00000001)));
-    n_st = S_880;
+  rf_we = RF_W16;
+  rf_idx = t4(32'h00000004);
+  rf_val = c_u16(((r16_r(r, 32'h00000004)) - (32'h00000001)));
+  n_st = S_880;
 end
 S_887: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_888: begin // btst_r8h_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_889;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_889;
 end
 S_889: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_890;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_890;
 end
 S_890: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_891: begin // btst_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_892;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_892;
 end
 S_892: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_893;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_893;
 end
 S_893: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_894: begin // bor_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_895;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_895;
 end
 S_895: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_896;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_896;
 end
 S_896: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_897: begin // bior_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_898;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_898;
 end
 S_898: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_899;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_899;
 end
 S_899: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_900: begin // bxor_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_901;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_901;
 end
 S_901: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_902;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_902;
 end
 S_902: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_903: begin // bixor_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_904;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_904;
 end
 S_904: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_905;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_905;
 end
 S_905: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_906: begin // band_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_907;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_907;
 end
 S_907: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_908;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_908;
 end
 S_908: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_909: begin // biand_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_910;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_910;
 end
 S_910: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_911;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_911;
 end
 S_911: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_912: begin // bld_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_913;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_913;
 end
 S_913: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_914;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_914;
 end
 S_914: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_915: begin // bild_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_916;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_916;
 end
 S_916: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_917;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_917;
 end
 S_917: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_918: begin // bset_r8h_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_919;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_919;
 end
 S_919: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_920;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_920;
 end
 S_920: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_921;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_921;
 end
 S_921: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_922: begin // bnot_r8h_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_923;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_923;
 end
 S_923: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_924;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_924;
 end
 S_924: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_925;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_925;
 end
 S_925: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_926: begin // bclr_r8h_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_927;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_927;
 end
 S_927: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_928;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_928;
 end
 S_928: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_929;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_929;
 end
 S_929: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_930: begin // bst_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_931;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_931;
 end
 S_931: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_932;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_932;
 end
 S_932: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_933;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_933;
 end
 S_933: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_934: begin // bist_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_935;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_935;
 end
 S_935: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_936;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_936;
 end
 S_936: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_937;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_937;
 end
 S_937: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_938: begin // bset_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_939;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_939;
 end
 S_939: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_940;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_940;
 end
 S_940: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_941;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_941;
 end
 S_941: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_942: begin // bnot_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_943;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_943;
 end
 S_943: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_944;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_944;
 end
 S_944: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_945;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_945;
 end
 S_945: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_946: begin // bclr_imm3_r32ihh
-    n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_947;
+  n_tmp2 = r32_r(r, (({16'h0, n_ir[0]}) >> (32'h00000004)));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_947;
 end
 S_947: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_948;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_948;
 end
 S_948: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_949;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_949;
 end
 S_949: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_950: begin // btst_r8h_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_951;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_951;
 end
 S_951: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_952;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_952;
 end
 S_952: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_953: begin // btst_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_954;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_954;
 end
 S_954: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_955;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffb))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000004))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_955;
 end
 S_955: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_956: begin // bor_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_957;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_957;
 end
 S_957: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_958;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_958;
 end
 S_958: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_959: begin // bior_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_960;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_960;
 end
 S_960: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_961;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_961;
 end
 S_961: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_962: begin // bxor_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_963;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_963;
 end
 S_963: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_964;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_964;
 end
 S_964: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_965: begin // bixor_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_966;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_966;
 end
 S_966: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_967;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) ^ (32'h00000001))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_967;
 end
 S_967: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_968: begin // band_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_969;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_969;
 end
 S_969: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_970;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_970;
 end
 S_970: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_971: begin // biand_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_972;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_972;
 end
 S_972: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_973;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_973;
 end
 S_973: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_974: begin // bld_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_975;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_975;
 end
 S_975: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_976;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if ((((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_976;
 end
 S_976: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_977: begin // bild_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_978;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_978;
 end
 S_978: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
-    end else begin
-      n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
-    end
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_979;
+  n_tmp1 = {24'h0, rd[7:0]};
+  if (({31'h0, (((n_tmp1) & (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))) == '0}) != '0) begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000001))));
+  end else begin
+    n_ccr = t8(c_u8((({24'h0, n_ccr}) & (32'hfffffffe))));
+  end
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_979;
 end
 S_979: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_980: begin // bset_r8h_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_981;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_981;
 end
 S_981: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_982;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_982;
 end
 S_982: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_983;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_983;
 end
 S_983: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_984: begin // bnot_r8h_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_985;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_985;
 end
 S_985: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_986;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_986;
 end
 S_986: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_987;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_987;
 end
 S_987: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_988: begin // bclr_r8h_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_989;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_989;
 end
 S_989: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))));
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_990;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << (((r8_r(r, (({16'h0, n_ir[1]}) >> (32'h00000004)))) & (32'h00000007))))))));
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_990;
 end
 S_990: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_991;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_991;
 end
 S_991: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_992: begin // bst_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_993;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_993;
 end
 S_993: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_994;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_994;
 end
 S_994: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_995;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (((({24'h0, n_ccr}) & (32'h00000001))) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_995;
 end
 S_995: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_996: begin // bist_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_997;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_997;
 end
 S_997: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_998;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_998;
 end
 S_998: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
-      n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    end else begin
-      n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    end
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_999;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (({31'h0, ((({24'h0, n_ccr}) & (32'h00000001))) == '0}) != '0) begin
+    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  end else begin
+    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  end
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_999;
 end
 S_999: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1000: begin // bset_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_1001;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_1001;
 end
 S_1001: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1002;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1002;
 end
 S_1002: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_1003;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_tmp1) | (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_1003;
 end
 S_1003: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1004: begin // bnot_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_1005;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_1005;
 end
 S_1005: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1006;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1006;
 end
 S_1006: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_1007;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_tmp1) ^ (((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_1007;
 end
 S_1007: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1008: begin // bclr_imm3_abs8
-    n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
-    op_kind = OP_R8;
-    op_addr = n_tmp2;
-    op_cost = 6'd2;
-    n_st = S_1009;
+  n_tmp2 = ((32'hffffff00) | ({16'h0, n_ir[0]}));
+  op_kind = OP_R8;
+  op_addr = n_tmp2;
+  op_cost = 6'd2;
+  n_st = S_1009;
 end
 S_1009: begin // after read8
-    n_tmp1 = {24'h0, rd[7:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1010;
+  n_tmp1 = {24'h0, rd[7:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1010;
 end
 S_1010: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
-    op_kind = OP_W8;
-    op_addr = n_tmp2;
-    op_data = t16(c_u8(n_tmp1));
-    op_cost = 6'd2;
-    n_st = S_1011;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_tmp1 = ((n_tmp1) & ((~(((32'h00000001) << ((((({16'h0, n_ir[1]}) >> (32'h00000004))) & (32'h00000007))))))));
+  op_kind = OP_W8;
+  op_addr = n_tmp2;
+  op_data = t16(c_u8(n_tmp1));
+  op_cost = 6'd2;
+  n_st = S_1011;
 end
 S_1011: begin // after write8
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1012: begin // add_b_imm8_r8u
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADD8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
-    alu_b_n = c_u8({16'h0, n_ir[0]});
-    n_st = S_1013;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADD8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
+  alu_b_n = c_u8({16'h0, n_ir[0]});
+  n_st = S_1013;
 end
 S_1013: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1014;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1014;
 end
 S_1014: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1015: begin // addx_b_imm8_r8u
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_ADDX8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
-    alu_b_n = c_u8({16'h0, n_ir[0]});
-    n_st = S_1016;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_ADDX8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
+  alu_b_n = c_u8({16'h0, n_ir[0]});
+  n_st = S_1016;
 end
 S_1016: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1017;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1017;
 end
 S_1017: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1018: begin // cmp_b_imm8_r8u
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUB8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
-    alu_b_n = c_u8({16'h0, n_ir[0]});
-    n_st = S_1019;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUB8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
+  alu_b_n = c_u8({16'h0, n_ir[0]});
+  n_st = S_1019;
 end
 S_1019: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1020;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1020;
 end
 S_1020: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1021: begin // subx_b_imm8_r8u
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_DO_SUBX8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
-    alu_b_n = c_u8({16'h0, n_ir[0]});
-    n_st = S_1022;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_DO_SUBX8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)));
+  alu_b_n = c_u8({16'h0, n_ir[0]});
+  n_st = S_1022;
 end
 S_1022: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = f0;
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1023;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = f0;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1023;
 end
 S_1023: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1024: begin // or_b_imm8_r8u
-    n_tmp1 = (({16'h0, n_ir[0]}) | (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_1025;
+  n_tmp1 = (({16'h0, n_ir[0]}) | (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_1025;
 end
 S_1025: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1026;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1026;
 end
 S_1026: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1027: begin // xor_b_imm8_r8u
-    n_tmp1 = (({16'h0, n_ir[0]}) ^ (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_1028;
+  n_tmp1 = (({16'h0, n_ir[0]}) ^ (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_1028;
 end
 S_1028: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1029;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1029;
 end
 S_1029: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1030: begin // and_b_imm8_r8u
-    n_tmp1 = (({16'h0, n_ir[0]}) & (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8(n_tmp1);
-    n_st = S_1031;
+  n_tmp1 = (({16'h0, n_ir[0]}) & (r8_r(r, (({16'h0, n_ir[0]}) >> (32'h00000008)))));
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8(n_tmp1);
+  n_st = S_1031;
 end
 S_1031: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = c_u8(n_tmp1);
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1032;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = c_u8(n_tmp1);
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1032;
 end
 S_1032: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1033: begin // mov_b_imm8_r8u
-    alu_ld = 1'b1;
-    alu_sel_n = ALU_SET_NZV8;
-    alu_c_n = {24'h0, n_ccr};
-    alu_a_n = c_u8({16'h0, n_ir[0]});
-    n_st = S_1034;
+  alu_ld = 1'b1;
+  alu_sel_n = ALU_SET_NZV8;
+  alu_c_n = {24'h0, n_ccr};
+  alu_a_n = c_u8({16'h0, n_ir[0]});
+  n_st = S_1034;
 end
 S_1034: begin // after alu
-    {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
-    rf_we = RF_W8;
-    rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
-    rf_val = c_u8({16'h0, n_ir[0]});
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1035;
+  {n_ccr, f0} = {alu_q[39:32], alu_q[31:0]};
+  rf_we = RF_W8;
+  rf_idx = t4((({16'h0, n_ir[0]}) >> (32'h00000008)));
+  rf_val = c_u8({16'h0, n_ir[0]});
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1035;
 end
 S_1035: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    if (irq_vector != 8'h0) begin
-      n_inst_state = 24'h010001;
-      n_tvec = irq_vector;
-      n_tlvl = irq_level;
-    end else begin
-      n_inst_state = {8'h0, n_pir};
-      n_ir[0] = n_pir;
-    end
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  if (irq_vector != 8'h0) begin
+    n_inst_state = 24'h010001;
+    n_tvec = irq_vector;
+    n_tlvl = irq_level;
+  end else begin
+    n_inst_state = {8'h0, n_pir};
+    n_ir[0] = n_pir;
+  end
+  n_st = S_EXEC;
 end
 S_1036: begin // state_reset
-    n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000080))));
-    n_exr = t8(c_u8(32'h0000007f));
-    op_kind = OP_F16;
-    op_addr = 32'h00000000;
-    op_cost = 6'd2;
-    n_st = S_1037;
+  n_ccr = t8(c_u8((({24'h0, n_ccr}) | (32'h00000080))));
+  n_exr = t8(c_u8(32'h0000007f));
+  op_kind = OP_F16;
+  op_addr = 32'h00000000;
+  op_cost = 6'd2;
+  n_st = S_1037;
 end
 S_1037: begin // after read16i
-    n_ir[0] = t16({16'h0, rd});
-    op_kind = OP_F16;
-    op_addr = 32'h00000002;
-    op_cost = 6'd2;
-    n_st = S_1038;
+  n_ir[0] = t16({16'h0, rd});
+  op_kind = OP_F16;
+  op_addr = 32'h00000002;
+  op_cost = 6'd2;
+  n_st = S_1038;
 end
 S_1038: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_1039;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_1039;
 end
 S_1039: begin // after update_irq_filter
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1040;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1040;
 end
 S_1040: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_1041: begin // state_irq
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_1042;
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_1042;
 end
 S_1042: begin // after internal
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16(n_npc));
-    op_cost = 6'd2;
-    n_st = S_1043;
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16(n_npc));
+  op_cost = 6'd2;
+  n_st = S_1043;
 end
 S_1043: begin // after write16
-    n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
-    rf_we = RF_W32;
-    rf_idx = t4(32'h00000007);
-    rf_val = n_tmp1;
-    op_kind = OP_W16;
-    op_addr = n_tmp1;
-    op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | (((((n_npc) >> (32'h00000010))) & (32'h000000ff))))));
-    op_cost = 6'd2;
-    n_st = S_1044;
+  n_tmp1 = ((r32_r(r, 32'h00000007)) - (32'h00000002));
+  rf_we = RF_W32;
+  rf_idx = t4(32'h00000007);
+  rf_val = n_tmp1;
+  op_kind = OP_W16;
+  op_addr = n_tmp1;
+  op_data = t16(c_u16((((({24'h0, n_ccr}) << (32'h00000008))) | (((((n_npc) >> (32'h00000010))) & (32'h000000ff))))));
+  op_cost = 6'd2;
+  n_st = S_1044;
 end
 S_1044: begin // after write16
-    op_kind = OP_F16;
-    op_addr = ((32'h00000004) * ({24'h0, n_tvec}));
-    op_cost = 6'd2;
-    n_st = S_1045;
+  op_kind = OP_F16;
+  op_addr = ((32'h00000004) * ({24'h0, n_tvec}));
+  op_cost = 6'd2;
+  n_st = S_1045;
 end
 S_1045: begin // after read16i
-    n_ir[0] = t16({16'h0, rd});
-    op_kind = OP_F16;
-    op_addr = ((((32'h00000004) * ({24'h0, n_tvec}))) + (32'h00000002));
-    op_cost = 6'd2;
-    n_st = S_1046;
+  n_ir[0] = t16({16'h0, rd});
+  op_kind = OP_F16;
+  op_addr = ((((32'h00000004) * ({24'h0, n_tvec}))) + (32'h00000002));
+  op_cost = 6'd2;
+  n_st = S_1046;
 end
 S_1046: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
-    op_kind = OP_INT;
-    op_cost = 6'd2;
-    n_st = S_1047;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = (((({16'h0, n_ir[0]}) << (32'h00000010))) | ({16'h0, n_ir[1]}));
+  op_kind = OP_INT;
+  op_cost = 6'd2;
+  n_st = S_1047;
 end
 S_1047: begin // after internal
-    n_ccr = n_ccr | (syscr_ue ? 8'h80 : 8'hc0);
-    n_filter = filter_of(n_ccr, syscr_ue);
-    n_filter_we = 1'b1;
-    n_st = S_1048;
+  n_ccr = n_ccr | (syscr_ue ? 8'h80 : 8'hc0);
+  n_filter = filter_of(n_ccr, syscr_ue);
+  n_filter_we = 1'b1;
+  n_st = S_1048;
 end
 S_1048: begin // after update_irq_filter
-    n_irq_taken = 1'b1;
-    n_st = S_1049;
+  n_irq_taken = 1'b1;
+  n_st = S_1049;
 end
 S_1049: begin // after interrupt_taken
-    n_npc = ((n_pc) & (32'h00ffffff));
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1050;
+  n_npc = ((n_pc) & (32'h00ffffff));
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1050;
 end
 S_1050: begin // after read16i
-    n_pir = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = {8'h0, n_pir};
-    n_ir[0] = n_pir;
-    n_st = S_EXEC;
+  n_pir = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = {8'h0, n_pir};
+  n_ir[0] = n_pir;
+  n_st = S_EXEC;
 end
 S_1051: begin // dispatch_0100
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1052;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1052;
 end
 S_1052: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00020000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00020000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1053: begin // dispatch_01007800
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1054;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1054;
 end
 S_1054: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00030000) | ({16'h0, n_ir[2]})));
-    n_st = S_EXEC;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00030000) | ({16'h0, n_ir[2]})));
+  n_st = S_EXEC;
 end
 S_1055: begin // dispatch_0140
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1056;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1056;
 end
 S_1056: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00070000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00070000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1057: begin // dispatch_01407800
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1058;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1058;
 end
 S_1058: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00080000) | ({16'h0, n_ir[2]})));
-    n_st = S_EXEC;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00080000) | ({16'h0, n_ir[2]})));
+  n_st = S_EXEC;
 end
 S_1059: begin // dispatch_01407880
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1060;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1060;
 end
 S_1060: begin // after read16i
-    n_ir[2] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00090000) | ({16'h0, n_ir[2]})));
-    n_st = S_EXEC;
+  n_ir[2] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00090000) | ({16'h0, n_ir[2]})));
+  n_st = S_EXEC;
 end
 S_1061: begin // dispatch_01c0
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1062;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1062;
 end
 S_1062: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h000e0000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h000e0000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1063: begin // dispatch_01d0
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1064;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1064;
 end
 S_1064: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h000f0000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h000f0000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1065: begin // dispatch_01f0
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1066;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1066;
 end
 S_1066: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00110000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00110000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1067: begin // dispatch_7800
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1068;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1068;
 end
 S_1068: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00160000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00160000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1069: begin // dispatch_7b5c
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1070;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1070;
 end
 S_1070: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00170000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00170000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1071: begin // dispatch_7bd4
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1072;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1072;
 end
 S_1072: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00180000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00180000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1073: begin // dispatch_7c00
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1074;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1074;
 end
 S_1074: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h00190000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h00190000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1075: begin // dispatch_7d00
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1076;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1076;
 end
 S_1076: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h001a0000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h001a0000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1077: begin // dispatch_7e00
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1078;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1078;
 end
 S_1078: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h001b0000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h001b0000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
 S_1079: begin // dispatch_7f00
-    op_kind = OP_F16;
-    op_addr = n_pc;
-    op_cost = 6'd2;
-    n_st = S_1080;
+  op_kind = OP_F16;
+  op_addr = n_pc;
+  op_cost = 6'd2;
+  n_st = S_1080;
 end
 S_1080: begin // after read16i
-    n_ir[1] = t16({16'h0, rd});
-    n_pc = ((n_pc) + (32'h00000002));
-    n_inst_state = t24(((32'h001c0000) | ({16'h0, n_ir[1]})));
-    n_st = S_EXEC;
+  n_ir[1] = t16({16'h0, rd});
+  n_pc = ((n_pc) + (32'h00000002));
+  n_inst_state = t24(((32'h001c0000) | ({16'h0, n_ir[1]})));
+  n_st = S_EXEC;
 end
