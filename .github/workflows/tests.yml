@@ -47,7 +47,8 @@ jobs:
         run: scripts/precommit.sh --fast
 
   # Second HDL front end, advisory: verible-verilog-lint with a small rule set
-  # (scripts/verible-lint.sh). continue-on-error: findings never fail the run.
+  # (scripts/verible-lint.sh). Findings are a warning annotation and the job summary; they never
+  # fail the check (continue-on-error covers an install failure too).
   verible:
     runs-on: ubuntu-24.04
     continue-on-error: true
@@ -63,7 +64,8 @@ jobs:
           rc=0; scripts/verible-lint.sh > verible.txt 2>&1 || rc=$?
           cat verible.txt
           { echo "### verible (advisory)"; tail -1 verible.txt; } >> "$GITHUB_STEP_SUMMARY"
-          exit $rc
+          # advisory: findings are a warning annotation, not a failed check
+          if [ "$rc" != 0 ]; then echo "::warning title=verible (advisory)::$(tail -1 verible.txt)"; fi
 
   changes:
     runs-on: ubuntu-24.04
