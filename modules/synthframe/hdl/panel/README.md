@@ -7,13 +7,15 @@ stays with the core when the references differ. The SC-55 and JV-880 use
 `modules/roland/hdl/board/lcd_ctrl.sv`, which is Nuked-SC55's `LCD_Write`. The Proteus/1 and
 CZ-101 use `synthframe_hd44780`, which is MAME's `hd44780_base_device`.
 
-| Module | What it does | Used by |
-|---|---|---|
-| `synthframe_hd44780.sv` | HD44780 controller after MAME: DDRAM 128 x 8, CGRAM 64 x 8, address counter correction, entry mode, display/cursor shift, busy timing, and a combinational render port | Proteus/1, CZ-101 (`cores/cz101/hdl/cz101_lcd.sv` adds the E/RW/RS pins) |
-| `synthframe_charlcd.sv` | Character LCD renderer, the dot layer. Draws LINES x COLS characters of 5 x 8 dots from a character LCD read port; geometry and pitch are parameters | JV-880 (the LCD and the debug line), CZ-101 |
-| `synthframe_vtiming.sv` | Video timing counters, 800 x 600 at 60 Hz from 40 MHz by default | SC-55, JV-880, CZ-101 |
-| `synthframe_panel_art.sv` | Front-panel art from block RAM: an 8 x 8 cell map (tile, element) and a tile ROM of 4 or 5 bits a pixel, made by `modules/synthframe/tools/panel_art.py` from `cores/<core>/cfg/panel.yaml`. LEDs light and buttons show pressed by swapping the palette of their cells (`state[element]`). Three clocks (enabled clocks) of latency, as the renderers' | CZ-101, JV-880 |
-| `synthframe_status_strip.sv` | The status strip the MiSTer smoke tests read: state band, MIDI, underrun and lag boxes | SC-55, JV-880, CZ-101 |
+| Module | What it does |
+|---|---|
+| `synthframe_hd44780.sv` | HD44780 controller after MAME: DDRAM 128 x 8, CGRAM 64 x 8, address counter correction, entry mode, display/cursor shift, busy timing, and a combinational render port |
+| `synthframe_charlcd.sv` | Character LCD renderer, the dot layer. Draws LINES x COLS characters of 5 x 8 dots from a character LCD read port; geometry and pitch are parameters |
+| `synthframe_vtiming.sv` | Video timing counters, 800 x 600 at 60 Hz from 40 MHz by default |
+| `synthframe_panel_art.sv` | Front-panel art from block RAM: an 8 x 8 cell map (tile, element) and a tile ROM of 4 or 5 bits a pixel, made by `modules/synthframe/tools/panel_art.py` from `cores/<core>/cfg/panel.yaml`. LEDs light and buttons show pressed by swapping the palette of their cells (`state[element]`). Three clocks (enabled clocks) of latency, as the renderers' |
+| `synthframe_status_strip.sv` | The status strip the MiSTer smoke tests read: state band, MIDI, underrun and lag boxes |
+
+Which cores use a module: `git grep -l <module> -- 'cores/*/cfg/files.yaml'`.
 
 `synthframe_hd44780` measures the busy flag in clock cycles (`BUSY_EXT = 0`; the Proteus/1 at
 80 MHz) or against an external time base (`BUSY_EXT = 1`; the CZ-101's virtual CPU cycles, so
@@ -41,7 +43,7 @@ which the smoke tests search for.
 The renderer asks for a character, then for one dot row of that character:
 
 | Signal | Direction (renderer's view) | Meaning |
-|---|---|---|
+|---|---|
 | `cell_line`, `cell_col` | out, registered | the display position being drawn |
 | `cell_row` | out, with `cell_line` | the dot row being drawn |
 | `cell_code` | in, sampled one clock later | the character code at that position (combinational in the core) |

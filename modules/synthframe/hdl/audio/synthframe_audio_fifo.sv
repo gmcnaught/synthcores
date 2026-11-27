@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// synthframe (from synclavierii hdl/core/audio_fifo.sv; also used by the SC-55)
+// synthframe (from synclavierii hdl/core/audio_fifo.sv)
 //
 // Audio to real time: pcm_out's 48 kHz samples arrive as the CPU makes
 // simulated time (every 1/48000 s of it, give or take the throttle's slack:

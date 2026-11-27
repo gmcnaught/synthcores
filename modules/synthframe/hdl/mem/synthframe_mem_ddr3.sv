@@ -19,6 +19,11 @@
 // a new request is taken only while none is held, so at most one command every two clocks
 // (as the cores' own DDR3 ports did). Read data comes back in order on DDRAM_DOUT_READY; the
 // tag of each issued read waits in a FIFO.
+//
+// rst may be any length: a command held on DDRAM_RD / DDRAM_WE stays until the controller takes
+// it (Avalon), reads already issued are counted back in with no rsp_valid, and req_ready stays
+// low until the port is idle. So no response for a request taken before rst comes after it.
+// The command and queue state start idle at power-on (declaration initial values).
 module synthframe_mem_ddr3 #(
     parameter int TW = 4,                 // tag width
     parameter int QBITS = 4               // outstanding reads < 2**QBITS
@@ -53,31 +58,34 @@ module synthframe_mem_ddr3 #(
 
     logic [TW-1:0]  tq [Q];               // tags of reads taken, in order
     logic [7:0]     lq [Q];               // their lengths (words) less one
-    logic [7:0]     rbeat;                // words of the oldest read returned so far
-    logic [QBITS:0] tq_wp, tq_rp;         // tq_wp - tq_rp = reads taken and not returned
-    logic [7:0]     beats;                // write beats still to be taken, after this one
-    wire            held = DDRAM_RD || DDRAM_WE;
+    // power-up values instead of a reset: rst must not drop a held command or forget reads in
+    // flight (Quartus takes declaration values as the power-up state)
+    /* verilator lint_off PROCASSINIT */
+    logic [QBITS:0] tq_wp = '0, tq_rp = '0;   // tq_wp - tq_rp = reads taken and not returned
+    logic [7:0]     rbeat = 8'd0;         // words of the oldest read returned so far
+    logic [7:0]     beats = 8'd0;         // write beats still to be taken, after this one
+    logic           drain = 1'b0;         // since rst: reads before it still coming back
+    logic           rd = 1'b0, we = 1'b0; // the command held on DDRAM_RD / DDRAM_WE
+    /* verilator lint_on PROCASSINIT */
+    assign DDRAM_RD = rd;
+    assign DDRAM_WE = we;
+    wire            held = rd || we;
     wire            room = (tq_wp - tq_rp) < (QBITS+1)'(Q - 1);
+    wire            idle = !held && tq_wp == tq_rp;
 
-    assign req_ready = !rst && !held && room;
+    assign req_ready = !rst && !drain && !held && room;
 
     always_ff @(posedge clk) begin
         rsp_valid <= 1'b0;
-        if (rst) begin
-            DDRAM_RD <= 1'b0;
-            DDRAM_WE <= 1'b0;
-            DDRAM_BURSTCNT <= 8'd1;
-            beats <= 8'd0;
-            tq_wp <= '0;
-            tq_rp <= '0;
-            rbeat <= 8'd0;
-        end else begin
+        if (rst) drain <= 1'b1;
+        else if (idle) drain <= 1'b0;
+        begin   // no reset: a held command completes and issued reads are counted back
             if (held) begin
                 if (!DDRAM_BUSY) begin
                     if (beats != 8'd0) beats <= beats - 8'd1;
                     else begin
-                        DDRAM_RD <= 1'b0;
-                        DDRAM_WE <= 1'b0;
+                        rd <= 1'b0;
+                        we <= 1'b0;
                     end
                 end
             end else if (req_valid && req_ready) begin
@@ -87,13 +95,13 @@ module synthframe_mem_ddr3 #(
                 DDRAM_BURSTCNT <= 8'd1;
                 beats <= 8'd0;
                 if (req_we) begin
-                    DDRAM_WE <= 1'b1;
+                    we <= 1'b1;
                     if (req_len > 8'd1) begin
                         DDRAM_BURSTCNT <= req_len;
                         beats <= req_len - 8'd1;
                     end
                 end else begin
-                    DDRAM_RD <= 1'b1;
+                    rd <= 1'b1;
                     if (req_len > 8'd1) DDRAM_BURSTCNT <= req_len;
                     tq[tq_wp[QBITS-1:0]] <= req_tag;
                     lq[tq_wp[QBITS-1:0]] <= req_len > 8'd1 ? req_len - 8'd1 : 8'd0;
@@ -101,7 +109,7 @@ module synthframe_mem_ddr3 #(
                 end
             end
             if (DDRAM_DOUT_READY) begin
-                rsp_valid <= 1'b1;
+                rsp_valid <= !rst && !drain;
                 rsp_data <= DDRAM_DOUT;
                 rsp_tag <= tq[tq_rp[QBITS-1:0]];
                 if (rbeat == lq[tq_rp[QBITS-1:0]]) begin

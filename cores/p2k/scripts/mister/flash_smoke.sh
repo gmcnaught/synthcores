@@ -36,7 +36,7 @@ scp -q "$PACK" "$MISTER:/media/fat/games/P2K/p2k_fl.p2k"
 scp -q "$SIM" "$MISTER:/media/fat/games/P2K/p2k_fl1.sim"
 printf '<mistergamedescription>\n  <rbf>_Devices/P2K</rbf>\n  <file delay="1" type="f" index="1" path="p2k_fl.p2k"/>\n  <file delay="1" type="s" index="1" path="p2k_fl1.sim"/>\n</mistergamedescription>\n' |
     $M sh "cat > /tmp/p2k_fl.mgl"
-scp -q ../synclavier/scripts/mister/mister_keys.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 romid() { $M sh "dd if=/media/fat/games/P2K/p2k_fl1.sim bs=1 skip=$((0x20003E)) count=4 2>/dev/null | od -An -tu1" | awk '{print $1*16777216+$2*65536+$3*256+$4}'; }
 lit() {

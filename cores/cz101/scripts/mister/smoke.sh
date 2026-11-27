@@ -10,7 +10,7 @@
 # mounted), waits BOOT seconds (default 8), screenshots, plays tests/midi/basic.txt once over
 # the UART at 9600 baud (synthframe_midi_rx also takes 9600), screenshots again (its last
 # program change selects preset 15). MIDI out: keys "3" (Preset) and F3 (Tone 3) while
-# scripts/mister/tty_midi_read.py reads /dev/ttyS1 at 31,250 baud; Tone 3 in the bank half
+# tty_midi_xfer.py --baud 31250 reads /dev/ttyS1 at 31,250 baud; Tone 3 in the bank half
 # that holds preset 15 selects preset 11, and the firmware sends its program change, C0 0A
 # (the C4 panel case, tests/panel/basic.txt, checks the MIDI-out bytes against MAME).
 # An edited tone survives a reload: with Write ("y") held, Internal ("4") and Tone 2 (F2) store
@@ -36,8 +36,8 @@ cd "$(dirname "$0")/../.."
 RBF=${1:?usage: smoke.sh RBF PACK OUTDIR}; PACK=${2:?}; OUT=${3:?}
 M=../../modules/synthframe/bin/synth-mister
 mkdir -p "$OUT"
-python3 ../proteus/tools/mkmidi.py tests/midi/basic.txt "$OUT/basic.mid" >/dev/null
-python3 ../sc55/scripts/mister/smf2events.py "$OUT/basic.mid" "$OUT/basic.txt" >/dev/null
+python3 ../../modules/synthframe/tools/midi/mkmidi.py tests/midi/basic.txt "$OUT/basic.mid" >/dev/null
+python3 ../../modules/synthframe/tools/midi/smf2events.py "$OUT/basic.mid" "$OUT/basic.txt" >/dev/null
 SECS=$(awk 'END { print int($1) + 2 }' "$OUT/basic.txt")
 
 $M lock cz101-smoke
@@ -47,7 +47,7 @@ $M sh "mkdir -p /media/fat/games/CZ-101; rm -f /media/fat/games/CZ-101/boot.rom 
 scp -q "$PACK" "$MISTER:/media/fat/games/CZ-101/cz101_smoke.rom"
 printf '<mistergamedescription>\n  <rbf>_Devices/CZ101</rbf>\n  <file delay="1" type="f" index="1" path="cz101_smoke.rom"/>\n</mistergamedescription>\n' |
     $M sh "cat > /tmp/cz101_smoke.mgl"
-scp -q ../synclavier/scripts/mister/mister_keys.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
 $M load /tmp/cz101_smoke.mgl; sleep "${BOOT:-8}"
@@ -55,13 +55,13 @@ $M shot cz101 "$OUT/boot.png" >/dev/null
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # a few zero bytes (framing errors at 31250) switch the input to 9600 (synthframe_midi_rx)
 printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
-scp -q ../sc55/scripts/mister/play_tty.py "$OUT/basic.txt" "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/play_tty.py "$OUT/basic.txt" "$MISTER:/tmp/"
 $M sh "python3 /tmp/play_tty.py /tmp/basic.txt $SECS"
 $M shot cz101 "$OUT/end.png" >/dev/null
 
 # MIDI out
-scp -q scripts/mister/tty_midi_read.py "$MISTER:/tmp/"
-$M sh "nohup python3 /tmp/tty_midi_read.py 6 > /tmp/cz101_midi_out.txt 2>&1 < /dev/null &"
+scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+$M sh "nohup python3 /tmp/tty_midi_xfer.py --baud 31250 6 > /tmp/cz101_midi_out.txt 2>&1 < /dev/null &"
 sleep 1
 keys text:3 sleep:1 F3 sleep:1
 sleep 2

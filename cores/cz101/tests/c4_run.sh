@@ -29,7 +29,7 @@ NAME=$(basename "$SCRIPT" .txt)
 W="${C4_WORK:-$HERE/out/c4}/$NAME"; rm -rf "$W"; mkdir -p "$W/rom/cz101" "$W/rom/hd44780"
 cp "${CZ101_ROM_DIR:?}"/*.bin "$W/rom/cz101/"
 cp "${HD44780_ROM:?}" "$W/rom/hd44780/"
-"$PY" "$HERE/../proteus/tools/mkmidi.py" "$SCRIPT" "$W/in.mid"
+"$PY" "$HERE/../../modules/synthframe/tools/midi/mkmidi.py" "$SCRIPT" "$W/in.mid"
 if [ -n "${3:-}" ]; then
     "$PY" "$HERE/tools/panel_sched.py" "$3" "$W/panel.keys" "$W/panel.wheel"
     export CZ_KEYS="$W/panel.keys" CZ_WHEEL="$W/panel.wheel"
