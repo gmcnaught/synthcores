@@ -39,8 +39,12 @@ tools/p2k_pack.py pack games/P2K/p2k.p2k --font hd44780_a00.bin \
 tools/p2k_pack.py simm games/P2K/composer.sim --baby baby.bin --big big.bin
 ```
 
-No P2K SIMM dump is public. `cores/proteus/tools/p2k_build_simm.py` builds a stand-in from your
-WAVs.
+No P2K SIMM dump is public. Two stand-ins can be built:
+- `cores/proteus/tools/p2k_build_composer.py`: the Composer bank (ROM ID 4) with its 1024
+  factory presets and 1173 instruments in E-mu's numbering, rebuilt from the factory preset
+  SysEx, the manual's instrument list and a SoundFont conversion of the samples
+  (`cores/proteus/docs/p2k-composer.md`). The factory user bank refers to these instruments too.
+- `cores/proteus/tools/p2k_build_simm.py`: a SIMM from your own WAVs, with our own presets.
 
 Load the pack, then a SIMM, from the OSD; an MGL can do both:
 

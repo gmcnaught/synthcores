@@ -101,9 +101,18 @@ Zone (36 bytes):
 | +14 | s8 | pan offset [O 0x1019108] |
 | +15 | u8 | bits 0-1 channel select for stereo samples (0 = both) [O 0x101AB3A] |
 | +16, +18 | u16 | copied to voice +8 (with layer +12 *32) and +10 [U] |
-| +20..33 | | not seen in the voice path [U] |
+| +20..31 | 12 | factory volume envelope, used when the layer's volume envelope mode (SysEx 1793, layer +0x38) is 0 "Factory" [O 0x0101A83E: zone +0x14 instead of layer +0x2C, same loader 0x0101A33C]. Same layout as the layer's envelope: {rate, level} for Attack 1, Attack 2, Decay 1, Decay 2, Release 1, Release 2; rate 0..127 (0 fastest), level 0..100 |
+| +32 | u8 | envelope mode: 2 = tempo-based, else time-based [O 0x0101A3D0] |
+| +33 | u8 | low nibble copied to envelope +0x30 (repeat flag: non-zero keeps cycling at the stage mask 0x28) [O 0x0101A438, 0x0101A27A] |
 | +34 | u8 | sample romID [O 0x101AAE2] |
 | +35 | | [U] |
+Envelope rates [O 0x0101B684]: each tick a stage moves by table[rate] × elapsed ticks
+(u16 × 128 at 0x0101CBFC, 65535 at rate 0 down to 4 at rate 127) towards level × 512. Full scale
+at rate 127 is 12800 ticks; with the manual's "about 1 ms to 160 seconds" a tick is ~12.5 ms [I].
+Seen in MAME (2026-11-26): a zone with all-zero envelope bytes in Factory mode never sounds (the
+level bytes stay 0), and an attack that completes on the first tick also leaves the level
+unwritten until the release [U why: another zone field may matter]; the Composer stand-in uses
+an attack rate of at least 2.
 Pitch word (0x1018E2E): ys+48 + zone+10 + layer coarse*64 + layer fine + keytable[key] - root*64
 (layer +19 bit 6 = no key tracking) [O].
 
