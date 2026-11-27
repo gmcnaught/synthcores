@@ -935,13 +935,16 @@ class Compiler:
         if name == "update_irq_filter":
             # h83003.cpp update_irq_filter()
             cur[2].append("n_filter = filter_of(n_ccr, syscr_ue);")
-            return cur
+            cur[2].append("n_filter_we = 1'b1;")
+            # the strobe must reach the peripherals before the next bus access (MAME calls
+            # set_filter() there and then): end the state here
+            return self.split(cur, "after update_irq_filter")
         if name == "irq_setup":
             cur[2].append(IRQ_SETUP)
             return cur
         if name == "interrupt_taken":
             cur[2].append("n_irq_taken = 1'b1;")
-            return cur
+            return self.split(cur, "after interrupt_taken")
         if name in ("debugger_exception_hook",):
             return cur
         if name in ("notify_standby", "suspend", "m_standby_cb"):

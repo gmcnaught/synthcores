@@ -1,0 +1,51 @@
+diff --git a/src/devices/cpu/h8/h8_sci.cpp b/src/devices/cpu/h8/h8_sci.cpp
+index 646e2643..d4994ce6 100644
+--- a/src/devices/cpu/h8/h8_sci.cpp
++++ b/src/devices/cpu/h8/h8_sci.cpp
+@@ -57,6 +57,9 @@
+ 
+ #include "h8_cpu_base.h"
+ 
++#include <cstdio>
++#include <cstdlib>
++
+ #define LOG_REGS  (1 << 1U)  // Register writes
+ #define LOG_RREGS (1 << 2U)  // Register reads
+ #define LOG_RATE  (1 << 3U)  // Bitrate setting, beware that gk2000 changes it all the time ending up in a massive slowdown, don't leave it active
+@@ -382,6 +385,10 @@ TIMER_CALLBACK_MEMBER(h8_sci_device::sync_tick)
+ 
+ void h8_sci_device::do_rx_w(int state)
+ {
++	// mu50 logging patch: MU_RX_LOG=file, one line per rx pin change: <sci> <CPU states> <now as cycles> <state>
++	static FILE *mu_rx = getenv("MU_RX_LOG") ? fopen(getenv("MU_RX_LOG"), "w") : nullptr;
++	if(mu_rx)
++		fprintf(mu_rx, "%d %llu %llu %d\n", m_id, (unsigned long long)m_cpu->total_cycles(), (unsigned long long)m_cpu->now_as_cycles(), state);
+ 	if(m_cpu->standby()) {
+ 		m_rx_value = state;
+ 		return;
+diff --git a/src/devices/video/hd44780.cpp b/src/devices/video/hd44780.cpp
+index 8dd8bdab..bd382944 100644
+--- a/src/devices/video/hd44780.cpp
++++ b/src/devices/video/hd44780.cpp
+@@ -116,6 +116,9 @@
+ ***************************************************************************/
+ 
+ #include "emu.h"
++
++#include <cstdio>
++#include <cstdlib>
+ #include "hd44780.h"
+ 
+ //#define VERBOSE 1
+@@ -360,6 +363,11 @@ void hd44780_base_device::device_validity_check(validity_checker &valid) const
+ 
+ TIMER_CALLBACK_MEMBER(hd44780_base_device::clear_busy_flag)
+ {
++	// mu50 logging patch: MU_LCD_LOG=file, one line per busy-flag clear: <mu50cpu states> <machine time in 10 MHz ticks x 1000>
++	static FILE *mu_lcd = getenv("MU_LCD_LOG") ? fopen(getenv("MU_LCD_LOG"), "w") : nullptr;
++	if(mu_lcd)
++		if(auto *cpu = machine().root_device().subdevice<cpu_device>("mu50cpu"))
++			fprintf(mu_lcd, "%llu %llu\n", (unsigned long long)cpu->total_cycles(), (unsigned long long)(machine().time().as_double() * 1e10));
+ 	m_busy_flag = false;
+ }
+ 

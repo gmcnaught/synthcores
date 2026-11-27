@@ -4,9 +4,12 @@
 #   1. u1: the H8/300H core runs the committed random programs (tests/u1/*.bin, made by
 #      tools/h8h_randprog.py) and its traces hash to MAME's (tests/u1/expected.txt);
 #   2. comparator self-check: a one-character change to a trace must change its hash;
-#   3. u3: the SWP00 HDL on the committed SWP00 access logs (tests/u3/) is identical to the
+#   3. u2: the H8/3003 with its peripherals (mu50sys_bench) runs tests/u2/*.bin.gz (timer
+#      interrupts, SLEEP, A/D scan) and its trace hashes to MAME's (tests/u2/expected.txt);
+#   4. u3: the SWP00 HDL on the committed SWP00 access logs (tests/u3/) is identical to the
 #      C++ reference (ref/, MAME's code) sample by sample, and its samples hash to MAME's.
-# The MAME runs themselves (tests/u1_check.sh, tests/u3_run.sh, tests/u0_*.sh) are local.
+# The MAME runs themselves (tests/u1_check.sh, tests/u2_check.sh, tests/u3_run.sh,
+# tests/u0_*.sh) are local.
 # Needs cmake, a C++20 compiler, Verilator 5; ninja optional.
 # Prints "mu50 ci: N passed, N failed"; exits 1 on any failure.
 set -euo pipefail
@@ -71,6 +74,20 @@ u3() {
     return $ok
 }
 
+u2() {
+    local d="$out/u2ci" ok=0 name n want got
+    mkdir -p "$d"
+    while read -r name n want; do
+        [ -z "$name" ] || [ "${name:0:1}" = "#" ] && continue
+        gzip -dc "$here/u2/$name.bin.gz" > "$d/$name.bin"
+        "$out/mu50sys_bench" "$d/$name.bin" "$n" "$d/$name.trace"
+        got=$(cut_trace "$n" < "$d/$name.trace" | sha)
+        if [ "$got" = "$want" ]; then echo "u2 $name: identical ($n lines)"
+        else echo "u2 $name: DIFFERENT ($got)"; ok=1; fi
+    done < "$here/u2/expected.txt"
+    return $ok
+}
+
 if cmake -Wno-dev -S "$core/sim" -B "$out" "${gen[@]}" -DCMAKE_BUILD_TYPE=Release >/dev/null &&
    cmake --build "$out" -j "$jobs" --target h8h_bench >/dev/null; then
     step u1 u1
@@ -82,6 +99,11 @@ if cmake --build "$out" -j "$jobs" --target swp00_bench >/dev/null; then
     step u3 u3
 else
     failed=$((failed + 1)); echo "== u3: FAIL (swp00_bench did not build)"
+fi
+if cmake --build "$out" -j "$jobs" --target mu50sys_bench >/dev/null; then
+    step u2 u2
+else
+    failed=$((failed + 1)); echo "== u2: FAIL (mu50sys_bench did not build)"
 fi
 echo "mu50 ci: $pass passed, $failed failed"
 [ "$failed" = 0 ]
