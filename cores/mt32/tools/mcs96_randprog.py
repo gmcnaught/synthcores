@@ -174,7 +174,6 @@ class Gen:
             code.append([0xb1, self.r.choice([0x61, 0xe1, 0x23, 0xff]), 0x08])   # int mask
             code.append([0xfb])                              # ei
         depth = []
-        subs = []
         for i in range(n):
             if i % 40 == 39:
                 for p in PTRS:
@@ -294,7 +293,6 @@ class Gen:
             elif x[0] == "call":
                 # call L1; sjmp L2; L1: body; ret; L2:
                 _, st, am, pre, body = x
-                cl = len(pre) + (2 if am == "rel11" else 3)
                 d = 2                                        # L1 = after the call and the sjmp
                 if am == "rel11":
                     ins = pre + [(st & 0xf8) | ((d >> 8) & 7), d & 0xff]

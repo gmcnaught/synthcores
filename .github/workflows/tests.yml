@@ -32,6 +32,20 @@ jobs:
       - name: synthcore unit tests
         run: python3 modules/synthframe/tests/synthcore/test_synthcore.py
 
+  # ShellCheck (scripts/, modules/synthframe/bin, cores/*/scripts) and ruff (ruff.toml) through
+  # scripts/precommit.sh --fast; hdl-lint and counter-audit run in modules/synthframe/tests/ci.sh.
+  hygiene:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck 0.11.0, ruff 0.17.6, PyYAML
+        run: |
+          curl -sSL https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz | tar -xJ -C /tmp
+          sudo install /tmp/shellcheck-v0.11.0/shellcheck /usr/local/bin/shellcheck
+          python3 -m pip install pyyaml ruff==0.17.6
+      - name: scripts/precommit.sh --fast
+        run: scripts/precommit.sh --fast
+
   changes:
     runs-on: ubuntu-24.04
     outputs:

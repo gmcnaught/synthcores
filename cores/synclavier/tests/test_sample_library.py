@@ -2,6 +2,7 @@
 """tools/sample_library.py: .caf -> NED sound file, banks packed by family,
 and the W1: image tools/timbre_disk.py makes from them (synthetic data; the
 NED libraries are not in the repository)."""
+import pathlib
 import os
 import struct
 import sys
@@ -94,7 +95,7 @@ def test_libraries_and_disk():
         libs_all = sl.libraries(root, all_sounds=True)[0]
         assert libs_all[-1].name == "SOUNDS1" and libs_all[-1].sounds == ["XTRA"]
 
-        samples = [(x.name, x.newdata, [(s, sl.caf_sound(open(cafs[s], "rb").read()))
+        samples = [(x.name, x.newdata, [(s, sl.caf_sound(pathlib.Path(cafs[s]).read_bytes()))
                                         for s in x.sounds]) for x in libs_all]
         disk = timbre_disk.make([], samples=samples)
         W = DiskWords(disk)

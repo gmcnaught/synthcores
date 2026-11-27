@@ -12,6 +12,7 @@ host order (little-endian words on x86/ARM), so each word is byte-swapped here.
 
 Usage: make_system.py BASE_WAVES PROTOLOGIC_DIR FW_MSB FW_LSB MAME_NVRAM FONT OUT.bin
 """
+import pathlib
 import os
 import sys
 
@@ -24,21 +25,21 @@ def main():
     if len(sys.argv) != 8:
         raise SystemExit(__doc__)
     base, pl_dir, msb, lsb, nvram, font, out = sys.argv[1:]
-    samples = open(base, "rb").read()
+    samples = pathlib.Path(base).read_bytes()
     assert len(samples) == 0x400000
     samples += protologic_image(pl_dir)
 
-    hi, lo = open(msb, "rb").read(), open(lsb, "rb").read()
+    hi, lo = pathlib.Path(msb).read_bytes(), pathlib.Path(lsb).read_bytes()
     assert len(hi) == len(lo) == 0x10000
     rom = bytearray(0x20000)
     rom[0::2], rom[1::2] = hi, lo
 
-    nv = open(nvram, "rb").read()
+    nv = pathlib.Path(nvram).read_bytes()
     assert len(nv) == 0x10000, len(nv)
     ram = bytearray(0x10000)
     ram[0::2], ram[1::2] = nv[1::2], nv[0::2]
 
-    fnt = open(font, "rb").read()
+    fnt = pathlib.Path(font).read_bytes()
     assert len(fnt) == 0x1000
 
     img = bytearray(samples)        # 0x000000

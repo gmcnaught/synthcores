@@ -10,12 +10,13 @@ Same steps as emup2k_state::init_proteus2k:
 
   p2k_flash_image.py DUMP.bin [--dli p2k226.dli] [--clean] OUT.bin [--hex OUT.hex]
 """
+import pathlib
 import argparse
 import struct
 
 
 def build(dump, dli=None, clean=False):
-    raw = open(dump, "rb").read()
+    raw = pathlib.Path(dump).read_bytes()
     assert len(raw) == 0x200000
     img = bytearray(b for i in range(0, len(raw), 2) for b in (raw[i + 1], raw[i]))
     if img[0xDFE:0xE00] == b"\x4e\x38":
@@ -23,7 +24,7 @@ def build(dump, dli=None, clean=False):
     if clean:
         img[0xA0000:] = b"\xff" * (0x200000 - 0xA0000)
     if dli:
-        d = open(dli, "rb").read()
+        d = pathlib.Path(dli).read_bytes()
         off, length = struct.unpack_from(">II", d, 0x24)
         img[0x10100:0x10100 + length] = d[off:off + length]
         p = 0x10100 + 0x9B0

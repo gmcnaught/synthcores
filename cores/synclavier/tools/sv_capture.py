@@ -15,6 +15,7 @@ newer Pythons). Procedure (docs/tuning-references.md):
 
     sv-venv/bin/python tools/sv_capture.py OUT [--only fm,env,chorus]
 """
+import pathlib
 import argparse
 import json
 import os
@@ -232,13 +233,13 @@ def main():
     only = set(args.only.split(","))
     sv = SV()
     done = threading.Event()
-    log = open(os.path.join(args.out, "capture.log"), "a")
+    log_path = os.path.join(args.out, "capture.log")
 
     def say(*a):
         msg = " ".join(str(x) for x in a)
         print(msg, flush=True)
-        log.write(time.strftime("%H:%M:%S ") + msg + "\n")
-        log.flush()
+        with open(log_path, "a") as log:
+            log.write(time.strftime("%H:%M:%S ") + msg + "\n")
 
     def apply(params):
         for k, v in {**BASE, **params}.items():
@@ -291,7 +292,7 @@ def main():
                         "display": sv.strings(("partial_", "timbre_", "volume_envelope_", "index_envelope_", "decay_", "effect1_selector", "effect2_selector", "effect3_selector"))}
                 meta["display"] = {k: v for k, v in meta["display"].items()
                                    if not re.search(r"_([2-9]|1[0-2])(_s)?$", k)}
-                json.dump(meta, open(os.path.join(args.out, name + ".json"), "w"), indent=1)
+                pathlib.Path(os.path.join(args.out, name + ".json")).write_text(json.dumps(meta, indent=1))
                 say(f"[{i + 1}/{len(todo)}] {name} peak {np.abs(audio).max():.3f}")
             say("DONE")
         except Exception as e:  # noqa: BLE001

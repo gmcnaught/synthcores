@@ -11,6 +11,7 @@ Layout (observed on Proteus 1000/2000 OS 2.26):
 
   dli.py FILE.dli [OUT.bin]     print the header; with OUT, write the image
 """
+import pathlib
 import struct
 import sys
 import zlib
@@ -30,7 +31,7 @@ def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
-    d = parse(open(sys.argv[1], "rb").read())
+    d = parse(pathlib.Path(sys.argv[1]).read_bytes())
     print(f"{d['copyright']}\n  names {d['names']}\n  image at {d['offset']:#x}, {d['length']:#x} bytes, "
           f"CRC-32 {d['crc']:08x} {'OK' if d['crc_ok'] else 'BAD'}\n  SSP {d['ssp']:#010x}  reset PC {d['pc']:#010x}")
     if len(sys.argv) > 2:

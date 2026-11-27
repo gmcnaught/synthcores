@@ -19,6 +19,7 @@ Heuristics (a disassembler cannot know which words are data):
   * the word after a 'PCI' source (377, mem[R17++]) is an in-line literal
   * relative-transfer targets are shown as '; -> addr'
 """
+import pathlib
 import argparse
 import re
 import struct
@@ -124,7 +125,7 @@ def disassemble(words, base=0, model="C"):
 
 
 def read_words(path):
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     if len(data) % 2:
         data += b"\0"
     return list(struct.unpack(">%dH" % (len(data) // 2), data))
@@ -136,7 +137,7 @@ BUILTIN_SRC = re.compile(r"^(PCI|R[0-7]{1,2}I?|MR[0-7]{1,2}I?|D[0-7]{1,3})$")
 
 def validate(listing_path, model="C"):
     """Compare decoded words with a NED assembler listing ('SRC TO DST' lines)."""
-    text = open(listing_path, "rb").read().decode("latin-1").replace("\r", "\n")
+    text = pathlib.Path(listing_path).read_bytes().decode("latin-1").replace("\r", "\n")
     checked = mism = 0
     for ln in text.splitlines():
         m = LST_RE.match(ln)

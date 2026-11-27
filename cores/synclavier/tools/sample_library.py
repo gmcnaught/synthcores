@@ -42,7 +42,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
-from tools.stmb import (EMPTY, bank_bytes, encode_entry, parse_text,  # noqa: E402
+from tools.stmb import (bank_bytes, encode_entry, parse_text,  # noqa: E402
                         read_banks, text_name)
 
 SECTOR_WORDS = 256

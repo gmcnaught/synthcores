@@ -27,6 +27,8 @@ place (EMSIZE - swap length), or the loader's ascending copy overwrites
 its own source. ORK-LM (673 sectors, 519 swap) needs more than 1024
 sectors; the default here is 2048 (512K words). CHOICE.
 """
+import contextlib
+import pathlib
 from .boot import boot_from_image
 from .trace import STOP_BREAKPOINT, STOP_INPUT, Debugger
 
@@ -125,7 +127,7 @@ def replace_bank(media, path, bank=0):
     `*NEWDATA.stmb`) over bank `bank` of the 06-TIMBD floppy media.
     [OBS] Release L layout: .NEWDATA = 8 banks x 49 sectors."""
     import struct
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     words = list(struct.unpack(">%dH" % (len(data) // 2), data[:len(data) // 2 * 2]))
     size = BANK_SECTORS * SECTOR_WORDS
     if len(words) > size:
@@ -176,56 +178,55 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     quiet = {int(x, 8) for x in a.quiet_devices.split(",") if x}
-    f = writer = None
-    if a.log:
-        f = open(a.log, "w", newline="")
-        writer = csv.writer(f)
-        writer.writerow(["time_ns", "pc", "rw", "device", "value"])
+    with contextlib.ExitStack() as files:    # closes the --log file
+        f = writer = None
+        if a.log:
+            f = files.enter_context(open(a.log, "w", newline=""))
+            writer = csv.writer(f)
+            writer.writerow(["time_ns", "pc", "rw", "device", "value"])
 
-    def sink(t, pc, kind, dev, value):
-        if dev not in quiet:
-            writer.writerow([t, "%06o" % (pc or 0), kind, "%03o" % dev,
-                             "NOSYN" if value is None else "%06o" % value])
+        def sink(t, pc, kind, dev, value):
+            if dev not in quiet:
+                writer.writerow([t, "%06o" % (pc or 0), kind, "%03o" % dev,
+                                 "NOSYN" if value is None else "%06o" % value])
 
-    out = sys.stdout
-    cpu, dbg, lay = start_rtp(a.image, a.rtp, io_sink=sink if writer else None,
-                              output=lambda b: (out.write(chr(b & 0o177)), out.flush()))
-    if a.fm_log or a.wav:
-        cpu.fm.log_len = 1 << 62    # keep every write (the default log stops at 100,000)
-    print("\n[rtp] %s staged (%d words); starting at %06o" % (a.rtp, lay["rtp_words"], cpu.pc))
-    t0 = cpu.time_ns
-    stop = run_seconds(cpu, dbg, a.seconds)
-    fm0 = len(cpu.fm.log)
-    t_keys = cpu.fm.time_ns     # render from here: the key press, if any
-    if not stop and a.swap_f0:
-        insert_floppy(cpu, a.image, 0, a.swap_f0)
-        print("\n[rtp] F0 <- %s" % a.swap_f0)
-        if a.bank_file:
-            replace_bank(cpu.floppy.media[0], a.bank_file, a.bank)
-            print("[rtp] bank %d <- %s" % (a.bank, a.bank_file))
-    for b in [x for x in a.buttons.split(",") if x]:
-        if stop:
-            break
-        pbn = button_number(b)
-        print("\n[rtp] button %s (PBN %d)" % (b, pbn))
-        cpu.keyboard.press_button(pbn)
-        stop = run_seconds(cpu, dbg, 0.1)
-        cpu.keyboard.press_button(pbn, False)
-        stop = stop or run_seconds(cpu, dbg, 1.5)
-    keys = [int(k) for k in a.keys.split(",") if k]
-    if keys and not stop:
-        print("\n[rtp] keys %s for %.2f s" % (keys, a.hold))
-        k0 = len(cpu.fm.log)
-        t_keys = cpu.fm.time_ns
-        for k in keys:
-            cpu.keyboard.press_key(k)
-        stop = run_seconds(cpu, dbg, a.hold)
-        for k in keys:
-            cpu.keyboard.press_key(k, False)
-        stop = stop or run_seconds(cpu, dbg, a.release)
-        print("\n[rtp] FM writes while playing: %d" % (len(cpu.fm.log) - k0))
-    if f:
-        f.close()
+        out = sys.stdout
+        cpu, dbg, lay = start_rtp(a.image, a.rtp, io_sink=sink if writer else None,
+                                  output=lambda b: (out.write(chr(b & 0o177)), out.flush()))
+        if a.fm_log or a.wav:
+            cpu.fm.log_len = 1 << 62    # keep every write (the default log stops at 100,000)
+        print("\n[rtp] %s staged (%d words); starting at %06o" % (a.rtp, lay["rtp_words"], cpu.pc))
+        t0 = cpu.time_ns
+        stop = run_seconds(cpu, dbg, a.seconds)
+        fm0 = len(cpu.fm.log)
+        t_keys = cpu.fm.time_ns     # render from here: the key press, if any
+        if not stop and a.swap_f0:
+            insert_floppy(cpu, a.image, 0, a.swap_f0)
+            print("\n[rtp] F0 <- %s" % a.swap_f0)
+            if a.bank_file:
+                replace_bank(cpu.floppy.media[0], a.bank_file, a.bank)
+                print("[rtp] bank %d <- %s" % (a.bank, a.bank_file))
+        for b in [x for x in a.buttons.split(",") if x]:
+            if stop:
+                break
+            pbn = button_number(b)
+            print("\n[rtp] button %s (PBN %d)" % (b, pbn))
+            cpu.keyboard.press_button(pbn)
+            stop = run_seconds(cpu, dbg, 0.1)
+            cpu.keyboard.press_button(pbn, False)
+            stop = stop or run_seconds(cpu, dbg, 1.5)
+        keys = [int(k) for k in a.keys.split(",") if k]
+        if keys and not stop:
+            print("\n[rtp] keys %s for %.2f s" % (keys, a.hold))
+            k0 = len(cpu.fm.log)
+            t_keys = cpu.fm.time_ns
+            for k in keys:
+                cpu.keyboard.press_key(k)
+            stop = run_seconds(cpu, dbg, a.hold)
+            for k in keys:
+                cpu.keyboard.press_key(k, False)
+            stop = stop or run_seconds(cpu, dbg, a.release)
+            print("\n[rtp] FM writes while playing: %d" % (len(cpu.fm.log) - k0))
     if a.fm_log:
         with open(a.fm_log, "w", newline="") as g:
             w = csv.writer(g)

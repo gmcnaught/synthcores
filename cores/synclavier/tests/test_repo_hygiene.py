@@ -8,7 +8,6 @@ release repository.
 Run:  pypy3 tests/test_repo_hygiene.py
 """
 import os
-import re
 import subprocess
 import sys
 

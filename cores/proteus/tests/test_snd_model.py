@@ -14,6 +14,7 @@ The model runs under pypy3 (CLAUDE.md); without pypy3 it falls back to python3 (
 the comparator self-check, which must fail (tests/ci.sh).
 Exit status: 0 all passed, 1 a failure, 77 skipped (verilator missing).
 """
+import pathlib
 import os
 import shutil
 import subprocess
@@ -53,8 +54,8 @@ def main():
             model_opts = ["--no-tone"] if "--no-tone" in bench else []
             subprocess.run([py, os.path.join(CORE, "tools", "proteus_model.py"), img, ref,
                             "--ticks", str(SAMPLES)] + model_opts, check=True, stdout=subprocess.DEVNULL)
-            a = open(hdl, "rb").read() if os.path.exists(hdl) else b""
-            b = open(ref, "rb").read()
+            a = pathlib.Path(hdl).read_bytes() if os.path.exists(hdl) else b""
+            b = pathlib.Path(ref).read_bytes()
             name = f"seed {seed} {' '.join(gen + bench)}".strip()
             if r.returncode != 0:
                 print(f"FAIL {name}: bench exit {r.returncode}\n{r.stderr}")

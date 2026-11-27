@@ -90,6 +90,7 @@ Usage:
                                      SYN-5.3, skip N instructions, record)
   pypy3 -m sim.lockstep check OUT.trace [--top cpu|system]
 """
+import pathlib
 import glob
 import os
 import random
@@ -222,7 +223,7 @@ def _device_header(cpu):
             out += _v(SEL_FLOPPY, idx, v)
     fm, kb = getattr(cpu, "fm", None), getattr(cpu, "keyboard", None)
     if fm is not None and kb is not None:
-        from .fm import ENV_CLOCK_NS, wave_memory_number
+        from .fm import ENV_CLOCK_NS
         nch = 2 * fm.voices
         g = [fm.channel_word, fm.function, fm.switches, fm.ext_clock_in, fm.ext_clock_out,
              fm.adc_select, fm.time_ns % ENV_CLOCK_NS, 0] + list(fm.adc)
@@ -930,8 +931,8 @@ def check(path, max_instructions=None, top="cpu", wav=None, realtime=False, fram
     ok, text = p.returncode == 0, p.stdout + p.stderr
     if ok and print_file and os.path.exists(path + ".prn"):
         from tools.print_render import read_capture
-        want = open(path + ".prn", "rb").read()
-        got = read_capture(open(print_file, "rb").read())
+        want = pathlib.Path(path + ".prn").read_bytes()
+        got = read_capture(pathlib.Path(print_file).read_bytes())
         if got == want:
             text += "printer: capture = Python's %d bytes\n" % len(want)
         else:
@@ -988,7 +989,7 @@ def iter_trace(data):
     event up to and including 'E'. kind is a 1-byte bytes, payload a
     memoryview. Raises ValueError on a bad magic, an unknown section or event
     kind, a truncated record, or a trace that does not end with 'E'."""
-    b = data if isinstance(data, (bytes, bytearray)) else open(data, "rb").read()
+    b = data if isinstance(data, (bytes, bytearray)) else pathlib.Path(data).read_bytes()
     if b[:len(MAGIC)] != MAGIC:
         raise ValueError("not a lockstep trace (%r)" % bytes(b[:len(MAGIC)]))
     m = memoryview(b)

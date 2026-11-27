@@ -7,6 +7,7 @@ The core's MIDI input is the FPGA UART, wired to the HPS UART /dev/ttyS1. This s
 Usage: python3 mister_midi.py SCRIPT.txt
 Stop MidiLink first if it is running (it also opens /dev/ttyS1).
 """
+import pathlib
 import array
 import fcntl
 import os
@@ -30,7 +31,7 @@ def set_baud(fd, rate):
 
 def main():
     events = []
-    for line in open(sys.argv[1]):
+    for line in pathlib.Path(sys.argv[1]).read_text().splitlines(keepends=True):
         p = line.split("#")[0].split()
         if p:
             events.append((float(p[0]), bytes(int(x, 16) for x in p[1:])))

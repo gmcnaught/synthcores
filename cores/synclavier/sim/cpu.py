@@ -45,11 +45,11 @@ from collections import namedtuple
 
 from .bus import BUS_WAIT, NO_SYN, Bus
 from .decode import (
-    C_ALWAYS, C_C, C_M, C_NC, C_NEVER, C_NM, C_NZ, C_Z,
+    C_ALWAYS, C_C, C_M, C_NC, C_NEVER, C_NZ, C_Z,
     D_ADC, D_ALU, D_BSOR, D_IO, D_JABS, D_JREL, D_MEM, D_MEMI, D_REG,
     D_SHRA, D_TEST, DST_TABLE,
-    OP_ADD, OP_AND, OP_LCM, OP_LOA, OP_OR, OP_RTL, OP_SUB, OP_XOR,
-    S_IMM, S_IO, S_MEM, S_MEMI, S_REG, S_REGI, SRC_TABLE,
+    OP_ADD, OP_AND, OP_LOA, OP_OR, OP_RTL, OP_SUB, OP_XOR,
+    S_IMM, S_MEM, S_MEMI, S_REG, S_REGI, SRC_TABLE,
 )
 
 M16 = 0xFFFF

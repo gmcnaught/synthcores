@@ -10,6 +10,7 @@ SCRIPT lines (times in seconds from power-on; '#' starts a comment):
 KEYS_OUT lines "CYCLE ROW BIT DOWN", WHEEL_OUT lines "CYCLE VALUE" (CZ_KEYS, CZ_WHEEL: CPU cycles
 at MAME's 3,333,334 a second).
 """
+import pathlib
 import sys
 
 CPU_HZ = 3_333_334
@@ -38,7 +39,7 @@ KEYS = {
 def main():
     src, kout, wout = sys.argv[1:4]
     keys, wheel = [], []
-    for n, line in enumerate(open(src), 1):
+    for n, line in enumerate(pathlib.Path(src).read_text().splitlines(keepends=True), 1):
         line = line.split("#", 1)[0].strip()
         if not line:
             continue

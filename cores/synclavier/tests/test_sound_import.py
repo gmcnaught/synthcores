@@ -9,6 +9,7 @@ words listed in test_w0_sound_files_round_trip.
 
 Run:  pypy3 tests/test_sound_import.py
 """
+import pathlib
 import math
 import os
 import struct
@@ -290,7 +291,7 @@ def test_w0_sound_files_round_trip():
     raw = os.environ.get("SYNCLAVIER_W0_RAW")
     if not raw:
         raise unittest.SkipTest("SYNCLAVIER_W0_RAW not set")
-    W = load_bytes(open(raw, "rb").read())
+    W = load_bytes(pathlib.Path(raw).read_bytes())
     # header/symbol words that legitimately differ after export -> import:
     #   CLARA3 19-20  sf.octave: another encoding of 3.09 (034078 034187 vs
     #                 SYN-5.3's own constant 061341 043702); hertz is 4400 in

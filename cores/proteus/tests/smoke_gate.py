@@ -8,6 +8,7 @@ a reset during the soak, missed deadlines or an old status layout must fail
 (review 2026-11-26 proteus1.md#1, #16).
 Exit status: 0 passed, 1 failed, 77 skipped (Pillow missing).
 """
+import pathlib
 import os
 import re
 import subprocess
@@ -45,7 +46,7 @@ def soak(path, produced=2343750, m0=0, m1=0, magic="5031", e0=1, e1=1, peak=5000
 
 
 def main():
-    src = open(os.path.join(CORE, "scripts", "mister", "smoke.sh")).read()
+    src = pathlib.Path(os.path.join(CORE, "scripts", "mister", "smoke.sh")).read_text()
     gate = re.search(r"<<'EOF' \| tee \"\$OUT/result.txt\"\n(.*?)\nEOF\n", src, re.S).group(1)
     cases = [
         ("booted, audio", {}, 120, 120, None, 0),

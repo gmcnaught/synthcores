@@ -2,6 +2,7 @@
 """Give a label to every `begin` whose block starts with declarations
 (Quartus 17 follows SystemVerilog-2005: declarations only in named blocks).
 Usage: name_blocks.py FILE..."""
+import pathlib
 import re
 import sys
 
@@ -10,7 +11,7 @@ BEGIN = re.compile(r"\bbegin(\s*)$")
 
 
 def fix(path):
-    lines = open(path).read().split("\n")
+    lines = pathlib.Path(path).read_text().split("\n")
     n = 0
     stem = re.sub(r"\W", "_", path.split("/")[-1].split(".")[0])
     for i, line in enumerate(lines):

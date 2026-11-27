@@ -27,6 +27,7 @@ This is a FUNCTIONAL reconstruction, not a dump:
 Usage: rebuild_proteus1_rom.py FIRMWARE EBL_DIR OUT_DIR [--sine PROTOLOGIC_DIR]
 FIRMWARE: interleaved XR v2.00 or ProtoLogic XR v2.30 image (the table is detected).
 """
+import pathlib
 import argparse
 import os
 import struct
@@ -46,7 +47,7 @@ TABLES = {"v2.00": (0x112EE, 194), "v2.30": (0x18A12, 194)}
 
 
 def load_records(fw, base=TABLE_BASE, count=TABLE_RECORDS):
-    d = open(fw, "rb").read() if isinstance(fw, str) else fw
+    d = pathlib.Path(fw).read_bytes() if isinstance(fw, str) else fw
     return [struct.unpack(">4I", d[base + 16 * i:base + 16 * i + 16]) for i in range(count)]
 
 
@@ -65,7 +66,7 @@ def load_ebl(dirpath):
         if not f.lower().endswith(".ebl"):
             continue
         p = os.path.join(dirpath, f)
-        raw = open(p, "rb").read()
+        raw = pathlib.Path(p).read_bytes()
         for s in ebl.parse(p):
             pcm = raw[s["body"] + s["start"]:s["body"] + s["end"]]
             words = list(struct.unpack("<%dh" % (len(pcm) // 2), pcm))
@@ -271,14 +272,14 @@ def main():
     ap.add_argument("--sine", help="ProtoLogic ROM dir (ip505..ip708) to copy the test sine from")
     a = ap.parse_args()
 
-    fw = open(a.firmware, "rb").read()
+    fw = pathlib.Path(a.firmware).read_bytes()
     name, base, count = detect_table(fw)
     records = load_records(fw, base, count)
     samples = load_ebl(a.ebl_dir)
     sine = None
     if a.sine:
-        lo = [open(os.path.join(a.sine, f"ip50{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
-        hi = [open(os.path.join(a.sine, f"ip70{c}.bin"), "rb").read() for c in (5, 6, 7, 8)]
+        lo = [pathlib.Path(os.path.join(a.sine, f"ip50{c}.bin")).read_bytes() for c in (5, 6, 7, 8)]
+        hi = [pathlib.Path(os.path.join(a.sine, f"ip70{c}.bin")).read_bytes() for c in (5, 6, 7, 8)]
         sine = [hi[n & 3][n >> 2] << 8 | lo[n & 3][n >> 2] for n in range(0x150, 0x1C0)]
     rom, placed, unmatched, nwritten = build(records, samples, sine)
 
@@ -307,7 +308,7 @@ def main():
         for i in unmatched:
             s, e, ls, le = records[i]
             f.write(f"rec {i:3d} start={s:06x} len={e - s:6d} UNMATCHED loop=({ls - s},{le - s})\n")
-    print(open(os.path.join(a.out_dir, "rebuild_report.txt")).read().split("\n\n")[0])
+    print(pathlib.Path(os.path.join(a.out_dir, "rebuild_report.txt")).read_text().split("\n\n")[0])
 
 
 if __name__ == "__main__":

@@ -5,7 +5,13 @@
 #   python3 midi_probe.py SECS HEX [HEX...]   (one message per HEX, 0.5 s apart)
 # The identity request F07E7F0601F7 gets F0 7E 00 06 02 18 04 04 03 00 '2.26' F7 from OS 2.26.
 # 31250 is not a standard termios rate: set through TCSETS2 with BOTHER (32-bit ARM layout).
-import fcntl, os, select, struct, sys, termios, time
+import fcntl
+import os
+import select
+import struct
+import sys
+import termios
+import time
 fd = os.open("/dev/ttyS1", os.O_RDWR | os.O_NOCTTY)
 a = termios.tcgetattr(fd)
 a[0] = 0; a[1] = 0; a[3] = 0; a[2] = termios.CS8 | termios.CREAD | termios.CLOCAL

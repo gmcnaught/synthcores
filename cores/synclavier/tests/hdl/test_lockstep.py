@@ -7,6 +7,7 @@ and CATALOG.
 
 Run:  pypy3 tests/hdl/test_lockstep.py
 """
+import pathlib
 import os
 import re
 import shutil
@@ -168,7 +169,7 @@ def _record_offsets(path, kind):
 def _patched_check(path, offset, value, top="cpu"):
     """Overwrite the u16 at `offset` of a trace, then run the bench."""
     import struct
-    b = bytearray(open(path, "rb").read())
+    b = bytearray(pathlib.Path(path).read_bytes())
     struct.pack_into("<H", b, offset, value)
     p2 = path + ".patched"
     with open(p2, "wb") as f:
@@ -195,7 +196,7 @@ def test_lockstep_checks_every_instruction_and_end_state():
         # sets R0 to 1 again, so the last snapshot alone would not see it
         d0 = _record_offsets(path, b"D")[0]
         import struct
-        raw = open(path, "rb").read()
+        raw = pathlib.Path(path).read_bytes()
         assert struct.unpack_from("<H", raw, d0)[0] == 0o100001          # R0 and R17 (PC)
         assert struct.unpack_from("<H", raw, d0 + 3)[0] == 1
         ok, text = _patched_check(path, d0 + 3, 0o55)
@@ -666,7 +667,7 @@ def test_system_voice_engine():
         ok_rt, text_rt = check(path, top="system", realtime=True)   # throttle on
         nonzero = _nonzero_samples(path)
         frames = expected_wav(path, path + ".py.wav")
-        hdl_wav, py_wav = open(path + ".hdl.wav", "rb").read(), open(path + ".py.wav", "rb").read()
+        hdl_wav, py_wav = pathlib.Path(path + ".hdl.wav").read_bytes(), pathlib.Path(path + ".py.wav").read_bytes()
     finally:
         for p in (path, path + ".hdl.wav", path + ".py.wav"):
             if os.path.exists(p):
@@ -950,7 +951,7 @@ def test_device_state_index_map():
 
 def test_sine_rom_matches_python():
     from tools.gen_sine_rom import PATH, text
-    assert open(PATH).read() == text(), "run python3 tools/gen_sine_rom.py"
+    assert pathlib.Path(PATH).read_text() == text(), "run python3 tools/gen_sine_rom.py"
 
 
 def test_release_l_monitor_boot_and_catalog():

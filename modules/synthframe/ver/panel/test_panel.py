@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: MIT
 # Panel renderers: every bench frame hash equals expected.txt (recorded from the renderers as
 # they were before they moved onto modules/synthframe/hdl/panel; run.sh says when).
-import pathlib, subprocess, sys, tempfile
+import pathlib
+import subprocess
+import sys
+import tempfile
 
 here = pathlib.Path(__file__).resolve().parent
 with tempfile.TemporaryDirectory() as out:

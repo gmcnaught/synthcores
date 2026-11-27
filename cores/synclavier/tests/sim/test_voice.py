@@ -3,6 +3,7 @@
 
 Run:  pypy3 tests/sim/test_voice.py
 """
+import pathlib
 import math
 import os
 import random
@@ -171,7 +172,7 @@ def test_write_wav():
         path = f.name
     try:
         clipped = write_wav(path, [(0.0, 1.0), (-1.0, 8.0)], rate=RATE, gain=1.0)
-        data = open(path, "rb").read()
+        data = pathlib.Path(path).read_bytes()
     finally:
         os.unlink(path)
     assert clipped == 1 and data[:4] == b"RIFF" and data[8:16] == b"WAVEfmt "

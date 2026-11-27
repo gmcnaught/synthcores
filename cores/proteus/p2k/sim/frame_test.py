@@ -7,6 +7,7 @@ Expected frame: 0x4080 (format 4, vector 32), SR, PC 0x00000108 (next instructio
 
   p2k/sim/frame_test.py      (needs nvc; work library in build/p2k/rtl)
 """
+import pathlib
 import os
 import struct
 import subprocess
@@ -40,7 +41,7 @@ def main():
                    cwd=W, check=True, capture_output=True)
     subprocess.run(nvc + ["-r", "tb_p2k_cpu"], cwd=W, capture_output=True)
     t = {}
-    for line in open(os.path.join(W, "frame.trace")):
+    for line in pathlib.Path(os.path.join(W, "frame.trace")).read_text().splitlines(keepends=True):
         k, a, d = line.split()[:3]
         if k == "W":
             t[int(a, 16)] = int(d, 16)

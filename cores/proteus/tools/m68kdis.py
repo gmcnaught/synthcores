@@ -11,6 +11,7 @@ address inside one of the given ranges (hex, e.g. 800000-8003ff).
 
 Requires capstone (pip install capstone).
 """
+import pathlib
 import argparse
 import re
 import struct
@@ -36,7 +37,7 @@ def parse_args():
 
 def main():
     a = parse_args()
-    data = open(a.image, "rb").read()
+    data = pathlib.Path(a.image).read_bytes()
     base, end = a.base, a.base + len(data)
     md = capstone.Cs(capstone.CS_ARCH_M68K, capstone.CS_MODE_M68K_000)
     md.detail = True

@@ -40,6 +40,7 @@ make DISK.IMG as an empty disk of MB MB first (a blank W1:).
 
 Treat input files as untrusted data: only the chunks listed are read.
 """
+import pathlib
 import argparse
 import math
 import os
@@ -239,7 +240,7 @@ def read_aiff(data):
 
 
 def read_audio(path):
-    data = open(path, "rb").read()
+    data = pathlib.Path(path).read_bytes()
     if data[:4] == b"RIFF":
         a = read_wav(data)
     elif data[:4] == b"FORM":
@@ -541,7 +542,7 @@ def main(argv=None):
     ap.add_argument("--export", nargs=2, metavar=("PATH", "OUT"), help="write sound file PATH as WAV")
     a = ap.parse_args(argv)
     if a.export:
-        W = load_bytes(open(a.disk, "rb").read())
+        W = load_bytes(pathlib.Path(a.disk).read_bytes())
         f = export_wav(read_file(W, a.export[0]), a.export[1])
         print("%s: %s, %d Hz, %d frames%s -> %s" % (
             a.export[0], "stereo" if len(f["chans"]) == 2 else "mono", f["rate"], len(f["chans"][0]),
@@ -554,7 +555,7 @@ def main(argv=None):
             ap.error("%s exists (--create makes a new disk)" % a.disk)
         disk = blank_disk(a.create)
     else:
-        disk = bytearray(open(a.disk, "rb").read())
+        disk = bytearray(pathlib.Path(a.disk).read_bytes())
     path, start, words = import_sound(disk, a.audio, a.name, a.subcat, a.replace, a.rate, a.pitch,
                                       a.caption)
     with open(a.disk, "wb") as _f: _f.write(disk)

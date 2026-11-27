@@ -9,7 +9,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 

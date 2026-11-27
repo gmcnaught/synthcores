@@ -24,6 +24,7 @@ hashes differ from the manifest are reported first (a different SIMM or MAME giv
 Times in the case scripts are MIDI file times: MAME's -midiin starts the file 10 s after power-on
 (measured: first event at 10.000016 s), the OS main screen is up at ~11.75 s.
 """
+import pathlib
 import argparse
 import hashlib
 import json
@@ -326,7 +327,7 @@ def gen():
 
 
 def case_seconds(path):
-    m = re.search(r"render to ([\d.]+) s", open(path).readline())
+    m = re.search(r"render to ([\d.]+) s", pathlib.Path(path).read_text().split("\n", 1)[0])
     return float(m.group(1)) + MIDI_OFFSET
 
 
@@ -418,7 +419,7 @@ def render(name, mame, rompath, simm, out, rep):
             "-skip_gameinfo", "-keyboardprovider", "none", "-mouseprovider", "none",
             "-joystickprovider", "none", "-log", "-seconds_to_run", f"{secs:.3f}",
             "-wavwrite", os.path.join(d, "out.wav")]
-    if any(ln.strip() and not ln.startswith("#") for ln in open(script)):
+    if any(ln.strip() and not ln.startswith("#") for ln in pathlib.Path(script).read_text().splitlines()):
         subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "..", "modules", "synthframe", "tools", "midi", "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
         args += ["-midiin", os.path.join(d, "in.mid")]
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy", P2K_TRACE="1",
@@ -474,7 +475,7 @@ def feature_ok(name, v):
 def inputs(simm):
     patches = os.path.join(CORE, "mame", "patches")
     return {"simm": {f: sha(os.path.join(simm, f)) for f in ("big.bin", "baby.bin", "flash_clean.nv")},
-            "mame_base": open(os.path.join(patches, "BASE")).read().split()[-1],
+            "mame_base": pathlib.Path(os.path.join(patches, "BASE")).read_text().split()[-1],
             "mame_patches": {f: sha(os.path.join(patches, f)) for f in sorted(os.listdir(patches)) if f.endswith(".patch")}}
 
 
@@ -484,7 +485,7 @@ def run(a):
     if not (mame and rompath and simm):
         raise SystemExit("set P2K_MAME, P2K_ROMPATH and P2K_SIMMDIR (or --mame/--rompath/--simm)")
     names = a.cases.split(",") if a.cases else list(CASES)
-    man = json.load(open(MANIFEST)) if os.path.exists(MANIFEST) else {"inputs": None, "cases": {}}
+    man = json.loads(pathlib.Path(MANIFEST).read_text()) if os.path.exists(MANIFEST) else {"inputs": None, "cases": {}}
     inp = inputs(simm)
     if man["inputs"] and man["inputs"] != inp and not a.update:
         print("INPUTS differ from the manifest:")
@@ -528,7 +529,7 @@ def run(a):
 def patch_copy_ok():
     """The model headers that mame/patches/0004 adds are the ones in p2k/model."""
     files, cur = {}, None
-    for ln in open(os.path.join(CORE, "mame", "patches", "0004-p2k-integer-sound-model.patch")):
+    for ln in pathlib.Path(os.path.join(CORE, "mame", "patches", "0004-p2k-integer-sound-model.patch")).read_text().splitlines(keepends=True):
         if ln.startswith("diff --git"):
             name = ln.rstrip().rsplit("/", 1)[-1]
             cur = name if name in ("p2k_sound.h", "p2k_flash.h") else None
@@ -536,7 +537,7 @@ def patch_copy_ok():
                 files[cur] = []
         elif cur and ln.startswith("+") and not ln.startswith("+++"):
             files[cur].append(ln[1:])
-    return all("".join(files.get(h, [])) == open(os.path.join(CORE, "p2k", "model", h)).read()
+    return all("".join(files.get(h, [])) == pathlib.Path(os.path.join(CORE, "p2k", "model", h)).read_text()
                for h in ("p2k_sound.h", "p2k_flash.h"))
 
 
@@ -551,7 +552,7 @@ def model(a):
     exe = subprocess.run([os.path.join(CORE, "p2k", "model", "build.sh")], check=True,
                          stdout=subprocess.PIPE, text=True).stdout.strip()
     names = a.cases.split(",") if a.cases else list(CASES)
-    man = json.load(open(MANIFEST))
+    man = json.loads(pathlib.Path(MANIFEST).read_text())
 
     def one(n):
         d = os.path.join(a.out, f"{n}.0")
