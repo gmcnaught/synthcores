@@ -12,6 +12,7 @@ Needs Verilator (skipped otherwise).
 
 Run:  pypy3 tests/hdl/test_board.py
 """
+import glob
 import os
 import shutil
 import subprocess
@@ -22,6 +23,13 @@ import unittest
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
 from sim.lockstep import BUILD_DIR, check, record  # noqa: E402
+
+# hdl-lint's waiver files (cfg/lint.vlt of every core and module): a testbench warning fails the
+# build unless a waiver covers it (modules/synthframe/bin/hdl-lint)
+_REPO = os.path.join(ROOT, "..", "..")
+LINT_VLT = [os.path.join(_REPO, "modules", "synthframe", "lint", "common.vlt")] + sorted(
+    glob.glob(os.path.join(_REPO, "cores", "*", "cfg", "lint.vlt"))
+    + glob.glob(os.path.join(_REPO, "modules", "*", "cfg", "lint.vlt")))
 
 HAVE_VERILATOR = shutil.which("verilator") is not None
 
@@ -103,7 +111,7 @@ def _testbench(name, rtl, args=()):
     with the RTL file(s) `rtl` (a path or a tuple of paths)."""
     mdir = os.path.join(BUILD_DIR, name)
     os.makedirs(mdir, exist_ok=True)
-    b = subprocess.run(["verilator", "--binary", "-Wno-fatal", "-Wno-WIDTH", "-Wno-UNUSED",
+    b = subprocess.run(["verilator", "--binary", "-Wno-UNUSED"] + LINT_VLT + [
                         "-I" + os.path.join(ROOT, "hdl/core"), "-I" + os.path.join(ROOT, "hdl/dev"),
                         "--top-module", name + "_tb", "-Mdir", mdir]
                        + [os.path.join(ROOT, r) for r in ((rtl,) if isinstance(rtl, str) else rtl)]

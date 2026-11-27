@@ -90,6 +90,7 @@ Usage:
                                      SYN-5.3, skip N instructions, record)
   pypy3 -m sim.lockstep check OUT.trace [--top cpu|system]
 """
+import glob
 import os
 import random
 import struct
@@ -728,6 +729,15 @@ INCLUDES = ["hdl/core/boot_defaults.svh", "hdl/core/font8x8.svh", "hdl/core/font
             "hdl/dev/sine_rom.svh", "hdl/dev/fm_num_rom.svh", "hdl/dev/pcm_fir.svh", "hdl/dev/pan_law.svh", "hdl/dev/pcm_reverb.svh"]
 
 
+def lint_vlt():
+    """hdl-lint's waiver files (modules/synthframe/bin/hdl-lint): every core's and module's
+    cfg/lint.vlt. A warning no waiver covers fails the build."""
+    repo = os.path.join(ROOT, "..", "..")
+    return [os.path.join(repo, "modules", "synthframe", "lint", "common.vlt")] + sorted(
+        glob.glob(os.path.join(repo, "cores", "*", "cfg", "lint.vlt"))
+        + glob.glob(os.path.join(repo, "modules", "*", "cfg", "lint.vlt")))
+
+
 def build(top="cpu", force=False):
     """Build the Verilator bench for `top` ("cpu", "system" or "board");
     returns the executable path."""
@@ -741,7 +751,7 @@ def build(top="cpu", force=False):
             os.path.getmtime(exe) > max(os.path.getmtime(s) for s in srcs + [os.path.join(ROOT, "sim", "files.f")]):
         return exe
     os.makedirs(mdir, exist_ok=True)          # older Verilator does not create parents
-    b = subprocess.run(["verilator", "--cc", "--exe", "--build", "-O3", "-Wall", "-Wno-fatal",
+    b = subprocess.run(["verilator", "--cc", "--exe", "--build", "-O3", "-Wall"] + lint_vlt() + [
                     "--x-assign", "unique", "--x-initial", "unique",
                     "-I" + os.path.join(ROOT, "hdl", "dev"), "-I" + os.path.join(ROOT, "hdl", "core"),
                     "--top-module", name, "-Mdir", mdir, "-o", "V" + name,

@@ -12,6 +12,8 @@ set(HDL "${CMAKE_CURRENT_SOURCE_DIR}/../hdl")
 set(VFLAGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-BLKSEQ -O3 --x-assign unique --x-initial unique)
 include(../../../modules/synthframe/cmake/synthframe_files.cmake)
 synthframe_files("${CMAKE_CURRENT_SOURCE_DIR}/.." CZ101_SV CZ101_INC)   # the core's HDL, from cfg/files.yaml
+synthframe_lint_vlt(LINT_VLT)                     # hdl-lint waivers (cfg/lint.vlt)
+list(APPEND VFLAGS ${LINT_VLT})
 
 # uPD7810 instruction set against MAME traces (milestone C1)
 add_executable(upd7810_bench upd7810_bench.cpp)
@@ -30,7 +32,7 @@ verilate(upd7811_bench SOURCES "${HDL}/upd7810/upd7810_core.sv" "${HDL}/upd7810/
 add_executable(cz101_bench cz101_bench.cpp)
 verilate(cz101_bench SOURCES ${CZ101_SV} INCLUDE_DIRS ${CZ101_INC}
          TOP_MODULE cz101_board PREFIX Vcz101_board
-         VERILATOR_ARGS ${VFLAGS} --public-flat-rw -Wno-PINCONNECTEMPTY -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC
+         VERILATOR_ARGS ${VFLAGS} --public-flat-rw -Wno-PINCONNECTEMPTY
          "-GDECODE_HEX=\"${HDL}/upd7810/upd7810_decode.hex\"" "-GTABLE_DIR=\"${HDL}/upd933/\"")
 
 include(upd933.cmake OPTIONAL)

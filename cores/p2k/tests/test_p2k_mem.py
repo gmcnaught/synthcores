@@ -8,6 +8,8 @@ import os
 import subprocess
 import unittest
 
+from p2k_vlt import LINT_VLT  # tests/ is sys.path[0]
+
 CORE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(CORE, "build", "mem_tb")
 
@@ -18,8 +20,8 @@ class MemTest(unittest.TestCase):
         os.makedirs(OUT, exist_ok=True)
         subprocess.run(["verilator", "--cc", os.path.join(CORE, "hdl", "p2k_mem.sv"), "--top-module", "p2k_mem",
                         "--exe", os.path.join(CORE, "sim", "mem_tb.cpp"), "-Mdir", os.path.join(OUT, "obj"),
-                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-fatal", "-Wno-lint", "-Wno-style",
-                        "--build", "-j", "8", "-o", os.path.join(OUT, "mem_tb")],
+                        "-O3", "-CFLAGS", "-O2 -std=c++17", "-Wno-style", *LINT_VLT,
+                        "--build", "-j", os.environ.get("VERILATOR_JOBS", "4"), "-o", os.path.join(OUT, "mem_tb")],
                        check=True, stdout=subprocess.DEVNULL)
 
     def test_random(self):

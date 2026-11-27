@@ -25,6 +25,8 @@ export VERILATOR_JOBS=${VERILATOR_JOBS:-1}
 run "no ROMs in the repository" "$PY" $S/tests/hygiene/test_no_roms.py
 run "generate regions (Quartus 17.0 needs generate ... endgenerate)" "$PY" $S/tests/hdl_style/test_generate_regions.py
 run "synthcore check" "$PYY" $S/bin/synthcore check
+run "hdl-lint: verilator --lint-only -Wall on every core's MiSTer top, waivers in cfg/lint.vlt" "$PY" $S/bin/hdl-lint
+run "hdl-lint fails on a warning no waiver covers (--no-waivers)" sh -c "! \"$PY\" $S/bin/hdl-lint --no-waivers cz101 >/dev/null"
 run "synthcore unit tests" "$PYY" $S/tests/synthcore/test_synthcore.py
 run "synth-mister backup/restore (fake SD card)" $S/tests/synth-mister/run.sh
 run "mister/build.sh wrappers (fake Quartus)" $S/tests/build/run.sh

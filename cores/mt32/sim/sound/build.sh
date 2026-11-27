@@ -4,14 +4,16 @@
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 core=$(cd "$here/../.." && pwd)
+root=$(cd "$core/../.." && pwd)     # hdl-lint waivers (cfg/lint.vlt) instead of -Wno-* options
 out=${1:-$core/build/sound}
 mkdir -p "$out"
 out=$(cd "$out" && pwd)
 verilator --cc --exe --build -O3 -j "${JOBS:-4}" --top-module mt32_sound \
-    -Wall -Wno-fatal -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-DECLFILENAME -Wno-BLKSEQ \
+    -Wall -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-DECLFILENAME -Wno-BLKSEQ \
     -GPOW_HEX="\"$core/hdl/la32/mt32_la32_pow.hex\"" \
     -GLOGSIN_HEX="\"$core/hdl/la32/mt32_la32_logsin.hex\"" \
     -CFLAGS "-O2 -std=c++17" -MAKEFLAGS "OPT_FAST=-O2 OPT_SLOW=-O1" --Mdir "$out/obj" -o "$out/sound_bench" \
+    "$root"/modules/synthframe/lint/common.vlt "$root"/cores/*/cfg/lint.vlt "$root"/modules/*/cfg/lint.vlt \
     -F "$core/sim/files.f" "$here/sound_bench.cpp" > "$out/build.log" 2>&1 || { tail -40 "$out/build.log"; exit 1; }
 grep -E "%Warning|%Error" "$out/build.log" | head -40 || true
 echo "$out/sound_bench"

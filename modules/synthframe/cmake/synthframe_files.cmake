@@ -35,3 +35,13 @@ function(synthframe_files core_dir src_var inc_var)
         set(${ARGV3} "${defs}" PARENT_SCOPE)
     endif()
 endfunction()
+
+# synthframe_lint_vlt(<var>): the hdl-lint waiver files (modules/synthframe/bin/hdl-lint --vlt),
+# for VERILATOR_ARGS, so a bench builds with the same waivers as the lint gate instead of global
+# -Wno-* options.
+function(synthframe_lint_vlt var)
+    get_filename_component(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../../.." ABSOLUTE)
+    file(GLOB cores "${root}/cores/*/cfg/lint.vlt")
+    file(GLOB mods "${root}/modules/*/cfg/lint.vlt")
+    set(${var} "${root}/modules/synthframe/lint/common.vlt" ${cores} ${mods} PARENT_SCOPE)
+endfunction()

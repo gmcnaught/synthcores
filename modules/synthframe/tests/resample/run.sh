@@ -8,7 +8,9 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 L=${1:-12}; M=${2:-5}; TAPS=${3:-80}; HEX=${4:-hdl/audio/synthframe_resample_40k_96k.hex}
 W=${RESAMPLE_WORK:-out/tests/resample-$L-$M}; mkdir -p "$W/obj"   # kept: rebuilds are incremental
-verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
+# warnings are waived in cfg/lint.vlt (bin/hdl-lint), not by -Wno-* options
+verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 --Mdir "$W/obj" \
+    lint/common.vlt ../../cores/*/cfg/lint.vlt ../*/cfg/lint.vlt \
     hdl/audio/synthframe_resample.sv tests/resample/tb.cpp --top-module synthframe_resample \
     -GL=$L -GM=$M -GTAPS=$TAPS "-GCOEF_HEX=\"$PWD/$HEX\"" >/dev/null
 "$(command -v pypy3 || command -v python3)" - "$W/in.txt" <<'PY'

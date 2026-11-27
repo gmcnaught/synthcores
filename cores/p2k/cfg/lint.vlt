@@ -1,0 +1,43 @@
+`verilator_config
+// hdl-lint waivers (modules/synthframe/bin/hdl-lint, `verilator --lint-only -Wall` on the MiSTer
+// top). Each waiver names a rule and a file; all but the style rules (DECLFILENAME, BLKSEQ,
+// PINCONNECTEMPTY, GENUNNAMED, TIMESCALEMOD, PROCASSINIT, UNUSEDPARAM) also name the message.
+// `hdl-lint --update CORE` appends waivers for new warnings; review them before committing.
+// Reviewed 2026-11-26: no waiver hides a functional bug. Notes on the non-style ones:
+// P2K.sv: VIDEO_ARX/ARY constants (Template_MiSTer); restart/midi_stretch ?: test non-zero.
+// cfg/lint_stubs.sv is the TG68K kernel's port list (Verilator reads no VHDL).
+
+lint_off -rule DECLFILENAME -file "*cfg/lint_stubs.sv"
+lint_off -rule PINCONNECTEMPTY -file "*hdl/p2k_board.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_board.sv" -match "Bits of signal are not used: 'adc_row'[7:3]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_board.sv" -match "Bits of signal are not used: 'latch'[7,5:0]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_board.sv" -match "Bits of signal are not used: 'p_byte'[0]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_board.sv" -match "Signal is not used: 'snd_wr_ready'"
+lint_off -rule GENUNNAMED -file "*hdl/p2k_lcd_video.sv"
+lint_off -rule PINCONNECTEMPTY -file "*hdl/p2k_lcd_video.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'c_col'[5]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'c_line'[1]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'd_col'[5]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'dfont_q'[7:5]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'font_q'[7:5]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'leds'[15,7]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Bits of signal are not used: 'level_q'[5:0]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_lcd_video.sv" -match "Signal is not used: 'd_line'"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_loader.sv" -match "Bits of signal are not used: 'ioctl_index'[15:8]"
+lint_off -rule PINCONNECTEMPTY -file "*hdl/p2k_midi.sv"
+lint_off -rule DECLFILENAME -file "*hdl/p2k_sndbus.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_sndbus.sv" -match "Bits of function variable are not used: 'o'[16:0]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_sndbus.sv" -match "Bits of function variable are not used: 'o'[1:0]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_sndbus.sv" -match "Bits of signal are not used: 'l_hi'[15:10]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/p2k_sndbus.sv" -match "Signal is not driven, nor used: 'fp_old'"
+lint_off -rule UNUSEDPARAM -file "*hdl/panel/p2k_panel.svh"
+lint_off -rule DECLFILENAME -file "*mister/P2K.sv"
+lint_off -rule PINCONNECTEMPTY -file "*mister/P2K.sv"
+lint_off -rule PROCASSINIT -file "*mister/P2K.sv"
+lint_off -rule UNUSEDSIGNAL -file "*mister/P2K.sv" -match "Bits of signal are not used: 'buttons'[0]"
+lint_off -rule UNUSEDSIGNAL -file "*mister/P2K.sv" -match "Bits of signal are not used: 'copy_retries'[7:4]"
+lint_off -rule UNUSEDSIGNAL -file "*mister/P2K.sv" -match "Bits of signal are not used: 'status'[127:9]"
+lint_off -rule WIDTHTRUNC -file "*mister/P2K.sv" -match "Logical operator COND expects 1 bit on the Conditional Test, but Conditional Test's VARREF 'midi_stretch' generates 22 bits."
+lint_off -rule WIDTHTRUNC -file "*mister/P2K.sv" -match "Logical operator COND expects 1 bit on the Conditional Test, but Conditional Test's VARREF 'restart' generates 8 bits."
+lint_off -rule WIDTHEXPAND -file "*mister/P2K.sv" -match "Operator ASSIGNW expects 13 bits on the Assign RHS, but Assign RHS's CONST '12'h3' generates 12 bits."
+lint_off -rule WIDTHEXPAND -file "*mister/P2K.sv" -match "Operator ASSIGNW expects 13 bits on the Assign RHS, but Assign RHS's CONST '12'h4' generates 12 bits."

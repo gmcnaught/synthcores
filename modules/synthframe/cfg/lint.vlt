@@ -1,0 +1,20 @@
+`verilator_config
+// hdl-lint waivers (modules/synthframe/bin/hdl-lint, `verilator --lint-only -Wall` on the MiSTer
+// top). Each waiver names a rule and a file; all but the style rules (DECLFILENAME, BLKSEQ,
+// PINCONNECTEMPTY, GENUNNAMED, TIMESCALEMOD, PROCASSINIT, UNUSEDPARAM) also name the message.
+// `hdl-lint --update CORE` appends waivers for new warnings; review them before committing.
+// Reviewed 2026-11-26: no waiver hides a functional bug. Notes on the non-style ones:
+// Shared synthframe HDL.
+
+lint_off -rule DECLFILENAME -file "*hdl/midi/synthframe_midi_rx.sv"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/save/synthframe_nvsave.sv" -match "Bits of signal are not used: 'sd_buff_addr'[13]"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/panel/synthframe_hd44780.sv" -match "Signal is not used: 'busy_t_read'"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/panel/synthframe_hd44780.sv" -match "Signal is not used: 'busy_t_set'"
+lint_off -rule TIMESCALEMOD -file "*hdl/mem/synthframe_mem_arb.sv"
+lint_off -rule TIMESCALEMOD -file "*hdl/mem/synthframe_mem_ddr3.sv"
+lint_off -rule TIMESCALEMOD -file "*hdl/panel/synthframe_hd44780.sv"
+lint_off -rule TIMESCALEMOD -file "*hdl/panel/synthframe_panel_art.sv"
+
+// A -GCLK_HZ=N override (ver/midi/test_midi_tx.py) is a 32-bit constant for the 64-bit (longint)
+// CLK_HZ parameter.
+lint_off -rule WIDTHEXPAND -file "*hdl/midi/synthframe_midi_tx.sv" -match "Operator VAR 'CLK_HZ' expects 64 bits on the Initial value, but Initial value's CONST '32'h* generates 32 bits."
