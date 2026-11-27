@@ -2,7 +2,10 @@
 
 `hdl/board/sc55_board.sv` wraps the core (`hdl/sc55_core.sv`) with what a
 board provides; `mister/SC55.sv` (module `emu`, Template_MiSTer) adds hps_io,
-the PLL (50 MHz core, 25 MHz video), DDR3 and the outputs.
+the PLL (50 MHz core, 25 MHz video), DDR3 and the outputs. The parts it
+shares with the JV-880's board (pack load, DDR3, reset sequence, pacing,
+MIDI, status flags, audio chain) are one module,
+`modules/roland/hdl/board/roland_board_common.sv`.
 
 | Part | File | What it does |
 |---|---|---|

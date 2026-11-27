@@ -19,6 +19,7 @@
 ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 ../../../modules/synthframe/hdl/save/synthframe_nvsave.sv
 ../../../modules/roland/hdl/board/resample.sv
+../../../modules/roland/hdl/board/roland_board_common.sv
 ../../../modules/roland/hdl/board/lcd_ctrl.sv
 ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
 ../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv

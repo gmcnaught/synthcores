@@ -19,6 +19,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/rom_loader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/resample.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/roland_board_common.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/roland/hdl/board/lcd_ctrl.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv

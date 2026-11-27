@@ -101,27 +101,50 @@ module jv880_board #(
     output logic [7:0]  DDRAM_BE,
     output logic        DDRAM_WE
 );
-    // ---------------------------------------------------------- ROM load
-    logic        ld_we, wave_wr, wave_busy, loading, pack_ok, ok;
+    // ---------------------------------------------------------- shared board services
+    // (modules/roland/hdl/board/roland_board_common.sv): pack load, DDR3, reset sequence, pacing,
+    // MIDI, status flags, audio
+    logic        ld_we, ok, pack_ok, loading;
     logic [2:0]  ld_sel, model;
     logic [18:0] ld_addr;
-    logic [7:0]  ld_data, wave_data;
-    logic [22:0] wave_addr;
-
-    rom_loader loader (
-        .clk, .rst,
-        .ioctl_download, .ioctl_wr, .ioctl_addr, .ioctl_dout, .ioctl_wait,
-        .ld_we, .ld_sel, .ld_addr, .ld_data,
-        .wave_wr, .wave_addr, .wave_data, .wave_busy, .model,
-        .loading, .ok(pack_ok)
-    );
-    assign ok = pack_ok && model == 3'd4;      // a JV-880 pack
-    assign rom_ok = ok;
-
-    // ---------------------------------------------------------- NVRAM save file
+    logic [7:0]  ld_data;
+    logic        core_rst, reset_start, reset_done, core_ready, run_step;
+    logic        m_valid, tx_valid;
+    logic [7:0]  m_data, tx_data;
+    logic        midi_led, underrun_led, lag_seen;
+    logic        rom_req, rom_ready, rom_rvalid;
+    logic [21:0] rom_addr;
+    logic [7:0]  rom_data;
     logic        nv_we, nv_hold, nv_pause, core_idle, nv_wrote;
     logic [14:0] nv_addr;
     logic [7:0]  nv_wdata, nv_rdata;
+
+    assign ok = pack_ok && model == 3'd4;      // a JV-880 pack
+    assign rom_ok = ok;
+
+    // 600 ns a step (R_NSPerStep). Audio: s16 conversion clamp(x >> (16 - gain)), resampled at the
+    // mk1 rate. The PCM's samples are its 20-bit mix << 12; at 0 dB the 20-bit full scale is s16
+    // full scale, so nothing clamps. The renderer's conversion (x >> 15, +6 dB here) clamps the top
+    // 6 dB: 48 of the 64 factory patches reach it with one note or a 4-note chord at velocity 127.
+    // The core stays in reset while the save file is restored (nv_hold) and pauses for a save's
+    // second pass (nv_pause).
+    roland_board_common #(.CLK_HZ(CLK_HZ), .WAVE_BASE(WAVE_BASE), .TO16_SHIFT(16)) common (
+        .clk, .rst, .user_reset,
+        .ioctl_download, .ioctl_wr, .ioctl_addr, .ioctl_dout, .ioctl_wait,
+        .ld_we, .ld_sel, .ld_addr, .ld_data, .model, .pack_ok, .loading, .ok,
+        .hold(nv_hold), .pause(nv_pause), .pace_enable, .fast(1'b0), .step_gate,
+        .core_rst, .reset_start, .run_step, .running, .lag_us, .core_ready, .reset_done, .step_done,
+        .uart_rxd, .uart_txd, .midi_inject, .midi_inject_data, .midi_alt, .midi_seen,
+        .midi_valid(m_valid), .midi_data(m_data), .tx_valid, .tx_data,
+        .midi_led, .underrun_led, .lag_seen,
+        .rom_req, .rom_addr, .rom_ready, .rom_rvalid, .rom_data,
+        .lreq(1'b0), .laddr(15'd0), .lvalid(), .ldata(),
+        .mk2(1'b0), .gain, .sample_valid, .sample_l, .sample_r, .audio_l, .audio_r, .underruns, .overruns,
+        .DDRAM_BUSY, .DDRAM_BURSTCNT, .DDRAM_ADDR, .DDRAM_DOUT, .DDRAM_DOUT_READY,
+        .DDRAM_RD, .DDRAM_DIN, .DDRAM_BE, .DDRAM_WE
+    );
+
+    // ---------------------------------------------------------- NVRAM save file
     // SHADOW 0: a 32 KB shadow needs 32 M10K and the JV-880 has 27 free (526 / 553 at
     // build-rbf 45859974183), so saves keep the paused second pass when the MCU writes the NVRAM
     synthframe_nvsave #(.AW(15), .SHADOW(1'b0)) nvsave (
@@ -138,49 +161,6 @@ module jv880_board #(
     wire [18:0] c_ld_addr = nv_we ? {4'd0, nv_addr} : ld_addr;
     wire [7:0]  c_ld_data = nv_we ? nv_wdata : ld_data;
 
-    // ---------------------------------------------------------- sequencing
-    typedef enum logic [2:0] { B_HOLD, B_CLEAR, B_RESET, B_RUN } bst_t;
-    bst_t bst;
-    logic core_rst, reset_start, reset_done, core_ready, run_step;
-
-    always_ff @(posedge clk) begin
-        reset_start <= 1'b0;
-        if (rst || loading || !ok || user_reset) begin
-            bst <= B_HOLD;
-            core_rst <= 1'b1;
-        end else begin
-            case (bst)
-                B_HOLD:  if (!nv_hold) begin core_rst <= 1'b0; bst <= B_CLEAR; end
-                B_CLEAR: if (core_ready) begin reset_start <= 1'b1; bst <= B_RESET; end
-                B_RESET: if (reset_done) bst <= B_RUN;
-                default: ;
-            endcase
-        end
-    end
-    assign running = (bst == B_RUN);
-
-    // ---------------------------------------------------------- pacing (600 ns a step, R_NSPerStep)
-    logic allow;
-    step_pacer #(.CLK_HZ(CLK_HZ), .STEP_NS(600), .STEP_NS_FAST(600)) pacer (
-        .clk, .rst(core_rst), .enable(pace_enable), .fast(1'b0), .step_done, .allow, .lag_us
-    );
-    assign run_step = running && allow && step_gate && !nv_pause;
-
-    // ---------------------------------------------------------- MIDI
-    logic       rx_valid;
-    logic [7:0] rx_data;
-    synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi (
-        .clk, .rst, .rxd(uart_rxd), .byte_valid(rx_valid), .byte_data(rx_data), .frame_err(), .alt(midi_alt)
-    );
-    logic       tx_valid;
-    logic [7:0] tx_data;
-    synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_out (
-        .clk, .rst, .alt(midi_alt), .valid(tx_valid), .data(tx_data), .txd(uart_txd), .busy(), .dropped()
-    );
-    wire       m_valid = rx_valid || midi_inject;
-    wire [7:0] m_data  = midi_inject ? midi_inject_data : rx_data;
-    always_ff @(posedge clk) midi_seen <= m_valid;
-
     // ---------------------------------------------------------- panel: encoder detents (registered)
     logic enc_go, enc_pdir;
     always_ff @(posedge clk) begin
@@ -189,10 +169,6 @@ module jv880_board #(
     end
 
     // ---------------------------------------------------------- core
-    logic        rom_req, rom_ready, rom_rvalid;
-    logic [21:0] rom_addr;
-    logic [7:0]  rom_data;
-
     logic [9:0] jv_leds;                  // panel LEDs (sc55_mcu), for the video
     sc55_core #(.ROM2_AW(18), .JV880_RAMS(1'b1)) core (
         .clk, .rst(core_rst),
@@ -202,7 +178,7 @@ module jv880_board #(
         .mk2(1'b0), .sc155(1'b0), .jv880(1'b1),
         .enc_we(enc_go), .enc_dir(enc_pdir),
         .rom2x_req(), .rom2x_addr(), .rom2x_ack(1'b0), .rom2x_data(8'h00),
-        .midi_valid(m_valid && running), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons({18'h0, buttons}), .jv_leds,
+        .midi_valid(m_valid), .midi_data(m_data), .midi_full(), .tx_valid, .tx_data, .buttons({18'h0, buttons}), .jv_leds,
         .rom_req, .rom_addr, .rom_ready, .rom_data, .rom_rvalid,
         .enable_oversampling(1'b1),
         .sample_valid, .sample_l, .sample_r,
@@ -220,25 +196,7 @@ module jv880_board #(
         .dd(lcd_dd), .cg, .enable(lcd_on), .dd_ram, .c_flag
     );
 
-    // status strip: MIDI and underrun flashes; underrun since the core started (sticky); real-time
-    // lag that grew after the first second of running (sticky)
-    logic [23:0] midi_stretch, ur_stretch;
-    logic [15:0] last_ur;
-    logic [25:0] run_time;
-    logic [31:0] lag_base;
-    logic        lag_seen;
-    always_ff @(posedge clk) begin
-        midi_stretch <= midi_seen ? 24'hffffff : (midi_stretch != 0 ? midi_stretch - 24'd1 : 24'd0);
-        last_ur <= underruns;
-        ur_stretch <= (underruns != last_ur) ? 24'hffffff : (ur_stretch != 0 ? ur_stretch - 24'd1 : 24'd0);
-        if (!running) begin
-            run_time <= '0;
-            lag_seen <= 1'b0;
-        end else if (run_time != 26'(CLK_HZ)) begin
-            run_time <= run_time + 26'd1;
-            lag_base <= lag_us;
-        end else if (lag_us != lag_base) lag_seen <= 1'b1;
-    end
+
     // diagnostics line (OSD; hex): MIDI bytes received, the last 4 bytes, the PCM's peak |left|
     // (bits 31:16) and the output's peak |left| over the last 2**24 clocks (0.34 s), underruns
     logic [15:0] dbg_n, dbg_pcm_pk, dbg_out_pk, pcm_pk_run, out_pk_run;
@@ -248,7 +206,7 @@ module jv880_board #(
         logic [15:0] a, o;
         a = sample_l[31] ? 16'(~sample_l[31:16]) : sample_l[31:16];
         o = audio_l[15] ? ~audio_l : audio_l;
-        if (m_valid && running) begin dbg_n <= dbg_n + 16'd1; dbg_last <= {dbg_last[23:0], m_data}; end
+        if (m_valid) begin dbg_n <= dbg_n + 16'd1; dbg_last <= {dbg_last[23:0], m_data}; end
         dbg_win <= dbg_win + 24'd1;
         if (dbg_win == '1) begin
             dbg_pcm_pk <= pcm_pk_run; dbg_out_pk <= out_pk_run; pcm_pk_run <= '0; out_pk_run <= '0;
@@ -267,47 +225,9 @@ module jv880_board #(
 
     jv880_lcd_video #(.PANEL_DIR(PANEL_DIR)) video (
         .clk(clk_vid), .dd(lcd_dd), .cg, .dd_ram, .cursor_on(c_flag), .buttons, .leds(jv_leds),
-        .rom_ok, .loading, .running, .midi_led(midi_stretch != 0), .underrun_led(ur_stretch != 0),
+        .rom_ok, .loading, .running, .midi_led, .underrun_led,
         .underrun_seen(underruns != 16'd0), .lag_seen, .dbg_ch, .dbg_on(diag),
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank), .r(vid_r), .g(vid_g), .b(vid_b)
     );
 
-    // ---------------------------------------------------------- wave ROMs (DDR3)
-    wave_ddr #(.BASE(WAVE_BASE)) wave (
-        .clk, .rst,
-        .wr(wave_wr), .waddr(wave_addr), .wdata(wave_data), .wbusy(wave_busy),
-        .req(rom_req), .addr(rom_addr), .ready(rom_ready), .rvalid(rom_rvalid), .rdata(rom_data),
-        .lreq(1'b0), .laddr(15'd0), .lvalid(), .ldata(),
-        .DDRAM_BUSY, .DDRAM_BURSTCNT, .DDRAM_ADDR, .DDRAM_DOUT, .DDRAM_DOUT_READY,
-        .DDRAM_RD, .DDRAM_DIN, .DDRAM_BE, .DDRAM_WE
-    );
-
-    // ---------------------------------------------------------- audio
-    // s16 conversion clamp(x >> (16 - gain)), 64 -> 48 kHz (resample.sv, the mk1 rate), then a FIFO
-    // that plays at 48 kHz in real time. The PCM's samples are its 20-bit mix << 12; at 0 dB the
-    // 20-bit full scale is s16 full scale, so nothing clamps. The renderer's conversion
-    // (x >> 15, +6 dB here) clamps the top 6 dB: 48 of the 64 factory patches reach it with one
-    // note or a 4-note chord at velocity 127.
-    function automatic logic signed [15:0] to16(input logic signed [31:0] v, input logic [1:0] g);
-        logic signed [31:0] s;
-        s = v >>> (5'd16 - {3'd0, g});
-        if (s > 32'sd32767) return 16'sh7fff;
-        if (s < -32'sd32768) return 16'sh8000;
-        return s[15:0];
-    endfunction
-
-    logic        rs_valid;
-    logic signed [15:0] rs_l, rs_r;
-    resample rs (
-        .clk, .rst(core_rst), .mk2(1'b0),
-        .in_valid(sample_valid), .in_l(to16(sample_l, gain)), .in_r(to16(sample_r, gain)),
-        .out_valid(rs_valid), .out_l(rs_l), .out_r(rs_r)
-    );
-
-    synthframe_audio_fifo #(.CLK_HZ(CLK_HZ), .RATE(48_000), .DEPTH_BITS(8)) fifo (
-        .clk, .rst(core_rst),
-        .in_valid(rs_valid), .in_l(rs_l), .in_r(rs_r),
-        .out_l(audio_l), .out_r(audio_r), .out_strobe(),
-        .underruns, .overruns
-    );
 endmodule

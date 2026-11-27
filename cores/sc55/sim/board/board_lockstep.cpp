@@ -248,11 +248,11 @@ int main(int argc, char** argv)
         }
         t->clk = 0; t->clk_vid = 0; t->eval();
         // a byte from synthframe_midi_rx goes into the MCU's buffer at this edge
-        if (rx_baud && t->rootp->sc55_board__DOT__rx_valid && t->running && !t->rootp->sc55_board__DOT__core__DOT__midi_full)
+        if (rx_baud && t->rootp->sc55_board__DOT__common__DOT__rx_valid && t->running && !t->rootp->sc55_board__DOT__core__DOT__midi_full)
         {
-            hdl_rx.push_back(t->rootp->sc55_board__DOT__rx_data);
+            hdl_rx.push_back(t->rootp->sc55_board__DOT__common__DOT__rx_data);
             ++rx_hdl_bytes;
-            if (rx_trace) printf("step %" PRIu64 ": MIDI in %02x (speed %s)\n", cur_step, t->rootp->sc55_board__DOT__rx_data, t->midi_alt ? "alt" : "standard");
+            if (rx_trace) printf("step %" PRIu64 ": MIDI in %02x (speed %s)\n", cur_step, t->rootp->sc55_board__DOT__common__DOT__rx_data, t->midi_alt ? "alt" : "standard");
         }
         if (rx_trace)
         {
@@ -434,7 +434,7 @@ int main(int argc, char** argv)
                 ++lag_reports;
                 printf("lag +%u us at clock %" PRIu64 " (step %" PRIu64 "), %.2f clocks/step over the last 2,000-step window start, credit %" PRId64 "\n",
                        t->lag_us - lag_before, clocks - c0, steps0, (double)(clocks - win_c0) / (double)std::max<uint64_t>(1, steps0 % 2000),
-                       (int64_t)R->sc55_board__DOT__pacer__DOT__credit);
+                       (int64_t)R->sc55_board__DOT__common__DOT__pacer__DOT__credit);
             }
             if (t->step_done && (steps0 % 2000) == 0)
             {
@@ -645,7 +645,7 @@ int main(int argc, char** argv)
                          (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
         tick();
     {
-        const unsigned dropped = t->rootp->sc55_board__DOT__midi_out__DOT__dropped;
+        const unsigned dropped = t->rootp->sc55_board__DOT__common__DOT__midi_out__DOT__dropped;
         if (!speed_matched) { fprintf(stderr, "MIDI in: synthframe_midi_rx never matched the line's %" PRId64 " baud\n", rx_baud); return 1; }
         if (tx_skip_ref || tx_skip_line)
         {

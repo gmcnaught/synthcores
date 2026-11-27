@@ -23,6 +23,7 @@ files:
   - modules/roland/hdl/board/rom_loader.sv
   - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
   - modules/roland/hdl/board/resample.sv
+  - modules/roland/hdl/board/roland_board_common.sv
   - modules/roland/hdl/board/lcd_ctrl.sv
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv

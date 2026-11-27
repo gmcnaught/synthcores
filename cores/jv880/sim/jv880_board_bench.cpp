@@ -562,7 +562,7 @@ int main(int argc, char** argv)
                          (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
         tick();
     {
-        const unsigned dropped = R->jv880_board__DOT__midi_out__DOT__dropped;
+        const unsigned dropped = R->jv880_board__DOT__common__DOT__midi_out__DOT__dropped;
         if (txdec.bytes != tx_ref || txdec.errors || dropped)
         {
             fprintf(stderr, "MIDI out: uart_txd carried %zu bytes (%d framing errors, %u dropped), model sent %zu\n",
