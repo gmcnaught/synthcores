@@ -41,7 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import p2k_lib            # noqa: E402
 import p2k_sf2            # noqa: E402
 import p2k_simm           # noqa: E402
-from p2k_build_simm import BIG, BABY, LIB, SAMPLE_BASE, PAD_WORDS, obj, name16, place, sample_header  # noqa: E402
+from p2k_build_simm import BIG, BABY, LIB, SAMPLE_BASE, obj, name16, place, sample_header  # noqa: E402
 
 ROM_ID = 4
 LAYERS = (0xA4, 0x170, 0x23C, 0x308)     # yp_1 layer offsets (docs/p2k-lib-formats.md)
