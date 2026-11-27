@@ -58,7 +58,9 @@ $M shot mt32 "$OUT/midi.png" >/dev/null
 $M sh "nohup python3 /tmp/mister_keys.py down:q sleep:20 up:q > /dev/null 2>&1 < /dev/null &"
 sleep 5
 $M shot mt32 "$OUT/key.png" >/dev/null
-$M sh "while pgrep -f mister_keys.py > /dev/null; do sleep 1; done"
+# busybox on the MiSTer has no pgrep; "[m]ister_keys.py" does not match this loop's own command
+# line. At most 30 s (the key script sleeps 20).
+$M sh "i=0; while ps | grep -q '[m]ister_keys.py' && [ \$i -lt 30 ]; do sleep 1; i=\$((i + 1)); done"
 stop_midilink
 # zero bytes first (framing errors at 31250): synthframe_midi_rx is at 9600 before the requests
 $M sh "python3 /tmp/tty_midi_xfer.py 9600 2.5 0000000000000000 $RQ1" > "$OUT/midi_out_9600.txt"
