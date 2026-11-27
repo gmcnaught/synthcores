@@ -13,7 +13,9 @@
 # cycles in MAME and the HDL. MIDI out: the bytes decoded from MAME's TxD line and the HDL's
 # (tools/txlog_bytes.py) must be identical, each starting within 32 CPU cycles (a third of a bit)
 # of MAME's: MAME moves TxD at its 2 MHz serial clock edges, the board at the next instruction
-# boundary.
+# boundary. The bytes the MiSTer sends (the board's midi_out_valid, CZ_TX_BYTES) must be MAME's,
+# each loaded into the shift register at the SCK edge exactly one bit (128 edges: 106 or 107
+# cycles) before MAME's start bit.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY="$(command -v pypy3 || command -v python3)"   # comparison scripts run under pypy3 when present
@@ -38,11 +40,11 @@ SECS=$(( N / 300000 + 4 ))
 CZ_POWER_ON=1 CZ_TRACE="$W/mame.trace" CZ_TRACE_LIMIT=$N CZ_SAMPLES="$W/mame.s32" \
     CZ_RX_LOG="$W/mame.rx" CZ_SND_LOG="$W/mame.snd" CZ_TX_LOG="$W/mame.tx" \
     "$HERE/tools/mame-cz101.sh" "$W/rom" "$W/mame" -seconds_to_run $SECS -midiin "$W/in.mid" >/dev/null 2>&1 || true
-CZ_TX_LOG="$W/hdl.tx" "$BENCH" "$W/rom/cz101" "$N" "$W/hdl.trace" "$W/hdl.s32" "$W/mame.rx" | tee "$W/hdl.txt"
+CZ_TX_LOG="$W/hdl.tx" CZ_TX_BYTES="$W/hdl.txload" "$BENCH" "$W/rom/cz101" "$N" "$W/hdl.trace" "$W/hdl.s32" "$W/mame.rx" | tee "$W/hdl.txt"
 "$PY" "$HERE/tools/trace_cmp.py" "$W/mame.trace" "$W/hdl.trace" "$N"
 "$PY" "$HERE/tools/s32_cmp.py" "$W/mame.s32" "$W/hdl.s32" "$W/hdl.txt" samples
 "$PY" "$HERE/tools/rxlog_bytes.py" "$W/mame.rx" > "$W/live.bytes"
-CZ_MIDI_BYTES="$W/live.bytes" CZ_TX_LOG="$W/live.tx" "$BENCH" "$W/rom/cz101" "$N" "$W/live.trace" "$W/live.s32" | tee "$W/live.txt"
+CZ_MIDI_BYTES="$W/live.bytes" CZ_TX_LOG="$W/live.tx" CZ_TX_BYTES="$W/live.txload" "$BENCH" "$W/rom/cz101" "$N" "$W/live.trace" "$W/live.s32" | tee "$W/live.txt"
 "$PY" "$HERE/tools/trace_cmp.py" "$W/mame.trace" "$W/live.trace" "$N"
 "$PY" "$HERE/tools/s32_cmp.py" "$W/mame.s32" "$W/live.s32" "$W/live.txt" "live MIDI samples"
 # MIDI out: MAME's bytes stop at its last instruction, so compare up to the shorter stream
@@ -60,6 +62,16 @@ if d is not None or abs(len(a) - len(b)) > 1:
 dt = max((abs(int(a[i][0]) - int(b[i][0])) for i in range(n)), default=0)
 print(f"{sys.argv[3]} MIDI out: identical {n} bytes, start times within {dt} cycles "
       f"({' '.join(x[1] for x in a[:n])[:90]})")
+PY
+    "$PY" - "$W/mame.txbytes" "$W/$k.txload" "$k" <<'PY'
+import sys
+a, b = ([l.split() for l in open(p)] for p in sys.argv[1:3])
+n = min(len(a), len(b))
+d = next((i for i in range(n) if a[i][1] != b[i][1] or int(a[i][0]) - int(b[i][0]) not in (106, 107)), None)
+if d is not None or abs(len(a) - len(b)) > 1:
+    d = n if d is None else d
+    print(f"{sys.argv[3]} MIDI out bytes (MiSTer): FAIL at byte {d}: MAME {a[d:d+3]} HDL loads {b[d:d+3]} ({len(a)} / {len(b)} bytes)"); sys.exit(1)
+print(f"{sys.argv[3]} MIDI out bytes (MiSTer): identical {n} bytes, each loaded one bit before MAME's start bit")
 PY
 done
 echo "C4 $NAME: PASS"

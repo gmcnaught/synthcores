@@ -137,10 +137,18 @@ Timing rules the board implements (all from MAME's source, confirmed by the lock
   The SIO samples once a bit, at a phase that is fixed within a byte, so the decode does not
   depend on where the edges fall. Sim check: MAME's MIDI log decoded to bytes
   (`tools/rxlog_bytes.py`) and fed through this path (`CZ_MIDI_BYTES`).
-- **MIDI out:** the uPD7811's TxD drives the UART TX. The serial port moves TxD at the instruction
-  boundary after each of MAME's 2 MHz serial clock edges, so a byte starts within an instruction
-  of MAME's (19 CPU cycles at most in the C4 panel case, a fifth of a bit); the bytes are the
-  same (`tools/txlog_bytes.py`, `tests/c4_run.sh` with a panel script).
+- **MIDI out:** the board's TxD follows MAME's line, but moves only at the instruction boundary
+  after each 2 MHz serial clock edge. An edge due inside a DIV (59 cycles) or MUL (32) came out
+  up to half a bit late, and the MiSTer's UART misread about one byte in 8,000 of a tone dump
+  ([#58](https://github.com/gmcnaught/synthcores/issues/58): 02 read as 80, 03 as 07). The MiSTer
+  top therefore sends the bytes, not the line: the periph pulses `tx_load` when TXB enters the
+  shift register in an 8-bit asynchronous mode, the board passes it on as `midi_out_valid` when
+  TxD is high (the firmware's boot byte, loaded while TxD is still at its reset level 0, never
+  shows on MAME's line), and `synthframe_midi_tx` sends it at 31,250 baud (9600 when the
+  receiver found the HPS UART there) from the 50 MHz clock. Checks in `tests/c4_run.sh` with a
+  panel script: the bytes decoded from the board's TxD equal MAME's, each starting within an
+  instruction of MAME's; the bytes the MiSTer sends (`CZ_TX_BYTES`) equal MAME's, each loaded at
+  the SCK edge exactly one bit (106 or 107 cycles) before MAME's start bit.
 - **Panel scripts:** `tests/panel/*.txt` (`tools/panel_sched.py`) press panel buttons and move the
   pitch wheel at given CPU cycles, in the bench (`CZ_KEYS`, `CZ_WHEEL`) and in MAME (patch 0001,
   same variables); MAME also logs its TxD line (`CZ_TX_LOG`).

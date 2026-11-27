@@ -44,6 +44,8 @@ module upd7810_periph (
     input  logic [7:0]  an [8],
     input  logic        rxd,
     output logic        txd,
+    output logic        tx_load,      // one pulse: TXB entered the transmit shift register in an
+    output logic [7:0]  tx_byte,      //   asynchronous mode with 8 data bits; tx_byte = that TXB
     input  logic        sck_edge,     // external SCK changed state (MAME sck_w with a new level)
     input  logic        sck_level,    // the new level
     input  logic        nmi_line,     // ASSERT = 1
@@ -251,6 +253,9 @@ module upd7810_periph (
             if (txcnt == 8'd1) irr_set = irr_set | INTFST;
         end else if (SMH[2] && txbuf) begin
             txbuf <= 1'b0;
+            if (SML[1:0] != 2'b00 && SML[3:2] == 2'b11) begin
+                tx_load <= 1'b1; tx_byte <= TXB;
+            end
             if (SML[1:0] != 2'b00) begin
                 case (SML[7:2])
                     6'h12, 6'h1A: begin txs <= ({8'h0, TXB} << 1) | 16'h0100; txcnt <= 8'd9; end // 48, 68
@@ -385,6 +390,7 @@ module upd7810_periph (
         skit_ack <= 1'b0;
         adv_ack <= 1'b0;
         pa_we <= 1'b0; pb_we <= 1'b0; pc_we <= 1'b0; pd_we <= 1'b0; pf_we <= 1'b0;
+        tx_load <= 1'b0;
         irr_set = 16'h0;
         irr_n = IRR;
         itf_n = ITF;
@@ -401,7 +407,7 @@ module upd7810_periph (
             TO <= 1'b0; CO0 <= 1'b0; CO1 <= 1'b0; LV0 <= 1'b0; LV1 <= 1'b0;
             TXD <= 1'b0; RXD <= 1'b0; SCK <= 1'b0; CI <= 1'b0;
             nmi_q <= 1'b0; int1_q <= 1'b0; int2_q <= 1'b1;
-            txs <= 16'h0; rxs <= 16'hFFFF; txcnt <= 8'h0; rxcnt <= 8'h0; txbuf <= 1'b0;
+            txs <= 16'h0; rxs <= 16'hFFFF; tx_byte <= 8'h00; txcnt <= 8'h0; rxcnt <= 8'h0; txbuf <= 1'b0;
             edges <= 1'b0;
             ovc0 <= 8'h0; ovc1 <= 8'h0; ovce <= 8'h0; ovcs <= 16'h0;
             adcnt <= 16'h0; adtot <= 8'h0; tmpcr <= 8'h0; shdone <= 1'b0;

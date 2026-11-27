@@ -35,6 +35,8 @@ module upd7811 #(
     input  logic [7:0]  an [8],
     input  logic        rxd,
     output logic        txd,
+    output logic        tx_load,      // TXB entered the shift register (8-bit async modes)
+    output logic [7:0]  tx_byte,
     input  logic        sck_edge,
     input  logic        sck_level,
     input  logic        nmi_line,
@@ -107,7 +109,7 @@ module upd7811 #(
         .pa_in, .pb_in, .pc_in, .pd_in, .pf_in,
         .pa_out, .pb_out, .pc_out, .pd_out, .pf_out,
         .pa_we, .pb_we, .pc_we, .pd_we, .pf_we,
-        .an, .rxd, .txd, .sck_edge, .sck_level, .nmi_line, .int1_line, .int1_rise, .pa_rd, .int2_line,
+        .an, .rxd, .txd, .tx_load, .tx_byte, .sck_edge, .sck_level, .nmi_line, .int1_line, .int1_rise, .pa_rd, .int2_line,
         .ram_enable, .to, .co0, .co1, .r_irr
     );
 

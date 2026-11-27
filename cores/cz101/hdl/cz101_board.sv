@@ -47,7 +47,13 @@ module cz101_board #(
     input  logic        midi_valid,
     input  logic [7:0]  midi_byte,
     output logic        midi_pop,
-    output logic        midi_tx,
+    output logic        midi_tx,        // the uPD7811's TxD as MAME's, moved at instruction boundaries:
+                                        // an edge due inside a long instruction (DIV: 59 cycles) is
+                                        // late by up to half a bit, so the MiSTer sends midi_out_byte
+    output logic        midi_out_valid, // one pulse: a byte entered the TxD shift register with TxD high
+                                        // (MIDI out; the firmware's boot byte, loaded while TxD is
+                                        // still at its reset level 0, never shows on MAME's line)
+    output logic [7:0]  midi_out_byte,
 
     // second port on the battery RAM (save file): 0000-0FFF RAM, 1000-17FF cartridge
     input  logic [12:0] nv_addr,
@@ -97,6 +103,8 @@ module cz101_board #(
 );
 
     // ------------------------------------------------------------------ CPU
+    logic        tx_load;
+    assign midi_out_valid = tx_load && midi_tx;   // a load does not move TxD: the level before it
     logic [15:0] ext_addr;
     logic        ext_req, ext_we, ext_ack;
     logic [7:0]  ext_wdata, ext_rdata;
@@ -119,7 +127,7 @@ module cz101_board #(
         .pa_in, .pb_in, .pc_in(8'h00), .pd_in(8'h00), .pf_in(8'h00),
         .pa_out, .pb_out, .pc_out, .pd_out, .pf_out,
         .pa_we, .pb_we, .pc_we, .pd_we, .pf_we,
-        .an, .rxd(rx_line), .txd(midi_tx), .sck_edge, .sck_level,
+        .an, .rxd(rx_line), .txd(midi_tx), .tx_load(tx_load), .tx_byte(midi_out_byte), .sck_edge, .sck_level,
         .nmi_line(nmi_ev), .int1_line, .int1_rise, .pa_rd, .int2_line(1'b0),
         .vcyc, .acc_time, .at_boundary, .ev_done,
         .insn_done, .insn_cc, .insn_pc, .insn_op, .insn_op2, .halt_cycle, .irq_taken,
