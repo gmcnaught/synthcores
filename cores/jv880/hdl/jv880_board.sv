@@ -122,7 +122,9 @@ module jv880_board #(
     logic        nv_we, nv_hold, nv_pause, core_idle, nv_wrote;
     logic [14:0] nv_addr;
     logic [7:0]  nv_wdata, nv_rdata;
-    synthframe_nvsave #(.AW(15)) nvsave (
+    // SHADOW 0: a 32 KB shadow needs 32 M10K and the JV-880 has 27 free (526 / 553 at
+    // build-rbf 45859974183), so saves keep the paused second pass when the MCU writes the NVRAM
+    synthframe_nvsave #(.AW(15), .SHADOW(1'b0)) nvsave (
         .clk, .rst, .loading(ioctl_download || loading), .image_ok(ok),
         .img_mounted, .img_readonly, .img_size,
         .sd_lba, .sd_blk_cnt, .sd_rd, .sd_wr, .sd_ack, .sd_buff_addr, .sd_buff_dout, .sd_buff_wr, .sd_buff_din,

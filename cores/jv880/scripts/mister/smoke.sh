@@ -14,8 +14,8 @@
 # Unit number", the cursor to the value, three steps up; the OSD opens (autosave) and closes;
 # the save file must be 32 KB; the core and pack load again, and the same page must show the
 # changed value. Last, MIDI out (MIDI-OUT-PLAN.md): a fresh load without the save file, then the
-# data request (RQ1) for the system area (00 00 00 00, 16 bytes); ../sc55/scripts/mister/
-# tty_midi_xfer.py reads /dev/ttyS1 for 4 s (at 9600: synthframe_midi_tx follows the input's
+# data request (RQ1) for the system area (00 00 00 00, 16 bytes); synthframe's
+# tools/mister/tty_midi_xfer.py reads /dev/ttyS1 for 4 s (at 9600: synthframe_midi_tx follows the input's
 # speed). The reply must be one DT1 from 00 00 00 00, 75 bytes, with a valid checksum (with the
 # factory-preset NVRAM the reference sends REF_DT1 below). 2 s after the reply the panel must show
 # the play screen again (as at boot), and SYSTEM must change it (ref/patch_ref.py FIXES, the SCI
@@ -31,7 +31,7 @@ RBF=${1:?usage: smoke.sh RBF PACK OUTDIR [SECONDS]}; PACK=${2:?}; OUT=${3:?}
 SECS=${4:-60}
 M=../../modules/synthframe/bin/synth-mister
 mkdir -p "$OUT"
-python3 ../sc55/scripts/mister/smf2events.py ../../modules/nuked-sc55/test/integration/jv880/jv880.mid "$OUT/jv880.txt" >/dev/null
+python3 ../../modules/synthframe/tools/midi/smf2events.py ../../modules/nuked-sc55/test/integration/jv880/jv880.mid "$OUT/jv880.txt" >/dev/null
 
 $M lock jv880-smoke
 trap '$M unlock' EXIT
@@ -41,7 +41,7 @@ $M sh "mkdir -p /media/fat/games/JV-880; rm -f /media/fat/games/JV-880/boot.rom 
 scp -q "$PACK" "$MISTER:/media/fat/games/JV-880/jv880_smoke.rom"
 printf '<mistergamedescription>\n  <rbf>_Devices/JV880</rbf>\n  <file delay="1" type="f" index="1" path="jv880_smoke.rom"/>\n</mistergamedescription>\n' |
     $M sh "cat > /tmp/jv880_smoke.mgl"
-scp -q ../synclavier/scripts/mister/mister_keys.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
 $M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
@@ -50,7 +50,7 @@ $M shot jv880 "$OUT/boot.png" >/dev/null
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # a few zero bytes (framing errors at 31250) switch the input to 9600 (synthframe_midi_rx)
 printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
-scp -q ../sc55/scripts/mister/play_tty.py "$OUT/jv880.txt" "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/play_tty.py "$OUT/jv880.txt" "$MISTER:/tmp/"
 $M sh "python3 /tmp/play_tty.py /tmp/jv880.txt $SECS"
 $M shot jv880 "$OUT/end.png" >/dev/null
 
@@ -75,7 +75,7 @@ $M sh "rm -f /media/fat/saves/JV-880/jv880_smoke.sav"
 $M load /tmp/jv880_smoke.mgl; sleep "${BOOT:-20}"
 $M midi-off
 printf '0000000000000000' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 1"
-scp -q ../sc55/scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
 $M sh "python3 /tmp/tty_midi_xfer.py 4 f041104611000000000000001070f7" > "$OUT/midi_out.txt"
 sleep 2
 $M shot jv880 "$OUT/midi_out.png" >/dev/null

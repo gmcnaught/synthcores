@@ -419,7 +419,7 @@ def render(name, mame, rompath, simm, out, rep):
             "-joystickprovider", "none", "-log", "-seconds_to_run", f"{secs:.3f}",
             "-wavwrite", os.path.join(d, "out.wav")]
     if any(ln.strip() and not ln.startswith("#") for ln in open(script)):
-        subprocess.run([sys.executable, os.path.join(HERE, "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
+        subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "..", "modules", "synthframe", "tools", "midi", "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
         args += ["-midiin", os.path.join(d, "in.mid")]
     env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy", P2K_TRACE="1",
                P2K_SNDLOG=os.path.join(d, "snd.log"), P2K_SNDOUT=os.path.join(d, "snd.raw"),
