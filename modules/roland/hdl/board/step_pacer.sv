@@ -32,16 +32,19 @@ module step_pacer #(
             lag_us <= '0;
         end else begin : b_step_pacer_1
             logic signed [47:0] c;
+            logic [31:0] l;
             c = credit + 48'sd1000;
             if (step_done) c = c - (fast ? 48'(STEP_MILLICLK_FAST) : 48'(STEP_MILLICLK));
-            if (c > 48'(CAP)) begin
-                lost <= lost + 32'(c - 48'(CAP));
+            l = lost;                       // one update of `lost` a clock: the overflow and the
+            if (c > 48'(CAP)) begin         // microsecond carry may fall in the same clock
+                l = l + 32'(c - 48'(CAP));
                 c = 48'(CAP);
             end
-            if (lost >= 32'(US_MILLICLK)) begin
-                lost <= lost - 32'(US_MILLICLK);
+            if (l >= 32'(US_MILLICLK)) begin
+                l = l - 32'(US_MILLICLK);
                 lag_us <= lag_us + 32'd1;
             end
+            lost <= l;
             credit <= c;
         end
     end

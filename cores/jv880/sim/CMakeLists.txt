@@ -28,7 +28,9 @@ verilate(jv880_board_bench SOURCES ${JV880_SV}
          "-DRESAMPLE_HEX=\"${ROLAND}/board/resample_coef.hex\""
          "-GPANEL_DIR=\"${HDL}/panel/\"")
 
-# synthframe_nvsave unit bench: a save with the core running, and the paused second pass after a write
+# synthframe_nvsave unit bench: a save with the core running, and the paused second pass after a write.
+# Built as jv880_board instantiates it: AW 15, SHADOW 0 (no M10K for a 32 KB shadow), so the two-pass
+# save is what the JV-880 runs; synthframe's own bench (modules/synthframe/tests/nvsave) covers SHADOW 1
 add_executable(nvsave_tb nvsave_tb.cpp)
 verilate(nvsave_tb SOURCES "${SYNTHFRAME}/save/synthframe_nvsave.sv"
-         TOP_MODULE synthframe_nvsave PREFIX Vsynthframe_nvsave VERILATOR_ARGS ${VFLAGS})
+         TOP_MODULE synthframe_nvsave PREFIX Vsynthframe_nvsave VERILATOR_ARGS ${VFLAGS} -GAW=15 -GSHADOW=0)

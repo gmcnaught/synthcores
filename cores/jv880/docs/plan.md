@@ -32,7 +32,8 @@ inferences.
 | Memory pages | SRAM page 5 | SRAM page 10 (32 KB), NVRAM pages 12/13 (32 KB, battery-backed), card RAM pages 14/15 (32 KB in the reference; the core reads 0, no card); pages 8/9 read FF | `mcu.cpp` |
 | ROM writes | — | writes to 6196–6199 ignored (the firmware writes into ROM at 002E77–002E7D) | `mcu.cpp` |
 | Timers | mk1 step tables | generic tables | `mcu_timer.cpp` |
-| Sub-MCU | none (mk1) | none | `mcu.cpp` |
+| Sub-MCU | none (mk1) | none. The reference still routes EC00–EFFF to its (empty) sub-MCU for every model but the SCB-55; the core maps it only on the mk2. No JV-880 firmware access to it in the MCU lockstep runs (boot, factory preset, `jv880.mid`), which compare every bus access | `mcu.cpp` `MCU_Read`/`MCU_Write` |
+| P9DR (FFFF) | cfg bits 0 | bit 1 reads 1 where P9DDR makes it an input (the reference's `!is_mk1` cfg = 2) | `mcu.cpp` `DEV_P9DR` |
 | Wave ROMs | 3 × 1 MB | 2 × 2 MB (banks 0, 1); card bank 2 (2 MB); expansion banks 3–6 (8 MB) | `pcm.cpp` `PCM_ReadROM` |
 | PCM filter | mk1 `multi`/`addclip20` | the non-mk1 path (plain products, as the mk2) | `pcm.cpp` |
 | PCM clock | `reg_slots` cycles | × 25/29 | `pcm.cpp` `PCM_Update` |

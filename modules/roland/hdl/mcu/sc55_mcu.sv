@@ -1,5 +1,5 @@
-// SC-55 (mk1) MCU system: H8/532 CPU, memories, on-chip peripherals and the
-// mk1 gate array, sequenced like the reference model's MCU_Step:
+// Roland MCU system (SC-55 mk1 and mk2, SC-155 and SC-155mk2, JV-880): H8/532 CPU, memories,
+// on-chip peripherals, the gate array and the mk2's sub-MCU, sequenced like the reference model's MCU_Step:
 //
 //   CPU part (h8_cpu)  ->  cycles += 12  ->  PCM update (external, pcm_tick)
 //   ->  TIMER_Clock  ->  UART RX/TX (mk1)  ->  analog  ->  gate-array LCD counter
@@ -91,7 +91,7 @@ module sc55_mcu #(
     output logic [7:0]  lcd_data,
     output logic        lcd_enable,      // LCD_Enable
 
-    output logic [47:0] cycles,
+    output logic [63:0] cycles,
 
     // CPU bus, for the lockstep bench
     output logic        mon_req,
@@ -174,11 +174,11 @@ module sc55_mcu #(
     logic        sm_req, sm_we, sm_ack, sm_run, sm_done, sm_reset, sm_reset_done;
     logic        sm_rx_pop, sm_ga5_we, sm_ga5_val, sm_dly_we, sm_caught_up, sm_ready;
     logic [7:0]  sm_addr, sm_wdata, sm_rdata, sm_rx_byte;
-    logic [47:0] sm_dly_wv;
+    logic [63:0] sm_dly_wv;
     // The sub-MCU runs each step's SM_Update alongside the next step: the
     // device phase publishes 5 * cycles and the receive-buffer bytes it may
     // take (those that were there at the device phase).
-    logic [47:0] sm_tgt5;
+    logic [63:0] sm_tgt5;
     logic [RXBUF_BITS-1:0] sm_wp;
     sc55_submcu sm (
         .clk, .rst,
@@ -215,22 +215,23 @@ module sc55_mcu #(
     assign dbg_int = int_pend;
 
     // FRTs (mcu_timer.cpp frt_t)
-    logic [47:0] frt_deadline [3];
+    logic [63:0] frt_deadline [3];
     logic [7:0]  frt_tcr [3], frt_tcsr [3], frt_status_rd [3];
     logic [15:0] frt_frc [3], frt_ocra [3], frt_ocrb [3], frt_icr [3];
     logic [7:0]  frt_stride [3];
     // 8-bit timer
-    logic [47:0] tmr_deadline;
+    logic [63:0] tmr_deadline;
     logic [15:0] tmr_stride;
     logic [7:0]  tmr_tcr, tmr_tcsr, tmr_tcora, tmr_tcorb, tmr_tcnt, tmr_status_rd;
     logic [7:0]  tempreg;
     // UART
     logic [7:0]  uart_rx_byte;
-    logic [47:0] uart_rx_delay, uart_tx_delay;
+    logic [63:0] uart_rx_delay, uart_tx_delay;
+    logic        rxd_pend, txd_pend;       // the delay has not expired yet (see cyc_lt())
     logic [7:0]  ssr_rd;
     logic        tdr_written;              // MIDI out: TDR written since the last byte sent
     // analog
-    logic [47:0] analog_end;
+    logic [63:0] analog_end;
     logic        adf_rd;
     // gate array (mk1)
     logic [8:0]  ga_lcd_counter;
@@ -263,9 +264,34 @@ module sc55_mcu #(
             default: return 16'd0;
         endcase
     endfunction
-    function automatic logic [47:0] align_fwd(input logic [47:0] v, input logic [15:0] iv);
-        logic [47:0] m;
-        m = {32'h0, iv} - 48'd1;
+    // Time compares on a narrow difference. The counters stay 64 bits (the reference's uint64_t,
+    // compared bit-exact by the benches), but a 64-bit compare chain did not meet 50 MHz. cyc_lt(a, b)
+    // is a < b from the low DW bits as a signed difference: exact while |a - b| < 2^(DW-1). Bounds
+    // (checked in simulation below):
+    //   FRT/TMR deadline vs cycles / 2: the timers catch up after every step (`behind`), so a deadline
+    //     is at most one step (6) plus three strides behind, and at most one stride (<= 1024) ahead.
+    //   UART delays while pending (rxd_pend, txd_pend): set to cycles + 3000, cleared within a clock
+    //     of expiring; an expired delay is never compared.
+    //   A/D end (nonzero): cycles + 200, checked every step while the conversion runs.
+    localparam int DW = 20;
+    localparam longint DW_BOUND = 64'd1 << (DW - 2);   // what the simulation checks (half the range)
+    function automatic logic cyc_lt(input logic [63:0] a, input logic [63:0] b);
+        logic [DW-1:0] d;
+        d = a[DW-1:0] - b[DW-1:0];
+        return d[DW-1];
+    endfunction
+    function automatic logic near(input logic [63:0] a, input logic [63:0] b);   // sim only
+        return (a >= b ? a - b : b - a) < 64'(DW_BOUND);
+    endfunction
+    // synthesis translate_off
+    /* verilator lint_off PROCASSINIT */
+    logic chk_armed = 1'b0;            // the bound checks start after the first reset (before it, state is random)
+    always_ff @(posedge clk) if (rst) chk_armed <= 1'b1;
+    /* verilator lint_on PROCASSINIT */
+    // synthesis translate_on
+    function automatic logic [63:0] align_fwd(input logic [63:0] v, input logic [15:0] iv);
+        logic [63:0] m;
+        m = {48'h0, iv} - 64'd1;
         return (v + m) & ~m;
     endfunction
 
@@ -319,7 +345,7 @@ module sc55_mcu #(
     assign idle = (q == Q_IDLE);
     assign c_step_now = (q == Q_IDLE) && !reset_start && run_step;
 
-    wire [47:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
+    wire [63:0] tcyc = cycles >> 1;    // timer.cycles during an instruction (= previous TIMER_Clock target)
 
     // bus decode
     wire [3:0]  page = c_addr[19:16];
@@ -512,21 +538,35 @@ module sc55_mcu #(
             spec_v <= 1'b0;
             q <= Q_CLEAR;
             clr_a <= 16'd0;
-            cycles <= 48'd0;
+            cycles <= 64'd0;
             pcm_req <= 1'b0;
             sm_req <= 1'b0;
             rom2x_req <= 1'b0;
             ga_en <= 8'h00; ga_line <= 8'h00;
-            sm_tgt5 <= 48'd0; sm_wp <= '0;
+            sm_tgt5 <= 64'd0; sm_wp <= '0;
             rx_wp <= '0; rx_rp <= '0; rx_wp_d1 <= '0; rx_wp_d2 <= '0;
             for (int i = 0; i < 128; i++) dev[i] <= 8'h00;
             int_req <= 21'h0;
             ga_lcd_counter <= 9'd0; ga_trigger <= 3'd0; ga_int1 <= 1'b0; io_sd <= 8'h00;
             led_arm <= 2'b00; jv_leds <= 10'h000;
-            uart_rx_byte <= 8'h00; uart_rx_delay <= 48'd0; uart_tx_delay <= 48'd0; ssr_rd <= 8'h00; tdr_written <= 1'b0;
-            analog_end <= 48'd0; adf_rd <= 1'b0; tempreg <= 8'h00;
+            uart_rx_byte <= 8'h00; uart_rx_delay <= 64'd0; uart_tx_delay <= 64'd0; ssr_rd <= 8'h00; tdr_written <= 1'b0;
+            rxd_pend <= 1'b0; txd_pend <= 1'b0;
+            analog_end <= 64'd0; adf_rd <= 1'b0; tempreg <= 8'h00;
             lcd_enable <= 1'b0;
         end else begin
+            // a delay that has expired stays expired (cycles only grows); the sets below win
+            if (rxd_pend && !cyc_lt(cycles, uart_rx_delay)) rxd_pend <= 1'b0;
+            if (txd_pend && !cyc_lt(cycles, uart_tx_delay)) txd_pend <= 1'b0;
+            // synthesis translate_off
+            if (chk_armed && rxd_pend && !near(cycles, uart_rx_delay)) $fatal(1, "sc55_mcu: uart_rx_delay %0d too far from cycles %0d", uart_rx_delay, cycles);
+            if (chk_armed && txd_pend && !near(cycles, uart_tx_delay)) $fatal(1, "sc55_mcu: uart_tx_delay %0d too far from cycles %0d", uart_tx_delay, cycles);
+            if (chk_armed && analog_end != 64'd0 && !near(cycles, analog_end)) $fatal(1, "sc55_mcu: analog_end %0d too far from cycles %0d", analog_end, cycles);
+            if (chk_armed && q == Q_TIMERS) begin
+                for (int i = 0; i < 3; i++)
+                    if (!near(tcyc, frt_deadline[i])) $fatal(1, "sc55_mcu: FRT%0d deadline %0d too far from %0d", i, frt_deadline[i], tcyc);
+                if (tmr_stride != 16'd0 && !near(tcyc, tmr_deadline)) $fatal(1, "sc55_mcu: TMR deadline %0d too far from %0d", tmr_deadline, tcyc);
+            end
+            // synthesis translate_on
             // ------------------------------------------------ CPU bus slave
             if (pcm_req) begin
                 if (pcm_ack) begin
@@ -632,7 +672,7 @@ module sc55_mcu #(
                                                 d = d | 8'h80;
                                             end
                                         end
-                                        7'h7f: d = ((mk2 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR
+                                        7'h7f: d = ((nm1 && !sc155) ? (8'h02 & ~dev[7'h7e]) : 8'h00) | (dev[7'h7f] & dev[7'h7e]);   // P9DR: cfg bit 1 on every !is_mk1 model but the SC-155mk2
                                         default: d = dev[a16[6:0]];
                                     endcase
                                 end
@@ -721,7 +761,7 @@ module sc55_mcu #(
                                     3'd0: begin
                                         tmr_tcr <= d;
                                         tmr_stride <= tmr_stride_for(d[2:0], nm1);
-                                        if (tmr_stride_for(d[2:0], nm1) == 16'd0) tmr_deadline <= 48'hffffffffffff;
+                                        if (tmr_stride_for(d[2:0], nm1) == 16'd0) tmr_deadline <= 64'hffffffffffffffff;
                                         else tmr_deadline <= align_fwd(tcyc, tmr_stride_for(d[2:0], nm1));
                                     end
                                     3'd1: begin : b_sc55_mcu_3
@@ -749,13 +789,13 @@ module sc55_mcu #(
                                 // SSR: flag clears, then the whole register is overwritten (reference behaviour)
                                 // JV-880: the SCI is double-buffered, so the byte time starts when TDRE sets
                                 // (below), not here (ref/patch_ref.py FIXES)
-                                if (!d[7] && ssr_rd[7]) begin if (!jv880) uart_tx_delay <= cycles + 48'd3000; int_req[20] <= 1'b0; end
+                                if (!d[7] && ssr_rd[7]) begin if (!jv880) begin uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1; end int_req[20] <= 1'b0; end
                                 // MIDI out: TDR written, then TDRE written 0 (the SCI is double-buffered;
                                 // patch_ref.py's tx hook)
                                 if (!d[7] && tdr_written) begin tx_stb <= 1'b1; tx_byte <= dev[7'h5b]; tdr_written <= 1'b0; end
                                 if (!d[6] && ssr_rd[6]) begin
-                                    uart_rx_delay <= cycles + 48'd3000; int_req[19] <= 1'b0;
-                                    sm_dly_we <= mk2; sm_dly_wv <= cycles + 48'd3000;   // mk2: the sub-MCU's (shared) delay
+                                    uart_rx_delay <= cycles + 64'd3000; rxd_pend <= 1'b1; int_req[19] <= 1'b0;
+                                    sm_dly_we <= mk2; sm_dly_wv <= cycles + 64'd3000;   // mk2: the sub-MCU's (shared) delay
                                 end
                                 dev[7'h5c] <= d;
                             end else begin
@@ -788,11 +828,11 @@ module sc55_mcu #(
                     if (reset_start) begin
                         // MCU_Reset: devices (MCU_DeviceReset, TIMER_Reset), then the CPU
                         for (int i = 0; i < 3; i++) begin
-                            frt_deadline[i] <= 48'd0; frt_tcr[i] <= 8'h00; frt_tcsr[i] <= 8'h00;
+                            frt_deadline[i] <= 64'd0; frt_tcr[i] <= 8'h00; frt_tcsr[i] <= 8'h00;
                             frt_frc[i] <= 16'h0; frt_ocra[i] <= 16'hffff; frt_ocrb[i] <= 16'hffff;
                             frt_icr[i] <= 16'h0; frt_status_rd[i] <= 8'h00; frt_stride[i] <= 8'd4;
                         end
-                        tmr_deadline <= 48'hffffffffffff; tmr_stride <= 16'd0; tmr_tcr <= 8'h00;
+                        tmr_deadline <= 64'hffffffffffffffff; tmr_stride <= 16'd0; tmr_tcr <= 8'h00;
                         tmr_tcsr <= 8'h10; tmr_tcora <= 8'hff; tmr_tcorb <= 8'hff; tmr_tcnt <= 8'h00; tmr_status_rd <= 8'h00;
                         dev[7'h00] <= 8'h03; dev[7'h02] <= 8'h00; dev[7'h7c] <= 8'h87;
                         dev[7'h01] <= 8'he0; dev[7'h03] <= 8'he0;
@@ -823,7 +863,7 @@ module sc55_mcu #(
                 Q_RESET_SM: if (sm_reset_done) begin reset_done <= 1'b1; q <= Q_IDLE; end
 
                 Q_CPU: if (c_done) begin
-                    cycles <= cycles + 48'd12;
+                    cycles <= cycles + 64'd12;
                     pcm_tick <= 1'b1;
                     q <= Q_TIMERS;
                 end
@@ -834,13 +874,17 @@ module sc55_mcu #(
                     // 6); when no timer is left behind, UART, A/D and gate array run in the same clock.
                     logic [15:0] frc_n [3];
                     logic [7:0]  ts_n [3], cnt_n, tts_n;
-                    logic [47:0] dl_n [3], tdl_n;
-                    logic        behind;
+                    // The clocks run on the narrow lag (deadline - cycles/2, DW bits, see cyc_lt); each
+                    // 64-bit deadline then takes one add of (clocks run) * stride.
+                    logic [DW-1:0] lag_n [3], tlag_n;
+                    logic [1:0]  nclk [3], tnclk;
+                    logic        behind, tmr_on;
                     behind = 1'b0;
                     for (int i = 0; i < 3; i++) begin
-                        frc_n[i] = frt_frc[i]; ts_n[i] = frt_tcsr[i]; dl_n[i] = frt_deadline[i];
+                        frc_n[i] = frt_frc[i]; ts_n[i] = frt_tcsr[i];
+                        lag_n[i] = frt_deadline[i][DW-1:0] - tcyc[DW-1:0]; nclk[i] = 2'd0;
                         for (int k = 0; k < 3; k++) begin
-                            if (dl_n[i] < tcyc) begin : b_sc55_mcu_6
+                            if (lag_n[i][DW-1]) begin : b_sc55_mcu_6
                                 logic ma, mb;
                                 ma = frc_n[i] == frt_ocra[i];
                                 mb = frc_n[i] == frt_ocrb[i];
@@ -854,15 +898,19 @@ module sc55_mcu #(
                                 if (frt_tcr[i][4] && ts_n[i][4]) int_req[6 + 4 * i] <= 1'b1;
                                 if (frt_tcr[i][5] && ts_n[i][5]) int_req[4 + 4 * i] <= 1'b1;
                                 if (frt_tcr[i][6] && ts_n[i][6]) int_req[5 + 4 * i] <= 1'b1;
-                                dl_n[i] = dl_n[i] + {40'h0, frt_stride[i]};
+                                lag_n[i] = lag_n[i] + {{(DW-8){1'b0}}, frt_stride[i]};
+                                nclk[i] = nclk[i] + 2'd1;
                             end
                         end
-                        if (dl_n[i] < tcyc) behind = 1'b1;
-                        frt_frc[i] <= frc_n[i]; frt_tcsr[i] <= ts_n[i]; frt_deadline[i] <= dl_n[i];
+                        if (lag_n[i][DW-1]) behind = 1'b1;
+                        frt_frc[i] <= frc_n[i]; frt_tcsr[i] <= ts_n[i];
+                        frt_deadline[i] <= frt_deadline[i] + 64'(nclk[i]) * 64'(frt_stride[i]);
                     end
-                    cnt_n = tmr_tcnt; tts_n = tmr_tcsr; tdl_n = tmr_deadline;
+                    cnt_n = tmr_tcnt; tts_n = tmr_tcsr;
+                    tmr_on = tmr_stride != 16'd0;     // stride 0: the deadline is "never" (all ones)
+                    tlag_n = tmr_deadline[DW-1:0] - tcyc[DW-1:0]; tnclk = 2'd0;
                     for (int k = 0; k < 3; k++) begin
-                        if (tdl_n < tcyc) begin : b_sc55_mcu_7
+                        if (tmr_on && tlag_n[DW-1]) begin : b_sc55_mcu_7
                             logic ma, mb;
                             ma = cnt_n == tmr_tcora;
                             mb = cnt_n == tmr_tcorb;
@@ -877,23 +925,25 @@ module sc55_mcu #(
                             if (tmr_tcr[5] && tts_n[5]) int_req[17] <= 1'b1;
                             if (tmr_tcr[6] && tts_n[6]) int_req[15] <= 1'b1;
                             if (tmr_tcr[7] && tts_n[7]) int_req[16] <= 1'b1;
-                            tdl_n = tdl_n + {32'h0, tmr_stride};
+                            tlag_n = tlag_n + {{(DW-16){1'b0}}, tmr_stride};
+                            tnclk = tnclk + 2'd1;
                         end
                     end
-                    if (tdl_n < tcyc) behind = 1'b1;
-                    tmr_tcnt <= cnt_n; tmr_tcsr <= tts_n; tmr_deadline <= tdl_n;
+                    if (tmr_on && tlag_n[DW-1]) behind = 1'b1;
+                    tmr_tcnt <= cnt_n; tmr_tcsr <= tts_n;
+                    tmr_deadline <= tmr_deadline + 64'(tnclk) * 64'(tmr_stride);
 
                     if (!behind) begin
                         // MCU_UpdateUART_RX / TX (mk1; on the mk2 the sub-MCU runs instead, below)
-                        if (!mk2 && dev[7'h5a][4] && rx_ready && !dev[7'h5c][6] && !(cycles < uart_rx_delay)) begin
+                        if (!mk2 && dev[7'h5a][4] && rx_ready && !dev[7'h5c][6] && !(rxd_pend && cyc_lt(cycles, uart_rx_delay))) begin
                             uart_rx_byte <= rx_rd;
                             rx_rp <= rx_rp + 1'b1;
                             d = dev[7'h5c] | 8'h40;
                             int_req[19] <= dev[7'h5a][6];
                         end else d = dev[7'h5c];
-                        if (!mk2 && dev[7'h5a][5] && !d[7] && !(cycles < uart_tx_delay)) begin
+                        if (!mk2 && dev[7'h5a][5] && !d[7] && !(txd_pend && cyc_lt(cycles, uart_tx_delay))) begin
                             d = d | 8'h80;
-                            if (jv880) uart_tx_delay <= cycles + 48'd3000;   // shift register busy one byte time
+                            if (jv880) begin uart_tx_delay <= cycles + 64'd3000; txd_pend <= 1'b1; end   // shift register busy one byte time
                             int_req[20] <= dev[7'h5a][7];
                         end
                         dev[7'h5c] <= d;
@@ -901,24 +951,24 @@ module sc55_mcu #(
                         // MCU_UpdateAnalog
                         d = dev[7'h68];
                         if (d[5]) begin
-                            if (analog_end == 48'd0) analog_end <= cycles + 48'd200;
-                            else if (analog_end < cycles) begin
+                            if (analog_end == 64'd0) analog_end <= cycles + 64'd200;
+                            else if (cyc_lt(analog_end, cycles)) begin
                                 if (d[4]) begin
                                     begin dev[7'h60] <= adc_hi(an_v[{d[2], 2'd0}]); dev[7'h61] <= adc_lo(an_v[{d[2], 2'd0}]); end
                                     if (2'd1 <= d[1:0]) begin dev[7'h62] <= adc_hi(an_v[{d[2], 2'd1}]); dev[7'h63] <= adc_lo(an_v[{d[2], 2'd1}]); end
                                     if (2'd2 <= d[1:0]) begin dev[7'h64] <= adc_hi(an_v[{d[2], 2'd2}]); dev[7'h65] <= adc_lo(an_v[{d[2], 2'd2}]); end
                                     if (2'd3 <= d[1:0]) begin dev[7'h66] <= adc_hi(an_v[{d[2], 2'd3}]); dev[7'h67] <= adc_lo(an_v[{d[2], 2'd3}]); end
-                                    analog_end <= cycles + 48'd200;
+                                    analog_end <= cycles + 64'd200;
                                     dev[7'h68] <= d | 8'h80;
                                 end else begin
                                     dev[{3'h6, 1'b0, d[1:0], 1'b0}] <= adc_hi(an_v[d[2:0]]);   // ADDRxH: 0x60 + 2 * (ch & 3)
                                     dev[{3'h6, 1'b0, d[1:0], 1'b1}] <= adc_lo(an_v[d[2:0]]);
                                     dev[7'h68] <= (d & ~8'h20) | 8'h80;
-                                    analog_end <= 48'd0;
+                                    analog_end <= 64'd0;
                                 end
                                 if (d[6]) int_req[18] <= 1'b1;
                             end
-                        end else analog_end <= 48'd0;
+                        end else analog_end <= 64'd0;
 
                         // mk1 gate array: LCD busy counter -> GA line 1 -> IRQ1
                         if (!nm1 && ga_lcd_counter != 9'd0) begin
