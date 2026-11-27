@@ -280,4 +280,5 @@ class Gen:
 if __name__ == "__main__":
     ops = load(sys.argv[1])
     g = Gen(ops, int(sys.argv[2]), "--sfr" in sys.argv)
-    open(sys.argv[3], "wb").write(g.build())
+    with open(sys.argv[3], "wb") as fh:
+        fh.write(g.build())
