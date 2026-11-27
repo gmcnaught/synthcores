@@ -182,7 +182,8 @@ module mu50_board #(
     // ---------------------------------------------------------------- work RAM
     // two byte-wide true dual-port RAMs (even and odd bytes): port A the CPU, port B the save
     logic [7:0]  ram_e [32768], ram_o [32768];
-    logic [15:0] ram_q;
+    logic [7:0]  ram_qe, ram_qo;
+    wire  [15:0] ram_q = {ram_qe, ram_qo};
     logic [14:0] ram_a;
     logic        ram_we_hi, ram_we_lo;
     logic [15:0] ram_wd;
@@ -193,9 +194,9 @@ module mu50_board #(
     always_ff @(posedge clk)
         if (ram_we_hi) begin
             ram_e[ram_a] <= ram_wd[15:8];
-            ram_q[15:8] <= ram_wd[15:8];
+            ram_qe <= ram_wd[15:8];
         end else
-            ram_q[15:8] <= ram_e[ram_a];
+            ram_qe <= ram_e[ram_a];
     always_ff @(posedge clk)
         if (nv_we && !nv_addr[0]) begin
             ram_e[nv_addr[15:1]] <= nv_wdata;
@@ -205,9 +206,9 @@ module mu50_board #(
     always_ff @(posedge clk)
         if (ram_we_lo) begin
             ram_o[ram_a] <= ram_wd[7:0];
-            ram_q[7:0] <= ram_wd[7:0];
+            ram_qo <= ram_wd[7:0];
         end else
-            ram_q[7:0] <= ram_o[ram_a];
+            ram_qo <= ram_o[ram_a];
     always_ff @(posedge clk)
         if (nv_we && nv_addr[0]) begin
             ram_o[nv_addr[15:1]] <= nv_wdata;
@@ -366,7 +367,7 @@ module mu50_board #(
     end
 
     // the RAM starts zeroed (MAME's NVRAM without a file): block RAM powers up at 0 on the FPGA;
-    // Verilator randomises it (--x-initial unique), so the benches clear it
+    // the simulator randomises it (--x-initial unique), so the benches clear it
 `ifdef VERILATOR
     initial for (int i = 0; i < 32768; i++) begin
         ram_e[i] = 8'h0;
