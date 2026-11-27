@@ -287,26 +287,41 @@ module mcs96_core #(
     always_ff @(posedge clk) mn_byte <= (d_mn == MN_ANDB || d_mn == MN_ADDB || d_mn == MN_SUBB || d_mn == MN_ORB ||
                     d_mn == MN_XORB || d_mn == MN_ADDCB || d_mn == MN_SUBCB || d_mn == MN_CMPB ||
                     d_mn == MN_LDB || d_mn == MN_STB || d_mn == MN_LDBZE || d_mn == MN_LDBSE ||
-                    d_mn == MN_MULUB || d_mn == MN_MULB || d_mn == MN_DIVUB || d_mn == MN_DIVB);    logic g_alu;
+                    d_mn == MN_MULUB || d_mn == MN_MULB || d_mn == MN_DIVUB || d_mn == MN_DIVB);
+    logic g_alu;
     always_ff @(posedge clk) g_alu <= (d_mn == MN_AND || d_mn == MN_ANDB || d_mn == MN_ADD || d_mn == MN_ADDB ||
                   d_mn == MN_SUB || d_mn == MN_SUBB || d_mn == MN_OR || d_mn == MN_ORB ||
                   d_mn == MN_XOR || d_mn == MN_XORB || d_mn == MN_ADDC || d_mn == MN_ADDCB ||
-                  d_mn == MN_SUBC || d_mn == MN_SUBCB || d_mn == MN_CMP || d_mn == MN_CMPB);    logic g_cmp;
-    always_ff @(posedge clk) g_cmp <= (d_mn == MN_CMP || d_mn == MN_CMPB);    logic g_mul;
-    always_ff @(posedge clk) g_mul <= (d_mn == MN_MULU || d_mn == MN_MUL || d_mn == MN_MULUB || d_mn == MN_MULB);    logic g_mulw;
-    always_ff @(posedge clk) g_mulw <= (d_mn == MN_MULU || d_mn == MN_MUL);    logic g_muls;
-    always_ff @(posedge clk) g_muls <= (d_mn == MN_MUL || d_mn == MN_MULB);    logic g_divw;
-    always_ff @(posedge clk) g_divw <= (d_mn == MN_DIVU || d_mn == MN_DIV);    logic g_divb;
-    always_ff @(posedge clk) g_divb <= (d_mn == MN_DIVUB || d_mn == MN_DIVB);    logic g_ld;
-    always_ff @(posedge clk) g_ld <= (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);    logic g_st;
-    always_ff @(posedge clk) g_st <= (d_mn == MN_ST || d_mn == MN_STB);    logic g_un;
+                  d_mn == MN_SUBC || d_mn == MN_SUBCB || d_mn == MN_CMP || d_mn == MN_CMPB);
+    logic g_cmp;
+    always_ff @(posedge clk) g_cmp <= (d_mn == MN_CMP || d_mn == MN_CMPB);
+    logic g_mul;
+    always_ff @(posedge clk) g_mul <= (d_mn == MN_MULU || d_mn == MN_MUL || d_mn == MN_MULUB || d_mn == MN_MULB);
+    logic g_mulw;
+    always_ff @(posedge clk) g_mulw <= (d_mn == MN_MULU || d_mn == MN_MUL);
+    logic g_muls;
+    always_ff @(posedge clk) g_muls <= (d_mn == MN_MUL || d_mn == MN_MULB);
+    logic g_divw;
+    always_ff @(posedge clk) g_divw <= (d_mn == MN_DIVU || d_mn == MN_DIV);
+    logic g_divb;
+    always_ff @(posedge clk) g_divb <= (d_mn == MN_DIVUB || d_mn == MN_DIVB);
+    logic g_ld;
+    always_ff @(posedge clk) g_ld <= (d_mn == MN_LD || d_mn == MN_LDB || d_mn == MN_LDBZE || d_mn == MN_LDBSE);
+    logic g_st;
+    always_ff @(posedge clk) g_st <= (d_mn == MN_ST || d_mn == MN_STB);
+    logic g_un;
     always_ff @(posedge clk) g_un <= (d_mn == MN_NOT || d_mn == MN_NOTB || d_mn == MN_NEG || d_mn == MN_NEGB ||
-                  d_mn == MN_DEC || d_mn == MN_DECB || d_mn == MN_INC || d_mn == MN_INCB);    logic g_unw;
-    always_ff @(posedge clk) g_unw <= (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);    logic g_sh;
+                  d_mn == MN_DEC || d_mn == MN_DECB || d_mn == MN_INC || d_mn == MN_INCB);
+    logic g_unw;
+    always_ff @(posedge clk) g_unw <= (d_mn == MN_NOT || d_mn == MN_NEG || d_mn == MN_DEC || d_mn == MN_INC);
+    logic g_sh;
     always_ff @(posedge clk) g_sh <= (d_mn == MN_SHR || d_mn == MN_SHRA || d_mn == MN_SHL || d_mn == MN_SHRB ||
-                  d_mn == MN_SHRAB || d_mn == MN_SHLB);    logic g_shb;
-    always_ff @(posedge clk) g_shb <= (d_mn == MN_SHRB || d_mn == MN_SHRAB || d_mn == MN_SHLB);    logic g_shl;
-    always_ff @(posedge clk) g_shl <= (d_mn == MN_SHRL || d_mn == MN_SHRAL || d_mn == MN_SHLL);    logic g_jcc;
+                  d_mn == MN_SHRAB || d_mn == MN_SHLB);
+    logic g_shb;
+    always_ff @(posedge clk) g_shb <= (d_mn == MN_SHRB || d_mn == MN_SHRAB || d_mn == MN_SHLB);
+    logic g_shl;
+    always_ff @(posedge clk) g_shl <= (d_mn == MN_SHRL || d_mn == MN_SHRAL || d_mn == MN_SHLL);
+    logic g_jcc;
     always_ff @(posedge clk) g_jcc <= (d_mn == MN_JNST || d_mn == MN_JNH || d_mn == MN_JGT || d_mn == MN_JNC ||
                   d_mn == MN_JNVT || d_mn == MN_JNV || d_mn == MN_JGE || d_mn == MN_JNE ||
                   d_mn == MN_JST || d_mn == MN_JH || d_mn == MN_JLE || d_mn == MN_JC ||

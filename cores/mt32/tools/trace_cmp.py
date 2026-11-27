@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Compare two MT-32 trace/log files line by line; print the first difference with context.
 
-    trace_cmp.py A B [--context N]
-Exit 0 if identical (and equally long), 1 otherwise.
+    trace_cmp.py A B [--context N] [--min N]
+Exit 0 if identical, equally long and at least --min lines (default 1); 1 otherwise. Two empty
+files are not a pass.
 """
 import argparse
 import itertools
@@ -15,8 +16,10 @@ def main():
     ap.add_argument("a")
     ap.add_argument("b")
     ap.add_argument("--context", type=int, default=12)
+    ap.add_argument("--min", type=int, default=1, help="fewest lines that count as a comparison")
     a = ap.parse_args()
     hist = []
+    n = 0
     with open(a.a) as fa, open(a.b) as fb:
         for n, (x, y) in enumerate(itertools.zip_longest(fa, fb), 1):
             if x == y:
@@ -31,7 +34,10 @@ def main():
             for i, (p, q) in enumerate(zip(itertools.islice(fa, 5), itertools.islice(fb, 5))):
                 print(f"{n + 1 + i:10}  {p.rstrip():34} {q.rstrip()}")
             sys.exit(1)
-    print(f"identical, {n if 'n' in dir() else 0} lines")
+    if n < a.min:
+        print(f"only {n} lines compared, expected at least {a.min}")
+        sys.exit(1)
+    print(f"identical, {n} lines")
 
 
 if __name__ == "__main__":

@@ -3,13 +3,17 @@
 // and log formats as ref/mt32_ref, so tools/corpus.py and tools/trace_cmp.py compare the two.
 //
 //   mt32_sys_bench --roms DIR [--cpu-rom FILE] [--midi FILE] [--samples N] [--out FILE]
-//                  [--trace FILE] [--out-log FILE] [--lcd-log FILE] [--maxlat N] [--seed S]
+//                  [--trace FILE] [--out-log FILE] [--lcd-log FILE] [--lcd-state-log FILE]
+//                  [--button SAMPLE:MASK ...] [--knob SAMPLE:VALUE ...] [--maxlat N] [--seed S]
 //                  [--stats]
 //
 // The PCM ROM is served by an in-order memory model with random latency 1..maxlat clocks
 // (default 40) and random req_ready. MIDI bytes scheduled for sample s are queued while the
 // board waits at the start of sample s (`hold`), as Nuked-MT32's MIDI thread posts them before
-// clock(). --stats prints clocks per sample (mean, worst).
+// clock(). Buttons and knob change there too, as ref/mt32_ref sets them before clock().
+// --stats prints clocks per sample (mean, worst).
+// Exit codes: 3 opcode without a handler, 4 HSO command 0F (the A/D start the HDL does not model),
+// 5 no sample for 200,000 clocks, 6 more MIDI bytes at one sample than the board queue holds.
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
@@ -35,7 +39,13 @@ struct Rsp { uint64_t t; uint64_t data; uint8_t tag; };
 
 int main(int argc, char** argv)
 {
-    std::string roms, cpu_rom, midi, out_path, trace_p, outlog_p, lcd_p;
+    std::string roms, cpu_rom, midi, out_path, trace_p, outlog_p, lcd_p, lcdst_p;
+    std::vector<std::pair<uint64_t, uint32_t>> buttons, knobs;
+    auto pair_of = [](const char* s, std::vector<std::pair<uint64_t, uint32_t>>& v) {
+        char* e; uint64_t at = strtoull(s, &e, 0);
+        if (*e != ':') { fprintf(stderr, "mt32_sys_bench: expected SAMPLE:VALUE, got %s\n", s); exit(1); }
+        v.push_back({ at, (uint32_t)strtoul(e + 1, nullptr, 0) });
+    };
     uint64_t samples = 96000, seed = 1;
     unsigned maxlat = 40;
     bool stats = false;
@@ -50,6 +60,9 @@ int main(int argc, char** argv)
         else if (a == "--trace") trace_p = v();
         else if (a == "--out-log") outlog_p = v();
         else if (a == "--lcd-log") lcd_p = v();
+        else if (a == "--lcd-state-log") lcdst_p = v();
+        else if (a == "--button") pair_of(v(), buttons);
+        else if (a == "--knob") pair_of(v(), knobs);
         else if (a == "--maxlat") maxlat = (unsigned)strtoul(v(), nullptr, 0);
         else if (a == "--seed") seed = strtoull(v(), nullptr, 0);
         else if (a == "--stats") stats = true;
@@ -81,6 +94,7 @@ int main(int argc, char** argv)
     FILE* tr = trace_p.empty() ? nullptr : fopen(trace_p.c_str(), "w");
     FILE* ol = outlog_p.empty() ? nullptr : fopen(outlog_p.c_str(), "w");
     FILE* lc = lcd_p.empty() ? nullptr : fopen(lcd_p.c_str(), "w");
+    FILE* ls = lcdst_p.empty() ? nullptr : fopen(lcdst_p.c_str(), "w");
 
     auto* m = new Vmt32_core;
     std::mt19937_64 rng(seed);
@@ -124,6 +138,15 @@ int main(int argc, char** argv)
             if (m->dbg_midi) fprintf(tr, "M %llx %02x\n", c, m->dbg_mbyte);
         }
         extint_q = m->extint;
+        if (ls && m->dbg_lcd) {
+            // the same line as ref/mt32_ref --lcd-state-log
+            fprintf(ls, "S %llx ", (unsigned long long)m->cpu_cycles);
+            for (int i = 0; i < 20; i++) { m->lcd_rd_addr = i; m->eval(); fprintf(ls, "%02x", m->lcd_rd_text); }
+            fputc(' ', ls);
+            for (int i = 0; i < 32; i++) { m->lcd_cg_addr = i; m->eval(); fprintf(ls, "%02x", m->lcd_cg_row); }
+            fprintf(ls, " %03x\n", m->lcd_cursor | m->lcd_cursor_on << 5 | m->lcd_cursor_blink << 6 |
+                    m->lcd_cursor_font << 7 | m->lcd_lines2 << 8 | m->lcd_display_on << 9);
+        }
         if (lc && m->dbg_lcd) {
             char s[21];
             for (int i = 0; i < 20; i++) {
@@ -149,19 +172,34 @@ int main(int argc, char** argv)
     while (!m->ready) tick();
 
     uint64_t s = 0, next = 0, last_clk = clk, worst = 0, start_clk = clk;
+    size_t next_button = 0, next_knob = 0;
     while (s < samples) {
         if (m->at_hold) {
+            while (next_button < buttons.size() && buttons[next_button].first <= s)
+                m->buttons = buttons[next_button++].second;
+            while (next_knob < knobs.size() && knobs[next_knob].first <= s)
+                m->knob = knobs[next_knob++].second;
             while (next < sched.size() && sched[next].sample <= s) {
                 for (uint8_t b : sched[next].bytes) midi_q.push_back(b);
                 next++;
             }
-            while (!midi_q.empty()) tick();
+            // the CPU only drains the queue after hold is released: a burst larger than the
+            // queue would wait here for ever (Nuked-MT32's buffer holds 8192 bytes)
+            while (!midi_q.empty()) {
+                if (m->midi_full) {
+                    fprintf(stderr, "mt32_sys_bench: more than 255 MIDI bytes at sample %llu; split the burst over samples\n",
+                            (unsigned long long)s);
+                    return 6;
+                }
+                tick();
+            }
             m->hold = 0;
             tick();
             m->hold = 1;
         }
         tick();
         if (m->bad_op) { fprintf(stderr, "mt32_sys_bench: opcode without a handler at %04x\n", m->dbg_pc); return 3; }
+        if (m->unsupported) { fprintf(stderr, "mt32_sys_bench: HSO command 0F (A/D start) is not modelled, at %04x\n", m->dbg_pc); return 4; }
         if (clk - last_clk > 200000) {
             fprintf(stderr, "mt32_sys_bench: no sample for 200000 clocks at sample %llu: cpu pc %04x cycles %llu\n",
                     (unsigned long long)s, m->dbg_pc, (unsigned long long)m->cpu_cycles);
@@ -178,10 +216,13 @@ int main(int argc, char** argv)
             s++;
         }
     }
-    if (stats)
+    if (stats) {
         fprintf(stderr, "clocks per sample: mean %.1f, worst %llu (maxlat %u)\n",
                 (double)(clk - start_clk) / samples, (unsigned long long)worst, maxlat);
-    for (FILE* f : { out, tr, ol, lc }) if (f) fclose(f);
+        fprintf(stderr, "end: la32_cycle %llu, cpu_cycles %llu\n",
+                (unsigned long long)m->la32_cycle, (unsigned long long)m->cpu_cycles);
+    }
+    for (FILE* f : { out, tr, ol, lc, ls }) if (f) fclose(f);
     delete m;
     return 0;
 }

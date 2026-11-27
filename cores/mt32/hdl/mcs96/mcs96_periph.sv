@@ -26,16 +26,16 @@ module mcs96_periph (
     output logic [7:0]  r_rdata,
     output logic        r_ack,
 
-    input  logic [47:0] now,           // total_cycles() while the access or update runs
+    input  logic [63:0] now,           // total_cycles() while the access or update runs
 
     // internal_update from the scheduler
     input  logic        upd_req,
-    input  logic [47:0] upd_time,
+    input  logic [63:0] upd_time,
     input  logic        upd_fast,      // upd_time = totalcycles, upd_q = upd_time / 24
-    input  logic [44:0] upd_q,
+    input  logic [60:0] upd_q,
     output logic        upd_ack,
     output logic        ev_valid,      // pulse after every internal_update
-    output logic [47:0] ev_time,
+    output logic [63:0] ev_time,
 
     // board
     input  logic        serial_in,     // serial_w(): a byte into SBUF
@@ -62,31 +62,34 @@ module mcs96_periph (
 
     logic [3:0]  ad_command;
     logic [15:0] ad_result;
-    logic [47:0] ad_done;
+    logic [63:0] ad_done;
     logic [15:0] hso_time;
     logic [7:0]  hso_command, hso_active, ios0, ios1, ioc0, ioc1, port2, sbuf, sp_con, sp_stat;
     logic [7:0]  cam_cmd [8];
     logic [15:0] cam_time [8];
     logic [7:0]  hold_cmd;
     logic [15:0] hold_time;
-    logic [47:0] base2, serial_timer;
+    logic [63:0] base2, serial_timer;
     logic [15:0] baud_reg;
     logic        brh, extint_q;
 
     // ---------------------------------------------------------------- divide by 24
-    // q = floor(x / 24) = floor((x >> 3) / 3) = ((x >> 3) * M) >> 47, M = (2**47 + 1) / 3,
-    // exact for x < 2**48. dv_q holds the quotient of dv_x three clocks after dv_x is set.
-    localparam logic [45:0] M3 = 46'd46912496118443;
-    logic [47:0] dv_x;
-    logic [72:0] dv_pl;
-    logic [63:0] dv_ph;
-    logic [91:0] dv_s;
-    logic [44:0] dv_q;
+    // q = floor(x / 24) = floor((x >> 3) / 3) = ((x >> 3) * M) >> 63, M = (2**63 + 1) / 3,
+    // exact for every 64-bit x (x >> 3 < 2**61). The 61 x 62-bit product is three partial
+    // products (y = x >> 3 split 27 + 27 + 7 bits). dv_q holds the quotient of dv_x three clocks
+    // after dv_x is set.
+    localparam logic [61:0] M3 = 62'd3074457345618258603;
+    logic [63:0]  dv_x;
+    logic [88:0]  dv_p0, dv_p1;
+    logic [68:0]  dv_p2;
+    logic [123:0] dv_s;
+    logic [60:0]  dv_q;
     always_ff @(posedge clk) begin
-        dv_pl <= {46'h0, dv_x[29:3]} * {27'h0, M3};
-        dv_ph <= {46'h0, dv_x[47:30]} * {18'h0, M3};
-        dv_s  <= {19'h0, dv_pl} + {dv_ph[64-1:0], 27'h0} + 92'h0;
-        dv_q  <= dv_s[91:47];
+        dv_p0 <= {62'h0, dv_x[29:3]} * {27'h0, M3};
+        dv_p1 <= {62'h0, dv_x[56:30]} * {27'h0, M3};
+        dv_p2 <= {62'h0, dv_x[63:57]} * {7'h0, M3};
+        dv_s  <= {35'h0, dv_p0} + {8'h0, dv_p1, 27'h0} + {1'h0, dv_p2, 54'h0};
+        dv_q  <= dv_s[123:63];
     end
 
     // ---------------------------------------------------------------- update FSM
@@ -95,35 +98,34 @@ module mcs96_periph (
         U_EV1, U_EV1B, U_EVA, U_EVB, U_EVC, U_EVC2, U_EVD, U_DONE
     } u_t;
     u_t us;
-    logic [47:0] ut;               // current_time
-    logic [44:0] q1, q2;           // full quotients for timer 1 and timer 2
+    logic [63:0] ut;               // current_time
+    logic [60:0] q1, q2;           // full quotients for timer 1 and timer 2
     logic [15:0] ct1, ct2;         // current_timer1 / 2
-    logic [47:0] nt [8];          // next time of each CAM entry
-    logic [47:0] nk [8];          // its delta + tdelta
+    logic [63:0] nt [8];          // next time of each CAM entry
+    logic [63:0] nk [8];          // its delta + tdelta
     logic [7:0]  nt_v, nb;
-    logic [47:0] m4 [4], m2 [2], t1r, t2r, uev;
+    logic [63:0] m4 [4], m2 [2], t1r, t2r, uev;
     logic [3:0]  m4v;
     logic [1:0]  m2v;
     logic        uev_set, b2_changed, m1v, ufast;
-    logic [47:0] m1, tmin, as_t;
+    logic [63:0] m1, tmin, as_t;
     logic        as_v;
     logic        u_from_reg;       // the update was called from an SFR write
 
     // register-access FSM
-    typedef enum logic [2:0] { A_IDLE, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD, A_ACK } a_t;
+    typedef enum logic [2:0] { A_IDLE, A_DIV, A_DIV2, A_DIV3, A_DIVW, A_UPD } a_t;
     a_t as;
     logic [7:0] a_q;
 
-    function automatic logic [15:0] u16(input logic [47:0] x); return x[15:0]; endfunction
 
     // timer_time_until(): base + ((delta + tdelta) * 24)
-    function automatic logic [47:0] time_until(input logic [47:0] base, input logic [44:0] delta,
+    function automatic logic [63:0] time_until(input logic [63:0] base, input logic [60:0] delta,
                                                input logic [15:0] tv);
         logic [16:0] td;
-        logic [47:0] k;
+        logic [63:0] k;
         td = {1'b0, tv - delta[15:0]};
         if (td == 17'h0) td = 17'h10000;
-        k = {3'h0, delta} + {31'h0, td};
+        k = {3'h0, delta} + {47'h0, td};
         return base + (k << 4) + (k << 3);
     endfunction
 
@@ -140,13 +142,19 @@ module mcs96_periph (
         tx_stb <= 1'b0;
         if (rst) begin
             clearing <= 1'b1; clr_a <= 8'h0; ready <= 1'b0;
-            ad_command <= 4'h0; ad_result <= 16'h0; ad_done <= 48'h0;
+            ad_command <= 4'h0; ad_result <= 16'h0; ad_done <= 64'h0;
             hso_time <= 16'h0; hso_command <= 8'h0; hso_active <= 8'h0;
             ios0 <= 8'h0; ios1 <= 8'h0; ioc0 <= 8'h0; ioc1 <= 8'h01; port2 <= 8'h01;
             sbuf <= 8'h0; sp_con <= 8'h0; sp_stat <= 8'h0; pwm <= 8'h0;
             hold_cmd <= 8'h0; hold_time <= 16'h0;
             for (int i = 0; i < 8; i++) begin cam_cmd[i] <= 8'h0; cam_time[i] <= 16'h0; end
-            base2 <= 48'h0; serial_timer <= 48'h0; baud_reg <= 16'h0; brh <= 1'b0;
+`ifdef MCS96_SIM_TC_START
+            // sim only: MAME's device_reset() calls timer2_reset(total_cycles()) at the start time
+            base2 <= 64'd `MCS96_SIM_TC_START;
+`else
+            base2 <= 64'h0;
+`endif
+            serial_timer <= 64'h0; baud_reg <= 16'h0; brh <= 1'b0;
             extint_q <= 1'b0;
             us <= U_IDLE; as <= A_IDLE;
             unsupported <= 1'b0;
@@ -172,8 +180,8 @@ module mcs96_periph (
             U_IDLE: if (upd_req && as == A_IDLE) begin
                 ut <= upd_time; u_from_reg <= 1'b0;
                 // timer 2 never reset (base2 = 0): both quotients are the scheduler's running one
-                ufast <= upd_fast && base2 == 48'h0;
-                if (upd_fast && base2 == 48'h0) begin q1 <= upd_q; us <= U_TIMERS; end
+                ufast <= upd_fast && base2 == 64'h0;
+                if (upd_fast && base2 == 64'h0) begin q1 <= upd_q; us <= U_TIMERS; end
                 else us <= U_D1;
             end
             U_D1: begin dv_x <= ut; ufast <= 1'b0; us <= U_D2; end
@@ -184,7 +192,7 @@ module mcs96_periph (
             U_TIMERS: begin
                 logic [15:0] c1, c2;
                 logic [7:0]  act, io0, io1, c;
-                logic [47:0] b2, add;
+                logic [63:0] b2, add;
                 logic [15:0] adr;
                 c1 = q1[15:0];
                 c2 = ufast ? q1[15:0] : dv_q[15:0];
@@ -210,7 +218,7 @@ module mcs96_periph (
                             4'hf: begin
                                 adr = (ad_command[2:0] == 3'd7) ? (({6'h0, knob} << 6) | 16'h000f)
                                                                 : {12'h0, 1'b1, ad_command[2:0]};
-                                add = ut + 48'd504;
+                                add = ut + 64'd504;
                                 unsupported <= 1'b1;
                             end
                             default: ;
@@ -224,11 +232,11 @@ module mcs96_periph (
             end
             // A/D done, serial transmit done
             U_TIM2: begin
-                if (ad_done != 48'h0 && ut >= ad_done) begin
-                    ad_done <= 48'h0; ad_result[3] <= 1'b0; irq = irq | IRQ_AD;
+                if (ad_done != 64'h0 && ut >= ad_done) begin
+                    ad_done <= 64'h0; ad_result[3] <= 1'b0; irq = irq | IRQ_AD;
                 end
                 if (ut == serial_timer) begin
-                    serial_timer <= 48'h0;
+                    serial_timer <= 64'h0;
                     irq = irq | IRQ_SERIAL;
                     sp_stat <= sp_stat | 8'h20;
                 end
@@ -258,22 +266,22 @@ module mcs96_periph (
                     end
                     td = {1'b0, tm - (cmd[6] ? q2[15:0] : q1[15:0])};
                     if (td == 17'h0) td = 17'h10000;
-                    nk[i] <= (cmd[6] ? {3'h0, q2} : {3'h0, q1}) + {31'h0, td};
+                    nk[i] <= (cmd[6] ? {3'h0, q2} : {3'h0, q1}) + {47'h0, td};
                     nb[i] <= cmd[6];
                 end
                 nt_v <= act;
                 hso_active <= act; ios0 <= io0;
-                t1r <= now + ({32'h0, 17'h10000 - {1'b0, ct1}} * 48'd24);
-                t2r <= now + ({32'h0, 17'h10000 - {1'b0, q2[15:0]}} * 48'd24);
+                t1r <= now + ({47'h0, 17'h10000 - {1'b0, ct1}} * 64'd24);
+                t2r <= now + ({47'h0, 17'h10000 - {1'b0, q2[15:0]}} * 64'd24);
                 us <= U_EV1B;
             end
             U_EV1B: begin
                 for (int i = 0; i < 8; i++)
-                    nt[i] <= (nb[i] ? base2 : 48'h0) + (nk[i] << 4) + (nk[i] << 3);
+                    nt[i] <= (nb[i] ? base2 : 64'h0) + (nk[i] << 4) + (nk[i] << 3);
                 tmin <= (t2r < t1r) ? t2r : t1r;
                 // earlier of the A/D and serial-transmit times (0 = none)
-                if (ad_done != 48'h0 && (serial_timer == 48'h0 || ad_done <= serial_timer)) begin as_t <= ad_done; as_v <= 1'b1; end
-                else begin as_t <= serial_timer; as_v <= serial_timer != 48'h0; end
+                if (ad_done != 64'h0 && (serial_timer == 64'h0 || ad_done <= serial_timer)) begin as_t <= ad_done; as_v <= 1'b1; end
+                else begin as_t <= serial_timer; as_v <= serial_timer != 64'h0; end
                 us <= U_EVA;
             end
             // earliest of the active entries: a tree of minima (ties keep the lower entry)
@@ -345,7 +353,7 @@ module mcs96_periph (
                                 // ad_start(total_cycles()): only ACH7 (the knob) is connected
                                 ad_result <= (r_wdata[2:0] == 3'd7) ? ({6'h0, knob} << 6) | 16'h000f
                                                                     : {12'h0, 1'b1, r_wdata[2:0]};
-                                ad_done <= now + 48'd504;
+                                ad_done <= now + 64'd504;
                                 ut <= now; u_from_reg <= 1'b1; us <= U_D1; as <= A_UPD; r_ack <= 1'b0;
                             end
                         end
@@ -373,7 +381,7 @@ module mcs96_periph (
                         end
                         8'h06: hso_command <= r_wdata;
                         8'h07: begin                                       // sbuf_w -> serial_send
-                            serial_timer <= now + 48'd9600;
+                            serial_timer <= now + 64'd9600;
                             tx_stb <= 1'b1; tx_byte <= r_wdata;
                         end
                         8'h0e: begin
@@ -399,15 +407,14 @@ module mcs96_periph (
                 as <= A_IDLE;
             end
             A_UPD: if (us == U_DONE) begin r_ack <= 1'b1; as <= A_IDLE; end
-            A_ACK: begin r_ack <= 1'b1; as <= A_IDLE; end
             default: as <= A_IDLE;
             endcase
         end
         irq_set <= rst ? 8'h0 : irq;
     end
 
-    // internal RAM in MLABs, read without a clock; a write lands the clock after its request,
-    // before the core's next access can be taken
+    // internal RAM in registers (see `ram` above), read without a clock; a write lands the
+    // clock after its request, before the core's next access can be taken
     always_ff @(posedge clk) if (wr_en) ram[wr_a] <= wr_d;
     wire [7:0] ram_rd = ram[r_addr];
     assign r_rdata = a_q;

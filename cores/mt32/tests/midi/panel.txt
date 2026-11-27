@@ -1,0 +1,13 @@
+# samples 192000
+# Front panel: Part 1 and Sound buttons, Volume with the knob turned (review 2026-11-26 mt32.md#6).
+# Buttons are MT32_BUTTTON_* bits (mt32.h); the knob is the A/D value (0-1023, default 1020).
+# args --button 70000:0x001 --button 73200:0 --button 80000:0x100 --button 83200:0
+# args --button 90000:0x010 --button 93200:0 --button 100000:0x020 --button 103200:0
+# args --knob 110000:400 --knob 125000:100 --knob 140000:800 --knob 155000:1023
+# args --button 160000:0x200 --button 163200:0 --button 165000:0x0c8 --button 168200:0
+64000 91 3c 64
+64000 92 43 64
+150000 c1 05
+170000 91 3c 00
+170000 92 43 00
+175000 91 48 50

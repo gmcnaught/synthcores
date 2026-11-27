@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Worst setup paths of the compiled design (quartus_sta -t sta_paths.tcl):
 #   output_files/worst_paths.txt        60 worst paths, all clocks
-#   output_files/worst_paths_core.txt   30 worst into the core clock (50 MHz)
+#   output_files/worst_paths_core.txt   30 worst into the core clock (96 MHz)
 #   output_files/worst_paths_video.txt  30 worst into the video clock (40 MHz)
 #   output_files/worst_paths_full.txt   the 5 worst into the core clock, in detail
-#   output_files/core_50mhz.txt         every core-clock endpoint whose worst
-#       path is over 20 ns (slack < period - 20 ns; any core period),
-#       the worst path to each, and a count per module (fmax work list)
+#   output_files/core_near.txt          every core-clock endpoint with less than 1 ns of setup
+#       slack, the worst path to each, and a count per module (fmax work list)
 #   output_files/core_modules.txt       the worst path from each main module
 project_open MT32
 create_timing_netlist
@@ -19,10 +18,10 @@ report_timing -setup -npaths 30 -detail summary -to_clock $core -file output_fil
 report_timing -setup -npaths 30 -detail summary -to_clock $video -file output_files/worst_paths_video.txt
 report_timing -setup -npaths 5 -detail full_path -to_clock $core -file output_files/worst_paths_full.txt
 
-# the 50 MHz work list: one path per failing endpoint, grouped by module
+# the work list: one path per endpoint within 1 ns of the core period, grouped by module
 set period [get_clock_info -period $core]
-set margin [expr {$period - 20.0}]
-set fh [open output_files/core_50mhz.txt w]
+set margin 1.0
+set fh [open output_files/core_near.txt w]
 set paths [get_timing_paths -setup -to_clock $core -less_than_slack $margin -npaths 20000 -nworst 1]
 set n 0
 array set count {}
@@ -42,7 +41,7 @@ foreach_in_collection p $paths {
     puts $fh [format "%8.3f  %8.3f ns  %s  ->  %s" $slack [expr {$period - $slack}] $from $to]
 }
 puts $fh ""
-puts $fh "$n endpoints with paths over 20 ns. Per module (endpoints, longest path ns):"
+puts $fh "$n endpoints with less than $margin ns slack. Per module (endpoints, longest path ns):"
 foreach mod [lsort [array names count]] {
     puts $fh [format "%6d  %8.3f  %s" $count($mod) [expr {$period - $worst($mod)}] $mod]
 }

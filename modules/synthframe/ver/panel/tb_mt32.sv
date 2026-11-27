@@ -37,7 +37,8 @@ module tb_mt32 (
     end
     mt32_lcd_video #(.FONT_HEX(`MT32_FONT_HEX), .PANEL_DIR(`MT32_PANEL_DIR)) dut (
         .clk, .text_addr, .text(txt[text_addr < 5'd20 ? text_addr : 5'd0]), .cg_addr,
-        .cg_row(cg[cg_addr]), .cursor, .cursor_on, .display_on, .buttons, .msg_led,
+        .cg_row(cg[cg_addr]), .cursor, .cursor_on, .cursor_blink(1'b1), .cursor_font(1'b0),
+        .lines2(1'b1), .display_on, .buttons, .msg_led,
         .rom_ok(st[0]), .loading(st[1]), .running(st[2]), .midi_led(st[3]),
         .underrun_seen(st[4]),
         .hs, .vs, .hblank, .vblank, .r, .g, .b);

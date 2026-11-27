@@ -94,6 +94,12 @@ int main(int argc, char** argv)
         fclose(f);
     }
     FILE* fslot = slot_log.empty() ? nullptr : open_or_die(slot_log.c_str(), "r");
+    // an empty or short out-log is an error, not a pass over fewer samples
+    if (outs.empty()) { fprintf(stderr, "sound_bench: the out-log has no samples\n"); return 1; }
+    if (samples != UINT64_MAX && samples > outs.size()) {
+        fprintf(stderr, "sound_bench: --samples %" PRIu64 " but the out-log has %zu\n", samples, outs.size());
+        return 1;
+    }
     if (samples > outs.size()) samples = outs.size();
 
     // ---- model
@@ -243,6 +249,7 @@ int main(int argc, char** argv)
     }
     bool irq_left = !errors && ii < irqs.size() && irqs[ii].cyc < (uint64_t)m->la32_cycle;
     if (irq_left) fail("reference has more IRQ events");
+    if (!errors && sample != samples) fail("fewer samples compared than asked for");
     if (!quiet || errors)
         printf("%s: %" PRIu64 " samples, %zu IRQ events, %" PRIu64 " slots, clocks/slot max %" PRIu64
                " mean %.2f (CPU turn excluded), PCM reads/sample %.2f, %" PRIu64 " clocks\n",

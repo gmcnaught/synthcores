@@ -118,7 +118,11 @@ module mt32_sound #(
         if (rst) begin
             q <= Q_IDLE;
             slot <= 5'd0;
+`ifdef MT32_SIM_LA32_START
+            la32_cycle <= 64'd `MT32_SIM_LA32_START;   // sim only: start near a wrap point
+`else
             la32_cycle <= 64'd0;
+`endif
             la_fin <= 1'b0;
             rv_fin <= 1'b0;
         end else begin

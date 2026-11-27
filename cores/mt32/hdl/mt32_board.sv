@@ -8,7 +8,8 @@
 //                serial_w(byte), uart_cycles = total_cycles() + 3840;
 //   after slots 15 and 31: la32_sh3 = (slot == 31).
 // `hold` stops the board before the CPU turn of slot 0 (the start of a sample): the MiSTer top
-// holds while its audio FIFO is full; the bench holds to queue a sample's MIDI bytes first.
+// holds while the core is 8 or more samples ahead of a 32 kHz real-time count; the bench holds to
+// queue a sample's MIDI bytes and set the panel inputs first.
 //
 // CPU memory map (cpu_read / cpu_write):
 //   0100-017F  bank register (write: data & 1F)       0200-027F  buttons (read), reverb ROM bank (write)
@@ -65,10 +66,13 @@ module mt32_board #(
     output logic [4:0]  lcd_cg_row,
     output logic [4:0]  lcd_cursor,
     output logic        lcd_cursor_on,
+    output logic        lcd_cursor_blink,
+    output logic        lcd_cursor_font,
+    output logic        lcd_lines2,
     output logic        lcd_display_on,
 
     // trace (bench)
-    output logic [47:0] cpu_cycles,
+    output logic [63:0] cpu_cycles,
     output logic        dbg_fetch, dbg_irq, dbg_regw,
     output logic [2:0]  dbg_level,
     output logic [15:0] dbg_pc, dbg_fpc, dbg_psw,
@@ -79,7 +83,8 @@ module mt32_board #(
     output logic        dbg_midi,       // pulse: byte handed to the CPU (dbg_mbyte)
     output logic [7:0]  dbg_mbyte,
     output logic        dbg_lcd,        // pulse: after an LCD command write
-    output logic        bad_op
+    output logic        bad_op,
+    output logic        unsupported     // HSO command 0F ran (A/D start without MAME's nested update)
 );
     // ---------------------------------------------------------------- memories
     logic [7:0] rom [131072];
@@ -107,10 +112,9 @@ module mt32_board #(
 
     // ---------------------------------------------------------------- CPU
     logic        c_run, c_busy, c_ready, ext_req, ext_we, ext_ack, serial_in, sh3;
-    logic [47:0] c_target;
+    logic [63:0] c_target;
     logic [15:0] ext_addr;
     logic [7:0]  ext_wdata, ext_rdata, serial_byte;
-    logic        unsupported;
 
     mcs96 #(.DECODE_HEX(DECODE_HEX)) cpu (
         .clk, .rst, .ready(c_ready),
@@ -122,13 +126,13 @@ module mt32_board #(
     );
 
     // ---------------------------------------------------------------- LCD
-    logic lcd_wr, lcd_cmd, lcd_busy, lcd_done, lcd_cmd_done, lcd_blink;
+    logic lcd_wr, lcd_cmd, lcd_busy, lcd_done, lcd_cmd_done;
     mt32_lcd lcd (
         .clk, .rst, .wr(lcd_wr), .cmd(lcd_cmd), .data(ext_wdata), .now(cpu_cycles),
         .busy(lcd_busy), .done(lcd_done), .cmd_done(lcd_cmd_done),
         .rd_addr(lcd_rd_addr), .rd_text(lcd_rd_text), .cg_addr(lcd_cg_addr), .cg_row(lcd_cg_row),
-        .cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .cursor_blink(lcd_blink),
-        .display_on(lcd_display_on)
+        .cursor(lcd_cursor), .cursor_on(lcd_cursor_on), .cursor_blink(lcd_cursor_blink),
+        .cursor_font(lcd_cursor_font), .lines2(lcd_lines2), .display_on(lcd_display_on)
     );
     assign dbg_lcd = lcd_cmd_done;
     assign at_hold = (ts == T_HOLD) && (slot == 5'd0) && hold;
@@ -136,21 +140,20 @@ module mt32_board #(
     // ---------------------------------------------------------------- MIDI queue
     logic [7:0] mq [256];
     logic [7:0] mq_wp, mq_rp;
-    logic [47:0] uart_cycles;
+    logic [63:0] uart_cycles;
     assign midi_full = (mq_wp + 8'd1) == mq_rp;
     always_ff @(posedge clk) if (midi_valid && !midi_full) mq[mq_wp] <= midi_byte;
 
     // ---------------------------------------------------------------- external bus
     typedef enum logic [2:0] { B_IDLE, B_READ, B_LCD } b_t;
     b_t bs;
-    logic [7:0] rsel;                   // read source
+    logic [2:0] rsel;                   // read source: 0 FF, 1 ROM, 2 RAM, 3 LA32, 4 LCD busy, 5 buttons
     wire [8:0] hi = ext_addr[15:7];
 
 
     // ---------------------------------------------------------------- turn sequencing
     typedef enum logic [2:0] { T_IDLE, T_HOLD, T_RUN, T_WAIT, T_MIDI, T_DONE } t_t;
     t_t ts;
-    logic [47:0] la32c;                 // la32_cycles after the slot
     logic [4:0]  slot;
 
     always_ff @(posedge clk) begin
@@ -169,8 +172,7 @@ module mt32_board #(
             ts <= T_IDLE;
             reg_bank <= 5'd0;
             mq_wp <= 8'd0; mq_rp <= 8'd0;
-            uart_cycles <= 48'h0;
-            la32c <= 48'h0;
+            uart_cycles <= 64'h0;
             sh3 <= 1'b0;
             clearing <= 1'b1; clr_a <= 16'h0;
             ready <= 1'b0;
@@ -187,8 +189,9 @@ module mt32_board #(
             case (ts)
             T_IDLE: if (cpu_turn) begin
                 slot <= turn_slot;
-                la32c <= la32_cycle[47:0];
-                c_target <= (la32_cycle[47:0] * 48'd375) >> 8;
+                // 64 bits as Nuked-MT32's uint64_t: (la32_cycles * 375) >> 8. A 48-bit product
+                // wrapped at la32_cycle = 2^48 / 375 (25.45 h) and stopped the CPU for good.
+                c_target <= (la32_cycle * 64'd375) >> 8;
                 ts <= T_HOLD;
             end
             T_HOLD: if (!(hold && slot == 5'd0)) begin
@@ -198,13 +201,13 @@ module mt32_board #(
             T_RUN: ts <= T_WAIT;                       // busy rises the clock after run
             T_WAIT: if (!c_busy && !c_run) ts <= T_MIDI;
             T_MIDI: begin
-                if ((uart_cycles == 48'h0 || uart_cycles < cpu_cycles) && mq_rp != mq_wp) begin
+                if ((uart_cycles == 64'h0 || uart_cycles < cpu_cycles) && mq_rp != mq_wp) begin
                     serial_in <= 1'b1;
                     serial_byte <= mq[mq_rp];
                     dbg_midi <= 1'b1;
                     dbg_mbyte <= mq[mq_rp];
                     mq_rp <= mq_rp + 8'd1;
-                    uart_cycles <= cpu_cycles + 48'd3840;
+                    uart_cycles <= cpu_cycles + 64'd3840;
                 end
                 if (slot == 5'd15 || slot == 5'd31) sh3 <= (slot == 5'd31);
                 cpu_done <= 1'b1;
@@ -235,23 +238,26 @@ module mt32_board #(
                         default: ;
                     endcase
                 end else begin
-                    if (hi >= 9'h020 && hi < 9'h100) rsel <= 8'd1;
-                    else if (hi >= 9'h180) rsel <= 8'd2;
-                    else if (hi >= 9'h100) rsel <= reg_bank[4] ? 8'd2 : 8'd1;
-                    else if (hi >= 9'h018 && hi < 9'h020) rsel <= 8'd3;
-                    else if (hi == 9'd7) rsel <= 8'd4;
-                    else if (hi == 9'd4) rsel <= 8'd5;
-                    else rsel <= 8'd0;
+                    if (hi >= 9'h020 && hi < 9'h100) rsel <= 3'd1;
+                    else if (hi >= 9'h180) rsel <= 3'd2;
+                    else if (hi >= 9'h100) rsel <= reg_bank[4] ? 3'd2 : 3'd1;
+                    else if (hi >= 9'h018 && hi < 9'h020) begin
+                        rsel <= 3'd3;
+                        la_addr <= ext_addr[8:0];        // the LA32 decodes the read's own address
+                    end
+                    else if (hi == 9'd7) rsel <= 3'd4;
+                    else if (hi == 9'd4) rsel <= 3'd5;
+                    else rsel <= 3'd0;
                     bs <= B_READ;
                 end
             end
             B_READ: begin
                 case (rsel)
-                    8'd1: ext_rdata <= rom_q;
-                    8'd2: ext_rdata <= ram_q;
-                    8'd3: ext_rdata <= la_rdata;
-                    8'd4: ext_rdata <= {7'h0, lcd_busy};
-                    8'd5: begin
+                    3'd1: ext_rdata <= rom_q;
+                    3'd2: ext_rdata <= ram_q;
+                    3'd3: ext_rdata <= la_rdata;
+                    3'd4: ext_rdata <= {7'h0, lcd_busy};
+                    3'd5: begin
                         logic [3:0] sc;
                         logic [7:0] r;
                         sc = ext_addr[4:1];

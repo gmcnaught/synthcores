@@ -124,7 +124,7 @@ only on M0's logs, so they can run in parallel with M1–M2.
 
 | # | Result |
 |---|---|
-| M0 | Done. `ref/build.sh` (hooks: `ref/prepare_src.py`, audio unchanged), corpus of 6 cases / 65 s (`tests/midi/`, `tools/midi_corpus.py`), hashes in `tests/corpus.json` |
+| M0 | Done. `ref/build.sh` (hooks: `ref/prepare_src.py`, audio unchanged), corpus of 6 cases / 65 s (`tests/midi/`, `tools/midi_corpus.py`; 8 cases / 76.8 s since `rq1` and `panel`), hashes in `tests/corpus.json` |
 | M1 | Done. `hdl/mcs96/` (decode ROM generated from MAME's compiled `mcs96.hxx`, not the stale `mcs96ops.lst`: they differ in norml, mulub indexed_3e and the div/divu dividend). Random programs (`tools/mcs96_randprog.py`, `tools/c1_run.sh`): 60+ seeds identical, half with SFRs and interrupts; `tests/test_cpu.py` in CI without ROMs |
 | M2 | Done. Co-simulation (`sim/cpu/`: the HDL CPU inside Nuked-MT32's board): boot trace and all 6 corpus cases identical |
 | M3, M4 | Done (`docs/sound.md`): every out-log field, LA32 interrupt and slot state identical on all 6 cases |
