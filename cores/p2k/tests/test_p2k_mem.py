@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 """CI (no ROMs): hdl/p2k_mem.sv, the CPU's cache over DDR3 and the flash model, against a flat model
-(sim/mem_tb.cpp), random accesses with random memory-port timing, three seeds."""
+(sim/mem_tb.cpp), random accesses with random memory-port timing, three seeds; and three seeds with
+the DRAM accesses packed into two 64-bit words and no idle clock between accesses, which reaches a
+read issued the clock after a write hit to the same word."""
 import os
 import subprocess
 import unittest
@@ -23,6 +25,14 @@ class MemTest(unittest.TestCase):
     def test_random(self):
         for seed in (1, 2, 3):
             r = subprocess.run([os.path.join(OUT, "mem_tb"), "--accesses", "150000", "--seed", str(seed)],
+                               capture_output=True, text=True)
+            print(r.stdout.strip(), r.stderr.strip()[:500])
+            self.assertEqual(r.returncode, 0)
+            self.assertIn("identical", r.stdout)
+
+    def test_tiny_gap0(self):
+        for seed in (1, 2, 3):
+            r = subprocess.run([os.path.join(OUT, "mem_tb"), "--accesses", "50000", "--seed", str(seed), "--tiny", "--gap0"],
                                capture_output=True, text=True)
             print(r.stdout.strip(), r.stderr.strip()[:500])
             self.assertEqual(r.returncode, 0)

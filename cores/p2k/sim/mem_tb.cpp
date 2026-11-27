@@ -4,7 +4,10 @@
 // p2k/sim/p2k_cpu_tb.cpp) against a flat model of the same memory, with a memory port that is
 // ready on a random 1 clock in 2 and returns reads in order after 1-30 clocks. Exits 1 on the
 // first difference.
-//   mem_tb [--accesses N] [--seed N]
+//   mem_tb [--accesses N] [--seed N] [--tiny] [--gap0]
+//     --tiny  most DRAM accesses in 8 words (two 64-bit words): a write hit followed at once by a
+//             read of the same word (the cache line updated a clock after the write's ack)
+//     --gap0  no idle clocks between accesses (the CPU presents its next access after ack)
 #include "Vp2k_mem.h"
 #include "verilated.h"
 
@@ -101,11 +104,14 @@ int main(int argc, char **argv)
 {
 	long n_acc = 200000;
 	unsigned seed = 1;
+	bool tiny = false, gap0 = false;
 	for (int i = 1; i < argc; i++)
 	{
 		const std::string a = argv[i];
 		if (a == "--accesses" && i + 1 < argc) n_acc = std::atol(argv[++i]);
 		else if (a == "--seed" && i + 1 < argc) seed = unsigned(std::atoi(argv[++i]));
+		else if (a == "--tiny") tiny = true;
+		else if (a == "--gap0") gap0 = true;
 	}
 	std::mt19937 rng(seed);
 	model ref;
@@ -190,7 +196,8 @@ int main(int argc, char **argv)
 			if (guard > 2000000) { std::fprintf(stderr, "no ack for P word %06x\n", pw); bad = true; break; }
 		}
 		top->go = 0;
-		for (unsigned i = rng() % 3; i; i--) clock();
+		if (!gap0)
+			for (unsigned i = rng() % 3; i; i--) clock();
 		(we ? writes : reads)++;
 	};
 	for (long n = 0; n < n_acc && !bad; n++)
@@ -212,7 +219,8 @@ int main(int argc, char **argv)
 		}
 		uint32_t pw;
 		const unsigned region = rng() % 10;
-		if (region < 6) pw = 0x100000 + (rng() % 4) * 0x40000 + rng() % 0x2000;       // DRAM, hot
+		if (tiny && region < 6) pw = 0x100000 + rng() % 8;                              // DRAM, 2 words
+		else if (region < 6) pw = 0x100000 + (rng() % 4) * 0x40000 + rng() % 0x2000;  // DRAM, hot
 		else if (region < 8) pw = 0x100000 + rng() % 0x400000;                         // DRAM, anywhere
 		else pw = rng() % 0x100000;                                                     // flash
 		const bool flash = pw < 0x100000;

@@ -138,6 +138,8 @@ def build(spec, template):
     baby = bytearray(b"\xff" * BABY)
     size = BABY - LIB
     baby[LIB:LIB + 16] = struct.pack(">4s4sIHH", b"lib_", b"_POS", size, 0, 0)
+    # at least one 0xFF after the last object (the end marker); a slice past the end would grow baby
+    assert LIB + 16 + len(body) < BABY, "Baby image full"
     baby[LIB + 16:LIB + 16 + len(body)] = body    # 0xFF after the last object = end marker [O]
     return big, baby, dict(samples=len(ys), instruments=len(yi) - 1, presets=len(spec.get("presets", [])),
                            big_used=pos, baby_used=LIB + 16 + len(body))
