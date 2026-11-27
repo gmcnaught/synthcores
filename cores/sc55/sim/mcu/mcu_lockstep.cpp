@@ -19,6 +19,11 @@
 //        clear, the mk2 sub-MCU's UART2 write) must come from the HDL's tx/sm_tx strobes, with
 //        the same byte and cycle (mcu.cycles / sm.cycles); [--tx-log FILE] writes them,
 //        "S CYCLE BYTE" (S 0 SCI, 1 sub-MCU).
+//        [--cycle-base B] starts the HDL's and the model's time counters at B (common/cycle_base.h),
+//        to run across a counter wrap.
+//        [--probe-p9dr] makes the last step read P9DR (H'FFFF) with P9DDR = 0: it runs
+//        MOV:G.B @H'FFFF:16,R0 from internal RAM, interrupts masked, so the read data (the
+//        model-dependent cfg bits) are compared like every other access.
 #include "Vsc55_mcu.h"
 #include "Vsc55_mcu___024root.h"
 #include "verilated.h"
@@ -28,6 +33,7 @@
 #include "mcu_timer.h"
 #include "pcm.h"
 #include "submcu.h"
+#include "../common/cycle_base.h"
 #include "ref_hooks.h"
 #include "rom_loader.h"
 #include "../common/midi_demo.h"
@@ -88,6 +94,8 @@ int main(int argc, char** argv)
     std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
     bool        jv_factory = false;
     uint64_t    trace_from = ~0ull;
+    uint64_t    cycle_base = 0;
+    bool        probe_p9dr = false;
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -101,6 +109,8 @@ int main(int argc, char** argv)
         else if (a == "--jv880-factory") jv_factory = true;
         else if (a == "--trace-from" && i + 1 < argc) trace_from = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--tx-log" && i + 1 < argc) tx_log = argv[++i];
+        else if (a == "--probe-p9dr") probe_p9dr = true;
+        else if (a == "--cycle-base" && i + 1 < argc) { cycle_base = std::strtoull(argv[++i], nullptr, 0); if (!cycle_base_ok(cycle_base)) return 2; }
         else if (a == "--midi-at" && i + 1 < argc)
         {
             std::string v = argv[++i];
@@ -170,6 +180,11 @@ int main(int argc, char** argv)
     t->reset_start = 1; tick(); t->reset_start = 0;
     for (int g = 0; g < 1000 && !t->reset_done; ++g) tick();
     if (!t->reset_done) { fprintf(stderr, "HDL reset did not finish\n"); return 1; }
+    if (cycle_base)
+    {
+        model_cycle_base(m, pcm, mk2, cycle_base);
+        HDL_MCU_CYCLE_BASE(R, sc55_mcu__DOT__, mk2, cycle_base);
+    }
 
     g_ref_hooks.bus = bus_hook;
     g_ref_hooks.cpu_done = cpu_done_hook;
@@ -239,6 +254,23 @@ int main(int argc, char** argv)
             m.button_pressed = buttons;
         }
         t->buttons = buttons;
+        if (probe_p9dr && s + 1 == steps)
+        {
+            if (!(m.dev_register[0x79] & 0x80)) return fail("probe: internal RAM is off (RAMCR bit 7)");
+            const uint8_t prog[4] = {0x15, 0xff, 0xff, 0x80};   // MOV:G.B @H'FFFF:16 (page DP = 0), R0
+            for (int i = 0; i < 4; ++i)
+            {
+                m.ram[0x80 + i] = prog[i];                      // H'FC00
+                R->sc55_mcu__DOT__u_ram__DOT__mem[0x80 + i] = prog[i];
+            }
+            m.dev_register[0x7e] = 0x00;                        // P9DDR: all inputs
+            R->sc55_mcu__DOT__dev[0x7e] = 0x00;
+            m.pc = 0xfc00; m.cp = 0; m.dp = 0; m.sr |= 0x0700; m.sleep = 0;
+            for (int i = 0; i < 8; ++i) t->cpu_ld_r[i] = m.r[i];
+            t->cpu_ld_pc = m.pc; t->cpu_ld_sr = m.sr; t->cpu_ld_cp = m.cp; t->cpu_ld_dp = m.dp;
+            t->cpu_ld_ep = m.ep; t->cpu_ld_tp = m.tp; t->cpu_ld_br = m.br;
+            t->cpu_ld_en = 1; tick(); t->cpu_ld_en = 0;
+        }
 
         uint32_t pend0 = 0;
         for (int i = 0; i < INTERRUPT_SOURCE_MAX; ++i)
@@ -364,7 +396,7 @@ int main(int argc, char** argv)
         cmp("tmr.tcorb", R->sc55_mcu__DOT__tmr_tcorb, tm.tmr.tcorb);
         cmp("tmr.tcnt", R->sc55_mcu__DOT__tmr_tcnt, tm.tmr.tcnt);
         cmp("tmr.status_rd", R->sc55_mcu__DOT__tmr_status_rd, tm.tmr.status_rd);
-        cmp("tmr.deadline", R->sc55_mcu__DOT__tmr_deadline, tm.tmr.deadline & 0xffffffffffffull);
+        cmp("tmr.deadline", R->sc55_mcu__DOT__tmr_deadline, tm.tmr.deadline);
         cmp("tmr.stride", R->sc55_mcu__DOT__tmr_stride, tm.tmr.stride);
         cmp("tempreg", R->sc55_mcu__DOT__tempreg, tm.tempreg);
         if (!mk2)

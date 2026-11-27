@@ -49,12 +49,20 @@ module poly_box (
     output logic        stall,
     output logic [15:0] late
 );
-    localparam logic [47:0] F0_NS = 48'd9900;
+    localparam logic [63:0] F0_NS = 64'd9900;
     localparam logic [15:0] R1302 = 16'd51543, R1303 = 16'd51503;
 
-    logic [47:0] now;
+    // voice time and instant times in 64-bit ns (`nb < t_head` needs no wrap)
+    logic [63:0] now;
+    // voice time at reset, as dev_poly's: 0, or +voice_t0=N in Verilator benches
+    logic [63:0] t0;
+`ifdef VERILATOR
+    initial if (!$value$plusargs("voice_t0=%d", t0)) t0 = '0;
+`else
+    assign t0 = '0;
+`endif
     // instant times and FM samples, in order (the k-th time is the k-th sample's)
-    logic [47:0] tq [8];
+    logic [63:0] tq [8];
     logic [2:0]  tq_wp, tq_rp;
     logic [39:0] fl [8], fr [8];
     logic [2:0]  fq_wp, fq_rp;
@@ -65,11 +73,11 @@ module poly_box (
     logic [5:0]  pq_n;
     logic [31:0] debt;                            // boundaries passed without their P (late)
 
-    logic [47:0] t_prev, nb;                      // last instant; next boundary
+    logic [63:0] t_prev, nb;                      // last instant; next boundary
     logic signed [31:0] c_l, c_r;                 // P_cur
     // the sample being worked on
     logic [3:0]  st;
-    logic [47:0] t_k;
+    logic [63:0] t_k;
     logic [12:0] w_old, w_new;
     logic signed [31:0] o_l, o_r;                 // P_cur before the interval
     logic signed [31:0] n_l, n_r;                 // P(m) (or P_cur)
@@ -80,8 +88,8 @@ module poly_box (
     logic signed [62:0] mb;
     logic signed [37:0] x_l;
 
-    wire  [47:0] t_head = tq[tq_rp];
-    wire  [47:0] d_w = t_head - t_prev;
+    wire  [63:0] t_head = tq[tq_rp];
+    wire  [63:0] d_w = t_head - t_prev;
     wire         bnd = en && nb < t_head;         // a boundary inside the interval
     wire         p_have = pq_n != 6'd0;
     wire  [63:0] p_head = pq[pq_rp];
@@ -132,14 +140,14 @@ module poly_box (
     always_ff @(posedge clk) begin
         out_valid <= 1'b0;
         if (rst) begin
-            now <= '0;
+            now <= t0;
             tq_wp <= '0; tq_rp <= '0; fq_wp <= '0; fq_rp <= '0; fq_n <= '0;
             pq_wp <= '0; pq_rp <= '0; pq_n <= '0; debt <= '0; late <= '0;
-            t_prev <= '0; nb <= '0; c_l <= '0; c_r <= '0; st <= '0;
+            t_prev <= t0; nb <= t0; c_l <= '0; c_r <= '0; st <= '0;
         end else begin
-            if (tick) now <= now + 48'(tick_ns);
+            if (tick) now <= now + 64'(tick_ns);
             if (tick && inst) begin
-                tq[tq_wp] <= now + 48'(inst_d);
+                tq[tq_wp] <= now + 64'(inst_d);
                 tq_wp <= tq_wp + 3'd1;
             end
             if (fm_valid) begin
@@ -162,7 +170,7 @@ module poly_box (
                     o_l <= c_l; o_r <= c_r;
                     tq_rp <= tq_rp + 3'd1;
                     f_l <= fl[fq_rp]; f_r <= fr[fq_rp];
-                    rcp <= d_w == 48'd1302 ? R1302 : d_w == 48'd1303 ? R1303 : 16'd0;
+                    rcp <= d_w == 64'd1302 ? R1302 : d_w == 64'd1303 ? R1303 : 16'd0;
                     if (bnd) begin
                         w_old <= 13'(nb - t_prev);
                         w_new <= 13'(t_head - nb);

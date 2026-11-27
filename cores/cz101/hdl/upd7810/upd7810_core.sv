@@ -995,4 +995,18 @@ module upd7810_core #(
         endcase
     endtask
 
+    // synthesis translate_off
+    // MAME's upd7810_take_irq picks the vector once, before its three pushes; the core reads
+    // irq_vec again after them. Count the interrupts whose vector changed meanwhile (cz101_bench
+    // reports it; the board applies every interrupt source at instruction boundaries, so 0).
+    logic [15:0] sim_vec0;
+    int unsigned sim_vec_changes;
+    always_ff @(posedge clk)
+        if (reset) sim_vec_changes <= 0;
+        else if (!wait_bus && st == ST_IRQ) begin
+            if (step == 5'd0) sim_vec0 <= irq_vec;
+            else if (step > 5'd2 && irq_vec != sim_vec0) sim_vec_changes <= sim_vec_changes + 1;
+        end
+    // synthesis translate_on
+
 endmodule

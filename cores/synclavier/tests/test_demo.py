@@ -4,7 +4,7 @@ hdl/core/midi_vpk.sv takes, the keys hdl/core/ps2_ascii.sv sends), the
 board player's event list and the simulator's input mapping. Standard
 library only; no disk images.
 
-Run:  python3 tests/test_demo.py
+Run:  pypy3 tests/test_demo.py
 """
 import os
 import sys
@@ -222,7 +222,6 @@ def test_baud():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

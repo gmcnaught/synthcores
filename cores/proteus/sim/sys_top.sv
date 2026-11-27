@@ -31,7 +31,7 @@ module sys_top
 	output      [7:0] lcd_code
 );
 wire snd_wr, snd_pan, snd_wr_full, snd_rb, snd_rb_done;
-wire [4:0] snd_voice; wire [3:0] snd_word; wire [15:0] snd_data, snd_mask, snd_rb_data, snd_raw;
+wire [4:0] snd_voice; wire [3:0] snd_word; wire [15:0] snd_data, snd_mask, snd_rb_data, snd_raw; wire snd_raw_ok;
 wire ioctl_wait;
 
 proteus_sys sys
@@ -39,8 +39,9 @@ proteus_sys sys
 	.clk(clk), .reset(reset), .loading(loading),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout),
 	.midi_in(midi_in), .midi_out(midi_out), .buttons(gpio), .volume(8'd255),
+	.cpu_pause(1'b0), .nv_active(1'b0), .nv_we(1'b0), .nv_addr(16'd0), .nv_wdata(8'd0), .nv_rdata(), .leds(),
 	.snd_wr(snd_wr), .snd_pan(snd_pan), .snd_voice(snd_voice), .snd_word(snd_word), .snd_data(snd_data), .snd_mask(snd_mask),
-	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw),
+	.snd_wr_full(snd_wr_full), .snd_rb(snd_rb), .snd_rb_done(snd_rb_done), .snd_rb_data(snd_rb_data), .snd_raw(snd_raw), .snd_raw_ok(snd_raw_ok),
 	.lcd_line(lcd_line), .lcd_pos(lcd_pos), .lcd_row(3'd0), .lcd_code(lcd_code), .lcd_cgbits(), .lcd_is_cg(), .lcd_cursor(), .lcd_on(),
 	.font_addr(12'd0), .font_data(),
 	.dbg_pc_addr(), .bus_wr_strobe(bus_wr_strobe), .bus_wr_addr(bus_wr_addr), .bus_wr_data(bus_wr_data), .bus_wr_ds(bus_wr_ds)
@@ -51,7 +52,7 @@ snd_ctrl sctl
 	.clk(clk), .reset(reset), .loading(loading), .tone_en(1'b1),
 	.ioctl_wr(ioctl_wr), .ioctl_addr(ioctl_addr), .ioctl_dout(ioctl_dout), .ioctl_wait(ioctl_wait),
 	.cpu_wr(snd_wr), .cpu_pan(snd_pan), .cpu_voice(snd_voice), .cpu_word(snd_word), .cpu_data(snd_data), .cpu_mask(snd_mask),
-	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw),
+	.cpu_wr_full(snd_wr_full), .cpu_rb(snd_rb), .cpu_rb_done(snd_rb_done), .cpu_rb_data(snd_rb_data), .cpu_raw(snd_raw), .cpu_raw_ok(snd_raw_ok),
 	.out_l(out_l), .out_r(out_r), .sample_strobe(sample_strobe),
 	.disp_voice(5'd0), .disp_level(),
 	.DDRAM_BUSY(DDRAM_BUSY), .DDRAM_BURSTCNT(DDRAM_BURSTCNT), .DDRAM_ADDR(DDRAM_ADDR), .DDRAM_DOUT(DDRAM_DOUT),

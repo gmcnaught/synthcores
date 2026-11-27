@@ -35,7 +35,7 @@ module sc55_submcu (
     output logic        reset_done,
     output logic        ready,            // power-on clear of the RAMs finished
     input  logic        run,
-    input  logic [47:0] target5,
+    input  logic [63:0] target5,
     output logic        done,
     output logic        caught_up,
 
@@ -51,7 +51,7 @@ module sc55_submcu (
     output logic        rx_pop,
     output logic [7:0]  rx_byte,          // mcu.uart_rx_byte
     input  logic        rx_delay_we,      // the MCU's SSR write sets mcu.uart_rx_delay too
-    input  logic [47:0] rx_delay_wv,
+    input  logic [63:0] rx_delay_wv,
 
     input  logic [31:0] buttons,
     output logic        ga5_we,
@@ -63,11 +63,11 @@ module sc55_submcu (
     // state (bench)
     output logic [15:0] st_pc,
     output logic [7:0]  st_a, st_x, st_y, st_s, st_sr,
-    output logic [47:0] st_cycles,
+    output logic [63:0] st_cycles,
     output logic        st_sleep,
     output logic [7:0]  st_p0_data, st_p0_dir, st_p1_dir, st_p1_data,
     output logic [7:0]  st_prescaler, st_counter,
-    output logic [47:0] st_timer_cycles, st_rx_delay,
+    output logic [63:0] st_timer_cycles, st_rx_delay,
     output logic        st_gotbyte,
     output logic [31:0] st_instructions
 );
@@ -81,7 +81,7 @@ module sc55_submcu (
     // ------------------------------------------------------------ state
     logic [15:0] pc;
     logic [7:0]  a, x, y, s, sr;
-    logic [47:0] cycles, timer_cycles, rx_delay;
+    logic [63:0] cycles, timer_cycles, rx_delay;
     logic        sleep, gotbyte;
     // RAM (128 B) and shared RAM (192 B) are block RAMs: reads as the ROM's
     // (address from the state, data next clock); writes go through a
@@ -259,8 +259,8 @@ module sc55_submcu (
     logic [1:0]  pcnt;
     logic        in_reset;         // the vector fetch is SM_Reset's
     logic        tcont;            // Q_TIMER continues (cycles already advanced)
-    logic [47:0] cyc48;            // cycles + 48
-    logic signed [48:0] tlag, tlag48;   // cycles - timer_cycles, and + 48
+    logic [63:0] cyc48;            // cycles + 48
+    logic signed [64:0] tlag, tlag48;   // cycles - timer_cycles, and + 48
     logic [1:0]  rd_src;                     // 0 rd_reg, 1 ROM, 2 RAM, 3 shared
     logic [7:0]  rd_reg;
     wire  [7:0]  rdata = (rd_src == 2'd1) ? rom_q : (rd_src == 2'd2) ? ram_q : (rd_src == 2'd3) ? sh_q : rd_reg;
@@ -453,7 +453,7 @@ module sc55_submcu (
             clr_on <= 1'b1; clr_i <= 8'd0; sys_rd <= 1'b0;
             pc <= '0; a <= '0; x <= '0; y <= '0; s <= '0; sr <= '0;
             cycles <= '0; timer_cycles <= '0; rx_delay <= '0; sleep <= 1'b0; gotbyte <= 1'b0;
-            cyc48 <= 48'd48; tlag <= '0; tlag48 <= 49'sd48;
+            cyc48 <= 64'd48; tlag <= '0; tlag48 <= 65'sd48;
             for (int i = 0; i < 24; i++) access[i] <= 8'h00;
             for (int i = 0; i < 32; i++) dm[i] <= 8'h00;
             p0_data <= '0; p0_dir <= '0; p1_dir <= '0; p1_data <= '0; presc <= '0; counter <= '0;
@@ -573,9 +573,9 @@ module sc55_submcu (
                     in_reset <= 1'b0;
                     a <= '0; x <= '0; y <= '0; s <= '0; sr <= '0;
                     cycles <= '0; sleep <= 1'b0;
-                    cyc48 <= 48'd48;
+                    cyc48 <= 64'd48;
                     tlag <= -$signed({1'b0, timer_cycles});            // cycles - timer_cycles
-                    tlag48 <= 49'sd48 - $signed({1'b0, timer_cycles});
+                    tlag48 <= 65'sd48 - $signed({1'b0, timer_cycles});
                     reset_done <= 1'b1;
                     q <= Q_IDLE;
                 end else begin
@@ -724,15 +724,15 @@ module sc55_submcu (
             // ---------------------------------------------------- after the instruction
             Q_TIMER: begin : b_timer             // cycles += 48; SM_UpdateTimer (up to three 16-cycle ticks a clock); SM_UpdateUART
                 logic [7:0]  pr, ct, ir;
-                logic [47:0] tc, cy;
-                logic signed [48:0] d;               // cy - timer_cycles
+                logic [63:0] tc, cy;
+                logic signed [64:0] d;               // cy - timer_cycles
                 logic [1:0]  n;                      // ticks this clock
                 cy = tcont ? cycles : cyc48;
                 d  = tcont ? tlag : tlag48;
                 cycles <= cy;
                 pr = presc; ct = counter; ir = dm[D_INT_REQ]; tc = timer_cycles;
                 // ticks while timer_cycles < cy: tick k (k = 0, 1, 2) when d > 16 k
-                n = (d > 49'sd32) ? 2'd3 : (d > 49'sd16) ? 2'd2 : (d > 49'sd0) ? 2'd1 : 2'd0;
+                n = (d > 65'sd32) ? 2'd3 : (d > 65'sd16) ? 2'd2 : (d > 65'sd0) ? 2'd1 : 2'd0;
                 for (int k = 0; k < 3; k++) begin
                     if (2'(k) < n) begin
                         if (!dm[D_TCTRL][5] && !sleep) begin
@@ -746,22 +746,22 @@ module sc55_submcu (
                         end
                     end
                 end
-                tc = timer_cycles + {42'h0, n, 4'h0};
-                tlag <= d - $signed({43'h0, n, 4'h0});
+                tc = timer_cycles + {58'h0, n, 4'h0};
+                tlag <= d - $signed({59'h0, n, 4'h0});
                 presc <= pr; counter <= ct; timer_cycles <= tc;
                 tcont <= 1'b1;
-                if (!(d > 49'sd48)) begin            // caught up: timer_cycles >= cy now
+                if (!(d > 65'sd48)) begin            // caught up: timer_cycles >= cy now
                     // SM_UpdateUART
                     if (dm[D_U1_CTRL][2] && rx_avail && !gotbyte && !(cy < rx_delay)) begin
                         rx_byte <= rx_data;
                         rx_pop <= 1'b1;
                         gotbyte <= 1'b1;
                         ir = ir | 8'h40;
-                        rx_delay <= cy + 48'd12000;
+                        rx_delay <= cy + 64'd12000;
                     end
                     tcont <= 1'b0;
-                    cyc48 <= cy + 48'd48;
-                    tlag48 <= d - $signed({43'h0, n, 4'h0}) + 49'sd48;
+                    cyc48 <= cy + 64'd48;
+                    tlag48 <= d - $signed({59'h0, n, 4'h0}) + 65'sd48;
                     // the next iteration (Q_LOOP's work) with the request register as now updated
                     if (!(cy < target5)) begin
                         done <= 1'b1;

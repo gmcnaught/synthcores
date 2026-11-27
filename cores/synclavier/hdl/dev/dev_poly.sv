@@ -119,7 +119,7 @@ module dev_poly #(
     input  logic        q_side,
     output logic        q_live
 );
-    localparam logic [47:0] RATE_NS = 48'd9900, ENV_NS = 48'd40000;
+    localparam logic [63:0] RATE_NS = 64'd9900, ENV_NS = 64'd40000;
     localparam logic [6:0] FC_NUMV = 7'd12, FC_WMA = 7'd16, FC_RMA = 7'd20, FC_MDATA_W = 7'd18,
                            FC_MDATA_R = 7'd22, FC_ON = 7'd10, FC_RON = 7'd11, FC_INC = 7'd8,
                            FC_MOD = 7'd9, FC_EVSM = 7'd59;
@@ -203,7 +203,17 @@ module dev_poly #(
     logic [15:0] addr_hi;
     logic [27:0] addr;
     logic [127:0] on0, on1, master;
-    logic [47:0] now, next_rate, next_env;
+    // 64-bit ns (585 years): the passes compare deadlines with `<=`, which
+    // at 48 bits failed when next_env wrapped before now (78.2 h after reset)
+    logic [63:0] now, next_rate, next_env;
+    // voice time at reset: 0. Verilator benches can start it elsewhere with
+    // +voice_t0=N (the uptime wrap tests); every compare is relative to it.
+    logic [63:0] t0;
+`ifdef VERILATOR
+    initial if (!$value$plusargs("voice_t0=%d", t0)) t0 = '0;
+`else
+    assign t0 = '0;
+`endif
     wire rate_due = next_rate <= now;
     wire env_due  = next_env <= now;
 
@@ -446,7 +456,7 @@ module dev_poly #(
     always_ff @(posedge clk) begin
         ack <= 1'b0;
         p_valid <= 1'b0;
-        if (tick && !rst) now <= now + {38'd0, tick_ns};
+        if (tick && !rst) now <= now + 64'(tick_ns);
         // the mix: DAC word and factors, then word x EVAL, then x volume
         a1 <= mac_in;
         if (mac_in) begin
@@ -479,7 +489,7 @@ module dev_poly #(
             channel <= '0; fc <= '0; addr_hi <= '0; addr <= '0;
             on0 <= '0; on1 <= '0; master <= '0;
             elim_nz <= '0; rdest_nz <= '0; ldest_nz <= '0;
-            now <= '0; next_rate <= '0; next_env <= '0;
+            now <= t0; next_rate <= t0; next_env <= t0;
             req <= 1'b0; pq <= 1'b0;
             a1 <= 1'b0; a2 <= 1'b0;
             dac_on <= '0; lval <= '0; lfsr <= 23'h5A5A5; mclr <= 1'b0;

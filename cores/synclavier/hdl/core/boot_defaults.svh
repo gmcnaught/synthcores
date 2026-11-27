@@ -225,7 +225,7 @@ function automatic logic [81:0] boot_default(input logic [8:0] i);
         9'd218: boot_default = {2'd0, 3'd3, 13'd5, 64'd0};
         9'd219: boot_default = {2'd1, 3'd0, 13'd32, 64'd0};
         9'd220: boot_default = {2'd1, 3'd0, 13'd33, 64'd0};
-        9'd221: boot_default = {2'd1, 3'd0, 13'd0, 64'd524288};
+        9'd221: boot_default = {2'd1, 3'd0, 13'd0, 64'd0};
         9'd222: boot_default = {2'd1, 3'd0, 13'd1, 64'd0};
         9'd223: boot_default = {2'd1, 3'd0, 13'd2, 64'd0};
         9'd224: boot_default = {2'd1, 3'd0, 13'd3, 64'd0};

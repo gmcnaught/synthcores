@@ -3,11 +3,12 @@
 the RBF in the synclavierii release repository) load the released core and mount each image
 in an S slot of CONF_STR whose extension matches.
 
-Run:  python3 tests/test_mgl.py
+Run:  pypy3 tests/test_mgl.py
 """
 import glob
 import os
 import re
+import sys
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,9 +32,11 @@ def mgls():
 def test_core_name():
     name, _ = conf_str()
     assert name == "Synclavier", name
+    # mister/build.sh runs the shared synthframe build.sh with the project name, which names
+    # the RBF <project>_YYYYMMDD.rbf (modules/synthframe/tests/build/run.sh checks that)
     build = open(os.path.join(ROOT, "mister", "build.sh")).read()
-    assert '"$OUTDIR/%s_20$d.rbf"' % name in build, \
-        "build.sh must name the RBF <core>_YYYYMMDD.rbf"
+    assert '/modules/synthframe/target/mister/build.sh" "$here" %s ' % name in build, \
+        "build.sh must build project %s, so the RBF is <core>_YYYYMMDD.rbf" % name
 
 
 def test_mgls():
@@ -54,7 +57,6 @@ def test_mgls():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

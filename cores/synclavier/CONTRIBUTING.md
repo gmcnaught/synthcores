@@ -12,8 +12,16 @@
 ## Conventions
 
 * Tests use the Python standard library only and run as scripts
-  (`python3 tests/test_<name>.py`), so CI needs no dependencies. The
-  simulator tests run the same way: `python3 tests/sim/test_cpu.py`.
+  (`pypy3 tests/test_<name>.py`), so CI needs no dependencies. The
+  simulator tests run the same way: `pypy3 tests/sim/test_cpu.py`.
+  `tests/ci.sh` runs them all (what CI runs).
+* A test that cannot run (no Verilator, no Release L or W0 image) raises
+  `unittest.SkipTest("reason")`; it is counted as skipped, never as passed
+  (`tests/testlib.py`; a file where every test skipped exits 77). CI has no
+  images, so run the image tests locally before a PR that touches the CPU,
+  devices or lockstep: set `SYNCLAVIER_RELEASE_L`, `SYNCLAVIER_W0` (a
+  `W0-53.IMG` from `tools/w0_image.py`) and `SYNCLAVIER_W0_RAW`, then
+  `tests/ci.sh`.
 * New facts go into the relevant `docs/` file and into
   `docs/research-log.md`, with their source (see `docs/sources.md`).
 * Tag uncertain hardware claims **[STD]**, **[OBS]** or **[HYP]** as in

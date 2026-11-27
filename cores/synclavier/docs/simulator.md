@@ -11,19 +11,19 @@ Milestone M1 in [`plan.md`](plan.md). This page covers what exists so far:
 
 | File | Contents |
 |---|---|
-| `sim/cpu.py` | `CPU`: Model B instruction execution, flags, PSW/PCW, interrupt entry, HALT, timing counters |
+| `sim/cpu.py` | `CPU`: instruction execution for Models B, C and D (C: ADC/SBB, D10 repeat and link, D2, the R12 stack `MR12D`; D: also D11 code paging from external memory and D57), flags, PSW/PCW, interrupt entry, HALT, timing counters |
 | `sim/decode.py` | 256-entry source and destination decode tables (checked against `tools/able_disasm.py`) |
 | `sim/bus.py` | `Bus` and the `Device` base class for I/O devices 000–177 |
 | `sim/devices/` | Device models: `extmem.py` (D60–D63), `terminal.py` (D50/D51), `rtc.py` (D3), `muldiv.py` (D4567), `floppy.py` (D100–D104), `synth.py` (D130/D131 original keyboard, D160–D163 FM interface and old-panel inputs, D164/D165 control voltages; see [`devices/`](devices/)), `digstm.py` (M18: the digital STM native routines 64–76 that `sim/cpu.py` calls through `cpu.native` on `PCI TO RTNV` + n; [`devices/digital-stm.md`](devices/digital-stm.md)), `stubs.py` (`ProbeDevice` for M2 exploration). Each file starts with its evidence. |
 | `sim/system.py` | `make_system()`: a CPU with the devices attached (`floppy=True`, `synth=True` add the floppy controller and the stubs) |
-| `sim/boot.py` | Boot: `MONITOR` staged in external memory, started through the `.LD-6` loader's ECOPY entry; floppies from the `.simg` in F0/F1; console CLI `python3 -m sim.boot IMAGE` |
-| `sim/rtp.py` | Starts a Release L real-time program (`ORK-LM`, `ORK-LFM`) through MONITOR's RUN hand-off and the loader; logs device accesses (`python3 -m sim.rtp IMAGE --log out.csv`) (M2.1) |
+| `sim/boot.py` | Boot: `MONITOR` staged in external memory, started through the `.LD-6` loader's ECOPY entry; floppies from the `.simg` in F0/F1; console CLI `pypy3 -m sim.boot IMAGE` |
+| `sim/rtp.py` | Starts a Release L real-time program (`ORK-LM`, `ORK-LFM`) through MONITOR's RUN hand-off and the loader; logs device accesses (`pypy3 -m sim.rtp IMAGE --log out.csv`) (M2.1) |
 | `sim/fm.py` | FM register semantics: pitch, envelope/index interpolators, `ISHC`, wave memory ([`fm-voice.md`](fm-voice.md)) |
 | `sim/lockstep.py` | Records traces for checking the HDL CPU against this simulator, and runs the Verilator check ([`hdl.md`](hdl.md)) (M4.3) |
-| `sim/voice.py` | Integer FM voice model: replays the D162 write log and renders stereo audio (`render`, `write_wav`; `python3 -m sim.voice LOG.csv OUT.wav`) (M3.2) |
+| `sim/voice.py` | Integer FM voice model: replays the D162 write log and renders stereo audio (`render`, `write_wav`; `pypy3 -m sim.voice LOG.csv OUT.wav`) (M3.2) |
 | `sim/trace.py` | `Debugger`: instruction history, device-access log, breakpoints, stop on input wait, halt report, memory inspect (M1.7) |
 | `sim/asm.py` | Small assembler in NED syntax (`SRC TO DST`, `DATA`, `IM()`, `RE(label)`), for tests and experiments |
-| `tests/sim/` | `test_decode.py` (tables, assembler round trip over all 65,536 words), `test_cpu.py` (42 instruction-level tests), `test_devices.py` (17 device tests, mostly small programs written like NED's loaders and runtime), `test_floppy.py` (7), `test_synth.py` (8), `test_fm.py` (7), `test_voice.py` (8), `test_trace.py` (5), `test_boot.py` (3; boots the real MONITOR to `Ready >` and runs `CATALOG` when `SYNCLAVIER_RELEASE_L` names the image) and `test_rtp.py` (5; with the image: runs ORK-LM, checks the `.STAB-6` pointer, recalls a timbre, checks C4's pitch, renders it and checks the note's end) |
+| `tests/sim/` | `test_decode.py` (tables, assembler round trip over all 65,536 words), `test_cpu.py` (53 instruction-level tests), `test_devices.py` (18 device tests, mostly small programs written like NED's loaders and runtime), `test_floppy.py` (7), `test_synth.py` (12), `test_fm.py` (7), `test_voice.py` (8), `test_trace.py` (5), `test_boot.py` (3; boots the real MONITOR to `Ready >` and runs `CATALOG` when `SYNCLAVIER_RELEASE_L` names the image) and `test_rtp.py` (6; with the image: runs ORK-LM, checks the `.STAB-6` pointer, recalls a timbre, checks C4's pitch, renders it and checks the note's end) |
 
 ## Use
 
@@ -77,8 +77,8 @@ The image is not in the repository; download it yourself (see
 (`*.simg` is ignored).
 
 ```bash
-python3 -m sim.boot IMAGE.simg --f1 18-UTILS                       # interactive console
-python3 -m sim.boot IMAGE.simg --f1 18-UTILS --input 'CATALOG\r'   # scripted
+pypy3 -m sim.boot IMAGE.simg --f1 18-UTILS                       # interactive console
+pypy3 -m sim.boot IMAGE.simg --f1 18-UTILS --input 'CATALOG\r'   # scripted
 ```
 
 ```
@@ -119,7 +119,7 @@ How the boot works: [`boot-and-loaders.md`](boot-and-loaders.md) §4.
 holds keys, and renders what the FM voices play (M3.2):
 
 ```bash
-python3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
+pypy3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
     --keys 36,40,43 --hold 1 --wav chord.wav --fm-log chord.csv
 ```
 
@@ -127,7 +127,7 @@ python3 -m sim.rtp IMAGE.simg --swap-f0 06-TIMBD --buttons bank.0,timb.0 \
 loads are included) through `sim/voice.py` and writes 48 kHz 16-bit stereo
 from the key press to the end of the run (0.5 s after release). Rendering
 takes about 1 s of host time per voice-second. The CSV holds only the
-writes during the panel actions, so `python3 -m sim.voice chord.csv
+writes during the panel actions, so `pypy3 -m sim.voice chord.csv
 out.wav` renders it correctly only if the wave memories were loaded in that
 window (a timbre recall does load them). What the model fixes and what it
 chooses: [`fm-voice.md`](fm-voice.md#voice-model-m32).
@@ -180,7 +180,7 @@ Release L's F0/F1 configuration says (cylinders 0–80).
 Terminal characters take 10 bit times each way (1.04 ms at 9600 baud), so
 programs that poll XMIT_MT or CHAR_RDY run at the real speed. With all
 devices attached the simulator runs at about 1 million instructions per
-second, roughly real time.
+second under pypy3 (see Speed below), roughly real time.
 
 ## Behaviour
 
@@ -221,12 +221,19 @@ Everything follows [`instruction-set.md`](instruction-set.md). In short:
   25000`): a READ's block i arrives (i + 1) × block_ns after the command,
   plus seek_ns first when the READ does not start where the target's last
   READ or WRITE ended. SYN-5.3's driver polls D25 for REQ meanwhile, with
-  interrupts running, as NED's `SCSICODE` does on the instrument. In the
+  interrupts running, as NED's `SCSICODE` does on the instrument.
+  A board lockstep against such an image needs a trace recorded with the
+  same times (`sim/lockstep.py w0boot ... --disk-us 500 --seek-us 25000`,
+  or both 0): w0boot's default is 0, and against a timed image the run
+  diverges where SYN-5.3 first polls D25 for REQ before the HDL's block has
+  arrived (`tests/hdl/test_board.py` `test_board_w0_syn53_disk_time`). In the
   core the seek is when the SD card delivers the READ's first 16 KB line
   (`dev_scsi` asks `sd_floppy` for it at the command), so a load no
   longer stops simulated time while the SD card answers.
-* **Speed:** about 1.6 million instructions per second on a current PC, so
-  roughly real time for the original machine (risk R4).
+* **Speed:** about 1 million instructions per second under pypy3 with all
+  devices attached (0.84 million measured running ORK-LM, 2026-11-26),
+  so roughly real time for the original machine (risk R4). CPython is
+  several times slower; run the simulator and its tests with pypy3.
 
 ### Behaviour choices
 
@@ -236,7 +243,7 @@ The manual leaves these open. Each choice is marked `CHOICE` in the code.
 |---|---|---|
 | C after LOAD, AND, XOR, OR, LCM, BSOR (manual: "undefined") | Unchanged | Simplest. Software that relies on it is a bug; a trace check could flag reads of an undefined C later. |
 | Registers and flags after INIT | Cleared | The manual only gives PC = R17 and interrupts off. |
-| When an ION enable takes effect | Immediately: IRQ is sampled at the end of the PCW-writing instruction | The manual describes no delay. |
+| When an ION enable takes effect | Model B: immediately, IRQ is sampled at the end of the PCW-writing instruction. Models C/D: one instruction later: no interrupt is taken at the end of an instruction that writes the PCW (`R14 TO D1`) or takes an absolute jump (`int_shadow` in `sim/cpu.py`), nor inside a D10 repeat | Model B: the manual describes no delay. Models C/D: RTP/INTRO's SREG says its "two instruction enable/transfer sequence will NOT be interrupted", and after a taken absolute transfer the link (D10) must reach the callee's first instruction ([`release-5.3.md`](release-5.3.md)); the HDL does the same (`shadow` in `able_cpu.sv`). |
 | `PCI` (377) at interrupt level | Reads through R17, not R16 | Codes name physical registers; nothing in the manual remaps them. |
 | ADC/SBB destinations (270–277) on Model B | No operation (accumulator and flags unchanged); ADC/SBB work when `cpu.model = "C"` | [HYP] ORK-LM's Model C test (`IM(5) TO ADC0` must leave R0 = 0 on a Model B); see [`instruction-set.md`](instruction-set.md) §9. |
 | `MR12I` destination (372) | Ordinary post-increment on Model B | Model C/D (`cpu.model`): `MR12D`, store then decrement R12. |

@@ -1,5 +1,5 @@
 //============================================================================
-//  Roland SC-55 (mk1) for MiSTer.
+//  Roland SC-55, SC-55mkII, SC-155 and SC-155mkII for MiSTer (the model comes from the ROM pack header).
 //
 //  The instrument is modules/roland/hdl/core/sc55_core.sv (CPU, peripherals, PCM chip) inside
 //  hdl/board/sc55_board.sv (ROM pack, wave ROMs in DDR3, pacing, MIDI,

@@ -74,7 +74,7 @@ def assemble(text, base=0):
                 sc = SRC_CODES[s]
             else:
                 raise AsmError("unknown source %r" % s)
-            if d == "MR12D":                 # Model C alias of MR12I (pre-decrement)
+            if d == "MR12D":                 # Model C alias of MR12I (store, then decrement R12)
                 d = "MR12I"
             if d not in DST_CODES:
                 raise AsmError("unknown destination %r" % d)

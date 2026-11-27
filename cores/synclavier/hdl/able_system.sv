@@ -201,10 +201,13 @@ module able_system #(
     // other at a time); D60-D63 writes also update the cache
     logic [23:0] cm_addr, cc_addr, x_addr;
     logic        cm_rd, cm_ack, cc_rd, x_rd, x_wr, x_ack;
-    logic [15:0] cm_rdata, x_wdata;
+    logic [15:0] cm_rdata, cc_rdata, x_wdata;
+    // a fetch beyond the installed external memory reads 177777, as D62/D63
+    // do there (dev_extmem.sv; sim/cpu.py _code_read)
+    assign cm_rdata = {1'b0, cm_addr[23:8]} < ext_sectors ? cc_rdata : 16'hFFFF;
     code_cache cache (
         .clk, .rst,
-        .cm_addr, .cm_rd, .cm_rdata, .cm_ack,
+        .cm_addr, .cm_rd, .cm_rdata(cc_rdata), .cm_ack,
         .wr_addr(x_addr), .wr_en(x_wr && x_ack), .wr_data(x_wdata),
         .m_addr(cc_addr), .m_rd(cc_rd), .m_rdata(xm_rdata), .m_ack(cc_rd && xm_ack)
     );

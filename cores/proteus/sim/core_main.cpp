@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	memcpy(mem.data(), img.data(), 0x800000);
+	memcpy(mem.data() + 0x800000, img.data(), 16);   // snd_ctrl's loader writes words 0-7 again past the end
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::assertOn(false);

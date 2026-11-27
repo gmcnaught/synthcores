@@ -10,6 +10,7 @@ import os
 import struct
 import sys
 import tempfile
+import unittest
 from fractions import Fraction
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -195,11 +196,9 @@ def test_demos_subcatalog():
 def test_record_in_simulator():
     image = os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_record_in_simulator (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     if "/.NEWDATA" not in {p for p, *_ in walk(load(image))}:
-        print("  skip test_record_in_simulator (%s has no .NEWDATA; use tools/w0_image.py)" % image)
-        return
+        raise unittest.SkipTest("%s has no .NEWDATA; use tools/w0_image.py" % image)
     p = sr.Piece()
     p.beat_ms = 400
     a, b = sr.Part("upper"), sr.Part("lower")
@@ -297,7 +296,6 @@ def test_musicxml_velocity():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

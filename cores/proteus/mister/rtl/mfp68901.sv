@@ -9,7 +9,17 @@
 //     reload from data register; otherwise decrement (0 counts as 256)
 //   - GPIP inputs with AER edge interrupts; in pulse mode, an interrupt at the end of the
 //     pulse, from the input or from an AER write
-//   - USART: asynchronous 8 data bits, no parity, x16 clock (UCR 0x88)
+//   - USART: asynchronous 8 data bits, no parity, x16 clock (UCR 0x88). As MAME: a
+//     character that arrives while the buffer is full is lost and the overrun is held
+//     back until UDR is read, which then sets OE and raises the receive-error interrupt;
+//     while OE is set no character is loaded; a low stop bit sets FE (B if the data
+//     was 0) and raises the receive-error interrupt instead of buffer full (if enabled).
+//     Not modelled: the interrupt when a break ends, parity, synchronous mode.
+//   - timer data register writes load the counter while the timer is not counting
+//     (stopped, event count, pulse width with the input inactive), as MAME
+//   - interrupt pending bits set by events (timers, GPIP, USART) in the same clock as an
+//     IER/IPR write or an IACK are kept: the event counts as after the access, gated by
+//     the IER value it leaves (MAME applies both in sequence)
 //  Registers are addressed by index 0..23 (A5..A1 of the 68000 bus).
 //  `wr` and `rd` are single-cycle strobes, one per bus access.
 //============================================================================
@@ -84,9 +94,6 @@ reg  [7:0] pcount [0:3];
 wire ta_act = (tacr[3:0] >= 4'd1 && tacr[3:0] <= 4'd7) || (tacr[3] && tacr[2:0] != 3'd0 && tai == aer[4]);
 wire tb_act = (tbcr[3:0] >= 4'd1 && tbcr[3:0] <= 4'd7) || (tbcr[3] && tbcr[2:0] != 3'd0 && tbi == aer[3]);
 wire [3:0] t_active = {tcdcr[2:0] != 3'd0, tcdcr[6:4] != 3'd0, tb_act, ta_act};
-wire [3:0] t_enabled = {tcdcr[2:0] != 3'd0, tcdcr[6:4] != 3'd0,
-                        tbcr[3:0] != 4'd0 && tbcr[3:0] != 4'd8, tacr[3:0] != 4'd0 && tacr[3:0] != 4'd8};
-localparam [15:0] TMASK0 = 16'h2000, TMASK1 = 16'h0100, TMASK2 = 16'h0020, TMASK3 = 16'h0010;
 
 // USART
 reg  [3:0] rx_ph;
@@ -100,6 +107,12 @@ reg  [3:0] tx_bit;
 reg  [9:0] tx_shift;
 reg        tx_busy;
 reg  [7:0] tx_buf;
+reg        rx_next_oe;      // overrun waiting for the UDR read (MAME m_next_rsr)
+
+// interrupt pending updates of one clock (blocking temporaries, applied at the end)
+reg [15:0] ipr_set;         // events
+reg [15:0] ipr_keep;        // AND mask from IER/IPR writes and IACK
+reg [15:0] ier_new;         // IER after this clock's write
 
 // highest pending & unmasked channel
 reg  [3:0] hi_ch;
@@ -113,6 +126,9 @@ end
 
 integer n;
 always @(posedge clk) begin
+	ipr_set  = 16'd0;
+	ipr_keep = 16'hFFFF;
+	ier_new  = ier;
 	si_s  <= si;
 	si_ss <= si_s;
 
@@ -126,8 +142,10 @@ always @(posedge clk) begin
 		ti_last <= 0;
 		rx_busy <= 0; tx_busy <= 0; so <= 1;
 		rx_ph <= 0; tx_ph <= 0;
+		rx_next_oe <= 0;
 	end
 	else begin
+
 		// ---------------- timers
 		if (ce_timer) begin
 			for (n = 0; n < 4; n = n + 1) begin
@@ -138,10 +156,10 @@ always @(posedge clk) begin
 							tout[n] <= ~tout[n];
 							tmc[n]  <= tdr[n];
 							case (n)
-								0: if (ier[CH_TA]) ipr[CH_TA] <= 1;
-								1: if (ier[CH_TB]) ipr[CH_TB] <= 1;
-								2: if (ier[CH_TC]) ipr[CH_TC] <= 1;
-								3: if (ier[CH_TD]) ipr[CH_TD] <= 1;
+								0: ipr_set[CH_TA] = 1'b1;
+								1: ipr_set[CH_TB] = 1'b1;
+								2: ipr_set[CH_TC] = 1'b1;
+								3: ipr_set[CH_TD] = 1'b1;
 							endcase
 						end
 						else tmc[n] <= tmc[n] - 8'd1;
@@ -156,20 +174,20 @@ always @(posedge clk) begin
 		for (n = 0; n < 8; n = n + 1)
 			if (gpio_in[n] != gpio_last[n] && gpio_in[n] == aer[n]) begin
 				case (n)
-					0: if (ier[CH_GPIP0]) ipr[CH_GPIP0] <= 1;
-					1: if (ier[CH_GPIP1]) ipr[CH_GPIP1] <= 1;
-					2: if (ier[CH_GPIP2]) ipr[CH_GPIP2] <= 1;
-					3: if (ier[CH_GPIP3] && !tbcr[3]) ipr[CH_GPIP3] <= 1;
-					4: if (ier[CH_GPIP4] && !tacr[3]) ipr[CH_GPIP4] <= 1;
-					5: if (ier[CH_GPIP5]) ipr[CH_GPIP5] <= 1;
-					6: if (ier[CH_GPIP6]) ipr[CH_GPIP6] <= 1;
-					7: if (ier[CH_GPIP7]) ipr[CH_GPIP7] <= 1;
+					0: ipr_set[CH_GPIP0] = 1'b1;
+					1: ipr_set[CH_GPIP1] = 1'b1;
+					2: ipr_set[CH_GPIP2] = 1'b1;
+					3: if (!tbcr[3]) ipr_set[CH_GPIP3] = 1'b1;
+					4: if (!tacr[3]) ipr_set[CH_GPIP4] = 1'b1;
+					5: ipr_set[CH_GPIP5] = 1'b1;
+					6: ipr_set[CH_GPIP6] = 1'b1;
+					7: ipr_set[CH_GPIP7] = 1'b1;
 				endcase
 			end
 		// pulse mode: interrupt at the end of the pulse (MAME timer_input)
 		ti_last <= {tbi, tai};
-		if (tacr[3] && tacr[2:0] != 0 && ti_last[0] == aer[4] && tai != aer[4] && ier[CH_GPIP4]) ipr[CH_GPIP4] <= 1;
-		if (tbcr[3] && tbcr[2:0] != 0 && ti_last[1] == aer[3] && tbi != aer[3] && ier[CH_GPIP3]) ipr[CH_GPIP3] <= 1;
+		if (tacr[3] && tacr[2:0] != 0 && ti_last[0] == aer[4] && tai != aer[4]) ipr_set[CH_GPIP4] = 1'b1;
+		if (tbcr[3] && tbcr[2:0] != 0 && ti_last[1] == aer[3] && tbi != aer[3]) ipr_set[CH_GPIP3] = 1'b1;
 
 		// ---------------- USART receiver (8N1, x16)
 		if (ce_ser && rsr[0]) begin
@@ -188,13 +206,17 @@ always @(posedge clk) begin
 						rx_bit   <= rx_bit + 1'd1;
 					end
 					else begin
-						// stop bit
+						// stop bit (MAME rx_async_frame_complete)
 						rx_busy <= 0;
-						if (rsr[7]) rsr[6] <= 1;             // overrun
-						else begin
+						if (rsr[7]) rx_next_oe <= 1;          // overrun: reported when UDR is read
+						else if (!rsr[6]) begin               // no character is loaded while OE is set
 							rx_data <= rx_shift[8:1];
 							rsr[7]  <= 1;                     // buffer full
-							if (ier[CH_RXFULL]) ipr[CH_RXFULL] <= 1;
+							rsr[5]  <= 0;                     // no parity
+							rsr[4]  <= !si_ss && rx_shift[8:1] != 8'd0;   // frame error
+							rsr[3]  <= !si_ss && rx_shift[8:1] == 8'd0;   // break
+							if (!si_ss && ier[CH_RXERR]) ipr_set[CH_RXERR] = 1'b1;
+							else                         ipr_set[CH_RXFULL] = 1'b1;
 						end
 					end
 				end
@@ -215,7 +237,7 @@ always @(posedge clk) begin
 			else if (tsr[0] && !tsr[7]) begin
 				// buffer -> shift register: buffer empty interrupt (MAME tx_clock)
 				tsr[7]   <= 1;
-				if (ier[CH_TXEMPTY]) ipr[CH_TXEMPTY] <= 1;
+				ipr_set[CH_TXEMPTY] = 1'b1;
 				tx_shift <= {1'b1, tx_buf, 1'b0};
 				tx_busy  <= 1;
 				tx_ph    <= 0;
@@ -228,7 +250,7 @@ always @(posedge clk) begin
 			vector <= hi_any ? {vr[7:4], hi_ch} : 8'h18;  // nothing pending: spurious interrupt vector, as MAME
 			if (hi_any) begin
 				if (vr[3]) isr[hi_ch] <= 1;
-				ipr[hi_ch] <= 0;
+				ipr_keep[hi_ch] = 1'b0;
 			end
 		end
 
@@ -236,7 +258,14 @@ always @(posedge clk) begin
 		if (cs && rd) begin
 			case (rs)
 				R_RSR: rsr[6] <= 0;
-				R_UDR: rsr[7] <= 0;
+				R_UDR: begin
+					rsr[7] <= 0;
+					if (rx_next_oe) begin                    // the held-back overrun
+						rsr[6]     <= 1;
+						rx_next_oe <= 0;
+						ipr_set[CH_RXERR] = 1'b1;
+					end
+				end
 				default: ;
 			endcase
 		end
@@ -247,14 +276,14 @@ always @(posedge clk) begin
 					aer <= din;
 					// pulse mode: an AER write that ends the active level interrupts as the
 					// input going inactive does (MAME mc68901 AER write)
-					if (tacr[3] && tacr[2:0] != 0 && din[4] != aer[4] && tai == aer[4] && ier[CH_GPIP4]) ipr[CH_GPIP4] <= 1;
-					if (tbcr[3] && tbcr[2:0] != 0 && din[3] != aer[3] && tbi == aer[3] && ier[CH_GPIP3]) ipr[CH_GPIP3] <= 1;
+					if (tacr[3] && tacr[2:0] != 0 && din[4] != aer[4] && tai == aer[4]) ipr_set[CH_GPIP4] = 1'b1;
+					if (tbcr[3] && tbcr[2:0] != 0 && din[3] != aer[3] && tbi == aer[3]) ipr_set[CH_GPIP3] = 1'b1;
 				end
 				R_DDR:   ddr <= din;
-				R_IERA:  begin ier[15:8] <= din; ipr[15:8] <= ipr[15:8] & din; end
-				R_IERB:  begin ier[7:0]  <= din; ipr[7:0]  <= ipr[7:0]  & din; end
-				R_IPRA:  ipr[15:8] <= ipr[15:8] & din;
-				R_IPRB:  ipr[7:0]  <= ipr[7:0]  & din;
+				R_IERA:  begin ier[15:8] <= din; ier_new[15:8] = din; ipr_keep[15:8] = ipr_keep[15:8] & din; end
+				R_IERB:  begin ier[7:0]  <= din; ier_new[7:0]  = din; ipr_keep[7:0]  = ipr_keep[7:0]  & din; end
+				R_IPRA:  ipr_keep[15:8] = ipr_keep[15:8] & din;
+				R_IPRB:  ipr_keep[7:0]  = ipr_keep[7:0]  & din;
 				R_ISRA:  isr[15:8] <= isr[15:8] & din;
 				R_ISRB:  isr[7:0]  <= isr[7:0]  & din;
 				R_IMRA:  begin imr[15:8] <= din; isr[15:8] <= isr[15:8] & din; end
@@ -267,10 +296,10 @@ always @(posedge clk) begin
 					if (din[6:4] != tcdcr[6:4]) pcount[2] <= 0;
 					if (din[2:0] != tcdcr[2:0]) pcount[3] <= 0;
 				end
-				R_TADR:  begin tdr[0] <= din; if (!t_enabled[0]) tmc[0] <= din; end
-				R_TBDR:  begin tdr[1] <= din; if (!t_enabled[1]) tmc[1] <= din; end
-				R_TCDR:  begin tdr[2] <= din; if (!t_enabled[2]) tmc[2] <= din; end
-				R_TDDR:  begin tdr[3] <= din; if (!t_enabled[3]) tmc[3] <= din; end
+				R_TADR:  begin tdr[0] <= din; if (!t_active[0]) tmc[0] <= din; end
+				R_TBDR:  begin tdr[1] <= din; if (!t_active[1]) tmc[1] <= din; end
+				R_TCDR:  begin tdr[2] <= din; if (!t_active[2]) tmc[2] <= din; end
+				R_TDDR:  begin tdr[3] <= din; if (!t_active[3]) tmc[3] <= din; end
 				R_SCR:   scr <= din;
 				R_UCR:   ucr <= din;
 				R_RSR:   rsr <= din[0] ? {rsr[7:2], din[1], 1'b1} : 8'h00;
@@ -279,6 +308,9 @@ always @(posedge clk) begin
 				default: ;
 			endcase
 		end
+
+		// events after this clock's register access and IACK, gated by the resulting IER
+		ipr <= (ipr & ipr_keep) | (ipr_set & ier_new);
 	end
 end
 

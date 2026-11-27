@@ -4,7 +4,7 @@
 The programs follow NED's 05-BUTT:076-OLDI drivers and MONITOR's
 CLEAR.KEYBOARD, with the register sequences seen in Release L ORK-LM.
 
-Run:  python3 tests/sim/test_synth.py
+Run:  pypy3 tests/sim/test_synth.py
 """
 import os
 import sys
@@ -247,7 +247,6 @@ def test_vpk_buttons_lights_display():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

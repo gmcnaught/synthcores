@@ -8,12 +8,24 @@ module able_sim_top (
     input  logic        rst,
     input  logic [1:0]  cpu_model,
     input  logic [15:0] cpu_d57,
+    input  logic [21:0] ext_words,         // installed external memory (words); beyond: 177777
     input  logic        ld_xm_we,          // Model D code pages (external memory words)
     input  logic [20:0] ld_xm_addr,
     input  logic [15:0] ld_xm_data,
     input  logic        ld_mem_we,
     input  logic [15:0] ld_mem_addr,
     input  logic [15:0] ld_mem_data,
+    // end-of-trace state for the bench (hdl/sim/lockstep.cpp 'M'): memory
+    // read port (combinational) and the CPU's Model C/D state
+    input  logic [20:0] dbg_rd_addr,
+    output logic [15:0] dbg_mem_rdata,
+    output logic [15:0] st_page,
+    output logic [15:0] st_ppc,
+    output logic [15:0] st_rpt,            // {rpt_next, rpt_left}
+    output logic [15:0] st_rpt_word,
+    output logic [15:0] st_rpt_pc,
+    output logic [15:0] st_d2,
+    output logic        st_shadow,
     input  logic        dbg_we,
     input  logic [4:0]  dbg_addr,
     input  logic [15:0] dbg_wdata,
@@ -68,7 +80,8 @@ module able_sim_top (
             if (ld_xm_we) xram[ld_xm_addr] <= ld_xm_data;
         end else begin
             cm_ack <= cm_rd && !cm_ack;
-            cm_rdata <= cm_addr[23:21] != 3'd0 ? 16'hFFFF : xram[cm_addr[20:0]];
+            // as sim/cpu.py _code_read: beyond the installed memory reads 177777
+            cm_rdata <= {2'b0, cm_addr} >= {4'b0, ext_words} ? 16'hFFFF : xram[cm_addr[20:0]];
         end
     end
 
@@ -85,6 +98,14 @@ module able_sim_top (
         .instr_done, .instr_pc, .instr_word,
         .dbg_we, .dbg_addr, .dbg_wdata, .regs_flat, .flags
     );
+    assign dbg_mem_rdata = mem[dbg_rd_addr[15:0]];
+    assign st_page     = cpu.page;
+    assign st_ppc      = cpu.ppc;
+    assign st_rpt      = {cpu.rpt_next, cpu.rpt_left};
+    assign st_rpt_word = cpu.rpt_word;
+    assign st_rpt_pc   = cpu.rpt_pc;
+    assign st_d2       = cpu.d2;
+    assign st_shadow   = cpu.shadow;
     assign irq_all   = dev_irq;
     assign mon_valid = (dev_rd || dev_wr) && dev_ack && !dev_nosyn;
     assign mon_wr    = dev_wr;

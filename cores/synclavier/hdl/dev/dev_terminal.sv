@@ -6,7 +6,8 @@
 //             rate from bits 10-8 (300 ... 76800).
 //   Interrupt (PSW bit 6) while CHAR_RDY or XMIT_IRQ.
 // Character time = 10 bits at the baud rate, in the CPU's simulated time.
-// Host input goes into a FIFO; a character moves to the receiver as soon
+// Host input goes into a FIFO (2^FIFO_BITS - 1 bytes; more are dropped:
+// Python's queue has no limit); a character moves to the receiver as soon
 // as it is empty and the previous character's time has passed (Python
 // receives eagerly: on input, after a D50 read and after every tick).
 module dev_terminal #(
@@ -44,6 +45,9 @@ module dev_terminal #(
     logic [7:0]  fifo [1 << FIFO_BITS];
     logic [FIFO_BITS-1:0] head, tail;
     wire fifo_any = head != tail;
+    // a byte that finds the FIFO full is dropped (writing it would make the
+    // FIFO look empty and lose the whole queue)
+    wire fifo_full = FIFO_BITS'(tail + 1'b1) == head;
 
     logic signed [31:0] char_ns;
     always_comb begin
@@ -89,7 +93,7 @@ module dev_terminal #(
                 default: ;
             endcase
         end else begin
-            if (host_rx_valid) begin
+            if (host_rx_valid && (!fifo_full || recv_now)) begin
                 fifo[tail] <= host_rx_data;
                 tail <= tail + 1'b1;
             end

@@ -5,7 +5,7 @@
 #   MISTER=root@<address> scripts/mister/smoke.sh RBF PACK SIMM EVENTS OUTDIR [PACK_ERASED]
 #
 # PACK, SIMM: tools/p2k_pack.py outputs (a system pack whose flash has the user data, and a SIMM
-# image); EVENTS: "seconds hexbytes" MIDI lines (cores/sc55/scripts/mister/smf2events.py).
+# image); EVENTS: "seconds hexbytes" MIDI lines (modules/synthframe/tools/midi/smf2events.py).
 # Installs RBF (synth-mister install; run 'synth-mister backup' once first), copies PACK and SIMM
 # to games/P2K/ as p2k_smoke.p2k / p2k_smoke.sim, removes the pack's save file, loads both
 # through an MGL, waits for the main screen (up to 240 s; about 19 s with direct downloads) and:
@@ -39,7 +39,7 @@ mgl() {
         $M sh "cat > /tmp/$2.mgl"
 }
 mgl p2k_smoke.p2k p2k_smoke
-scp -q ../synclavier/scripts/mister/mister_keys.py ../sc55/scripts/mister/play_tty.py "$EV" "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py ../../modules/synthframe/tools/mister/play_tty.py "$EV" "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 # wait (up to LIMIT seconds) until the LCD shows text and the band is green, then screenshot to $1;
 # $1.secs: the seconds from the MGL load to the main screen (2 s steps)

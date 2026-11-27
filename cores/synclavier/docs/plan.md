@@ -85,7 +85,7 @@ shows lag, audio underruns and MIDI activity. Details: [`hdl.md`](hdl.md),
 | M2 | Release L real-time program runs; register maps of every device it touches | passes | [`realtime-program.md`](realtime-program.md), [`devices/`](devices/) |
 | M3 | FM voice model; pitch verified (A3 = 440.00 Hz); WAV rendering | done except tuning against recordings (M3.3) | [`fm-voice.md`](fm-voice.md), `sim/voice.py` |
 | M4 | FPGA core: CPU, memory, terminal, SD floppies; boots Release L to `Ready >` on a MiSTer | passes on hardware (PR #21) | [`hdl.md`](hdl.md), `mister/` |
-| M5 | FPGA FM voices, MIDI → keyboard and panel, audio, panel display and mouse; ORK-LM plays on MiSTer | passes on hardware (PR #20–#28) | `hdl/dev/fm_voices.sv`, `hdl/core/midi_in.sv` |
+| M5 | FPGA FM voices, MIDI → keyboard and panel, audio, panel display and mouse; ORK-LM plays on MiSTer | passes on hardware (PR #20–#28) | `hdl/dev/dev_fm.sv` (was `fm_voices.sv`), `hdl/core/midi_in.sv` |
 | M6 | Model C extensions (D10, R12 stack, ADC/SBB) | merged into M7.1 | [`model-c-runtime-analysis.md`](model-c-runtime-analysis.md) |
 | M7 | Release 5.3: Model D, SCSI W0 boot, SYN-5.3 Main Menu, timbre banks, FM notes from MIDI; poly sampling (M7.7) | passes on hardware (.204, PR #30–#33) | [`release-5.3.md`](release-5.3.md), [`poly-synth.md`](poly-synth.md) |
 | M8a | Velocity/pressure keyboard (VPK, D130/D131) for Release 5.3, MIDI-mapped (Launchkey keys, pads, pots, wheels); on-screen VPK panel | board lockstep; on hardware: boot, program change, pitch bend (PR #34). Open: Launchkey pad/pot numbers are assumed until a MIDI capture | [`devices/d130-velocity-keyboard.md`](devices/d130-velocity-keyboard.md), `hdl/dev/dev_vpk.sv`, `hdl/core/midi_vpk.sv` |

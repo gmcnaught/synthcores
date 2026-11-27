@@ -7,8 +7,13 @@
 // now_tick is the master's logical time: a promise that no later request has req_order < now_tick
 // (for the CZ-101: the CPU's current instruction start; a free-running 10 MHz counter also works
 // if every request is presented before the counter passes its req_order). now_tick must not
-// decrease. Sample k is computed once now_tick >= k*250 (8 voices one after another in MAME's
-// voice_map order, about 30 clk per voice); the IRQ timer fires once now_tick >= its deadline.
+// decrease. Sample k is computed once now_tick >= t0 + k*250, t0 = now_tick during rst (0 on the
+// board; 8 voices one after another in MAME's voice_map order, about 30 clk per voice); the IRQ
+// timer fires once now_tick >= its deadline.
+// Ticks are 40 bits and wrap (after 2^40 ticks, 30.5 h at 10 MHz): every tick comparison is
+// modular (t_ge), valid while the two ticks are less than 2^39 apart (15 h). Ticks compared here
+// are at most a few samples apart, except an internal timer deadline (at most 250 * 2^30 ticks
+// ahead, 7.5 h).
 // `settled` is high when nothing is due at now_tick (sample, timer) and no request is in progress:
 // sample irq only when settled.
 //
@@ -184,9 +189,16 @@ module upd933 #(
 	logic [31:0] seed;
 	logic [39:0] next_bnd;      // tick at which the next sample is computed
 
+	// a >= b for ticks that may wrap: a - b (mod 2^40) in [0, 2^39)
+	function automatic logic t_ge(input logic [39:0] a, input logic [39:0] b);
+		logic [39:0] d;
+		d = a - b;
+		return !d[39];
+	endfunction
+
 	assign irq = irq_r;
 	assign busy = (state != S_IDLE);
-	assign settled = (state == S_IDLE) && !req_ack && !(now_tick >= next_bnd) && !(!ext_timer && tmr_armed && tmr_deadline <= now_tick);
+	assign settled = (state == S_IDLE) && !req_ack && !t_ge(now_tick, next_bnd) && !(!ext_timer && tmr_armed && t_ge(now_tick, tmr_deadline));
 
 	// ------------------------------------------------------------------ work registers
 	logic [2:0]  vi;
@@ -361,7 +373,7 @@ module upd933 #(
 	end
 
 	wire req_ok = req_valid && !req_ack;
-	wire svc_ok = req_ok && (req_tick < next_bnd);
+	wire svc_ok = req_ok && !t_ge(req_tick, next_bnd);
 
 	// ------------------------------------------------------------------ main FSM
 	always_ff @(posedge clk) begin
@@ -382,8 +394,8 @@ module upd933 #(
 		// ============================================================= idle / dispatch
 		S_IDLE: begin
 			if (svc_ok) begin
-				if (req_tick + TPS < next_bnd) late <= 1'b1;
-				if (!ext_timer && tmr_armed && tmr_deadline <= req_order) begin
+				if (!t_ge(req_tick + TPS, next_bnd)) late <= 1'b1;
+				if (!ext_timer && tmr_armed && t_ge(req_order, tmr_deadline)) begin
 					// timer_tick() first
 					tmr_armed <= 1'b0;
 					pend <= 1'b1;
@@ -500,13 +512,13 @@ module upd933 #(
 					default: req_ack <= 1'b1;
 					endcase
 				end
-			end else if (now_tick >= next_bnd || (req_ok && req_tick >= next_bnd)) begin
+			end else if (t_ge(now_tick, next_bnd) || (req_ok && t_ge(req_tick, next_bnd))) begin
 				// a pending request at or past the boundary needs this sample (request ticks never
 				// decrease, so every later request needs it too)
 				vi <= '0;
 				acc <= '0;
 				state <= E_RD;
-			end else if (!ext_timer && tmr_armed && tmr_deadline <= now_tick && !(req_ok && req_order < tmr_deadline)) begin
+			end else if (!ext_timer && tmr_armed && t_ge(now_tick, tmr_deadline) && !(req_ok && !t_ge(req_order, tmr_deadline))) begin
 				tmr_armed <= 1'b0;
 				pend <= 1'b1;
 				if ((cs_r & id_r) != irq_r) begin irq_r <= cs_r & id_r; irq_evt <= 1'b1; irq_evt_tick <= tmr_deadline; end
@@ -724,7 +736,7 @@ module upd933 #(
 			state <= B_RST;
 			rst_bus <= 1'b0;
 			sc_i <= '0;
-			next_bnd <= '0;
+			next_bnd <= now_tick;     // sample k at t0 + 250 k (t0 = 0 on the board)
 			cs_r <= 1'b1; id_r <= 1'b1; pend <= 1'b0; irq_r <= 1'b0;
 			tmr_armed <= 1'b0; tmr_deadline <= '0;
 			timer_arm <= 1'b0; timer_cancel <= 1'b0; timer_n <= '0;

@@ -1,8 +1,8 @@
-// SC-55 (mk1) core: MCU system + PCM chip. Board-independent; the MiSTer top
+// Roland core (SC-55 mk1 and mk2, SC-155 and SC-155mk2, JV-880): MCU system + PCM chip. Board-independent; the MiSTer top
 // level adds the HPS interface, wave ROM memory, MIDI, video and audio.
 module sc55_core #(
     parameter int RXBUF_BITS = 11,
-    parameter int ROM2_AW = 18,            // 19 for the mk2's 512 KB ROM2
+    parameter int ROM2_AW = 18,            // ROM2 block RAM: 18 = 256 KB; the mk2's upper 256 KB then comes over rom2x_* (sc55_board: DDR3 + rom2x_cache); 19 holds all 512 KB (the benches)
     parameter bit JV880_RAMS = 1'b0        // the JV-880's NVRAM and card RAM (sc55_mcu)
 ) (
     input  logic        clk,
@@ -56,7 +56,7 @@ module sc55_core #(
     output logic [7:0]  lcd_data,
     output logic        lcd_enable,
 
-    output logic [47:0] cycles,
+    output logic [63:0] cycles,
     output logic [15:0] dbg_pc,
     output logic [7:0]  dbg_cp,
     output logic [15:0] dbg_sr

@@ -3,10 +3,11 @@
 subsystem 8 on the MIDI card's bus) and, with SYNCLAVIER_W0 set, SYN-5.3's
 sequencer chasing MTC through it.
 
-Run:  python3 tests/sim/test_smpte.py
+Run:  pypy3 tests/sim/test_smpte.py
 """
 import os
 import sys
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -148,8 +149,7 @@ def test_card_routing():
 def test_syn53_chases_mtc():
     image = os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_syn53_chases_mtc (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     print("  " + chase(image))
 
 
@@ -212,7 +212,6 @@ def chase(image, start=(0, 0, 5, 0), seconds=2.5):
 
 
 if __name__ == "__main__":
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
-    for name, fn in tests:
-        fn()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

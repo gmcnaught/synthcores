@@ -4,10 +4,11 @@ W0 boot: SYNCLAVIER_W0_RAW = Synclavier3's "W0 Disk Image.simg" (stops at
 MONITOR's "Ready >"), or SYNCLAVIER_W0 = a tools/w0_image.py image (its
 PROFILE starts SYN-5.3).
 
-Run:  python3 tests/sim/test_scsi.py
+Run:  pypy3 tests/sim/test_scsi.py
 """
 import os
 import sys
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from sim.devices.scsi import (  # noqa: E402
@@ -128,8 +129,7 @@ def test_release_5_3_monitor_boots_from_w0():
     raw = os.environ.get("SYNCLAVIER_W0_RAW")
     image = raw or os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_release_5_3_monitor_boots_from_w0 (SYNCLAVIER_W0_RAW / SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0_RAW / SYNCLAVIER_W0 not set")
     want = b"Ready >" if raw else b"Release 5.3.0"
     from sim.boot import boot_from_w0
     cpu, lay = boot_from_w0(image)
@@ -145,7 +145,6 @@ def test_release_5_3_monitor_boots_from_w0():
 
 
 if __name__ == "__main__":
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
-    for name, fn in tests:
-        fn()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

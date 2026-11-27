@@ -57,3 +57,7 @@ target_link_libraries(rom2_stats PRIVATE sc55_common_traced)
 add_executable(rom2x_cache_tb board/rom2x_cache_tb.cpp)
 verilate(rom2x_cache_tb SOURCES "${ROLAND}/common/sdp_ram.sv" "${ROLAND}/board/rom2x_cache.sv" TOP_MODULE rom2x_cache PREFIX Vrom2x_cache
          VERILATOR_ARGS ${VFLAGS})
+
+add_executable(step_pacer_tb board/step_pacer_tb.cpp)
+verilate(step_pacer_tb SOURCES "${ROLAND}/board/step_pacer.sv" TOP_MODULE step_pacer PREFIX Vstep_pacer
+         VERILATOR_ARGS ${VFLAGS})

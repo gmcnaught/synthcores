@@ -50,6 +50,7 @@ int main(int argc, char **argv) {
 	}
 	std::deque<uint64_t> lcd_dumps;
 	memcpy(mem.data(), img.data(), 0x800000);
+	memcpy(mem.data() + 0x800000, img.data(), 16);   // snd_ctrl's loader writes words 0-7 again past the end
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::assertOn(false);  // fx68k "unique case" checks fire on X-free but undecoded states

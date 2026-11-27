@@ -41,7 +41,7 @@ the sound-chip read paths. Tags: [O] from MAME or the firmware, [I] a recorded c
   over flash and DRAM. The real MCF5206e has only a 4 KB I-cache and DRAM with wait states, so this
   is not slower than the original.
     - Flash in command mode (status, IDs) bypasses the cache.
-    - A flash program invalidates its line; an erase flushes the cache.
+    - A flash program writes through and updates its cached line; an erase flushes the cache.
 - **Two clocks from one VCO (882 MHz), rising edges aligned:**
     - `clk_sys` = 88.2 MHz for the sound engine, the sound bus and DDR3: 2000 clocks per
       44.1 kHz sample. The corpus's worst sample needs 1547 clocks with writes.

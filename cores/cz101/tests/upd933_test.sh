@@ -8,6 +8,7 @@
 #      samples, IRQ change ticks and read data must be identical;
 #   3. runs one stimulus with a slow 10 MHz time base (--real) and early requests, and three runs
 #      with ext_timer = 1 (the bench fires the IRQ timer as the board would);
+#      then one stimulus with the tick time starting just before the 40-bit wrap (--base);
 #   4. self-tests the MAME-log path (log -> upd933_log2ev.py -> upd933_replay).
 # Optional: UPD933_LOG=<CZ_SND_LOG file> UPD933_SAMPLES=<CZ_SAMPLES file> also replays a real
 # MAME log through the reference and compares with MAME's samples.
@@ -20,10 +21,11 @@ out="${UPD933_OUT:-$core/out/sim}"     # build dir of cores/cz101/sim (shared wi
 secs="${SECONDS_PER_STIM:-40}"
 py="$(command -v pypy3 || command -v python3)"
 if command -v sha256sum >/dev/null; then sha() { sha256sum "$@"; }; else sha() { shasum -a 256 "$@"; }; fi
-jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
+jobs="${CZ101_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}"
 
 gen=()
 command -v ninja >/dev/null && gen=(-G Ninja)
+command -v ccache >/dev/null && gen+=(-DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
 cmake -Wno-dev -S "$core/sim" -B "$out" "${gen[@]}" -DCMAKE_BUILD_TYPE=Release >/dev/null
 cmake --build "$out" -j "$jobs" --target upd933_tables upd933_stimgen upd933_replay upd933_bench >/dev/null
 
@@ -64,6 +66,16 @@ cat "$out"/ext_{s1,s5,r9}.txt >"$out/bench_ext.txt"
 cat "$out/bench_ext.txt"
 grep -q '^DIFF' "$out/bench_ext.txt" && fail=1
 [ "$(grep -c '^MATCH' "$out/bench_ext.txt")" = 3 ] || fail=1
+
+# 3c. 40-bit tick wrap (the board reaches it after about 30.5 h): the tick time starts 0.5 s
+# before 2^40, so the counter wraps during the run; fast, slow and external-timer paths
+base=$(( (1 << 40) - 5000000 ))
+"$out_bin/upd933_stimgen" 11 2 "$out/stim/w11.ev" | head -1
+"$out_bin/upd933_bench" --base $base "$out/stim/w11.ev" >"$out/wrap.txt" 2>&1 || true
+"$out_bin/upd933_bench" --base $base --ext "$out/stim/w11.ev" >>"$out/wrap.txt" 2>&1 || true
+"$out_bin/upd933_bench" --base $base --real 5 --lead 60 "$out/stim/w11.ev" >>"$out/wrap.txt" 2>&1 || true
+cat "$out/wrap.txt"
+[ "$(grep -c '^MATCH' "$out/wrap.txt")" = 3 ] || fail=1
 
 # 4. MAME-log path self-test
 "$out_bin/upd933_stimgen" 7 5 "$out/stim/l7.ev" --order --mamelog "$out/stim/l7.log" "$out/stim/l7.s32" >/dev/null

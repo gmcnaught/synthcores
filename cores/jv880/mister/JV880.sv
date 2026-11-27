@@ -100,7 +100,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wait(ioctl_wait),
 
-	// save file: the NVRAM (saves/JV880/<pack>.sav)
+	// save file: the NVRAM (saves/JV-880/<pack>.sav)
 	.img_mounted(img_mounted),
 	.img_readonly(img_readonly),
 	.img_size(img_size),

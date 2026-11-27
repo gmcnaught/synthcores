@@ -10,6 +10,8 @@
 //
 // Usage: board_lockstep --roms DIR --pack FILE [--steps N] [--midi-loud S | --midi-demo S] [--seed S]
 //                       [--midi-at STEP:HEX]...
+//        [--drop-hdl-from STEP] (bench self-test): discard the HDL's samples from STEP on, as a PCM
+//        that stops late in the run would; the end-of-run count check must then fail.
 #include "Vsc55_board.h"
 #include "Vsc55_board___024root.h"
 #include "verilated.h"
@@ -92,6 +94,7 @@ int main(int argc, char** argv)
 {
     std::string rom_dir, pack_path, romset = "mk1-v1.21";
     uint64_t    steps = 6'000'000, seed = 1;
+    uint64_t    drop_hdl_from = ~0ull, cur_step = 0;
     int64_t     midi_seed = -1, loud_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     bool        zero_init = false, serial = false;
@@ -119,6 +122,7 @@ int main(int argc, char** argv)
         }
         else if (a == "--zero-init") zero_init = true;
         else if (a == "--serial") serial = true;
+        else if (a == "--drop-hdl-from" && i + 1 < argc) drop_hdl_from = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--lcd-ppm" && i + 1 < argc) lcd_ppm = argv[++i];
         else if (a == "--free-run" && i + 1 < argc) free_run = std::strtoull(argv[++i], nullptr, 0);
         else if (a == "--stall-at" && i + 2 < argc) { stall_at = std::strtoull(argv[++i], nullptr, 0); stall_len = std::strtoull(argv[++i], nullptr, 0); }
@@ -244,7 +248,7 @@ int main(int argc, char** argv)
         t->clk = 1; t->clk_vid = 1; t->eval();
         t->clk_vid = 0;
         ++clocks;
-        if (t->sample_valid) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
+        if (t->sample_valid && cur_step < drop_hdl_from) hdl.push_back({(int32_t)t->sample_l, (int32_t)t->sample_r});
         txdec.clock(t->uart_txd);
     };
 
@@ -452,6 +456,7 @@ int main(int argc, char** argv)
     };
     for (uint64_t s = 0; s < steps; ++s)
     {
+        cur_step = s;
         if (!midi.empty() && s >= 4'000'000 && (s % 600) == 0 && pos < midi.size())
         {
             uint8_t b = midi[pos++];
@@ -523,6 +528,17 @@ int main(int argc, char** argv)
         // PCM state, whenever the HDL PCM has caught up with the model
         if (!pcm_check(s, serial)) return 1;
     }
+    // end of run: let the HDL's PCM finish the frames already due, then every model sample must have
+    // been compared with an HDL one (no trailing samples left on either side)
+    for (int g = 0; g < 2'000'000 && h_total + hdl.size() < m_total + g_model.size(); ++g) tick();
+    if (!drain()) return 1;
+    if (!mq.empty() || !hq.empty() || m_total != h_total || compared != m_total)
+    {
+        fprintf(stderr, "MISMATCH at the end: HDL produced %" PRIu64 " samples, model %" PRIu64 " (%" PRIu64 " compared)\n", h_total, m_total, compared);
+        return 1;
+    }
+    if (m_total == 0) { fprintf(stderr, "no samples compared\n"); return 1; }
+
     // MIDI out: let the line finish, then the bytes must be the model's
     for (uint64_t g = 0; g < (tx_ref.size() - std::min(tx_ref.size(), txdec.bytes.size()) + 2) * 20 * 1600 &&
                          (txdec.bytes.size() < tx_ref.size() || !txdec.idle()); ++g)
@@ -572,6 +588,12 @@ int main(int argc, char** argv)
         std::ofstream f(lcd_ppm, std::ios::binary);
         f << "P6\n741 268\n255\n";
         f.write((const char*)frame.data(), (std::streamsize)frame.size());
+    }
+    // the core held still after the last step: no further samples
+    if (!drain() || !hq.empty() || m_total != h_total)
+    {
+        fprintf(stderr, "MISMATCH: HDL produced %" PRIu64 " samples after the last step, model %" PRIu64 "\n", h_total, m_total);
+        return 1;
     }
     printf("LCD frame identical (%" PRIu64 " pixels, %" PRIu64 " black); text: ", lcd_pixels, lcd_lit);
     for (int i = 0; i < 80; ++i) { uint8_t c = emu.GetLCD().LCD_Data[i]; putchar(c >= 32 && c < 127 ? c : '.'); }

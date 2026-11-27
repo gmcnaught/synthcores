@@ -31,14 +31,38 @@ def need_file(path: pathlib.Path, what: str) -> pathlib.Path:
     return path
 
 
+# A lockstep run that compares only silence (or near-silence) has not exercised the voices:
+# like a comparator on empty input, it must fail.
+MIN_PEAK_DBFS = -40.0
+
+
+def require_sound(line: str, min_peak: float = MIN_PEAK_DBFS) -> None:
+    """`line` is a bench's OK line with "peak X dBFS": fail unless X > min_peak."""
+    import re
+    m = re.search(r"peak (-?[0-9.]+) dBFS", line)
+    assert m, f"no peak in: {line[:200]}"
+    assert float(m.group(1)) > min_peak, f"silent run: peak {m.group(1)} dBFS, need > {min_peak}: {line[:200]}"
+
+
 def run(namespace: dict) -> None:
+    """Run every test_* in `namespace`. Prints a summary; exits 1 if any test failed, 77 if every
+    test skipped (missing ROMs or benches: not a pass), else 0."""
+    import traceback
     tests = [(k, v) for k, v in sorted(namespace.items()) if k.startswith("test_") and callable(v)]
-    passed = skipped = 0
+    passed = skipped = failed = 0
     for name, fn in tests:
         try:
             fn()
             passed += 1
         except Skip as e:
             skipped += 1
-            print(f"  skip {name}: {e}")
-    print(f"{passed} passed, {skipped} skipped")
+            print(f"  SKIP: {name}: {e}")
+        except Exception:
+            failed += 1
+            print(f"  FAIL: {name}")
+            traceback.print_exc()
+    print(f"{passed} passed, {skipped} skipped, {failed} failed")
+    if failed:
+        sys.exit(1)
+    if skipped and not passed:
+        sys.exit(77)

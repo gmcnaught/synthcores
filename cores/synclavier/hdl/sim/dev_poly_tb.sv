@@ -116,11 +116,21 @@ module dev_poly_tb;
         end
     end
 
+    // a device that never catches up with the time (it hung) fails the run
+    task automatic hung(input int n);
+        if (n == 2_000_000) begin
+            $display("dev_poly FAILED: no answer in 2000000 clocks at line %0d (now %0d next_rate %0d next_env %0d)",
+                     lines, dut.now, dut.next_rate, dut.next_env);
+            $finish;
+        end
+    endtask
+
     task automatic access(input logic [1:0] r, input logic is_rd, input logic [15:0] v,
                           output logic [15:0] got);
+        int n = 0;
         @(negedge clk);
         sel = 1; reg_sel = r; rd = is_rd; wr = !is_rd; wdata = v;
-        do @(posedge clk); while (!ack);
+        do begin @(posedge clk); hung(n++); end while (!ack);
         got = rdata;
         @(negedge clk);
         sel = 0; rd = 0; wr = 0;
@@ -129,7 +139,9 @@ module dev_poly_tb;
     // routing and output pair changes apply from the current time on: wait
     // for the passes up to now (the model has run them)
     task automatic settle();
-        do @(posedge clk); while (dut.es != 4'd1 || dut.rate_due || dut.env_due || !dut.fetch_idle);
+        int n = 0;
+        do begin @(posedge clk); hung(n++); end
+        while (dut.es != 4'd1 || dut.rate_due || dut.env_due || !dut.fetch_idle);
     endtask
 
     task automatic pass_time(input longint n);
