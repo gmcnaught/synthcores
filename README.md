@@ -45,7 +45,7 @@ skips), plus each touched core's test suite. The same workflow runs the lint gat
 uptime-counter audit (`bin/counter-audit`, `cfg/counters.yaml`) in synthframe's `ci.sh`;
 ShellCheck and ruff (job `hygiene`, `scripts/precommit.sh --fast`, which can also be installed
 as the git pre-commit hook); and, report only, Verilator coverage (`scripts/coverage.sh`,
-artifact `coverage`). `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
+artifact `coverage`) and verible (`scripts/verible-lint.sh`). `build-rbf.yml` builds RBFs with Quartus Lite 17.0: for
 one core on demand (the "Build RBF" workflow with `cores` set, which is how releases are built), for
 every core on a `v*` tag.
 

@@ -46,6 +46,25 @@ jobs:
       - name: scripts/precommit.sh --fast
         run: scripts/precommit.sh --fast
 
+  # Second HDL front end, advisory: verible-verilog-lint with a small rule set
+  # (scripts/verible-lint.sh). continue-on-error: findings never fail the run.
+  verible:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install verible v0.0-3946-g851d3ff4
+        run: |
+          v=v0.0-3946-g851d3ff4
+          curl -sSL "https://github.com/chipsalliance/verible/releases/download/$v/verible-$v-linux-static-x86_64.tar.gz" | tar -xz -C /tmp
+          echo "/tmp/verible-$v/bin" >> "$GITHUB_PATH"
+      - name: verible-verilog-lint (advisory)
+        run: |
+          rc=0; scripts/verible-lint.sh > verible.txt 2>&1 || rc=$?
+          cat verible.txt
+          { echo "### verible (advisory)"; tail -1 verible.txt; } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+
   changes:
     runs-on: ubuntu-24.04
     outputs:
