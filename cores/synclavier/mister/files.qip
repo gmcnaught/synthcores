@@ -19,6 +19,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/pcm_out.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/pcm_limit.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/pcm_reverb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/sd_floppy.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/sd_word_arb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/dev_scsi.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/dev_poly.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/dev/dev_midi.sv
@@ -32,7 +33,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/term_display.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/crt_adjust.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/tek_plane.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/ps2_ascii.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/term_rx_mux.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_in.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_vpk.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/core/midi_card_feed.sv

@@ -27,7 +27,7 @@ python3 tools/screen_text.py "$OUT/menu.png" > "$OUT/screen.txt"
 sleep "${PWAIT:-30}"
 $M shot synclavier "$OUT/menu2.png" >/dev/null
 python3 tools/screen_text.py "$OUT/menu2.png" > "$OUT/screen2.txt"
-pcount() { grep -oE ' P[0-9A-F]{3}' "$1" | head -1 | tr -d ' P'; }
+pcount() { { grep -oE ' P[0-9A-F]{3}' "$1" || true; } | head -1 | tr -d ' P'; }
 p1=$(pcount "$OUT/screen.txt"); p2=$(pcount "$OUT/screen2.txt")
 # The status line under the terminal (Lag, Underrun, Overrun, MIDI counters) changes from run
 # to run; the hash covers the terminal text above the "----" rule only.
@@ -35,6 +35,10 @@ p1=$(pcount "$OUT/screen.txt"); p2=$(pcount "$OUT/screen2.txt")
     echo "menu_sha: $(sed '/^-----/,$d' "$OUT/screen.txt" | shasum -a 256 | cut -d' ' -f1)"
     if grep -qi "${EXPECT:-MAIN MENU}" "$OUT/screen.txt"; then echo "menu: yes"; else echo "menu: no"; fi
     echo "underrun: $(grep -oE 'Underrun [0-9]+' "$OUT/screen2.txt" | head -1 | cut -d' ' -f2)"
-    echo "p_late: $(( (0x${p2:-0} - 0x${p1:-0}) & 0xFFF )) in ${PWAIT:-30} s (P $p1 -> $p2)"
+    if [ -n "$p1" ] && [ -n "$p2" ]; then
+        echo "p_late: $(( (0x$p2 - 0x$p1) & 0xFFF )) in ${PWAIT:-30} s (P $p1 -> $p2)"
+    else
+        echo "p_late: unread (no P counter in the status line: '$p1' -> '$p2')"
+    fi
 } | tee "$OUT/result.txt"
 grep -q "menu: yes" "$OUT/result.txt" && grep -q "underrun: 0000" "$OUT/result.txt" && grep -q "p_late: 0 " "$OUT/result.txt"
