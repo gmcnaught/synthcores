@@ -37,9 +37,11 @@ MAME's set `mu50` [OBS, `ROM_START( mu50 )`]:
 | `xq057c0.ic18`, `xq058c0.ic19` | 2 MB each | SWP00 wave ROM, 4 MB |
 | MULCD `hd44780u_b04.bin` | 4 KB | LCD character ROM (part of MAME's `mulcd` device) |
 
-- **The user's set:** none on this machine (searched 2026-11-27) [OBS]. Needed before U4.
-  U0's test-ROM mode, U1 and U3 run on generated programs and register streams and do not wait
-  for it. Tests will find the set through `MU50_ROM_DIR`.
+- **The user's set** (2026-11-27): `synth-projects/nuked-sc55/firmware/mu50-mame/` (gitignored),
+  a MAME rompath with `mu50/` and `mulcd/`. All seven files match MAME's SHA-1s: v1.05, v1.04
+  (from the separate `YAMAHA MU-50 (ver.1.04).BIN`; the copy in the uploaded `mu50.zip` was
+  truncated), v1.02, both wave ROMs, and the mulcd character ROM and artwork. Tests find the set
+  through `MU50_ROM_DIR`.
 - The wave ROM is identical to the DB50XG's and the MU10's [OBS, ROM hashes], so the same core
   can later run their program ROMs (see "Variants").
 
@@ -123,6 +125,33 @@ CZ-101's tables were generated from MAME's.
 
 U1 and U3 run in parallel: they share nothing but the bench.
 
+## Status (2026-11-27)
+
+| # | Result |
+|---|---|
+| U0 | Done: `../mame-mu50` (upstream `db140b2d`) with `mame/patches/0001-mu50-logging.patch`; `tools/mame-mu50.sh`; test-ROM mode (`tools/mu50_testrom.py`); `tests/u0_check.sh` passes. Corpus: `tests/u0_corpus.sh` renders `tests/midi/basic.txt` (18 s) identically twice and matches `tests/midi/expected.txt`. More corpus cases come with U4 |
+
+U0 findings [OBS]:
+- **Program ROM file order:** MAME's `ROM_LOAD16_WORD_SWAP` wants each byte pair of the CPU
+  image swapped in the file. A reset vector of 00000100 written unswapped was read as 00000001.
+- **Reset:** the CPU reads the vector as two words (000000, 000002) and runs from its low 24
+  bits; the first instruction starts at state 6.
+- **State counts** (t0): MOV.W #imm,Rd 4; MOV.L #imm,ERd 6; MOV.W Rs,@ERd 4 (the write lands at
+  the end, state 20 for an instruction starting at 16); BRA 4. Each is 2 states per bus access.
+- **SWP00 write timing:** a CPU write at state s (counted after the access) is applied after
+  floor(s × 44,100 / 10⁷) + 1 samples: state 18 after 1 sample, state 393,236 (39.32 ms) after
+  1,735. One second makes 44,101 samples. The exact rule at sample boundaries (MAME's
+  attosecond periods) is pinned in U3.
+- **Determinism:** two runs give identical traces, write logs and samples.
+- **What the firmware uses** (v1.05, 18 s: boot plus `basic.txt`): interrupts IRQ0 (vector 12,
+  33 times; MAME holds the pin low from reset), ITU1 IMIA (28, 15,691: the main tick), ITU4
+  IMIA/IMIB/OVI (40-42: 420, 696, 201), SCI1 RXI (57, 92 at level 1: MIDI in). No DMA and no
+  A/D interrupt; the A/D is started by the CPU and polled. SCI0 and SCI1 are set up; the
+  watchdog and refresh registers are written only at init. Every init register is written twice
+  [UNK why]. So U2 needs the interrupt controller, the five 16-bit timer channels, both SCIs,
+  the A/D and the ports; DMA can wait.
+- **Sound:** silent until MIDI arrives; the basic case makes 39,507 SWP00 writes in 18 s.
+
 ## Variants (after U5)
 
 | Variant | Difference from the MU50 [OBS, MAME] | Core change |
@@ -138,11 +167,10 @@ The SWP00 and the wave ROM are the same in all four.
 - **Licence (default, following the CZ-101):** MIT, as the rest of the repository. The core is
   written from MAME's BSD-3-Clause sources, so `NOTICE` keeps MAME's notice and names the
   authors; `ref/` and `mame/patches/` stay BSD-3-Clause.
-- **ROMs:** the user's MU50 set [UNK]. dbwbp.com is the usual source (`rom-dump-source`).
 - **Effects delay-line width:** MAME stores them as `s32`. The real width decides the external
   memory layout; U3 reads the MEG code for the bits it keeps [UNK].
-- **DMA:** whether the firmware uses the H8/3003's DMA controller [UNK]. U0's trace answers
-  this; if it does not, U2 leaves DMA for later.
+- **DMA:** not used by v1.05 in boot or MIDI playback (U0 trace) [OBS]. U2 leaves it for
+  later; the bench reports any DMA register write.
 - **Program ROM speed:** MAME fetches every instruction in 2 states with no wait. The core needs
   the program ROM in block RAM or behind a cache that never stalls the CPU's virtual time. The CPU
   runs ahead of real time and waits for it, as the CZ-101 does, so a cache miss costs FPGA clocks

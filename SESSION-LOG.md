@@ -9,7 +9,12 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
 - **Findings:** the SWP00 model is integer (bit-exact gate possible); MAME's H8/300H charges 2
   states per bus access with no wait states and updates peripherals between accesses; no usable
   H8/300H HDL exists; the user's MU50 ROMs are not on this machine.
-- **Next:** U0, the patched MAME (`../mame-mu50`) and the test-ROM harness.
+- **U0 without ROMs (branch `mu50-u0`):** patched MAME `mu50` builds and runs generated
+  programs; `cores/mu50/tests/u0_check.sh` passes (trace, state counts, SWP00 write log with
+  sample counts, 44,101 samples a second, two runs identical). Program ROM files need each byte
+  pair swapped (checked with a reset vector).
+- **Next:** U1 (H8/300H instruction set against MAME on generated programs) and U3 (SWP00 on
+  synthetic write streams). U0 corpus case `basic` renders identically twice with the user's ROMs (installed 2026-11-27, all MAME hashes match).
 
 ## P2K release v20261125 (2026-11-25)
 

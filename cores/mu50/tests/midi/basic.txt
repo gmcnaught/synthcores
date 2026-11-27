@@ -1,0 +1,32 @@
+# MU50 basic MIDI test: XG System On, piano on channel 1, drums on channel 10, a program
+# change, pan, reverb and chorus sends, pitch bend, sustain. Times in seconds from the start
+# of playback (MAME's midiin starts 10 s after power-on).
+0.00  syx 43 10 4c 00 00 7e 00
+0.50  on  1 60 100
+1.00  off 1 60
+1.10  on  1 64 80
+1.10  on  1 67 80
+1.10  on  1 72 80
+2.10  off 1 64
+2.10  off 1 67
+2.10  off 1 72
+2.20  on  10 36 120
+2.45  on  10 38 110
+2.70  on  10 42 90
+2.95  on  10 46 90
+3.20  off 10 36
+3.20  off 10 38
+3.20  off 10 42
+3.20  off 10 46
+3.30  pc  2 48
+3.30  cc  2 10 20
+3.30  cc  2 91 100
+3.30  cc  2 93 80
+3.40  on  2 55 100
+3.40  on  2 62 100
+3.90  pb  2 4096
+4.40  pb  2 0
+4.40  cc  2 64 127
+4.50  off 2 55
+4.50  off 2 62
+5.50  cc  2 64 0

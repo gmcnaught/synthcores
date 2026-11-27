@@ -1,0 +1,217 @@
+diff --git a/src/devices/cpu/h8/h8.cpp b/src/devices/cpu/h8/h8.cpp
+index 7364933d..976c7df3 100644
+--- a/src/devices/cpu/h8/h8.cpp
++++ b/src/devices/cpu/h8/h8.cpp
+@@ -26,6 +26,8 @@
+ #include "h8_port.h"
+ #include "h8d.h"
+ 
++#include <cstdlib>
++
+ h8_device::h8_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock, address_map_constructor map_delegate) :
+ 	h8_cpu_base(mconfig, type, tag, owner, clock),
+ 	device_nvram_interface(mconfig, *this),
+@@ -90,6 +92,12 @@ void h8_device::device_config_complete()
+ 
+ void h8_device::device_start()
+ {
++	if(const char *t = getenv("MU_TRACE")) {
++		m_mutrace = fopen(t, "w");
++		if(const char *l = getenv("MU_TRACE_LIMIT"))
++			m_mulimit = strtoull(l, nullptr, 0);
++		m_mubus = getenv("MU_BUS") != nullptr;
++	}
+ 	space(AS_PROGRAM).cache(m_cache);
+ 	space(AS_PROGRAM).specific(m_program);
+ 
+@@ -363,6 +371,8 @@ void h8_device::execute_run()
+ 				if(debugger_enabled())
+ 					debugger_instruction_hook(m_NPC);
+ 			}
++			if(m_mutrace)
++				mu_trace_insn();
+ 			do_exec_full();
+ 		}
+ 		if(m_icount > 0)
+@@ -490,13 +500,45 @@ void h8_device::state_string_export(const device_state_entry &entry, std::string
+ // FIXME: one-state bus cycles are only provided for on-chip ROM & RAM in H8S/2000 and H8S/2600.
+ // All other accesses take *at least* two states each, and additional wait states are often programmed for external memory!
+ 
++// mu50 logging patch: one line at the start of each instruction, interrupt or DMA step:
++//   <states> <PC> <state> ER0..ER7 CCR      (state: opcode word, or 1xxxx for IRQ/DMA/reset)
++// with MU_BUS, one line per bus access after it completes, the states counted after it:
++//   <F|R|W><1|2> <addr> <data> <states>
++// and always (with MU_TRACE) "W<1|2> addr data states" for writes.
++void h8_device::mu_trace_insn()
++{
++	if(m_inst_state < 0x10000)
++		fprintf(m_mutrace, "%llu %06X %04X", (unsigned long long)total_cycles(), m_NPC & 0xffffff, m_inst_state);
++	else
++		fprintf(m_mutrace, "%llu %06X %05X", (unsigned long long)total_cycles(), m_NPC & 0xffffff, m_inst_state);
++	for(int r = 0; r != 8; r++)
++		fprintf(m_mutrace, " %04X%04X", m_R[r + 8], m_R[r]);
++	fprintf(m_mutrace, " %02X", m_CCR);
++	if(m_inst_state == STATE_IRQ)
++		fprintf(m_mutrace, " I %d %d", m_taken_irq_vector, m_taken_irq_level);
++	fprintf(m_mutrace, "\n");
++	if(m_mulimit && ++m_mun >= m_mulimit) {
++		fflush(m_mutrace);
++		machine().schedule_exit();
++		m_mulimit = 0;
++	}
++}
++
++void h8_device::mu_bus(char kind, int size, u32 adr, u32 data)
++{
++	if(m_mubus || kind == 'W')
++		fprintf(m_mutrace, "%c%d %06X %0*X %llu\n", kind, size, adr & 0xffffff, size * 2, data, (unsigned long long)total_cycles());
++}
++
+ u16 h8_device::read16i(u32 adr)
+ {
+ 	if(m_has_exr)
+ 		m_icount--;
+ 	else
+ 		m_icount -= 2;
+-	return m_cache.read_word(adr & ~1);
++	u16 v = m_cache.read_word(adr & ~1);
++	if(m_mutrace) mu_bus('F', 2, adr & ~1, v);
++	return v;
+ }
+ 
+ u8 h8_device::read8(u32 adr)
+@@ -505,7 +547,9 @@ u8 h8_device::read8(u32 adr)
+ 		m_icount--;
+ 	else
+ 		m_icount -= 2;
+-	return m_program.read_byte(adr);
++	u8 v = m_program.read_byte(adr);
++	if(m_mutrace) mu_bus('R', 1, adr, v);
++	return v;
+ }
+ 
+ void h8_device::write8(u32 adr, u8 data)
+@@ -515,6 +559,7 @@ void h8_device::write8(u32 adr, u8 data)
+ 	else
+ 		m_icount -= 2;
+ 	m_program.write_byte(adr, data);
++	if(m_mutrace) mu_bus('W', 1, adr, data);
+ }
+ 
+ u16 h8_device::read16(u32 adr)
+@@ -523,7 +568,9 @@ u16 h8_device::read16(u32 adr)
+ 		m_icount--;
+ 	else
+ 		m_icount -= 2;
+-	return m_program.read_word(adr & ~1);
++	u16 v = m_program.read_word(adr & ~1);
++	if(m_mutrace) mu_bus('R', 2, adr & ~1, v);
++	return v;
+ }
+ 
+ void h8_device::write16(u32 adr, u16 data)
+@@ -533,6 +580,7 @@ void h8_device::write16(u32 adr, u16 data)
+ 	else
+ 		m_icount -= 2;
+ 	m_program.write_word(adr & ~1, data);
++	if(m_mutrace) mu_bus('W', 2, adr & ~1, data);
+ }
+ 
+ bool h8_device::exr_in_stack() const
+diff --git a/src/devices/cpu/h8/h8.h b/src/devices/cpu/h8/h8.h
+index 84e4228b..1a5f4a9c 100644
+--- a/src/devices/cpu/h8/h8.h
++++ b/src/devices/cpu/h8/h8.h
+@@ -228,6 +228,13 @@ protected:
+ 	u16 read16(u32 adr);
+ 	void write16(u32 adr, u16 data);
+ 	void internal(int cycles);
++
++	// mu50 logging patch (cores/mu50/mame/patches): MU_TRACE, MU_TRACE_LIMIT, MU_BUS
++	FILE *m_mutrace = nullptr;
++	bool m_mubus = false;
++	u64 m_mun = 0, m_mulimit = 0;
++	void mu_trace_insn();
++	void mu_bus(char kind, int size, u32 adr, u32 data);
+ 	void prefetch_switch(u32 pc, u16 ir) { m_NPC = pc & 0xffffff; m_PC = pc+2; m_PIR = ir; }
+ 	void prefetch_done();
+ 	void prefetch_done_noirq();
+diff --git a/src/devices/sound/swp00.cpp b/src/devices/sound/swp00.cpp
+index b7de14cf..4979463e 100644
+--- a/src/devices/sound/swp00.cpp
++++ b/src/devices/sound/swp00.cpp
+@@ -6,6 +6,7 @@
+ #include "emu.h"
+ #include "swp00.h"
+ 
++#include <cstdlib>
+ #include <sstream>
+ 
+ /*
+@@ -1137,6 +1138,8 @@ s32 swp00_device::lpffpapply(s32 value, s32 sample)
+ void swp00_device::device_start()
+ {
+ 	m_stream = stream_alloc(0, 2, 44100, m_require_sync ? STREAM_SYNCHRONOUS : STREAM_DEFAULT_FLAGS);
++	if(const char *f = getenv("MU_SAMPLES"))
++		m_musamples = fopen(f, "wb");
+ 
+ 	save_item(STRUCT_MEMBER(m_streaming, m_phase));
+ 	save_item(STRUCT_MEMBER(m_streaming, m_start));
+@@ -2384,6 +2387,11 @@ void swp00_device::sound_stream_update(sound_stream &stream)
+ 		// 18-bits ADCs
+ 		stream.put_int_clamp(0, i, dry_l >> 6, 0x20000);
+ 		stream.put_int_clamp(1, i, dry_r >> 6, 0x20000);
++		if(m_musamples) {
++			// mu50 logging patch: the clamped 18-bit values, int32 L then R
++			s32 o[2] = { std::clamp<s32>(dry_l >> 6, -0x20000, 0x1ffff), std::clamp<s32>(dry_r >> 6, -0x20000, 0x1ffff) };
++			fwrite(o, sizeof(o), 1, m_musamples);
++		}
+ 
+ 		m_buffer_offset --;
+ 		m_sample_counter ++;
+diff --git a/src/devices/sound/swp00.h b/src/devices/sound/swp00.h
+index ceb983ac..9b5ec693 100644
+--- a/src/devices/sound/swp00.h
++++ b/src/devices/sound/swp00.h
+@@ -19,6 +19,10 @@ public:
+ 	void map(address_map &map) ATTR_COLD;
+ 	void require_sync();
+ 
++	// mu50 logging patch: bring the stream up to now and return the samples made so far
++	u32 mu_sync_sample_counter() { m_stream->update(); return m_sample_counter; }
++	FILE *m_musamples = nullptr;
++
+ protected:
+ 	virtual void device_start() override ATTR_COLD;
+ 	virtual void device_reset() override ATTR_COLD;
+diff --git a/src/mame/yamaha/ymmu50.cpp b/src/mame/yamaha/ymmu50.cpp
+index 2646d49f..8e2d4a72 100644
+--- a/src/mame/yamaha/ymmu50.cpp
++++ b/src/mame/yamaha/ymmu50.cpp
+@@ -28,6 +28,8 @@
+ 
+ #include "speaker.h"
+ 
++#include <cstdlib>
++
+ #include "mu50.lh"
+ 
+ 
+@@ -123,6 +125,17 @@ private:
+ void mu50_state::machine_start()
+ {
+ 	cur_p6 = cur_p9 = cur_pa = cur_pb = cur_pc = 0xff;
++
++	// mu50 logging patch: MU_SND_LOG=file, one line per CPU write to the SWP00, before it lands:
++	//   <CPU states> <SWP00 samples made so far> <byte address 000-7FF> <data> <mem_mask>
++	if(const char *f = getenv("MU_SND_LOG")) {
++		FILE *log = fopen(f, "w");
++		m_mu50cpu->space(AS_PROGRAM).install_write_tap(0x400000, 0x4007ff, "mu_snd_log",
++			[this, log](offs_t offset, u16 &data, u16 mem_mask) {
++				u32 n = m_swp00->mu_sync_sample_counter();
++				fprintf(log, "%llu %u %03X %04X %04X\n", (unsigned long long)m_mu50cpu->total_cycles(), n, offset & 0x7ff, data, mem_mask);
++			});
++	}
+ }
+ 
+ void mu50_state::machine_reset()
