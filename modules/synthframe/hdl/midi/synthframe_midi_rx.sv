@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// synthframe: MIDI bytes from MiSTer's UART (MidiLink). Used by the SC-55 and the Synclavier.
+// synthframe: MIDI bytes from MiSTer's UART (MidiLink).
 //
 // Two receivers, 31250 and ALT_BAUD (9600): on some MiSTer kernels ttyS1
 // falls back to 9600 after MidiLink sets 31250, so the line can run at

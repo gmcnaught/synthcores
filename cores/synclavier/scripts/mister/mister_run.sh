@@ -50,7 +50,7 @@ scp -q "$RBF" "$DEV:/media/fat/_Devices/Synclavier_$DATE.rbf"
 scp -q "$OUT/$F0.IMG" "$OUT/$F1.IMG" "$DEV:/media/fat/games/Synclavier/"
 if [ "$STATE" = 1 ]; then scp -q "$OUT/ORK-LM.SST" "$DEV:/media/fat/games/Synclavier/"; fi
 scp -q "$OUT/Synclavier-test.mgl" "$DEV:/media/fat/"
-scp -q scripts/mister/mister_keys.py "$DEV:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$DEV:/tmp/"
 # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
 ssh "$DEV" "timeout 10 sh -c 'echo load_core /media/fat/Synclavier-test.mgl > /dev/MiSTer_cmd'; sleep ${WAIT:-12}"
 if [ $# -gt 0 ]; then ssh "$DEV" "python3 /tmp/mister_keys.py $(printf '%q ' "$@")"; fi

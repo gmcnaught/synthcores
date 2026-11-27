@@ -7,11 +7,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 L=${1:-12}; M=${2:-5}; TAPS=${3:-80}; HEX=${4:-hdl/audio/synthframe_resample_40k_96k.hex}
-W=${RESAMPLE_WORK:-$(mktemp -d)}; mkdir -p "$W/obj"
-verilator --cc --exe --build -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
+W=${RESAMPLE_WORK:-out/tests/resample-$L-$M}; mkdir -p "$W/obj"   # kept: rebuilds are incremental
+verilator --cc --exe --build --build-jobs "${VERILATOR_JOBS:-1}" -O2 -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC --Mdir "$W/obj" \
     hdl/audio/synthframe_resample.sv tests/resample/tb.cpp --top-module synthframe_resample \
     -GL=$L -GM=$M -GTAPS=$TAPS "-GCOEF_HEX=\"$PWD/$HEX\"" >/dev/null
-python3 - "$W/in.txt" <<'PY'
+"$(command -v pypy3 || command -v python3)" - "$W/in.txt" <<'PY'
 import math, random, sys
 random.seed(1)
 v = [(32767, -32768)] + [(0, 0)] * 200
@@ -31,6 +31,11 @@ h = [(int(x, 16) ^ 0x20000) - 0x20000 for x in open(hexf).read().split()]
 xs = [tuple(map(int, l.split())) for l in open(fin)]
 want = list(zip(model(h, L, M, T, [x[0] for x in xs]), model(h, L, M, T, [x[1] for x in xs])))
 got = [tuple(map(int, l.split())) for l in open(fout)]
+# at least the outputs that L/M of the inputs make, less the filter's start-up
+need = len(xs) * L // M - 2 * T
+if len(want) < need or not got:
+    print(f"gap {gap}: FAIL: {len(got)} outputs from the HDL, {len(want)} from the model, need {need}")
+    sys.exit(1)
 bad = next((i for i in range(max(len(want), len(got))) if i >= len(want) or i >= len(got) or want[i] != got[i]), None)
 if bad is not None:
     print(f"gap {gap}: FAIL at output {bad} of {len(want)}: model {want[bad] if bad < len(want) else None} HDL {got[bad] if bad < len(got) else None}")
