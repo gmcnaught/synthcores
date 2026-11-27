@@ -32,9 +32,11 @@ def mgls():
 def test_core_name():
     name, _ = conf_str()
     assert name == "Synclavier", name
+    # mister/build.sh runs the shared synthframe build.sh with the project name, which names
+    # the RBF <project>_YYYYMMDD.rbf (modules/synthframe/tests/build/run.sh checks that)
     build = open(os.path.join(ROOT, "mister", "build.sh")).read()
-    assert '"$OUTDIR/%s_20$d.rbf"' % name in build, \
-        "build.sh must name the RBF <core>_YYYYMMDD.rbf"
+    assert '/modules/synthframe/target/mister/build.sh" "$here" %s ' % name in build, \
+        "build.sh must build project %s, so the RBF is <core>_YYYYMMDD.rbf" % name
 
 
 def test_mgls():

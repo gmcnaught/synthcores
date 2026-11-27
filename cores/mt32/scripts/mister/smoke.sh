@@ -32,13 +32,13 @@ $M sh "mkdir -p /media/fat/games/MT-32"
 scp -q "$PACK" "$MISTER:/media/fat/games/MT-32/mt32_smoke.rom"
 printf '<mistergamedescription>\n  <rbf>_Devices/MT32</rbf>\n  <file delay="1" type="f" index="1" path="mt32_smoke.rom"/>\n</mistergamedescription>\n' |
     $M sh "cat > /tmp/mt32_smoke.mgl"
-scp -q ../synclavier/scripts/mister/mister_keys.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
 $M load /tmp/mt32_smoke.mgl; sleep "${BOOT:-10}"
 $M shot mt32 "$OUT/boot.png" >/dev/null
 RQ1="f04110161110000000001759f7 f0411016110300000000106df7"
-scp -q scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
 # The core load starts `/sbin/uartmode 3`, which respawns MidiLink every second after
 # `synth-mister midi-stop` kills it; MidiLink holds ttyS1 and would read the replies. Stop the
 # loops too ([u]: the pattern must not match this shell's own command line).
@@ -46,9 +46,9 @@ stop_midilink() {
     $M sh 'for p in /proc/[0-9]*; do grep -q "sbin/[u]artmode" $p/cmdline 2>/dev/null && kill ${p#/proc/}; done; killall -q midilink; sleep 2; true'
 }
 stop_midilink
-$M sh "python3 /tmp/tty_midi_xfer.py 31250 2 $RQ1" > "$OUT/midi_out_31250.txt"
+$M sh "python3 /tmp/tty_midi_xfer.py --baud 31250 2 $RQ1" > "$OUT/midi_out_31250.txt"
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
-scp -q ../sc55/scripts/mister/play_tty.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/play_tty.py "$MISTER:/tmp/"
 scp -q "$OUT/midi.txt" "$MISTER:/tmp/mt32_midi.txt"
 $M sh "python3 /tmp/play_tty.py /tmp/mt32_midi.txt $SECS"
 sleep 1
@@ -61,7 +61,7 @@ $M shot mt32 "$OUT/key.png" >/dev/null
 $M sh "while pgrep -f mister_keys.py > /dev/null; do sleep 1; done"
 stop_midilink
 # zero bytes first (framing errors at 31250): synthframe_midi_rx is at 9600 before the requests
-$M sh "python3 /tmp/tty_midi_xfer.py 9600 2.5 0000000000000000 $RQ1" > "$OUT/midi_out_9600.txt"
+$M sh "python3 /tmp/tty_midi_xfer.py --baud 9600 2.5 0000000000000000 $RQ1" > "$OUT/midi_out_9600.txt"
 python3 -I - "$OUT" <<'PY' | tee "$OUT/result.txt"
 import sys
 from PIL import Image

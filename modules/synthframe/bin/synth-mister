@@ -6,12 +6,20 @@
 #   MISTER=root@<address> synth-mister <command> [args]
 #
 #   lock OWNER | unlock          device lock /tmp/claude-device.lock (shared with older scripts)
-#   backup                       copy this project's installed RBFs and MGLs to
-#                                /media/fat/_synth_backup/<date>/ (once per day; never overwrites)
-#   restore                      remove test RBFs, put the backed-up RBFs and MGLs back
-#   install CORE RBF             install RBF as the core's <prefix>_<date>.rbf (removes the
-#                                core's other <prefix>_<date>.rbf; e.g. SynclavierBN_* stays)
-#   release CORE OUT.rbf         copy the backed-up release RBF of CORE to OUT.rbf
+#   backup                       copy every core's installed release RBFs and MGLs to
+#                                /media/fat/_synth_backup/<YYYYMMDD-HHMMSS>/ with a MANIFEST;
+#                                skipped when the newest backup already holds the same files.
+#                                Test builds (recorded by install) are never backed up.
+#   backups                      list the backups and the installed test builds
+#   restore [--from NAME] [CORE...]
+#                                put back each core's RBF (default: every core) from the newest
+#                                backup (or NAME). A core the backup has no RBF of is left as it
+#                                is; an installed RBF that is neither a test build nor backed up
+#                                is never removed. Then loads the menu.
+#   install CORE RBF             back up first (automatic), then install RBF as the core's
+#                                <prefix>_<date>.rbf (replaces the core's other <prefix>_2*.rbf;
+#                                e.g. SynclavierBN_* stays) and record it as a test build
+#   release CORE OUT.rbf         copy the newest backed-up release RBF of CORE to OUT.rbf
 #   load PATH                    load_core an .rbf or .mgl (path on the MiSTer)
 #   shot CORE OUT.png            screenshot of the running core, copied to OUT.png
 #   peek ADDR BYTES > FILE       read physical memory (DDR3) through /dev/mem
@@ -22,33 +30,35 @@
 #                                read the core's MIDI out on /dev/ttyS1
 #   sh CMD...                    run a command on the MiSTer
 #
-# Cores: sc55 (_Devices/SC55), proteus (_Devices/Proteus), synclavier (_Devices/Synclavier),
-# jv880 (_Devices/JV880), cz101 (_Devices/CZ101), mt32 (_Devices/MT32), p2k (_Devices/P2K; new, so restore leaves it). Every core installs under _Devices; restore
+# Cores and where they install: see CORES below. Every core installs under _Devices; restore
 # moves files from backups made when Proteus was in _Other and Synclavier in _Computer.
+# backup/restore/install/release run synth-mister-fat.sh on the MiSTer (sent over ssh).
+#
+# SYNTH_MISTER_FAT (default /media/fat) is the SD card root; the offline test
+# (modules/synthframe/tests/synth-mister/run.sh) points it and ssh/scp at a fake tree.
 set -euo pipefail
 
 DEV=${MISTER:?set MISTER to root@<address of the MiSTer>}
-FAT=/media/fat
-BK=$FAT/_synth_backup
+FAT=${SYNTH_MISTER_FAT:-/media/fat}
+HERE=$(cd "$(dirname "$0")" && pwd)
 SSH=(ssh -o BatchMode=yes -o ConnectTimeout=10 "$DEV")
 
+# core -> <dir>/<prefix> on the SD card; backup and restore cover every core listed here
+CORES="sc55=_Devices/SC55 jv880=_Devices/JV880 cz101=_Devices/CZ101 mt32=_Devices/MT32 \
+proteus=_Devices/Proteus synclavier=_Devices/Synclavier p2k=_Devices/P2K"
 core_path() {   # CORE -> <dir>/<prefix> on the SD card
-    case "$1" in
-        sc55) echo _Devices/SC55 ;;
-        proteus) echo _Devices/Proteus ;;
-        synclavier) echo _Devices/Synclavier ;;
-        jv880) echo _Devices/JV880 ;;
-        cz101) echo _Devices/CZ101 ;;
-        mt32) echo _Devices/MT32 ;;
-        p2k) echo _Devices/P2K ;;
-        *) echo "unknown core: $1" >&2; exit 2 ;;
-    esac
+    local e
+    for e in $CORES; do [ "${e%%=*}" = "$1" ] && { echo "${e#*=}"; return 0; }; done
+    echo "unknown core: $1" >&2; exit 2
+}
+fat() {         # COMMAND [ARGS]: run synth-mister-fat.sh on the MiSTer
+    "${SSH[@]}" sh -s -- "$FAT" "'$CORES'" "$@" < "$HERE/synth-mister-fat.sh"
 }
 shot_dir() {
     case "$1" in sc55) echo SC-55 ;; proteus) echo Proteus ;; synclavier) echo Synclavier ;; jv880) echo JV-880 ;; cz101) echo CZ-101 ;; mt32) echo MT-32 ;; p2k) echo P2K ;; esac
 }
 mcmd() {        # MiSTer_cmd is a FIFO read by Main_MiSTer: never block on it
-    "${SSH[@]}" "timeout 10 sh -c 'echo $1 > /dev/MiSTer_cmd'"
+    "${SSH[@]}" "timeout 10 sh -c 'echo $1 > ${SYNTH_MISTER_CMD:-/dev/MiSTer_cmd}'"
 }
 
 cmd=${1:?usage: synth-mister <command> [args]}; shift
@@ -59,29 +69,21 @@ lock)
 unlock)
     "${SSH[@]}" "rm -rf /tmp/claude-device.lock" ;;
 backup)
-    "${SSH[@]}" "set -e; d=$BK/\$(date +%Y%m%d); [ -e \$d/MANIFEST ] && { echo \"backup exists: \$d\"; exit 0; }
-        mkdir -p \$d; cd $FAT
-        for f in _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/MT32_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier*_*.rbf Proteus*.mgl Synclavier*.mgl; do
-            [ -e \"\$f\" ] || continue; mkdir -p \"\$d/\$(dirname \$f)\"; cp -p \"\$f\" \"\$d/\$f\"; echo \"\$f\" >> \$d/MANIFEST
-        done; echo \"backup: \$d (\$(wc -l < \$d/MANIFEST) files)\"" ;;
+    fat backup ;;
+backups)
+    fat list ;;
 restore)
-    "${SSH[@]}" "set -e; d=\$(ls -d $BK/2* 2>/dev/null | sort | head -1); [ -n \"\$d\" ] || { echo 'no backup' >&2; exit 1; }
-        cd $FAT; rm -f _Devices/SC55_*.rbf _Devices/JV880_*.rbf _Devices/CZ101_*.rbf _Devices/MT32_*.rbf _Devices/Proteus_*.rbf _Devices/Synclavier_*.rbf
-        rm -f _Other/Proteus_*.rbf _Computer/Synclavier*_*.rbf
-        while read -r f; do
-            t=\$(echo \"\$f\" | sed 's#^_Other/#_Devices/#; s#^_Computer/#_Devices/#'); cp -p \"\$d/\$f\" \"\$t\"
-            case \"\$t\" in *.mgl) sed -i 's#<rbf>_Other/#<rbf>_Devices/#; s#<rbf>_Computer/#<rbf>_Devices/#' \"\$t\" ;; esac
-        done < \$d/MANIFEST; echo \"restored from \$d\""
-    mcmd "load_core $FAT/menu.rbf" ;;
+    rc=0; fat restore "$@" || rc=$?
+    mcmd "load_core $FAT/menu.rbf"; exit "$rc" ;;
 install)
-    core=${1:?install CORE RBF}; rbf=${2:?install CORE RBF}; p=$(core_path "$core")
-    "${SSH[@]}" "ls -d $BK/2*/MANIFEST >/dev/null 2>&1" || { echo "run 'synth-mister backup' first" >&2; exit 1; }
-    "${SSH[@]}" "rm -f $FAT/${p}_2*.rbf"
-    scp -q "$rbf" "$DEV:$FAT/${p}_$(date +%Y%m%d).rbf"
-    echo "installed $FAT/${p}_$(date +%Y%m%d).rbf" ;;
+    core=${1:?install CORE RBF}; rbf=${2:?install CORE RBF}; core_path "$core" >/dev/null
+    inc=$FAT/_synth_backup/.incoming-$$.rbf
+    "${SSH[@]}" "mkdir -p $FAT/_synth_backup"
+    scp -q "$rbf" "$DEV:$inc"
+    fat install "$core" "$inc" ;;
 release)
-    core=${1:?release CORE OUT}; out=${2:?release CORE OUT}; p=$(core_path "$core")
-    f=$("${SSH[@]}" "d=\$(ls -d $BK/2* | sort | head -1); ls \$d/${p}_2*.rbf | sort | tail -1")
+    core=${1:?release CORE OUT}; out=${2:?release CORE OUT}
+    f=$(fat release "$core")
     scp -q "$DEV:$f" "$out"; echo "$out <- $f" ;;
 load)
     mcmd "load_core ${1:?load PATH}" ;;

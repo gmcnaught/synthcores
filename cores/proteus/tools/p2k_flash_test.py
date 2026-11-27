@@ -112,7 +112,7 @@ def main():
         d = os.path.join(out, f"play.{rep}")
         os.makedirs(os.path.join(d, "nvram", "proteus2k"))
         shutil.copy(os.path.join(d1, "nvram", "proteus2k", "flash"), os.path.join(d, "nvram", "proteus2k", "flash"))
-        subprocess.run([sys.executable, os.path.join(HERE, "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
+        subprocess.run([sys.executable, os.path.join(HERE, "..", "..", "..", "modules", "synthframe", "tools", "midi", "mkmidi.py"), script, os.path.join(d, "in.mid")], check=True)
         envp = {"P2K_SIMM1": big, "P2K_BABY1": baby, "P2K_FLASH1": "1",
                 "P2K_SNDLOG": os.path.join(d, "snd.log"), "P2K_SNDOUT": os.path.join(d, "snd.raw")}
         lcd, _ = mame(["-midiin", os.path.join(d, "in.mid")], d, envp, 16.0)
