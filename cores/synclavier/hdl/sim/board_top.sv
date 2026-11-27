@@ -118,7 +118,15 @@ module board_top (
     output logic        mon_wr,
     output logic [6:0]  mon_dev,
     output logic [15:0] mon_data,
-    output logic [1:0]  halt_reason
+    output logic [1:0]  halt_reason,
+    // the CPU's Model C/D state at the end of a trace (lockstep.cpp 'M')
+    output logic [15:0] st_page,
+    output logic [15:0] st_ppc,
+    output logic [15:0] st_rpt,            // {rpt_next, rpt_left}
+    output logic [15:0] st_rpt_word,
+    output logic [15:0] st_rpt_pc,
+    output logic [15:0] st_d2,
+    output logic        st_shadow
 );
     logic [26:0] xr_addr;
     logic        xr_rd, xr_wr, xr_wide, xr_ack;
@@ -153,6 +161,14 @@ module board_top (
         .halt_reason, .pcm_valid, .pcm_l, .pcm_r, .audio_valid,
         .audio_sum_l(audio_l), .audio_sum_r(audio_r)
     );
+
+    assign st_page     = core.sys.cpu.page;
+    assign st_ppc      = core.sys.cpu.ppc;
+    assign st_rpt      = {core.sys.cpu.rpt_next, core.sys.cpu.rpt_left};
+    assign st_rpt_word = core.sys.cpu.rpt_word;
+    assign st_rpt_pc   = core.sys.cpu.rpt_pc;
+    assign st_d2       = core.sys.cpu.d2;
+    assign st_shadow   = core.sys.cpu.shadow;
 
     ddram_word ext_memory (
         .clk, .rst(rst_hard),

@@ -3,10 +3,11 @@
 with SYNCLAVIER_W0 set, SYN-5.3's "Analyzing Multi-Channel Connections"
 finding 8 and 16 outputs.
 
-Run:  python3 tests/sim/test_multi.py
+Run:  pypy3 tests/sim/test_multi.py
 """
 import os
 import sys
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -170,8 +171,7 @@ def test_system_bit():
 def test_syn53_analyzes_connections():
     image = os.environ.get("SYNCLAVIER_W0")
     if not image:
-        print("  skip test_syn53_analyzes_connections (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     from sim.boot import boot_from_w0
     for outputs in (8, 16):
         cpu, _ = boot_from_w0(image, disk_mb=30, poly=PolySynth(), keyboard="vpk", fm_voices=8,
@@ -186,7 +186,6 @@ def test_syn53_analyzes_connections():
 
 
 if __name__ == "__main__":
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
-    for name, fn in tests:
-        fn()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

@@ -3,11 +3,12 @@
 the RBF in the synclavierii release repository) load the released core and mount each image
 in an S slot of CONF_STR whose extension matches.
 
-Run:  python3 tests/test_mgl.py
+Run:  pypy3 tests/test_mgl.py
 """
 import glob
 import os
 import re
+import sys
 import xml.etree.ElementTree as ET
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,7 +57,6 @@ def test_mgls():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

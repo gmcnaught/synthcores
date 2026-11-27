@@ -4,12 +4,13 @@
 SYNCLAVIER_W0 set, SYN-5.3 printing: the Recorder Display's screen dump
 (G, h) and the Music Notation Display's hardcopy (VT640, K, H).
 
-Run:  python3 tests/sim/test_printer.py
+Run:  pypy3 tests/sim/test_printer.py
 """
 import os
 import struct
 import sys
 import zlib
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -194,8 +195,7 @@ def _run_for(cpu, sec):
 def test_syn53_screen_dump():
     cpu = _syn53()
     if cpu is None:
-        print("  skip test_syn53_screen_dump (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     _run_for(cpu, 11)                                       # Main Menu
     cpu.terminal.feed(b"Gh")                                # Recorder Display, print it
     _run_for(cpu, 3)
@@ -210,8 +210,7 @@ def test_syn53_screen_dump():
 def test_syn53_music_notation_hardcopy():
     cpu = _syn53(terminal="vt640", mouse=True)
     if cpu is None:
-        print("  skip test_syn53_music_notation_hardcopy (SYNCLAVIER_W0 not set)")
-        return
+        raise unittest.SkipTest("SYNCLAVIER_W0 not set")
     planes = []
     reply = cpu.screen.reply
     cpu.screen.reply = lambda d: (planes.append(bytes(cpu.screen.g)) if not planes else None, reply(d))
@@ -232,7 +231,6 @@ def test_syn53_music_notation_hardcopy():
 
 
 if __name__ == "__main__":
-    tests = [(n, f) for n, f in sorted(globals().items()) if n.startswith("test_")]
-    for name, fn in tests:
-        fn()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

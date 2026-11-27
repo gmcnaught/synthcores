@@ -8,6 +8,7 @@ skips without them.
 import os
 import sys
 import tempfile
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 sys.path.insert(0, ROOT)
@@ -40,8 +41,7 @@ def test_tables():
 def test_system_disk():
     bank = os.path.join(SYNX_DIR, "Synclavier_Bank_System Disk Timbres.synx")
     if not os.path.exists(bank) or not os.path.isdir(TEXT_DIR):
-        print("  skip test_system_disk (timbres/ not present)")
-        return
+        raise unittest.SkipTest("timbres/ not present")
     # harmonic and frame blocks agree with the Regen text
     assert synx.cmd_verify(bank, os.path.join(TEXT_DIR, "System Disk")) == 0
     with tempfile.TemporaryDirectory() as d:
@@ -67,7 +67,6 @@ def test_system_disk():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

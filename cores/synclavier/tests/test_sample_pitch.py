@@ -3,7 +3,7 @@
 name-group resolution, and the PT.TRA correction rules. Standard library
 only; no sound files.
 
-Run:  python3 tests/test_sample_pitch.py
+Run:  pypy3 tests/test_sample_pitch.py
 """
 import math
 import os
@@ -82,7 +82,6 @@ def test_correct_timbre_and_table():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

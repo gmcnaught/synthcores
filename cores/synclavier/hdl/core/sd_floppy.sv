@@ -39,12 +39,13 @@ module sd_floppy (
     input  logic [15:0] wdata,
     output logic [15:0] rdata,
     output logic        ack,
+    output logic [2:0]  ack_drive,      // the acked word's drive (sd_word_arb routes the ack by it)
     output logic [5:0]  present,
     output logic [1:0]  protect,
     output logic        protect3,
     output logic [10:0] sectors0,       // floppy sizes (at most 1024)
     output logic [10:0] sectors1,
-    output logic [12:0] blocks2,        // state image size (at most 4096)
+    output logic [16:0] blocks2,        // state image size (at most 65536)
     output logic [24:0] blocks3,        // SCSI disk sizes (at most 2^24)
     output logic [24:0] blocks4,
     output logic        protect4,
@@ -196,7 +197,7 @@ module sd_floppy (
             protect4 <= 1'b0;
             sectors0 <= 11'd0;
             sectors1 <= 11'd0;
-            blocks2 <= 13'd0;
+            blocks2 <= 17'd0;
             blocks3 <= 25'd0;
             blocks4 <= 25'd0;
             blocks5 <= 17'd0;
@@ -206,7 +207,7 @@ module sd_floppy (
                     present[d] <= img_size != 64'd0;
                     if (d == 0) sectors0 <= img_size[63:19] != 0 ? 11'd1024 : 11'(img_size[18:9]);
                     if (d == 1) sectors1 <= img_size[63:19] != 0 ? 11'd1024 : 11'(img_size[18:9]);
-                    if (d == 2) blocks2 <= img_size[63:21] != 0 ? 13'd4096 : 13'(img_size[20:9]);
+                    if (d == 2) blocks2 <= img_size[63:25] != 0 ? 17'd65536 : 17'(img_size[24:9]);
                     if (d == 3) blocks3 <= img_size[63:33] != 0 ? 25'h1000000 : 25'(img_size[32:9]);
                     if (d == 4) blocks4 <= img_size[63:33] != 0 ? 25'h1000000 : 25'(img_size[32:9]);
                     if (d == 5) blocks5 <= img_size[63:25] != 0 ? 17'd65536 : 17'(img_size[24:9]);
@@ -221,6 +222,7 @@ module sd_floppy (
             // ---- the CPU side: a hit
             if (serve) begin
                 ack <= 1'b1;                          // read data: q next clock
+                ack_drive <= drive;
                 mru <= hb;
                 if (wr) begin
                     dirty <= 1'b1; dbuf <= hb; dblk <= blk;

@@ -21,6 +21,18 @@ module able_sys_top (
     input  logic        dev_nosyn,
     input  logic        dev_hold,
     input  logic [15:4] dev_irq,
+    // end-of-trace state for the bench (hdl/sim/lockstep.cpp 'M'): memory
+    // read port (combinational) and the CPU's Model C/D state
+    input  logic [20:0] dbg_rd_addr,
+    output logic [15:0] dbg_mem_rdata,
+    output logic [15:0] dbg_xm_rdata,
+    output logic [15:0] st_page,
+    output logic [15:0] st_ppc,
+    output logic [15:0] st_rpt,            // {rpt_next, rpt_left}
+    output logic [15:0] st_rpt_word,
+    output logic [15:0] st_rpt_pc,
+    output logic [15:0] st_d2,
+    output logic        st_shadow,
     input  logic [16:0] ext_sectors,
     input  logic        ld_xm_we,
     input  logic [20:0] ld_xm_addr,
@@ -152,4 +164,14 @@ module able_sys_top (
     logic [15:0] poly_late;
 
     able_system sys (.*);
+    assign dbg_mem_rdata = sys.mem[dbg_rd_addr[15:0]];
+    assign dbg_xm_rdata  = xram[dbg_rd_addr];
+    assign st_page     = sys.cpu.page;
+    assign st_ppc      = sys.cpu.ppc;
+    assign st_rpt      = {sys.cpu.rpt_next, sys.cpu.rpt_left};
+    assign st_rpt_word = sys.cpu.rpt_word;
+    assign st_rpt_pc   = sys.cpu.rpt_pc;
+    assign st_d2       = sys.cpu.d2;
+    assign st_shadow   = sys.cpu.shadow;
+
 endmodule

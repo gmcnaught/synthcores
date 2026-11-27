@@ -11,8 +11,9 @@ stops at the first difference. Two HDL tops:
           values, interrupt bits and timing are compared; any other device
           is answered from the trace.
 
-Trace format v2 (little-endian):
-  b"ABLT2\\0\\0\\0"
+Trace format v3 (little-endian; iter_trace() below is the Python reader,
+hdl/sim/lockstep.cpp the bench's; tests/hdl/test_lockstep.py checks they agree):
+  b"ABLT3\\0\\0\\0"
   16 x u16 registers, u8 flags {pcs, ion, m, c, z} (bit 4 .. bit 0)
   65536 x u16 internal memory
   header sections, then 'B':
@@ -26,7 +27,8 @@ Trace format v2 (little-endian):
           disk time, ns per block; 12 SCSI seek ns; 13 poly bins, when
           more than 1; 14 voices in the last poly bin, when not 32; 16
           D32/D33 multichannel distributor outputs (8/16), when there is
-          one, M19; 18 D40/D41 printer port, M21), 4 D100
+          one, M19; 17 D70 SMPTE reader, M20; 18 D40/D41 printer port, M21;
+          names: STATE_INDEX below), 4 D100
           (fields as hdl/dev/dev_floppy.sv's state load), 5 D160 (as
           dev_fm.sv; 16 FM voices present), 6 wave memory byte (index = memory x 256 + point),
           7 D130 (as dev_keyboard.sv; index 30 = velocity keyboard
@@ -47,8 +49,14 @@ Trace format v2 (little-endian):
     'Q' u16       interrupt bits at the end of an instruction with ION and
                   PCS set (the interrupt is taken if nonzero)
     'I' u16 u16   instruction completed: pc, word
+    'D' u16 mask u8 flags, popcount(mask) x u16
+                  registers after the preceding 'I': the registers whose bit
+                  is set in mask (ascending) changed to these values; the
+                  flags in full. After every 'I' except one that halts, so
+                  all registers and flags are compared every instruction
     'S' 16 x u16 u8 u64   registers, flags and simulated ns since the start,
-                  after the preceding instruction
+                  after the preceding instruction (every `snapshot_every`
+                  instructions and after the last; time is compared here)
     'T' u32 u16 bytes   terminal input, fed after this many held steps of
                   the current read (0: before the next instruction)
     'A' i64 i64   audio sample (sim/voice.py FMSynth.sample_int: left, right)
@@ -61,31 +69,43 @@ Trace format v2 (little-endian):
                   two's complement; board top); 10 a MIDI in byte for the
                   SMPTE reader (index 0, byte; board top)
     'H' u8        halted: 1 no SYN on read, 2 no SYN on write, 3 HALT
+    'M' 65536 x u16 internal memory, u32 n, n x u16 external memory words
+        0..n-1 (n = 0: no external memory), u8 c, then if c: u16 page
+        u16 ppc u8 rpt_next u8 rpt_left u16 rpt_word u16 rpt_pc u16 d2
+        u8 shadow (Model C/D CPU state)
+                  the state at the end of the trace, just before 'E' (the
+                  bench compares it unless it stopped early at a maximum)
     'E'           end of trace
 
 Usage:
-  python3 -m sim.lockstep random OUT.trace [--instructions N] [--seed S]
-  python3 -m sim.lockstep monitor IMAGE OUT.trace [--instructions N]
-  python3 -m sim.lockstep ork-lm IMAGE OUT.trace [--instructions N]
-  python3 -m sim.lockstep ork-lm-note IMAGE OUT.trace   (timbre recall + C4 held)
-  python3 -m sim.lockstep w0boot W0-53.IMG OUT.trace   (Release 5.3 from the
+  pypy3 -m sim.lockstep random OUT.trace [--instructions N] [--seed S]
+  pypy3 -m sim.lockstep monitor IMAGE OUT.trace [--instructions N]
+  pypy3 -m sim.lockstep ork-lm IMAGE OUT.trace [--instructions N]
+  pypy3 -m sim.lockstep ork-lm-note IMAGE OUT.trace   (timbre recall + C4 held)
+  pypy3 -m sim.lockstep w0boot W0-53.IMG OUT.trace   (Release 5.3 from the
                                     state tools/w0_image.py stores: MONITOR,
                                     PROFILE, PLAY SYN-5.3 over SCSI)
-  python3 -m sim.lockstep syn53 W0IMAGE OUT.trace [--skip N]
+  pypy3 -m sim.lockstep syn53 W0IMAGE OUT.trace [--skip N]
                                     (Release 5.3: boot W0, CREATE USER, PLAY
                                      SYN-5.3, skip N instructions, record)
-  python3 -m sim.lockstep check OUT.trace [--top cpu|system]
+  pypy3 -m sim.lockstep check OUT.trace [--top cpu|system]
 """
 import os
 import random
 import struct
 import subprocess
+from array import array
 
 from .bus import BUS_WAIT, NO_SYN, Device
 
 M16 = 0xFFFF
-MAGIC = b"ABLT2\0\0\0"
+MAGIC = b"ABLT3\0\0\0"
 HALT_CODES = {"no SYN on read": 1, "no SYN on write": 2, "HALT": 3}
+HEADER_START = len(MAGIC) + 33 + 131072   # magic, registers and flags, internal memory
+# fixed payload sizes of the events (after the kind byte); 'T', 'D' and 'M'
+# are variable (iter_trace)
+EVENT_SIZES = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
+               b"w": 4, b"K": 4, b"A": 16}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD_DIR = os.path.join(ROOT, "out", "hdl-lockstep")
 BAUDS = (300, 1200, 2400, 4800, 9600, 19200, 38400, 76800)
@@ -126,6 +146,52 @@ class _RecordingBus:
         return v
 
 
+# 'V' device-state entries (u8 selector, u16 index): the one map of what
+# each index loads. The HDL's load port decodes the same numbers
+# (able_system.sv and synclavier_core.sv ld_dev_sel / ld_dev_addr,
+# dev_multi.sv), as does hdl/sim/lockstep.cpp (poly size and bins, wave
+# memory); tests/hdl/test_lockstep.py test_device_state_index_map checks
+# the HDL's single-index decodes against STATE_INDEX.
+SEL_RTC, SEL_MULDIV, SEL_EXTMEM, SEL_TERM, SEL_FLOPPY, SEL_FM, SEL_WAVE, SEL_KB = range(8)
+STATE_INDEX = {
+    "rtc.elapsed": (SEL_RTC, 0), "rtc.pending": (SEL_RTC, 1),
+    "muldiv.d4": (SEL_MULDIV, 0), "muldiv.d5": (SEL_MULDIV, 1),
+    "extmem.sector": (SEL_EXTMEM, 0), "extmem.word": (SEL_EXTMEM, 1),
+    "term.baud": (SEL_TERM, 0), "term.rx_char": (SEL_TERM, 1), "term.char_rdy": (SEL_TERM, 2),
+    "term.rx_wait": (SEL_TERM, 3), "term.tx_busy": (SEL_TERM, 4), "term.xmit_irq": (SEL_TERM, 5),
+    # selector 3 also carries system options (able_system.sv / synclavier_core.sv)
+    "poly.units": (SEL_TERM, 8),          # poly memory per bin, 128 KB units
+    "term.vt640": (SEL_TERM, 9),          # VT640 graphics terminal (term_display)
+    "mouse": (SEL_TERM, 10),              # D44/D45/D54 mouse present
+    "scsi.block_ns": (SEL_TERM, 11),      # SCSI disk time per block
+    "scsi.seek_ns": (SEL_TERM, 12),       # SCSI seek time
+    "poly.bins": (SEL_TERM, 13),          # poly bins, when more than 1
+    "poly.last_voices": (SEL_TERM, 14),   # voices in the last poly bin, when not 32
+    "multi.outputs": (SEL_TERM, 16),      # D32/D33 distributor outputs (8/16), M19
+    "smpte": (SEL_TERM, 17),              # D70 SMPTE reader present, M20
+    "printer": (SEL_TERM, 18),            # D40/D41 printer port present, M21
+    "fm.voices": (SEL_FM, 16),            # FM voices present
+    "kb.vpk": (SEL_KB, 30),               # velocity keyboard (dev_vpk.sv) instead of the ORK
+    "kb.strict": (SEL_KB, 31),
+}
+# Index ranges (not named one by one): SEL_FLOPPY 0-17 (dev_floppy.sv's
+# state load, in _device_header's order); SEL_FM 0-15 (globals: channel word,
+# function, switches, clocks, A/D select, envelope time, 0, 8 x A/D) and
+# 32 + 16 x channel + k, k 0-8 (interpolator div, add, limit, value,
+# prescale, acc, MAR, packed registers 0/1/2/4, register 13); SEL_WAVE
+# memory x 256 + point; SEL_KB 0-26 (ORK: creg, dreg, 8 clavier, 8
+# buttons, 8 lights, 3 display).
+FM_CHANNEL_BASE, FM_CHANNEL_STRIDE = 32, 16
+
+
+def _v(sel, idx, value):
+    return struct.pack("<cBHI", b"V", sel, idx, int(value) & 0xFFFFFFFF)
+
+
+def _vn(name, value):
+    return _v(*STATE_INDEX[name], value)
+
+
 def _flags(cpu):
     return cpu.pcs << 4 | cpu.ion << 3 | cpu.m << 2 | cpu.c << 1 | cpu.z
 
@@ -152,7 +218,7 @@ def _device_header(cpu):
                                  fd.time % REV_NS, fd.busy_ns, fd.pending is not None,
                                  kind == "write", lsn is None, lsn or 0, wait, False,
                                  fd._kind == "write", fd.head[0], fd.head[1], fd.step_dir < 0)):
-            out += struct.pack("<cBHI", b"V", 4, idx, int(v) & 0xFFFFFFFF)
+            out += _v(SEL_FLOPPY, idx, v)
     fm, kb = getattr(cpu, "fm", None), getattr(cpu, "keyboard", None)
     if fm is not None and kb is not None:
         from .fm import ENV_CLOCK_NS, wave_memory_number
@@ -160,19 +226,19 @@ def _device_header(cpu):
         g = [fm.channel_word, fm.function, fm.switches, fm.ext_clock_in, fm.ext_clock_out,
              fm.adc_select, fm.time_ns % ENV_CLOCK_NS, 0] + list(fm.adc)
         for idx, v in enumerate(g):
-            out += struct.pack("<cBHI", b"V", 5, idx, int(v) & 0xFFFFFFFF)
-        out += struct.pack("<cBHI", b"V", 5, 16, fm.voices)        # voices present
+            out += _v(SEL_FM, idx, v)
+        out += _vn("fm.voices", fm.voices)
         for ch in range(nch):
             it = fm.interpolator(ch)            # advanced to now (lazy in Python)
             r = lambda fn: fm.channels.get((ch, fn), 0) & 0o377
             for k, v in enumerate((it.div, it.add, it.limit, it.value, it.prescale, it.acc,
                                    fm.mar.get(ch, 0),
                                    r(0) << 24 | r(1) << 16 | r(2) << 8 | r(4), r(0o13))):
-                out += struct.pack("<cBHI", b"V", 5, 32 + 16 * ch + k, int(v) & 0xFFFFFFFF)
+                out += _v(SEL_FM, FM_CHANNEL_BASE + FM_CHANNEL_STRIDE * ch + k, v)
         for m, mem in enumerate(fm.wave):
             for i, b in enumerate(mem):
                 if b:
-                    out += struct.pack("<cBHI", b"V", 6, m * 256 + i, b)
+                    out += _v(SEL_WAVE, m * 256 + i, b)
         from .devices.synth import VelocityKeyboard
         if isinstance(kb, VelocityKeyboard):
             # dev_vpk.sv has no load port: it starts as at power-on
@@ -181,12 +247,12 @@ def _device_header(cpu):
                    ("creg", "dreg", "request", "keys", "reported", "velocity", "pressure",
                     "analog", "switches", "banks", "lights", "chars")):
                 raise ValueError("velocity keyboard state is not the power-on state")
-            out += struct.pack("<cBHI", b"V", 7, 30, 1)
+            out += _vn("kb.vpk", 1)
         else:
             for idx, v in enumerate([kb.creg, kb.dreg] + kb.clavier + kb.buttons + kb.lights
                                     + kb.display):
-                out += struct.pack("<cBHI", b"V", 7, idx, int(v) & 0xFFFFFFFF)
-        out += struct.pack("<cBHI", b"V", 7, 31, bool(kb.strict and fm.strict))
+                out += _v(SEL_KB, idx, v)
+        out += _vn("kb.strict", bool(kb.strict and fm.strict))
         assert kb.strict == fm.strict
     ds = getattr(cpu, "dig_stm", None)
     if ds is not None and not ds.idle():
@@ -195,7 +261,7 @@ def _device_header(cpu):
     if mc is not None:                                      # D32/D33 distributor (M19)
         if mc.select or mc.last or any(o is not None for o in mc.route):
             raise ValueError("distributor state is not the power-on state (dev_multi.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 16, mc.outputs)
+        out += _vn("multi.outputs", mc.outputs)
     card = getattr(cpu, "midi", None)
     if card is not None and (card.sel or card.mcha or card.fifo):
         raise ValueError("MIDI card state is not the power-on state (dev_midi.sv has no load port)")
@@ -204,42 +270,57 @@ def _device_header(cpu):
         fresh, r = SmpteReader(), card.smpte
         if any(getattr(r, f) != getattr(fresh, f) for f in vars(fresh) if f != "opcode"):
             raise ValueError("SMPTE reader state is not the power-on state (dev_smpte.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 17, 1)
+        out += _vn("smpte", 1)
     from .devices.poly import PolySynth
     if getattr(term, "vt640", False):                       # VT640 graphics terminal
-        out += struct.pack("<cBHI", b"V", 3, 9, 1)
+        out += _vn("term.vt640", 1)
     sc = getattr(cpu, "scsi", None)
     if sc is not None:
         sc.head = None          # dev_scsi.sv starts with no head position (no load port)
     if sc is not None and sc.block_ns:                      # SCSI disk time per block
         if sc.timed or sc.phase != 0:
             raise ValueError("SCSI host mid-command (dev_scsi.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 11, sc.block_ns)
+        out += _vn("scsi.block_ns", sc.block_ns)
         if sc.seek_ns:                                      # SCSI seek time
-            out += struct.pack("<cBHI", b"V", 3, 12, sc.seek_ns)
+            out += _vn("scsi.seek_ns", sc.seek_ns)
     m = getattr(cpu, "mouse", None)
     if m is not None:                                       # D44/D45/D54 mouse
         if m.dx or m.dy or m.out or m.ready or m.enables or m.buttons:
             raise ValueError("mouse state is not the power-on state (dev_mouse.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 10, 1)
+        out += _vn("mouse", 1)
     p = getattr(cpu, "printer", None)
     if p is not None:                                       # D40/D41 printer port
         if p.tx_busy > 0 or p.xmit_irq or p.enables or p.baud is not None:
             raise ValueError("printer state is not the power-on state (dev_printer.sv has no load port)")
-        out += struct.pack("<cBHI", b"V", 3, 18, 1)
+        out += _vn("printer", 1)
     if isinstance(getattr(cpu, "poly", None), PolySynth):   # poly memory size, 128 KB units
-        out += struct.pack("<cBHI", b"V", 3, 8, cpu.poly.sectors // 256)
+        out += _vn("poly.units", cpu.poly.sectors // 256)
         if cpu.poly.nbins != 1:                             # poly bins (a 6400: 2)
-            out += struct.pack("<cBHI", b"V", 3, 13, cpu.poly.nbins)
+            out += _vn("poly.bins", cpu.poly.nbins)
         if cpu.poly.bin_voices[-1] != 32:                   # voices in the last bin (M16)
-            out += struct.pack("<cBHI", b"V", 3, 14, cpu.poly.bin_voices[-1])
-    for dev, idx, v in ((0, 0, rtc.elapsed), (0, 1, rtc.pending),
-                        (1, 0, md.d4), (1, 1, md.d5),
-                        (2, 0, xm.sector), (2, 1, xm.word),
-                        (3, 0, BAUDS.index(term.baud)), (3, 1, term.rx_char),
-                        (3, 2, term.char_rdy), (3, 3, term.rx_wait), (3, 4, term.tx_busy),
-                        (3, 5, term.xmit_irq)):
-        out += struct.pack("<cBHI", b"V", dev, idx, int(v) & 0xFFFFFFFF)
+            out += _vn("poly.last_voices", cpu.poly.bin_voices[-1])
+    for name, v in (("rtc.elapsed", rtc.elapsed), ("rtc.pending", rtc.pending),
+                    ("muldiv.d4", md.d4), ("muldiv.d5", md.d5),
+                    ("extmem.sector", xm.sector), ("extmem.word", xm.word),
+                    ("term.baud", BAUDS.index(term.baud)), ("term.rx_char", term.rx_char),
+                    ("term.char_rdy", term.char_rdy), ("term.rx_wait", term.rx_wait),
+                    ("term.tx_busy", term.tx_busy), ("term.xmit_irq", term.xmit_irq)):
+        out += _vn(name, v)
+    return out
+
+
+def end_state(cpu):
+    """'M': internal memory, external memory and the Model C/D CPU state at
+    the end of a trace."""
+    out = bytearray(b"M") + struct.pack("<65536H", *cpu.mem)
+    xm = getattr(cpu, "extmem", None)
+    words = xm.data.tobytes() if xm is not None else b""
+    out += struct.pack("<I", len(words) // 2) + words
+    if cpu.model == "B":
+        out += b"\0"
+    else:
+        out += struct.pack("<BHHBBHHHB", 1, cpu.page, cpu.ppc, cpu.rpt_next, cpu.rpt_left,
+                           cpu.rpt_word, cpu.rpt_pc, cpu.d2, cpu.int_shadow)
     return out
 
 
@@ -289,7 +370,7 @@ class _Audio:
 
 
 def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait=10_000,
-           on_wait=None, actions=(), audio=False):
+           on_wait=None, actions=(), audio=False, regs_every=1):
     """Run `cpu` for `instructions` completed instructions, writing a trace
     to `path`. Stops early if the CPU halts, or if a read stays held for
     `max_wait` steps (a program waiting for terminal input) and
@@ -297,12 +378,20 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
     return True to go on). `actions`: (ns after the start, callable(cpu))
     host actions on devices the HDL does not model (panel buttons, keys),
     run between instructions. audio=True also records the voice engine's
-    samples (sim/voice.py), for the system top. Returns the number recorded."""
+    samples (sim/voice.py), for the system top. regs_every: a 'D' record
+    (registers and flags, compared by the bench) after every this many
+    instructions (1: every instruction, the default; 0: none, only the 'S'
+    snapshots every `snapshot_every`). Returns the number recorded."""
     actions = sorted(actions, key=lambda a: a[0])
     out = bytearray(MAGIC)
     out += struct.pack("<16HB", *cpu.r, _flags(cpu))
     out += struct.pack("<65536H", *cpu.mem)
-    out += _device_header(cpu)
+    dev = _device_header(cpu)
+    out += dev
+    if not dev and cpu.extmem is not None:
+        # CPU top, Model D: the external memory the code pages map onto
+        xm = cpu.extmem
+        out += struct.pack("<cI", b"X", xm.sectors) + xm.data.tobytes()
     if cpu.model != "B":
         term = getattr(cpu, "terminal", None)
         out += struct.pack("<cBHHHHBBHHHB", b"C", "ABCD".index(cpu.model), cpu.d57,
@@ -398,6 +487,20 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
     def snapshot(time_ns=None):
         t = cpu.time_ns if time_ns is None else time_ns
         return b"S" + struct.pack("<16HBQ", *cpu.r, _flags(cpu), t - t0)
+    prev = list(cpu.r)
+    d_fmt = [struct.Struct("<cHB%dH" % k) for k in range(17)]
+
+    def delta():
+        """'D': the registers this instruction changed, and the flags."""
+        r = cpu.r
+        mask, vals = 0, []
+        for i in range(16):
+            v = r[i]
+            if v != prev[i]:
+                mask |= 1 << i
+                vals.append(v)
+                prev[i] = v
+        return d_fmt[len(vals)].pack(b"D", mask, _flags(cpu), *vals)
     t_done = t0                   # time at the end of the last completed instruction
     mark = 0                      # end of its events in `ev`; later ones are dropped
     snap_at_mark = False
@@ -447,6 +550,8 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
                 t_done = cpu.time_ns
                 ev += struct.pack("<cHH", b"I", pc, word)
                 n += 1
+                if regs_every and n % regs_every == 0:
+                    ev += delta()
                 snap_at_mark = n % snapshot_every == 0
                 i_end = None
                 if snap_at_mark:
@@ -470,6 +575,7 @@ def record(cpu, path, instructions, snapshot_every=256, max_steps=None, max_wait
                     ev[i_end:i_end] = snapshot(t_done)
                 else:
                     ev += snapshot(t_done)
+            ev += end_state(cpu)
             ev += b"E"
             f.write(ev)
     finally:
@@ -506,9 +612,10 @@ class RandomDevice(Device):
     """Answers every device number with pseudo-random data and drives
     pseudo-random interrupt requests (for random-program lockstep runs)."""
 
-    def __init__(self, seed):
+    def __init__(self, seed, irq_mask=0xFFFF):
         self.rng = random.Random(seed)
         self.irq = 0
+        self.irq_mask = irq_mask
 
     def read(self, dev):
         return random_value(self.rng)
@@ -522,11 +629,13 @@ class RandomDevice(Device):
                                         self.rng.randrange(0x10000)))
 
     def irq_bits(self):
-        return self.irq
+        return self.irq & self.irq_mask
 
 
-def random_cpu(seed, model="B"):
-    """A CPU with random memory, registers and flags; every device random."""
+def random_cpu(seed, model="B", ext_sectors=2048):
+    """A CPU with random memory, registers and flags; every device random.
+    Model D also gets `ext_sectors` of random external memory for its code
+    pages (2048: pages 1-8 installed)."""
     from .cpu import CPU
     rng = random.Random(seed)
     cpu = CPU()
@@ -539,6 +648,58 @@ def random_cpu(seed, model="B"):
     cpu.z, cpu.c, cpu.m, cpu.ion, cpu.pcs = (rng.random() < 0.5 for _ in range(5))
     if not cpu.pcs:
         cpu.ion = False
+    if model == "D":
+        # code pages: external memory of random words (only code fetches and
+        # PCI literals read it: D60-D63 stay on RandomDevice, as the CPU
+        # top's copy sees no writes), starting in a page; random code writes
+        # D11 now and then, so fetches also come from page 0 (internal
+        # memory) and from pages beyond the installed memory (177777)
+        from .devices.extmem import ExternalMemory
+        xm = ExternalMemory(ext_sectors)
+        xm.data = array("H", (rng.randrange(0x10000) for _ in range(ext_sectors * 256)))
+        cpu.extmem = xm
+        cpu.pcs = True
+        cpu.page = rng.randrange(1, ext_sectors // 256 + 1) << 8
+        cpu.d57 = random_value(rng)
+    return cpu
+
+
+def random_system(seed, ext_sectors=2048):
+    """Model D on the system top: sim.system's HDL devices (D3, D4-D7,
+    D50/D51, D60-D63, D100-D104, D130/D131, D160-D165, compared by the bench) with random memory, registers
+    and external memory, starting in a code page; every other device number
+    random (answered from the trace). External memory is the D60-D63 device
+    and the code pages at once, so random D62/D63 writes can change code.
+    Pages past `ext_sectors` read 177777 (sim/cpu.py _code_read)."""
+    from .system import make_system
+    rng = random.Random(seed)
+    # every device the system top has in HDL (D100-D104, D130/D131,
+    # D160-D165 too) has its Python model, so the bench compares them all
+    cpu = make_system(ext_sectors=ext_sectors, model="D", floppy=True, synth=True, strict=False)
+    free = [n for n in range(0o200) if n != 1 and n not in cpu.bus.devices]
+    # the random interrupt bits leave out D3's and D50/D51's (the HDL's own)
+    cpu.bus.attach(RandomDevice(seed + 1, irq_mask=0xFFFF & ~0o500), free)
+    from .decode import D_IO, DST_TABLE, S_IO, SRC_TABLE
+    # code words that read a device that stops the run (no SYN: D6, D7,
+    # D104, D164, D165; D50 waits for input) or write the floppy command
+    # registers are drawn again, so a run lasts thousands of instructions
+    stop_rd = {0o6, 0o7, 0o50, 0o104, 0o164, 0o165}
+
+    def word():
+        while True:
+            w = rng.randrange(0x10000)
+            sk, sv = SRC_TABLE[w & 0o377]
+            dk, da, _ = DST_TABLE[w >> 8]
+            if not (sk == S_IO and sv in stop_rd) and not (dk == D_IO and 0o100 <= da <= 0o104):
+                return w
+    cpu.mem = [word() for _ in range(0x10000)]
+    xm = cpu.extmem
+    for i in range(len(xm.data)):
+        xm.data[i] = word()
+    cpu.r = [random_value(rng) for _ in range(16)]
+    cpu.z, cpu.c, cpu.m = (rng.random() < 0.5 for _ in range(3))
+    cpu.pcs, cpu.ion = True, rng.random() < 0.5
+    cpu.page = rng.randrange(1, ext_sectors // 256 + 1) << 8
     return cpu
 
 
@@ -620,6 +781,81 @@ def hw_cfg(voices=None, mono=False, mb=None, fm=None):
     return v
 
 
+def trace_device_state(path):
+    """The 'V' entries of a trace's header as {(selector, index): value}
+    (wave memory left out)."""
+    out = {}
+    for k, v in iter_trace_header(path):
+        if k == b"V":
+            sel, idx, val = struct.unpack("<BHI", v)
+            if sel != SEL_WAVE:
+                out[sel, idx] = val
+    return out
+
+
+def iter_trace_header(path):
+    """iter_trace up to and including 'B', reading only the header."""
+    with open(path, "rb") as f:
+        b = bytearray(f.read(HEADER_START))
+        while True:
+            k = f.read(1)
+            if not k:
+                raise ValueError("trace ends in the header")
+            b += k
+            if k == b"B":
+                break
+            n = {b"X": 4, b"F": 3, b"V": 7, b"O": 12, b"C": 18}.get(k)
+            if n is None:
+                raise ValueError("bad header section %r" % k)
+            b += f.read(n)
+            if k in (b"X", b"F", b"O"):        # variable part
+                b += f.read(_header_size(b, len(b) - n, k) - n)
+    for k, v in iter_trace(bytes(b) + b"E"):
+        if k == b"E":
+            return
+        yield k, v
+
+
+def state_image_device_state(path):
+    """The device entries of a state image (tools/state_image.py) as
+    {(selector, index): value}, without the FM channel accumulators that
+    come from a trace's 'O' section."""
+    with open(path, "rb") as f:
+        b = f.read()
+    n = struct.unpack_from(">H", b, 12)[0]
+    out = {}
+    for i in range(n):
+        kind, sel, idx, _, a, b1, c, d = struct.unpack_from(">8H", b, 512 + 16 * i)
+        if kind == 0 and not (sel == SEL_FM and idx >= FM_CHANNEL_BASE
+                              and (idx - FM_CHANNEL_BASE) % FM_CHANNEL_STRIDE == 9):
+            out[sel, idx] = a << 48 | b1 << 32 | c << 16 | d
+    return out
+
+
+def state_image_mismatches(trace_path, state_path, cfg=0, printer_osd=False):
+    """Device state the board's boot loader takes from the state image that
+    differs from the trace's start (a trace recorded with other options than
+    the image, e.g. w0boot without --disk-us for an image with SCSI disk
+    time). Entries the OSD replaces (cfg, printer_osd) are not compared.
+    Returns a list of messages, empty when they agree."""
+    names = {v: k for k, v in STATE_INDEX.items()}
+    skip = set()
+    if cfg:
+        skip |= {STATE_INDEX[k] for k in ("poly.units", "poly.bins", "poly.last_voices", "fm.voices")}
+    if printer_osd:
+        skip.add(STATE_INDEX["printer"])
+    hint = {STATE_INDEX["scsi.block_ns"]: " (w0boot --disk-us N: N x 1000 ns)",
+            STATE_INDEX["scsi.seek_ns"]: " (w0boot --seek-us N: N x 1000 ns)"}
+    t, si = trace_device_state(trace_path), state_image_device_state(state_path)
+    out = []
+    for key in sorted((set(t) | set(si)) - skip):
+        a, b = si.get(key), t.get(key)
+        if a != b and not (a in (None, 0) and b in (None, 0)):
+            out.append("device state %s %s: state image %s, trace %s%s" % (
+                names.get(key, "entry"), key, a, b, hint.get(key, "")))
+    return out
+
+
 def check(path, max_instructions=None, top="cpu", wav=None, realtime=False, frame=None,
           state=None, w0=None, w1=None, rt_voices=False, stall=None, cfg=0, stm=None,
           poly_dump=None, outputs=0, printer_osd=False, print_file=None):
@@ -640,7 +876,14 @@ def check(path, max_instructions=None, top="cpu", wav=None, realtime=False, fram
     printer_osd (board): the OSD's printer item on (M21). print_file (board):
     the capture file for SD slot S6 (started blank, written at the end); if
     the trace has a TRACE.prn (w0boot --printer: what Python printed), the
-    captured bytes must equal it."""
+    captured bytes must equal it. With a state image the trace header's
+    device state must equal the image's first (state_image_mismatches);
+    otherwise check fails at once, without running the bench."""
+    if top == "board" and state:
+        bad = state_image_mismatches(path, state, cfg=cfg, printer_osd=printer_osd)
+        if bad:
+            return False, ("trace was recorded with other options than the state image %s:\n%s\n"
+                           % (state, "\n".join(bad)))
     cmd = [build(top), path] + ([str(max_instructions)] if max_instructions else [])
     env = dict(os.environ)
     if frame:
@@ -693,41 +936,87 @@ def expected_wav(trace_path, wav_path):
     """The WAV pcm_out.sv gives for the audio samples in a trace: sim/pcm.py's
     decimator from the trace start. Returns the frame count."""
     from . import pcm
-    frames = pcm.frames(list(_trace_audio(trace_path)))
+    frames = pcm.frames(list(trace_audio(trace_path)))
     pcm.write_wav(wav_path, frames)
     return len(frames)
 
 
-def _trace_audio(path):
-    """The 'A' samples of a trace, in order."""
-    b = open(path, "rb").read()
-    p = len(MAGIC) + 33 + 131072
-    while True:
-        k = b[p:p + 1]
-        p += 1
-        if k == b"B":
-            break
-        if k == b"X":
-            p += 4 + struct.unpack_from("<I", b, p)[0] * 512
-        elif k == b"F":
-            p += 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
-        elif k == b"V":
-            p += 7
-        elif k == b"O":
-            p += 12 + 4 * b[p + 11]
-        elif k == b"C":
-            p += 18
-    sizes = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
-             b"w": 4, b"K": 4, b"A": 16}
+def _header_size(b, p, k):
+    """Payload size of header section `k` whose payload starts at b[p]."""
+    if k == b"X":
+        return 4 + struct.unpack_from("<I", b, p)[0] * 512
+    if k == b"F":
+        return 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
+    if k == b"V":
+        return 7
+    if k == b"O":
+        return 12 + 4 * b[p + 11]
+    if k == b"C":
+        return 18
+    raise ValueError("bad header section %r at byte %d" % (k, p - 1))
+
+
+def _event_size(b, p, k):
+    """Payload size of event `k` whose payload starts at b[p]."""
+    n = EVENT_SIZES.get(k)
+    if n is not None:
+        return n
+    if k == b"T":
+        return 6 + struct.unpack_from("<H", b, p + 4)[0]
+    if k == b"D":
+        return 3 + 2 * bin(struct.unpack_from("<H", b, p)[0]).count("1")
+    if k == b"M":
+        n = struct.unpack_from("<I", b, p + 131072)[0]
+        q = p + 131072 + 4 + 2 * n
+        return q + 1 + (13 if b[q] else 0) - p      # c, then 13 bytes of Model C/D state
+    raise ValueError("bad event %r at byte %d" % (k, p - 1))
+
+
+def iter_trace(data):
+    """The records of a trace (a path or its bytes), in order: (kind, payload)
+    for each header section, (b"B", b"") at the end of the header, then each
+    event up to and including 'E'. kind is a 1-byte bytes, payload a
+    memoryview. Raises ValueError on a bad magic, an unknown section or event
+    kind, a truncated record, or a trace that does not end with 'E'."""
+    b = data if isinstance(data, (bytes, bytearray)) else open(data, "rb").read()
+    if b[:len(MAGIC)] != MAGIC:
+        raise ValueError("not a lockstep trace (%r)" % bytes(b[:len(MAGIC)]))
+    m = memoryview(b)
+    p = HEADER_START
+    in_header = True
     while p < len(b):
-        k = b[p:p + 1]
+        k = bytes(b[p:p + 1])
         p += 1
-        if k == b"T":
-            p += 6 + struct.unpack_from("<H", b, p + 4)[0]
+        if in_header and k == b"B":
+            in_header = False
+            yield k, m[p:p]
             continue
+        n = _header_size(b, p, k) if in_header else _event_size(b, p, k)
+        if p + n > len(b):
+            raise ValueError("record %r at byte %d runs past the end" % (k, p - 1))
+        yield k, m[p:p + n]
+        p += n
+        if k == b"E" and not in_header:
+            if p != len(b):
+                raise ValueError("%d bytes after 'E'" % (len(b) - p))
+            return
+    raise ValueError("trace ends without 'E'" if not in_header else "trace ends in the header")
+
+
+def trace_audio(path):
+    """The 'A' samples of a trace, in order, as (left, right)."""
+    for k, v in iter_trace(path):
         if k == b"A":
-            yield struct.unpack_from("<qq", b, p)
-        p += sizes[k]
+            yield struct.unpack("<qq", v)
+
+
+def trace_counts(path):
+    """How many records of each kind a trace holds ({kind: count}, header
+    sections included; b"V" counts device-state entries)."""
+    c = {}
+    for k, _ in iter_trace(path):
+        c[k] = c.get(k, 0) + 1
+    return c
 
 
 def ork_lm_note_actions(cpu, dbg, image):
@@ -957,6 +1246,9 @@ def main(argv=None):
     ap.add_argument("args", nargs="+", help="[IMAGE] TRACE")
     ap.add_argument("--instructions", type=int, default=1_000_000)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--regs-every", type=int, default=1,
+                    help="registers and flags compared after every N instructions (0: only "
+                         "at the 256-instruction snapshots)")
     ap.add_argument("--model", default="B")
     ap.add_argument("--top", choices=tuple(TOPS), default="cpu", help="HDL top for check")
     ap.add_argument("--audio", action="store_true", help="also record voice engine samples")
@@ -1108,7 +1400,7 @@ def main(argv=None):
         actions.append((11_000_000_000, lambda c: c.terminal.feed(text)))
     n = record(cpu, path, a.instructions,
                on_wait=on_wait if a.mode == "monitor" or (a.mode == "w0boot" and a.commands) else None,
-               actions=actions, audio=a.audio)
+               actions=actions, audio=a.audio, regs_every=a.regs_every)
     if a.mode == "monitor" or (a.mode == "w0boot" and a.commands):
         print(cpu.terminal.text()[-600:], file=sys.stderr)
     if a.mode == "w0boot" and a.dig_stm:

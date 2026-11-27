@@ -6,7 +6,7 @@ do: restore, load the track register, seek through D103, set and verify
 the sector register, issue read (210), and assemble words from byte pairs
 with BSOR while polling DRQ.
 
-Run:  python3 tests/sim/test_floppy.py
+Run:  pypy3 tests/sim/test_floppy.py
 """
 import os
 import sys
@@ -177,7 +177,6 @@ def test_unmodelled_command_halts():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

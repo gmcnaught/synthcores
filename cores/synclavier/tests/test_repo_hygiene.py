@@ -5,7 +5,7 @@ provenance"). Checks the files git tracks.
 Built cores are not committed here: released RBFs go to the synclavierii
 release repository.
 
-Run:  python3 tests/test_repo_hygiene.py
+Run:  pypy3 tests/test_repo_hygiene.py
 """
 import os
 import re
@@ -48,9 +48,8 @@ if __name__ == "__main__":
     # ROOT may be a subfolder of a larger repo (cores/synclavier in the monorepo)
     if subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=ROOT,
                       capture_output=True).returncode != 0:
-        print("not a git checkout; skipped")
-        sys.exit(0)
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+        print("SKIP: not a git checkout")
+        sys.exit(77)
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

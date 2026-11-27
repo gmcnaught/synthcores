@@ -10,13 +10,14 @@ shows the same text as the terminal.
 
 Needs Verilator (skipped otherwise).
 
-Run:  python3 tests/hdl/test_board.py
+Run:  pypy3 tests/hdl/test_board.py
 """
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 sys.path.insert(0, ROOT)
@@ -28,6 +29,51 @@ HAVE_VERILATOR = shutil.which("verilator") is not None
 def test_boot_defaults_up_to_date():
     from tools.gen_boot_defaults import PATH, text
     assert open(PATH).read() == text(), "run python3 tools/gen_boot_defaults.py"
+
+
+def test_boot_defaults_match_fresh_system():
+    """boot_defaults.svh against a fresh Python system, not against its
+    generator: the device and voice writes are the ones a state image of
+    that system has (tools/state_image.py), the FM channels' oscillator
+    words are the voice model's own (acc, prescale, point), and the CPU
+    registers are cpu.r (review 2026-11-26 sync-hdl #4: channel 0 had acc 16)."""
+    import re
+    from tools.gen_boot_defaults import PATH
+    from tools.state_image import entries
+    from sim.lockstep import _Audio
+    from sim.system import make_system
+    got = [tuple(int(x) for x in m) for m in re.findall(
+        r"9'd\d+: boot_default = \{2'd(\d+), 3'd(\d+), 13'd(\d+), 64'd(\d+)\};", open(PATH).read())]
+    cpu = make_system(floppy=True, synth=True)
+    want = entries(cpu)
+    assert len(want) > 16 and got[:len(want)] == want, "device/voice entries differ from state_image"
+    chans = _Audio(cpu.fm).synth.ch
+    for c, ch in enumerate(chans[:16]):
+        o = ch.osc
+        assert (1, 0, c, o.acc << 15 | o.prescale << 8 | o.point) in got, ("channel", c)
+    regs = {a: d for k, s, a, d in got if k == 2}
+    assert [regs[i] for i in range(16)] == list(cpu.r), "registers"
+
+
+def test_vendor_attributes_listed():
+    """Quartus attributes in the core's HDL are only the ones the repository's
+    CLAUDE.md lists under "Vendor code" (review 2026-11-26 sync-hdl #7)."""
+    import glob
+    import re
+    allowed = {"hdl/dev/pcm_reverb.sv": {"ramstyle", "max_depth"},
+               "hdl/dev/dev_fm.sv": {"multstyle"}, "hdl/dev/dev_floppy.sv": {"multstyle"}}
+    found = {}
+    for path in glob.glob(os.path.join(ROOT, "hdl", "**", "*.sv"), recursive=True):
+        rel = os.path.relpath(path, ROOT).replace(os.sep, "/")
+        if rel.startswith("hdl/sim/"):
+            continue
+        for attrs in re.findall(r"\(\*\s*(.*?)\s*\*\)", open(path).read()):
+            found.setdefault(rel, set()).update(a.split("=")[0].strip() for a in attrs.split(","))
+    assert found == allowed, found
+    claude = open(os.path.join(ROOT, "..", "..", "CLAUDE.md")).read()
+    vendor = claude[claude.index("**Vendor code:**"):claude.index("**ROMs:**")]
+    for rel in allowed:
+        assert os.path.basename(rel) in vendor, "CLAUDE.md does not list " + rel
 
 
 def test_panel_labels_up_to_date():
@@ -76,8 +122,7 @@ def test_audio_fifo():
     """Samples arriving with jitter play at a steady rate, in order; a stall
     is one underrun with the last sample held."""
     if not HAVE_VERILATOR:
-        print("  skip test_audio_fifo (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("audio_fifo", "../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv")
 
 
@@ -137,15 +182,13 @@ def test_term_display_vt100():
     for a stream with every handled sequence and (with the image) the
     bytes ORK-LM sends for its welcome menu."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vt100 (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     t = _vt100_check(VT100_STREAM, "synthetic")
     # four lines scrolled: the titles are now rows 2-4
     assert t.text()[2].startswith("    BIG TITLE") and t.attr[2:5] == [1, 2, 3], (t.text(), t.attr)
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image:
-        print("  skip ORK-LM welcome menu (needs SYNCLAVIER_RELEASE_L)")
-        return
+        raise unittest.SkipTest("synthetic stream passed; ORK-LM welcome menu needs SYNCLAVIER_RELEASE_L")
     from sim.rtp import run_seconds, start_rtp
     out = bytearray()
     cpu, dbg, _ = start_rtp(image, "ORK-LM")
@@ -183,8 +226,7 @@ VT640_STREAM = (
 def test_term_display_vt640():
     """VT640 mode: the picture equals tools/vt100.py Terminal(vt640=True)."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vt640 (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _vt640_check(VT640_STREAM, "vt640")
     # a clear and the same again: identical
     _vt640_check(VT640_STREAM + b"\x1d\x1b\x0c\x18" + VT640_STREAM, "vt640 twice")
@@ -219,8 +261,7 @@ def test_term_display_readback():
     equal tools/vt100.py readback_reply for every line of a drawn screen
     sampled, after the drawing and between drawings."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_readback (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     from tools.vt100 import Terminal
     cmds = b"".join(b"\x1b\"0;%d;128c" % y for y in (479, 470, 400, 333, 250, 100, 12, 0))
     data = (VT640_STREAM + b"\x1d" + cmds + b"\x1b\"0;600;128c\x1b\"0;5;7c\x1b\"0;5;100C"
@@ -244,8 +285,7 @@ def test_term_display_readback():
 def test_panel_mouse():
     """Mouse packets -> pointer (clamped) and panel button presses."""
     if not HAVE_VERILATOR:
-        print("  skip test_panel_mouse (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("panel_mouse", "hdl/core/panel_mouse.sv")
 
 
@@ -253,8 +293,7 @@ def test_term_display_panel():
     """One clock per pixel (the MiSTer setting): terminal text, lit buttons
     shown inverted, display digits with the decimal point, the pointer."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_panel (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     from tools.gen_font import glyphs
     from tools.gen_panel_labels import labels
     tmp = tempfile.mkdtemp()
@@ -286,8 +325,7 @@ def test_term_display_stall_view():
     """The status line's stall view (stall_view = 1): lag by cause, seven
     fields of 11 columns (able_system.sv STALL_* order)."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_stall_view (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     tmp = tempfile.mkdtemp()
     try:
         frame = os.path.join(tmp, "frame.pgm")
@@ -306,8 +344,7 @@ def test_term_display_vpk():
     the 160 labels by PBN; a lit label (state 1, and 3) inverted in both
     blink phases, a blinking one (state 2) only in the second."""
     if not HAVE_VERILATOR:
-        print("  skip test_term_display_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     tmp = tempfile.mkdtemp()
     try:
         frames = [os.path.join(tmp, "frame%d.pgm" % i) for i in (1, 2)]
@@ -333,8 +370,7 @@ def test_dev_scsi():
     """The SCSI host and disk (hdl/dev/dev_scsi.sv): the sequences of
     tests/sim/test_scsi.py, including MONITOR 5.3's manual last byte."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_scsi (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("dev_scsi", "hdl/dev/dev_scsi.sv")
 
 
@@ -539,8 +575,7 @@ def test_poly_box():
     """M26: the poly output at the 768 kHz instants (hdl/dev/poly_box.sv)
     against sim/pcm.py PolyBox and x_in, at each OSD FM/Poly level (#76)."""
     if not HAVE_VERILATOR:
-        print("  skip test_poly_box (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -588,8 +623,7 @@ def pcm_limit_stimulus(path, seed=1, n=6000):
 def test_pcm_limit():
     """#76: the output limiter (hdl/dev/pcm_limit.sv) against sim/pcm.py Limiter."""
     if not HAVE_VERILATOR:
-        print("  skip test_pcm_limit (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -644,8 +678,7 @@ def pcm_reverb_stimulus(path, seed=1, n=30000):
 def test_pcm_reverb():
     """The output reverb (hdl/dev/pcm_reverb.sv) against sim/pcm.py Reverb."""
     if not HAVE_VERILATOR:
-        print("  skip test_pcm_reverb (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -662,8 +695,7 @@ def test_dev_poly():
     """The poly synth (hdl/dev/dev_poly.sv) against sim/devices/poly.py:
     every register read and P(m) of a random register stream."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_poly (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
         path = f.name
@@ -687,6 +719,303 @@ def test_dev_poly():
                   [ln for ln in out.splitlines() if "dev_poly OK" in ln][0]))
     finally:
         os.unlink(path)
+
+
+# Voice time 8.21 ms before 2^48 ns (78.2 h, the old 48-bit wrap), a multiple
+# of 49.5 ms: the rate (9900 ns), envelope (40 us) and 768 kHz instant grids
+# fall on it as they fall on 0, so the benches see the same deadlines as a
+# core that has run 78 h since reset (review 2026-11-26 sync-hdl #1).
+VOICE_T0_WRAP = (2 ** 48 - 1_000_000) // 49_500_000 * 49_500_000
+
+
+def test_dev_poly_wrap():
+    """dev_poly started 8 ms before the old 48-bit wrap of its ns clock: every
+    register read and P(m) of the random register stream still matches
+    sim/devices/poly.py (64 ms of voice time)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_stimulus(path)
+        out = _testbench("dev_poly", "hdl/dev/dev_poly.sv",
+                         args=["+stim=" + path, "+voice_t0=%d" % VOICE_T0_WRAP])
+        print("  t0 2^48 - %d ns: %s" % (2 ** 48 - VOICE_T0_WRAP,
+                                         [ln for ln in out.splitlines() if "dev_poly OK" in ln][0]))
+    finally:
+        os.unlink(path)
+
+
+def test_poly_box_wrap():
+    """poly_box started 8 ms before the old 48-bit wrap: the x' at 9000
+    instants (11.7 ms) still match sim/pcm.py PolyBox."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_box_stimulus(path, seed=6, instants=9000)
+        out = _testbench("poly_box", "hdl/dev/poly_box.sv",
+                         args=["+stim=" + path, "+voice_t0=%d" % VOICE_T0_WRAP])
+        print("  t0 2^48 - %d ns: %s" % (2 ** 48 - VOICE_T0_WRAP,
+                                         [ln for ln in out.splitlines() if "poly_box OK" in ln][0]))
+    finally:
+        os.unlink(path)
+
+
+def poly_wrap_writes(path):
+    """Register writes for hdl/sim/poly_wrap_tb.sv: POLY.CHECK-style init of
+    bin 0, a sine table at word 1000 and four looping voices with open
+    envelopes and volumes, so P(m) is not zero."""
+    import math
+    out = []
+
+    def fc(ch, f, *words):
+        out.append("W 1 %d" % ch)
+        out.append("W 2 %d" % f)
+        out.extend("W 3 %d" % (x & 0xFFFF) for x in words)
+
+    def two(v):
+        v &= 0xFFFFFFF
+        return [v >> 8 & 0xFFFF, (v >> 24) << 8 | v & 0xFF]
+
+    for ch in range(64):
+        fc(ch, 0, 0xFFFF, 0xFFFF, 0, 255, 0xFFFF, 0xFFFF, 0, 0, 255, 0, 0)
+        if ch < 32:
+            fc(ch, 33, 4095, 4095, 1, 4095, 4095, 0, 0)
+            fc(ch, 40, 0, 0, 0, 0)
+    fc(0, 16, *two(1000), *[int(20000 * math.sin(i / 7.0)) for i in range(3000)])
+    for ch, (inc, mod) in enumerate(((1, 1), (3, 7), (5, 11), (200, 256))):
+        fc(ch, 10, 0)
+        fc(ch, 0, *(two(-2900) + two(1000) + two(-250) + two(1)), inc - 1, 256 - mod, 3)
+        fc(ch, 33, 4095, 4000, 1 + 20 * ch, 4095, 4095, 4095, 4095)
+        fc(ch, 40, 4095, 4095, 3000, 2000)
+    with open(path, "w") as f:
+        f.write("\n".join(out) + "\n")
+
+
+def test_poly_wrap():
+    """dev_poly + poly_box across the old 48-bit wrap, in both voice clock
+    modes: on CPU time (poly_box's stall stops voice time: the 48-bit clocks
+    hung the core here) and on real time (rate passes stopped, P held). The
+    output from 8 ms before 2^48 ns must equal the output from 0."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
+        path = f.name
+    try:
+        poly_wrap_writes(path)
+        for hold in (1, 0):
+            res = []
+            for t0 in (0, VOICE_T0_WRAP):
+                out = _testbench("poly_wrap", ("hdl/dev/dev_poly.sv", "hdl/dev/poly_box.sv"),
+                                 args=["+stim=" + path, "+hold=%d" % hold, "+run_ns=12000000",
+                                       "+voice_t0=%d" % t0])
+                res.append([ln for ln in out.splitlines() if "poly_wrap OK" in ln][0])
+            assert res[0] == res[1], "voice time from 0 and from 2^48 - %d ns differ:\n  %s\n  %s" % (
+                2 ** 48 - VOICE_T0_WRAP, res[0], res[1])
+            assert " 0 non-zero" not in res[0], res[0]
+            print("  " + res[0])
+    finally:
+        os.unlink(path)
+
+
+def test_sd_word_arb():
+    """The SD word port (hdl/core/sd_word_arb.sv + sd_floppy.sv): floppy and
+    SCSI words, most SCSI requests starting on the clock a floppy word
+    is acked; every read returns its own drive's word (review 2026-11-26
+    sync-hdl #2: the SCSI host took the floppy's ack and data)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("sd_word_arb", ("hdl/core/sd_floppy.sv", "hdl/core/sd_word_arb.sv"),
+                     args=["+ops=3000"])
+    print("  " + [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0])
+
+
+def test_sd_floppy_no_starvation():
+    """A floppy word pending while the SCSI side reads words in order with a
+    background read of the next line after each one (sd_word_arb_tb +starve):
+    the floppy word is served while the stream goes on, even with SCSI words
+    0-1 clocks apart (denser than the CPU makes them). The background read can
+    evict the floppy's block before it is served and cost more line reads, but
+    not forever; and the CPU's next D100-D104 access is held while the copy is
+    pending (dev_floppy `ack`), which stops the SCSI words (dev_scsi fetches
+    only on a CPU access)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    for lo, hi, seed in ((0, 1, 3), (2, 20, 1)):
+        out = _testbench("sd_word_arb", ("hdl/core/sd_floppy.sv", "hdl/core/sd_word_arb.sv"),
+                         args=["+starve=1", "+scsi_words=60000", "+gap_lo=%d" % lo, "+gap_hi=%d" % hi,
+                               "+seed=%d" % seed])
+        line = [ln for ln in out.splitlines() if "sd_word_arb OK" in ln][0]
+        assert "during the SCSI stream" in line, line
+        print("  " + line)
+
+
+def big_state_image(sectors=8192, entries=40):
+    """A version 2 state image (tools/state_image.py's format) with all
+    `sectors` of external memory stored: 1 + entry blocks + 16 + 256 +
+    sectors blocks, over 4096 for the default 8192. Memory words are a
+    pattern of their address; entries are device writes (D57 = word i)."""
+    import struct
+    hdr = b"SYNCSTAT" + struct.pack(">HHHH", 2, sectors, entries, sectors)
+    hdr += struct.pack(">16HH", *[(0o1000 + 37 * r) & 0xFFFF for r in range(16)], 0)
+    hdr += struct.pack(">10H", 1, 0, 0o1000, 0, 0, 0, 0, 0, 0, 0) + struct.pack(">H", 0)
+    out = bytearray(hdr.ljust(512, b"\0"))
+    ent = b"".join(struct.pack(">HHHHQ", 0, 0, 0o57, 0, i) for i in range(entries))
+    out += ent.ljust(-(-len(ent) // 512) * 512, b"\0")
+    out += bytes(32 * 256)                                        # wave memory
+    out += struct.pack(">65536H", *[(i * 5 ^ 0x1234) & 0xFFFF for i in range(65536)])
+    out += struct.pack(">%dH" % (sectors * 256),
+                       *[(i * 7 + (i >> 8) * 13 + 1) & 0xFFFF for i in range(sectors * 256)])
+    return bytes(out)
+
+
+def test_boot_loader_big_state_image():
+    """The boot loader loads a state image of 8465 blocks (8192 external
+    memory sectors, the most the header check accepts): every external
+    memory word lands where it belongs (review 2026-11-26 sync-hdl #3: a
+    20-bit word pointer wrapped at 4096 blocks)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    with tempfile.NamedTemporaryFile(suffix=".sst", delete=False) as f:
+        f.write(big_state_image())
+        path = f.name
+    try:
+        out = _testbench("boot_loader", "hdl/core/boot_loader.sv", args=["+image=" + path])
+        print("  " + [ln for ln in out.splitlines() if "boot_loader OK" in ln][0])
+    finally:
+        os.unlink(path)
+
+
+def test_midi_out():
+    """The MIDI out line (synthframe_midi_tx, ready while idle, as
+    synclavier_core wires it to dev_midi): every byte and every bit's width at
+    31250 and 9600 baud, `alt` sampled per byte (review 2026-11-26 sync-hdl #5).
+    +alt_idle: alt changes only between bytes, where the old midi_uart_tx
+    gave the same line."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    for args in ([], ["+alt_idle=1"]):
+        out = _testbench("midi_out", "../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv", args)
+        print("  " + [ln for ln in out.splitlines() if "midi_out OK" in ln][0])
+
+
+PAGED_MAIN = """
+        PCI TO D11          ; page 1 (external memory words 200000-377777): the
+        DATA 400            ; next fetch, R17 = 2, is from there
+"""
+
+PAGED_CODE = """
+        PCI TO R4           ; a literal from the page
+        DATA 12345
+        R4 TO R3
+        IM(1) TO SUB3
+        PCI TO D11          ; page 4: beyond 1024 installed sectors
+        DATA 2000
+"""
+
+
+def test_model_d_fetch_beyond_memory():
+    """Model D code from a page of external memory, then from a page beyond
+    the installed 1024 sectors, on the system top in lockstep with sim/cpu.py:
+    those words read 177777 as D62/D63 do there (review 2026-11-26, Model D
+    fetch with no installed-size check, found by the sync-py agent)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    from sim.asm import assemble
+    from sim.system import make_system
+    cpu = make_system(model="D", ext_sectors=1024)
+    words, _ = assemble(PAGED_MAIN)
+    cpu.load(words)
+    code, _ = assemble(PAGED_CODE)
+    for i, w in enumerate(code):                 # at R17 = 2 on page 1
+        cpu.extmem.data[0o200000 + 2 + i] = w
+    with tempfile.NamedTemporaryFile(suffix=".trace", delete=False) as f:
+        path = f.name
+    try:
+        n = record(cpu, path, 200)
+        ok, text = check(path, top="system")
+    finally:
+        os.unlink(path)
+    assert ok, text
+    assert cpu.page == 0o2000 and n > 10, (oct(cpu.page), n)
+    print("  %d instructions, the last from page 4 (%s)" % (n, cpu.halted.reason if cpu.halted else "running"))
+
+
+def _state_scsi_time(path):
+    """(disk ns per block, seek ns) in a state image's device entries (device 3
+    indices 11 and 12; 0 when absent)."""
+    import struct
+    with open(path, "rb") as f:
+        b = f.read()
+    got = {11: 0, 12: 0}
+    for i in range(struct.unpack_from(">H", b, 12)[0]):
+        kind, sel, addr, _, data = struct.unpack_from(">HHHHQ", b, 512 + 16 * i)
+        if kind == 0 and sel == 3 and addr in got:
+            got[addr] = data
+    return got[11], got[12]
+
+
+def test_board_w0_syn53_disk_time():
+    """Release 5.3 from W0 on the board top in lockstep with Python: SYN-5.3
+    (poly, VPK, 8 FM voices) from tools/w0_image.py's state image, with its
+    default SCSI disk time (500 us a block) and seek time (25 ms), 300,000
+    instructions. The trace must be recorded with the same disk and seek
+    time as the state image: a trace without them (w0boot's default) against
+    this image diverges at instruction 143102, where SYN-5.3 polls D25 for
+    REQ that the HDL's disk has not raised yet (review 2026-11-26 follow-up).
+    Needs SYNCLAVIER_W0_RAW (Synclavier3's "W0 Disk Image.simg")."""
+    import unittest
+    raw = os.environ.get("SYNCLAVIER_W0_RAW")
+    if not raw or not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs SYNCLAVIER_W0_RAW and verilator")
+    tmp = tempfile.mkdtemp()
+    try:
+        subprocess.run([sys.executable, os.path.join(ROOT, "tools", "w0_image.py"), raw, tmp,
+                        "--fm-voices", "8"], check=True, capture_output=True, cwd=ROOT)
+        img, state = os.path.join(tmp, "W0-53.IMG"), os.path.join(tmp, "W0-53-FM8.SST")
+        disk_ns, seek_ns = _state_scsi_time(state)
+        assert (disk_ns, seek_ns) == (500_000, 25_000_000), (disk_ns, seek_ns)
+        trace = os.path.join(tmp, "w0.trace")
+        subprocess.run([sys.executable, "-m", "sim.lockstep", "w0boot", img, trace, "--poly", "--vpk",
+                        "--instructions", "300000", "--disk-us", str(disk_ns // 1000),
+                        "--seek-us", str(seek_ns // 1000)], check=True, capture_output=True, cwd=ROOT)
+        ok, text = check(trace, top="board", state=state, w0=img)
+        assert ok, text
+        print("  " + [ln for ln in text.splitlines() if "lockstep OK" in ln][0])
+    finally:
+        shutil.rmtree(tmp)
+
+
+def test_term_rx_mux():
+    """Terminal input from the board simulation, the VT640 read-back and the
+    keyboard, often on the same clock: every byte arrives once and in order
+    (review 2026-11-26 sync-hdl #8: a keyboard byte on a read-back byte's
+    clock was lost)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("term_rx_mux", "hdl/core/term_rx_mux.sv")
+    print("  " + [ln for ln in out.splitlines() if "term_rx_mux OK" in ln][0])
+
+
+def test_dev_terminal_fifo_full():
+    """dev_terminal's input FIFO drops bytes when full instead of wrapping to
+    empty (review 2026-11-26 sync-hdl #8)."""
+    import unittest
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs verilator")
+    out = _testbench("dev_terminal", "hdl/dev/dev_terminal.sv")
+    print("  " + [ln for ln in out.splitlines() if "dev_terminal OK" in ln][0])
 
 
 def vpk_stimulus(path, seed=1, ops=4000):
@@ -768,8 +1097,7 @@ def vpk_stimulus(path, seed=1, ops=4000):
 def test_dev_vpk():
     """The velocity keyboard (hdl/dev/dev_vpk.sv) against sim/devices/synth.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -836,8 +1164,7 @@ def midi_stimulus(path, seed=1, ops=6000):
 def test_dev_midi():
     """The MIDI subsystem card (hdl/dev/dev_midi.sv) against sim/devices/midi.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_midi (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -939,8 +1266,7 @@ def test_dig_stm():
     """The digital STM handler (hdl/core/dig_stm.sv) against
     sim/devices/digstm.py: results, D157 writes, frame timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_dig_stm (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1040,8 +1366,7 @@ def smpte_stimulus(path, seed=1, runs=24):
 def test_dev_smpte():
     """The SMPTE reader (hdl/dev/dev_smpte.sv) against sim/devices/smpte.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_dev_smpte (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2, 3):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1134,8 +1459,7 @@ def test_print_capture():
     hdl/core/print_capture.sv) against sim/devices/printer.py and the
     capture file format of tools/print_render.py."""
     if not HAVE_VERILATOR:
-        print("  skip test_print_capture (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     import tempfile
     for seed in (1, 2):
         with tempfile.NamedTemporaryFile(suffix=".stim", delete=False) as f:
@@ -1153,43 +1477,38 @@ def test_crt_adjust():
     """CRT Adjust: Off is a passthrough; H-Size resamples each line about its
     centre; H-Position / V-Shift move only the sync pulses."""
     if not HAVE_VERILATOR:
-        print("  skip test_crt_adjust (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("crt_adjust", "hdl/core/crt_adjust.sv")
 
 
 def test_ps2_ascii():
     if not HAVE_VERILATOR:
-        print("  skip test_ps2_ascii (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("ps2_ascii", "hdl/core/ps2_ascii.sv")
 
 
 def test_midi_vpk():
     """MIDI messages -> velocity keyboard host ops; knob pulse and tap timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_vpk (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_vpk", "hdl/core/midi_vpk.sv")
 
 
 def test_midi_in():
     """MIDI bytes -> clavier/panel words; program change button timing."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_in (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_in", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv"))
 
 
 def test_midi_card():
     """MIDI bytes -> midi_in -> midi_card_feed: the bytes the MIDI card
-    receives (panel controls kept back); MIDI out (midi_uart_tx) at 31250
+    receives (panel controls kept back); MIDI out (synthframe_midi_tx) at 31250
     and 9600 baud."""
     if not HAVE_VERILATOR:
-        print("  skip test_midi_card (needs verilator)")
-        return
+        raise unittest.SkipTest("needs verilator")
     _testbench("midi_card", ("../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv", "hdl/core/midi_in.sv", "hdl/core/midi_card_feed.sv",
-                             "hdl/dev/dev_midi.sv"))
+                             "../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv"))
 
 
 def read_frame(path):
@@ -1228,8 +1547,7 @@ def expected_panel(display="    ", units=0, vpk=False, lit=(), status=None):
 def test_board_boots_release_l():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_board_boots_release_l (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.boot import boot_from_image
     cpu, _ = boot_from_image(image, "03-SYSTD", f1="18-UTILS")
     lines = ["CATALOG\r"]
@@ -1273,8 +1591,7 @@ def test_board_state_image_ork_lm():
     every audio sample included; the panel shows the lights and display."""
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_board_state_image_ork_lm (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.lockstep import ork_lm_note_actions
     from sim.rtp import start_rtp
     from tools.state_image import state_bytes
@@ -1303,7 +1620,6 @@ def test_board_state_image_ork_lm():
 
 
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())

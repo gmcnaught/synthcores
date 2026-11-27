@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Self-test for tools/able_disasm.py (stdlib only).
 
-Run:  python3 tests/test_able_disasm.py
+Run:  pypy3 tests/test_able_disasm.py
 """
 import os
 import re
@@ -55,7 +55,6 @@ def test_known_words():
 
 
 if __name__ == "__main__":
-    test_known_words()
-    test_relative_targets()
-    test_listing_matches()
-    print("OK")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "."))
+    from testlib import run_tests
+    run_tests(globals())

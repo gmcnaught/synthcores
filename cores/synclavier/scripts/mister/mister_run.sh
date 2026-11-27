@@ -32,7 +32,7 @@ for f in "$F0" "$F1"; do
 done
 S2=""
 if [ "$STATE" = 1 ]; then
-    [ -f "$OUT/ORK-LM.SST" ] || python3 tools/state_image.py "$IMG" "$OUT/ORK-LM.SST"
+    [ -f "$OUT/ORK-LM.SST" ] || ${PYTHON:-pypy3} tools/state_image.py "$IMG" "$OUT/ORK-LM.SST"
     # mounted first: the boot loader takes S2 if it is there when it starts
     S2='    <file delay="2" type="s" index="2" path="ORK-LM.SST"/>'
 fi

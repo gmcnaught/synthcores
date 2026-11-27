@@ -5,16 +5,18 @@ Needs Verilator (skipped otherwise). Random programs with random device
 data and interrupts; with SYNCLAVIER_RELEASE_L set, also MONITOR's boot
 and CATALOG.
 
-Run:  python3 tests/hdl/test_lockstep.py
+Run:  pypy3 tests/hdl/test_lockstep.py
 """
 import os
 import re
 import shutil
 import sys
 import tempfile
+import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-from sim.lockstep import check, expected_wav, random_cpu, record  # noqa: E402
+from sim.lockstep import (HEADER_START, check, expected_wav, iter_trace, random_cpu,  # noqa: E402
+                          record, trace_audio, trace_counts)
 
 HAVE_VERILATOR = shutil.which("verilator") is not None
 
@@ -33,8 +35,7 @@ def _check(cpu, n, **kw):
 
 def test_random_programs():
     if not HAVE_VERILATOR:
-        print("  skip test_random_programs (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     for seed in range(60):
         assert _check(random_cpu(1000 + seed), 3000) == 3000   # Model B: ADC/SBB are no-ops
 
@@ -43,10 +44,164 @@ def test_random_programs_model_c():
     """Model C extensions (D10 repeat/link, D2, R12 stack, ADC/SBB and the
     interrupt delays after PCW writes and jumps) on random programs."""
     if not HAVE_VERILATOR:
-        print("  skip test_random_programs_model_c (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     for seed in range(40):
         assert _check(random_cpu(2000 + seed, "C"), 3000) == 3000
+
+
+def test_random_programs_model_d():
+    """Review 2026-11-26 sync-py #3: Model D on random programs: code
+    fetched from external memory pages (D11; the HDL's S_CFETCH / S_CSRC
+    states), PCI literals from the page, D11/D57 reads, page switches by
+    random D11 writes, page 0 (internal memory) and pages beyond the
+    installed memory (177777, as sim/cpu.py _code_read)."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    paged = beyond = switches = 0
+    for seed in range(40):
+        cpu = random_cpu(3000 + seed, "D")
+        installed = len(cpu.extmem.data)
+        pages = []
+        cpu.trace = lambda c, pc, w: pages.append(c.page)
+        assert _check(cpu, 3000) == 3000
+        base = [p >> 8 << 16 for p in pages]
+        paged += sum(1 for b in base if 0 < b < installed)
+        beyond += sum(1 for b in base if b >= installed)
+        switches += sum(1 for a, b in zip(pages, pages[1:]) if a != b)
+    # every kind of fetch happened, many times
+    assert paged > 10_000 and beyond > 1000 and switches > 30, (paged, beyond, switches)
+
+
+def test_random_programs_model_d_system():
+    """Model D on the system top (hdl/able_system.sv: code fetch through
+    code_cache from external memory, D60-D63 writes to the same memory, the
+    HDL devices), random programs: sim.lockstep.random_system. Pages past
+    the installed external memory (2048 sectors: pages 1-8) must read
+    177777 as in sim/cpu.py _code_read.
+
+    KNOWN FAILURE until able_system.sv checks the installed size on code
+    fetches (review 2026-11-26; reported to sync-hdl, which owns the fix):
+    seeds that fetch from such a page differ, e.g. 4003 at instruction 530
+    "HDL completed 166563 163700, Python 166563 177777"."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    from sim.lockstep import random_system
+    paged = beyond = switches = 0
+    bad = []
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "s.trace")
+        for seed in range(4000, 4016):
+            cpu = random_system(seed)
+            installed = len(cpu.extmem.data)
+            pages = []
+            cpu.trace = lambda c, pc, w: pages.append(c.page)
+            assert record(cpu, path, 3000) == 3000, (seed, cpu.halted)
+            ok, text = check(path, top="system")
+            if not ok:
+                bad.append("seed %d: %s" % (seed, text.strip().splitlines()[0]))
+            base = [p >> 8 << 16 for p in pages]
+            paged += sum(1 for b in base if 0 < b < installed)
+            beyond += sum(1 for b in base if b >= installed)
+            switches += sum(1 for a, b in zip(pages, pages[1:]) if a != b)
+    assert paged > 10_000 and beyond > 10_000 and switches > 10, (paged, beyond, switches)
+    assert not bad, "%d of 16 seeds differ:\n%s" % (len(bad), "\n".join(bad))
+
+
+# A short program that never reads R5, D2 or memory 7000-7777 back: a
+# difference there shows only in the per-instruction register check ('D')
+# or the end state ('M'). Stops on a read of D6, which has no SYN.
+QUIET_PROGRAM = """
+        IM(1) TO R0
+        IM(2) TO R1
+        IM(3) TO R2
+        IM(4) TO R3
+        IM(5) TO R4
+        IM(6) TO R6
+        IM(7) TO R5         ; R5 overwritten here
+        IM(1) TO R0
+        D6 TO R0            ; no SYN: halt
+"""
+
+
+def _quiet_trace(path, model="B", system=False):
+    from sim.asm import assemble
+    if system:
+        from sim.system import make_system
+        cpu = make_system(ext_sectors=16, model=model)
+    else:
+        from sim.cpu import CPU
+        cpu = CPU()
+        cpu.model = model
+    words, _ = assemble(QUIET_PROGRAM)
+    cpu.load(words)
+    n = record(cpu, path, 100)
+    assert cpu.halted and n == 8, (cpu.halted, n)
+    return cpu
+
+
+def _record_offsets(path, kind):
+    """Payload offsets in the trace file of each record of this kind."""
+    out, p = [], HEADER_START
+    for k, v in iter_trace(path):
+        p += 1
+        if k == kind:
+            out.append(p)
+        p += len(v)
+    return out
+
+
+def _patched_check(path, offset, value, top="cpu"):
+    """Overwrite the u16 at `offset` of a trace, then run the bench."""
+    import struct
+    b = bytearray(open(path, "rb").read())
+    struct.pack_into("<H", b, offset, value)
+    p2 = path + ".patched"
+    with open(p2, "wb") as f:
+        f.write(b)
+    try:
+        return check(p2, top=top)
+    finally:
+        os.unlink(p2)
+
+
+def test_lockstep_checks_every_instruction_and_end_state():
+    """Review 2026-11-26 sync-py #1: a register that is wrong for a few
+    instructions and then overwritten, internal or external memory that is
+    never read back, and Model C/D state (D2) are all compared. Each case
+    starts the HDL from a header that differs from Python's in one word."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "q.trace")
+        _quiet_trace(path, model="C")
+        ok, text = check(path)
+        assert ok and "registers checked 8 times, end state checked" in text, text
+        # Python says instruction 1 set R0 to 55 (the HDL: 1); instruction 8
+        # sets R0 to 1 again, so the last snapshot alone would not see it
+        d0 = _record_offsets(path, b"D")[0]
+        import struct
+        raw = open(path, "rb").read()
+        assert struct.unpack_from("<H", raw, d0)[0] == 0o100001          # R0 and R17 (PC)
+        assert struct.unpack_from("<H", raw, d0 + 3)[0] == 1
+        ok, text = _patched_check(path, d0 + 3, 0o55)
+        assert not ok and "MISMATCH at instruction 1" in text and "R0 = 000001, Python 000055" in text, text
+        # internal memory 7000, never read or written
+        ok, text = _patched_check(path, 8 + 33 + 2 * 0o7000, 0o4567)
+        assert not ok and "end state: memory 007000 = 004567, Python 000000" in text, text
+        # Model C/D state: D2 ('C' header section, payload offset 15)
+        kinds = [k for k, _ in iter_trace(path)]
+        assert kinds[0] == b"C", kinds[:3]
+        ok, text = _patched_check(path, HEADER_START + 1 + 15, 0o777)
+        assert not ok and "end state: d2" in text, text
+        # system top: external memory word 100 (never accessed)
+        _quiet_trace(path, model="B", system=True)
+        ok, text = check(path, top="system")
+        assert ok and "end state checked" in text, text
+        x = next(i for i, (k, _) in enumerate(iter_trace(path)) if k == b"X")
+        assert x == 0
+        ok, text = _patched_check(path, HEADER_START + 1 + 4 + 2 * 0o100, 0o1111, top="system")
+        assert not ok and "end state: external word 000100 = 001111" in text, text
+
 
 
 DEVICE_PROGRAM = """
@@ -117,8 +272,7 @@ def test_system_devices_program():
     """The HDL devices (D3, D4567, D50/D51, D60-D63) against Python on a
     program that uses them all with interrupts, a held read and a halt."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_devices_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.system import make_system
     cpu = make_system()
@@ -238,8 +392,7 @@ def test_system_floppy_program():
     sector, read it back, record not found, write protect, steps, index
     pulses, and the D104 read that has no SYN."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_floppy_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     import random as _random
     from sim.asm import assemble
     from sim.devices.floppy import Media
@@ -340,8 +493,7 @@ def test_system_synth_devices_program():
     polled through D160 bit 0, wave memory loads, A/D and clock, keys and
     buttons from the host, lights, display, and a D161 read that halts."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_synth_devices_program (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.devices.synth import button_number
     from sim.system import make_system
@@ -485,8 +637,7 @@ def test_system_voice_engine():
     index ramp and shift, pan, VOL, a loaded wave memory, pitch and octave
     changes while sounding, a release."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_engine (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     from sim.asm import assemble
     from sim.system import make_system
     cpu = make_system(synth=True)
@@ -517,8 +668,7 @@ def test_system_voice_engine_32_voices():
     FM): all 32 voices mixed every sample, sample for sample with
     sim/voice.py; channels 48+ answer present (D160 bit 0)."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_engine_32_voices (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     import re
     from sim.asm import assemble
     from sim.system import make_system
@@ -630,50 +780,157 @@ def test_system_voice_clock():
     """M14: the voices on real time (voice_clock.sv) keep sounding while the
     CPU is held, as on the instrument; on CPU time they stop."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_clock (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     _check_voice_clock(8, 0, exact=False, tol=0.02)   # sample-exact before M23; now 0.4 % rms
 
 
 def test_system_voice_clock_32_voices():
     """M14 with the 32-voice engine (channels 48-63)."""
     if not HAVE_VERILATOR:
-        print("  skip test_system_voice_clock_32_voices (verilator not found)")
-        return
+        raise unittest.SkipTest("verilator not found")
     _check_voice_clock(32, 48, exact=False, tol=0.2)
 
 
 def _nonzero_samples(path):
-    """Audio samples in a trace that are not (0, 0)."""
+    """Audio samples in a trace that are not (0, 0) (sim.lockstep's parser)."""
+    return sum(1 for v in trace_audio(path) if v != (0, 0))
+
+
+_OK = re.compile(r"lockstep OK: (\d+) instructions, .*registers checked (\d+) times, end state checked"
+                 r"(?:, (\d+) audio samples)?")
+
+
+def _bench_counts(path, top):
+    """Run the bench; return (instructions, register checks, audio samples) it read."""
+    ok, text = check(path, top=top)
+    assert ok, text
+    m = _OK.search(text)
+    assert m, text
+    return int(m.group(1)), int(m.group(2)), int(m.group(3) or 0)
+
+
+def _python_counts(path):
+    """The same counts from sim.lockstep.iter_trace, and the header kinds."""
+    kinds = []
+    n = checks = audio = 0
+    last = None
+    for k, _ in iter_trace(path):
+        kinds.append(k)
+        if k == b"I":
+            n += 1
+        elif k in (b"D", b"S") and last == b"I":
+            checks += 1
+        elif k == b"A":
+            audio += 1
+        if k not in (b"A",):
+            last = k
+    return (n, checks, audio), set(kinds[:kinds.index(b"B")])
+
+
+def test_trace_parsers_agree():
+    """Review 2026-11-26 sync-py #5: sim.lockstep.iter_trace (used by
+    trace_audio / expected_wav and the tests) and the C++ bench read the
+    same records from traces with every header section (X, V, F, O, C) and
+    every event kind (P R W Q I D S T K A w H M E)."""
+    if not HAVE_VERILATOR:
+        raise unittest.SkipTest("verilator not found")
+    import random as _random
+    from sim.asm import assemble
+    from sim.devices.floppy import Media
+    from sim.devices.synth import button_number
+    from sim.system import make_system
+    seen = set()
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "t.trace")
+
+        def both(top):
+            want, header = _python_counts(path)
+            assert _bench_counts(path, top) == want, (top, want)
+            seen.update(header)
+            seen.update(k for k, _ in iter_trace(path))
+        record(random_cpu(2001, "C"), path, 3000)                     # 'C'
+        both("cpu")
+        cpu = make_system()                                          # 'T', 'w', 'P', 'Q'
+        cpu.load(assemble(DEVICE_PROGRAM)[0])
+        fed = []
+
+        def on_wait(c):
+            if len(fed) == 3:
+                return False
+            fed.append(1)
+            c.terminal.feed("xyz")
+            return True
+        record(cpu, path, 200_000, on_wait=on_wait)
+        both("system")
+        rng = _random.Random(5)                                      # 'F'
+        cpu = make_system(floppy=True)
+        cpu.floppy.insert(0, Media([rng.randrange(0x10000) for _ in range(40 * 256)]))
+        cpu.load(assemble(_expand_waits(FLOPPY_PROGRAM))[0])
+        cpu.load([rng.randrange(0x10000) for _ in range(256)], 0o10000)
+        record(cpu, path, 20_000)
+        both("system")
+        cpu = make_system(synth=True)                                # 'K'
+        cpu.load(assemble(SYNTH_PROGRAM)[0])
+        kb = cpu.keyboard
+        record(cpu, path, 60_000, actions=[(1_000_000, lambda c: kb.press_button(button_number("timb.3"))),
+                                           (2_000_000, lambda c: kb.press_key(52))])
+        both("system")
+        cpu = make_system(synth=True)                                # 'O', 'A'
+        cpu.load(assemble(VOICE_PROGRAM)[0])
+        record(cpu, path, 30_000, audio=True)
+        both("system")
+    missing = {b"X", b"V", b"F", b"O", b"C", b"B", b"P", b"R", b"W", b"Q", b"I", b"D", b"S",
+               b"T", b"K", b"A", b"w", b"H", b"M", b"E"} - seen
+    assert missing <= {b"H"}, missing          # 'H' (halts) is covered by the quiet trace test
+
+
+def test_nonzero_samples_header_with_section_bytes():
+    """Review 2026-11-26 sync-py #4: an 'O' section is 12 + 4n bytes (n
+    channels) and its bytes can equal a section letter ('B' = 0x42). The
+    old test helper skipped 75 bytes whatever n was, then scanned for 'B'
+    byte by byte (on this trace it ran past the end and never returned)."""
     import struct
-    b = open(path, "rb").read()
-    p = 8 + 33 + 131072
-    while True:
-        k = b[p:p + 1]
-        p += 1
-        if k == b"B":
-            break
-        if k == b"X":
-            p += 4 + struct.unpack_from("<I", b, p)[0] * 512
-        elif k == b"F":
-            p += 6 + struct.unpack_from("<H", b, p + 1)[0] * 512
-        elif k == b"V":
-            p += 7
-        elif k == b"O":
-            p += 11 + 64
-    sizes = {b"P": 2, b"R": 3, b"W": 3, b"Q": 2, b"I": 4, b"S": 41, b"H": 1, b"E": 0,
-             b"w": 4, b"K": 4, b"A": 16}
-    count = 0
-    while p < len(b):
-        k = b[p:p + 1]
-        p += 1
-        if k == b"T":
-            p += 6 + struct.unpack_from("<H", b, p + 4)[0]
-            continue
-        if k == b"A" and struct.unpack_from("<qq", b, p) != (0, 0):
-            count += 1
-        p += sizes[k]
-    return count
+    from sim.lockstep import MAGIC
+    b = bytearray(MAGIC) + bytes(33 + 131072)
+    b += struct.pack("<cQHBB", b"O", 0, 0, 0, 8)
+    for ch in range(8):                       # acc 0x4242: 'B' bytes in the section
+        b += struct.pack("<HBB", 0x4242, 0x42, 0x42)
+    b += b"B"
+    for v in ((0, 0), (5, -5), (0, 0), (1, 2)):
+        b += struct.pack("<cqq", b"A", *v)
+    b += b"E"
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "o.trace")
+        with open(path, "wb") as f:
+            f.write(b)
+        assert list(trace_audio(path)) == [(0, 0), (5, -5), (0, 0), (1, 2)]
+        assert _nonzero_samples(path) == 2
+        assert trace_counts(path)[b"O"] == 1
+
+
+def test_device_state_index_map():
+    """Review 2026-11-26 sync-py #11: sim.lockstep.STATE_INDEX is the one map
+    of the 'V' device-state indices. No two names share an index, and the
+    single-index decodes of the HDL load port (ld_dev_sel == S && ld_dev_addr
+    == N in able_system.sv / synclavier_core.sv; dev_multi.sv's index under
+    selector 3) are exactly the table's entries outside the ranged blocks."""
+    from sim.lockstep import SEL_TERM, STATE_INDEX
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    vals = list(STATE_INDEX.values())
+    assert len(vals) == len(set(vals)), "two STATE_INDEX names share an index"
+    hdl = set()
+    pat = re.compile(r"ld_dev_sel == 3'd(\d) && ld_dev_addr == 13'd(\d+)")
+    for p in ("hdl/able_system.sv", "hdl/core/synclavier_core.sv"):
+        with open(os.path.join(root, p)) as f:
+            hdl |= {(int(a), int(b)) for a, b in pat.findall(f.read())}
+    with open(os.path.join(root, "hdl/dev/dev_multi.sv")) as f:    # ld_we = selector 3
+        hdl |= {(SEL_TERM, int(b)) for b in re.findall(r"ld_we && ld_addr == 13'd(\d+)", f.read())}
+    # entries the HDL decodes in blocks (term 0-7, FM globals/channels) are not single decodes
+    singles = {v for k, v in STATE_INDEX.items() if not k.startswith(("rtc.", "muldiv.", "extmem.",
+                                                                     "term.", "fm.voices"))}
+    singles.add(STATE_INDEX["term.vt640"])
+    assert hdl == singles, ("HDL only: %s; STATE_INDEX only: %s" % (sorted(hdl - singles),
+                                                                   sorted(singles - hdl)))
 
 
 def test_sine_rom_matches_python():
@@ -684,8 +941,7 @@ def test_sine_rom_matches_python():
 def test_release_l_monitor_boot_and_catalog():
     image = os.environ.get("SYNCLAVIER_RELEASE_L")
     if not image or not HAVE_VERILATOR:
-        print("  skip test_release_l_monitor_boot_and_catalog (needs SYNCLAVIER_RELEASE_L and verilator)")
-        return
+        raise unittest.SkipTest("needs SYNCLAVIER_RELEASE_L and verilator")
     from sim.boot import boot_from_image
     cpu, _ = boot_from_image(image, "03-SYSTD", f1="18-UTILS")
     lines = ["CATALOG\r"]
@@ -707,8 +963,57 @@ def test_release_l_monitor_boot_and_catalog():
     assert n > 1_000_000 and "Catalog contains 7 entries" in cpu.terminal.text()
 
 
+
+def test_w0_board_boot_syn53():
+    """Release 5.3 (Model D) on the board top from power-on, as docs/hdl.md's
+    W0 runs: tools/w0_image.py --fm-voices 8 (W0-53.IMG, W0-53-FM8.SST), then
+    `w0boot --poly --vpk --disk-us 500 --seek-us 25000` (the SCSI disk time
+    w0_image.py stores in the state image), first 300,000 instructions
+    (MONITOR, PROFILE and the SCSI loads of SYN-5.3); registers every
+    instruction and the end state (memory, DDR3 external memory, Model C/D
+    state) compared."""
+    raw = os.environ.get("SYNCLAVIER_W0_RAW")
+    if not raw or not HAVE_VERILATOR:
+        raise unittest.SkipTest("needs SYNCLAVIER_W0_RAW and verilator")
+    import subprocess
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    with tempfile.TemporaryDirectory() as d:
+        p = subprocess.run([sys.executable, os.path.join(root, "tools", "w0_image.py"), raw, d,
+                            "--fm-voices", "8"], capture_output=True, text=True, cwd=root)
+        assert p.returncode == 0, p.stdout + p.stderr
+        img, sst, path = (os.path.join(d, n) for n in ("W0-53.IMG", "W0-53-FM8.SST", "w0.trace"))
+        from sim.lockstep import main as lockstep_main
+        assert lockstep_main(["w0boot", img, path, "--poly", "--vpk", "--disk-us", "500",
+                              "--seek-us", "25000", "--instructions", "300000"]) == 0
+        ok, text = check(path, top="board", state=sst, w0=img)
+    assert ok and "end state checked" in text, "\n".join(
+        ln for ln in text.splitlines() if not ln.startswith(("  ", "|")))
+
+
+def test_state_image_options_must_match_trace():
+    """check(top="board", state=...) stops at once, naming the entry, when
+    the trace was recorded with other device options than the state image
+    (a w0boot trace without --disk-us for an image with SCSI disk time gave
+    a D25 difference 143,102 instructions in, which looked like an HDL bug)."""
+    from sim.lockstep import state_image_mismatches
+    from sim.system import make_system
+    from tools.state_image import state_bytes
+    with tempfile.TemporaryDirectory() as d:
+        sst, path = os.path.join(d, "s.sst"), os.path.join(d, "t.trace")
+        cpu = make_system(floppy=True, synth=True)
+        with open(sst, "wb") as f:
+            f.write(state_bytes(cpu))
+        record(cpu, path, 10)
+        assert state_image_mismatches(path, sst) == []
+        cpu = make_system(floppy=True, synth=True, scsi={}, scsi_block_ns=500_000)
+        record(cpu, path, 10)
+        bad = state_image_mismatches(path, sst)
+        assert bad == ["device state scsi.block_ns (3, 11): state image None, trace 500000 "
+                       "(w0boot --disk-us N: N x 1000 ns)"], bad
+        ok, text = check(path, top="board", state=sst)
+        assert not ok and "other options than the state image" in text and "scsi.block_ns" in text, text
+
 if __name__ == "__main__":
-    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    for t in tests:
-        t()
-    print("%d tests OK" % len(tests))
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from testlib import run_tests
+    run_tests(globals())
