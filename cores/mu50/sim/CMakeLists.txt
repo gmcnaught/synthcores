@@ -15,3 +15,14 @@ set(VFLAGS -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -O3 --x-as
 add_executable(h8h_bench h8h_bench.cpp)
 verilate(h8h_bench SOURCES "${HDL}/h8h/h8h_core.sv" INCLUDE_DIRS "${HDL}/h8h"
          TOP_MODULE h8h_core PREFIX Vh8h_core VERILATOR_ARGS ${VFLAGS})
+
+# SWP00 against the C++ copy of MAME's model (milestone U3)
+set(REF "${CMAKE_CURRENT_SOURCE_DIR}/../ref")
+add_executable(swp00_bench swp00_bench.cpp "${REF}/swp00_ref.cpp")
+target_include_directories(swp00_bench PRIVATE "${REF}")
+verilate(swp00_bench SOURCES "${HDL}/swp00/swp00_pkg.sv" "${HDL}/swp00/swp00_meg.sv" "${HDL}/swp00/swp00.sv"
+         INCLUDE_DIRS "${HDL}/swp00" TOP_MODULE swp00 PREFIX Vswp00 VERILATOR_ARGS ${VFLAGS})
+
+# the reference alone, replaying MAME's logs (U3 reference check)
+add_executable(swp00_replay swp00_replay.cpp "${REF}/swp00_ref.cpp")
+target_include_directories(swp00_replay PRIVATE "${REF}")
