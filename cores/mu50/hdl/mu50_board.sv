@@ -181,8 +181,12 @@ module mu50_board #(
 
     // ---------------------------------------------------------------- work RAM
     // two byte-wide true dual-port RAMs (even and odd bytes): port A the CPU, port B the save
-    logic [7:0]  ram_e [32768], ram_o [32768];
-    logic [15:0] ram_q;
+    // Quartus: no read-during-write check (as cores/cz101/hdl/cz101_board.sv); the CPU and the
+    // save never use a byte in the clock it is written. Other tools ignore the attribute.
+    (* ramstyle = "no_rw_check" *) logic [7:0] ram_e [32768];
+    (* ramstyle = "no_rw_check" *) logic [7:0] ram_o [32768];
+    logic [7:0]  ram_qe, ram_qo;
+    wire  [15:0] ram_q = {ram_qe, ram_qo};
     logic [14:0] ram_a;
     logic        ram_we_hi, ram_we_lo;
     logic [15:0] ram_wd;
@@ -190,21 +194,21 @@ module mu50_board #(
     logic        nv_odd;
     always_ff @(posedge clk) begin
         if (ram_we_hi) ram_e[ram_a] <= ram_wd[15:8];
-        ram_q[15:8] <= ram_e[ram_a];
-    end
-    always_ff @(posedge clk) begin
-        if (ram_we_lo) ram_o[ram_a] <= ram_wd[7:0];
-        ram_q[7:0] <= ram_o[ram_a];
+        ram_qe <= ram_e[ram_a];
     end
     always_ff @(posedge clk) begin
         if (nv_we && !nv_addr[0]) ram_e[nv_addr[15:1]] <= nv_wdata;
         nv_qe <= ram_e[nv_addr[15:1]];
     end
     always_ff @(posedge clk) begin
+        if (ram_we_lo) ram_o[ram_a] <= ram_wd[7:0];
+        ram_qo <= ram_o[ram_a];
+    end
+    always_ff @(posedge clk) begin
         if (nv_we && nv_addr[0]) ram_o[nv_addr[15:1]] <= nv_wdata;
         nv_qo <= ram_o[nv_addr[15:1]];
-        nv_odd <= nv_addr[0];
     end
+    always_ff @(posedge clk) nv_odd <= nv_addr[0];
     assign nv_rdata = nv_odd ? nv_qo : nv_qe;
     assign ram_written = ram_we_hi || ram_we_lo;
 
@@ -355,8 +359,12 @@ module mu50_board #(
         endcase
     end
 
+    // the RAM starts zeroed (MAME's NVRAM without a file): block RAM powers up at 0 on the FPGA;
+    // the simulator randomises it (--x-initial unique), so the benches clear it
+`ifdef VERILATOR
     initial for (int i = 0; i < 32768; i++) begin
         ram_e[i] = 8'h0;
         ram_o[i] = 8'h0;
     end
+`endif
 endmodule

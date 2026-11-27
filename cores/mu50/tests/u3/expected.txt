@@ -1,4 +1,4 @@
-# seed samples sha256 note: the SWP00 accesses of tools/swp00_stimgen.py SEED (tests/u3/SEED.acc.gz,
+# seed samples sha256 note: the SWP00 accesses of tools/swp00_stimgen.py SEED (tests/u3/SEED.acc,
 # tools/swp00_acc.py) and the sha256 of MAME's first <samples> sample pairs (MU_SAMPLES format);
 # 'wild': of the wrapping reference instead (MAME's C++ overflows s32 there; docs/plan.md, U3)
 2 8820 492f0792e23fb05bb8a2758bddea9985f746fce3c6f5808dfeec6ee44c35b4c9 variant-2

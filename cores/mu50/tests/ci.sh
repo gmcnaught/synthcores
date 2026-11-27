@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 # MU50 tests that need no ROMs and no MAME (the CI entry point; runs from any directory):
-#   1. u1: the H8/300H core runs the committed random programs (tests/u1/*.bin, made by
+#   1. u1: the H8/300H core runs the committed random programs (tests/u1/*.hex, made by
 #      tools/h8h_randprog.py) and its traces hash to MAME's (tests/u1/expected.txt);
 #   2. comparator self-check: a one-character change to a trace must change its hash;
-#   3. u2: the H8/3003 with its peripherals (mu50sys_bench) runs tests/u2/*.bin.gz (timer
+#   3. u2: the H8/3003 with its peripherals (mu50sys_bench) runs tests/u2/*.hex (timer
 #      interrupts, SLEEP, A/D scan) and its trace hashes to MAME's (tests/u2/expected.txt);
 #   4. u3: the SWP00 HDL on the committed SWP00 access logs (tests/u3/) is identical to the
 #      C++ reference (ref/, MAME's code) sample by sample, and its samples hash to MAME's.
@@ -37,7 +37,7 @@ u1() {
     mkdir -p "$d"
     while read -r seed n want; do
         [ -z "$seed" ] || [ "${seed:0:1}" = "#" ] && continue
-        gzip -dc "$here/u1/$seed.bin.gz" > "$d/$seed.bin"
+        xxd -r -p "$here/u1/$seed.hex" > "$d/$seed.bin"
         "$out/h8h_bench" "$d/$seed.bin" "$n" "$d/$seed.trace"
         got=$(cut_trace "$n" < "$d/$seed.trace" | sha)
         if [ "$got" = "$want" ]; then echo "u1 seed $seed: identical ($n lines)"
@@ -51,7 +51,7 @@ inject() {   # one changed character in a trace must change the hash
     [ "$(cut_trace "$n" < "$d/$seed.trace" | sed '5s/[0-9A-F]\([0-9A-F]*\)$/X\1/' | sha)" != "$want" ]
 }
 
-# U3: the SWP00 HDL replays the SWP00 accesses of the committed stimuli (tests/u3/SEED.acc.gz: MAME's
+# U3: the SWP00 HDL replays the SWP00 accesses of the committed stimuli (tests/u3/SEED.acc: MAME's
 # logs of tools/swp00_stimgen.py runs, tools/swp00_acc.py; the wave ROM is regenerated from the seed) beside the
 # C++ reference, and its samples hash to MAME's (tests/u3/expected.txt)
 py=python3; command -v pypy3 >/dev/null && py=pypy3
@@ -61,7 +61,7 @@ u3() {
     while read -r seed n want args; do
         [ -z "$seed" ] || [ "${seed:0:1}" = "#" ] && continue
         "$py" "$core/tools/swp00_stimgen.py" "$seed" /dev/null "$d/$seed.wave" --wave-only
-        gzip -dc "$here/u3/$seed.acc.gz" > "$d/$seed.acc"
+        cp "$here/u3/$seed.acc" "$d/$seed.acc"
         if ! "$out/swp00_bench" "$d/$seed.wave" "$d/$seed.acc" "$n" --acc --raw "$d/$seed.raw" \
                 --quiet > "$d/$seed.txt" 2>&1; then
             echo "u3 seed $seed: HDL differs from the reference: $(tail -1 "$d/$seed.txt")"; ok=1; continue
@@ -79,7 +79,7 @@ u2() {
     mkdir -p "$d"
     while read -r name n want; do
         [ -z "$name" ] || [ "${name:0:1}" = "#" ] && continue
-        gzip -dc "$here/u2/$name.bin.gz" > "$d/$name.bin"
+        xxd -r -p "$here/u2/$name.hex" > "$d/$name.bin"
         "$out/mu50sys_bench" "$d/$name.bin" "$n" "$d/$name.trace"
         got=$(cut_trace "$n" < "$d/$name.trace" | sha)
         if [ "$got" = "$want" ]; then echo "u2 $name: identical ($n lines)"

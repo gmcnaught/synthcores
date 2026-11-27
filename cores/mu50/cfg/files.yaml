@@ -1,0 +1,30 @@
+# The core's files, in Quartus order. synthcore writes mister/files.qip (search:, files:,
+# mister:) and sim/files.f for Verilator (search:, files:). mister: is MiSTer-only.
+# Paths starting with modules/ are from the repo root; the rest are from this core's directory.
+search:
+  - hdl/h8h
+  - hdl/swp00
+files:
+  - hdl/h8h/h8h_core.sv
+  - hdl/h8h/h83003_periph.sv
+  - hdl/h8h/h8h_sys.sv
+  - hdl/swp00/swp00_pkg.sv
+  - hdl/swp00/swp00_meg.sv
+  - hdl/swp00/swp00.sv
+  - modules/synthframe/hdl/panel/synthframe_hd44780.sv
+  - hdl/mu50_lcd.sv
+  - hdl/mu50_board.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
+  - modules/synthframe/hdl/mem/synthframe_mem_arb.sv
+  - hdl/mu50_mem.sv
+  - modules/synthframe/hdl/panel/synthframe_vtiming.sv
+  - modules/synthframe/hdl/panel/synthframe_charlcd.sv
+  - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - hdl/mu50_lcd_video.sv
+  - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+  - modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
+  - modules/synthframe/hdl/save/synthframe_nvsave.sv
+  - hdl/mu50_top.sv
+mister:
+  - mister/MU50.sdc
+  - mister/MU50.sv

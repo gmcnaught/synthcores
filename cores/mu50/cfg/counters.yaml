@@ -1,0 +1,58 @@
+# Wrap table for modules/synthframe/bin/counter-audit: one row per free-running time counter
+# (register of 32 bits or more named *cycle*, *tick*, *time*, *deadline*, now, next_*) in this
+# folder's HDL. CI fails on a counter without a row (modules/synthframe/tests/ci.sh).
+# Fields: name, file (from this folder), width, clock, wraps (time to wrap at that clock),
+# handling (how the wrap is survived), test (the test that crosses it, or "none: why"), status:
+# tested, untested (the wrap is handled but no test crosses it: counter-audit prints it as a GAP)
+# or no wrap (not reached in practice, as a 64-bit time, or not a time).
+# Times are CPU states of the H8/3003 at 10 MHz (MAME's total_cycles()): 48 bits wrap after
+# 2^48 / 1e7 s = 326 days, 64 bits never.
+counters:
+  - name: vtime
+    file: hdl/h8h/h8h_core.sv
+    width: 64
+    clock: CPU states (10 MHz virtual time)
+    wraps: 58,000 years
+    handling: none needed
+    test: "none: 64-bit"
+    status: no wrap
+  - name: bl_time
+    file: hdl/h8h/h8h_sys.sv
+    width: 48
+    clock: CPU states (10 MHz virtual time)
+    wraps: 326 days
+    handling: none (a bench log of the access's end time)
+    test: "none: not reached"
+    status: no wrap
+  - name: now
+    file: hdl/h8h/h83003_periph.sv
+    width: 48
+    clock: CPU states (10 MHz virtual time)
+    wraps: 326 days
+    handling: none; the peripherals compare times as MAME's u64
+    test: "none: not reached"
+    status: no wrap
+  - name: t_now
+    file: hdl/h8h/h83003_periph.sv
+    width: 48
+    clock: CPU states (10 MHz virtual time)
+    wraps: 326 days
+    handling: none; the peripherals compare times as MAME's u64
+    test: "none: not reached"
+    status: no wrap
+  - name: rc_now
+    file: hdl/h8h/h83003_periph.sv
+    width: 48
+    clock: CPU states (10 MHz virtual time)
+    wraps: 326 days
+    handling: none; the peripherals compare times as MAME's u64
+    test: "none: not reached"
+    status: no wrap
+  - name: t_cycle
+    file: hdl/h8h/h83003_periph.sv
+    width: 85
+    clock: not a time (each timer channel's counter period, 17 bits x 5)
+    wraps: never
+    handling: not a counter
+    test: "none: not a time"
+    status: no wrap

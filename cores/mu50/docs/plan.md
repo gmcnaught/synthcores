@@ -138,6 +138,7 @@ U1 and U3 run in parallel: they share nothing but the bench.
 | U2 | Done: `hdl/h8h/h83003_periph.sv` (MAME's interrupt controller, 16-bit timer, SCI, A/D, ports, SYSCR, watchdog; lazy event model in virtual time), `hdl/h8h/h8h_sys.sv` (core + peripherals + on-chip RAM, execute_run's sequencing). `tests/u2_check.sh`: the v1.05 firmware on `sim/mu50sys_bench.cpp` (software board) is identical to MAME for 12 s of boot and `basic.txt` MIDI: 27,789,525 instruction lines, 7,265 interrupts, 240 MIDI pin changes. CI: a peripheral program (`tools/u2_periph_prog.py`: timer interrupts, SLEEP, A/D scan) against MAME's trace hash. Quartus 17, CPU + peripherals alone: 12,456 ALMs, 4,023 registers (27,252 before the timer datapath was shared and the event minimum pipelined); timing at 50 MHz is U5 work. |
 | U3 | Done: `hdl/swp00/` (`swp00.sv` voices and registers, `swp00_meg.sv` MEG executor, `swp00_pkg.sv`), the MEG program compiled by `tools/swp00_meg_gen.py` from MAME's `swp00.cpp`. Reference `ref/swp00_ref` = MAME's code as a C++ class (`tools/swp00_ref_extract.py`), built with wrapping arithmetic. Gate: corpus `basic` (794,099 sample pairs, 1,711 reads) HDL output byte-identical to MAME's; four random SWP00 stimuli, one per MEG variant (`tools/swp00_stimgen.py`, seeds 2-5, 44,101 samples each, about 21,000 writes and 550 reads each) identical to MAME with every channel record and MEG register checked after every sample (`tests/u3_run.sh`, `VCHECK=1`); one 'wild' stimulus (seed 1, extreme constants) identical to the wrapping reference. CI replays committed access lists (160 KB) against MAME's sample hashes. Quartus 17, the SWP00 alone on 5CSEBA6: 5,066 ALMs, 3,148 registers, 20 M10K, 14 DSP blocks, +3.3 ns slack at 50 MHz |
 | U4 | Done: `hdl/mu50_board.sv` (h8h_sys + SWP00 + 64 KB RAM + `hdl/mu50_lcd.sv` + keys, LEDs, A/D constants, IRQ0) on `sim/mu50_bench.cpp` (program ROM, wave ROM and delay lines in C++ arrays): the corpus case `basic` from power-on gives a sample file identical to MAME's, 794,099 pairs (`f19a8d2d159a7fb8`, `tests/midi/expected.txt`); the LCD at the end reads `GrandPno01` / `000.001 01`. `tests/u4_check.sh`. 2.66 FPGA clocks a CPU state with 1-clock memories. Speed: 5.49 FPGA clocks a CPU state with 1-clock memories (9.1 before the bus fast path); real time at 50 MHz needs 5 (U5). |
+| U5 | Core done, hardware test partial: `mister/MU50.sv` + `hdl/mu50_top.sv` (DDR3 memories with a 32 KB program ROM cache, pacing, MIDI from MidiLink, 44.1 kHz audio FIFO, 64 KB NVRAM save, PS/2 panel keys, LCD video). Windows build (Quartus 17, seed 1): 26,806 ALMs, 185 RAM blocks, 59 DSP; core clock +1.241 ns at 50 MHz, HDMI +0.560 ns. `sim/mu50_top_bench.cpp` (DDR3 model, 12-clock latency): bus hash over 4 s equals the board bench's; the 18 s corpus through the UART with pacing on: 0 underruns, 22.5% of clocks waiting for real time. `scripts/mister/smoke.sh` on the MiSTer: PASS (running, no underrun, LCD lit, MIDI and the Util key change the LCD, a 64 KB save file). Not yet checked on hardware: the NVRAM restore after a reload, MIDI out against MAME, listening |
 
 U0 findings [OBS]:
 - **Program ROM file order:** MAME's `ROM_LOAD16_WORD_SWAP` wants each byte pair of the CPU
@@ -279,6 +280,17 @@ U3 design and findings [OBS]:
 The SWP00 and the wave ROM are the same in all four.
 
 ## Open questions
+
+- **Timing reference (user, 2026-11-27):** the core follows MAME's timing until better data
+  exists; later it should follow the real MU50's. What is MAME's rather than the chip's, so the
+  places to change with hardware captures (a logic analyser on the H8 bus, the SCI and the LCD):
+  every bus access 2 states with no wait states (the H8/3003's bus controller has wait states
+  and ASTCR, which MAME leaves unmapped); TRAPA pushing its own address; ICR writes keeping one
+  byte; timer phase 0; the lazy event model and its timeslice edges (MIDI pin changes, the LCD
+  busy flag after floor(t_w + n / 270 kHz)); the SWP00's sample boundary rule
+  (floor(s * 441 / 100000) + 1) and MAME's reimplemented MEG programs. The generator
+  (`tools/h8h_gen.py`) keeps access order and costs in one place, so wait states are a cost
+  change there.
 
 - **Licence (default, following the CZ-101):** MIT, as the rest of the repository. The core is
   written from MAME's BSD-3-Clause sources, so `NOTICE` keeps MAME's notice and names the

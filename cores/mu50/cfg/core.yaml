@@ -1,0 +1,4 @@
+# Read by modules/synthframe/bin/synthcore, which writes the Quartus project in mister/.
+name: MU50
+mister:
+  seed: 1

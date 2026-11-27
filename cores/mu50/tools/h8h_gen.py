@@ -1184,38 +1184,38 @@ def main():
             "// machine, included inside its case (st).", ""]
     for name, comment, lines, term, _ in comp.states:
         body.append("%s: begin // %s" % (name, comment))
-        body.extend("    " + x for x in lines)
+        body.extend("  " + x for x in lines)
         if term is None:
             raise SystemExit("state %s has no terminator" % name)
         if term[0] == "goto":
-            body.append("    n_st = %s;" % term[1])
+            body.append("  n_st = %s;" % term[1])
         elif term[0] == "end":
-            body.append("    n_st = S_EXEC;")
+            body.append("  n_st = S_EXEC;")
         elif term[0] == "if":
-            body.append("    n_st = (%s) ? %s : %s;" % (term[1], term[2], term[3]))
+            body.append("  n_st = (%s) ? %s : %s;" % (term[1], term[2], term[3]))
         elif term[0] == "alu":
             _, sel, ccr, av, nxt = term
-            body.append("    alu_ld = 1'b1;")
-            body.append("    alu_sel_n = %s;" % sel)
-            body.append("    alu_c_n = %s;" % ccr)
-            body.append("    alu_a_n = %s;" % av[0])
+            body.append("  alu_ld = 1'b1;")
+            body.append("  alu_sel_n = %s;" % sel)
+            body.append("  alu_c_n = %s;" % ccr)
+            body.append("  alu_a_n = %s;" % av[0])
             if len(av) > 1:
-                body.append("    alu_b_n = %s;" % av[1])
-            body.append("    n_st = %s;" % nxt)
+                body.append("  alu_b_n = %s;" % av[1])
+            body.append("  n_st = %s;" % nxt)
         elif term[0] == "op":
             _, kind, addr, data, cost, nxt = term[:6]
             if len(term) > 6:
                 a, b, sg = term[6]
-                body.append("    div_a_n = %s;" % a)
-                body.append("    div_b_n = %s;" % b)
-                body.append("    div_signed_n = %s;" % sg)
-            body.append("    op_kind = %s;" % kind)
+                body.append("  div_a_n = %s;" % a)
+                body.append("  div_b_n = %s;" % b)
+                body.append("  div_signed_n = %s;" % sg)
+            body.append("  op_kind = %s;" % kind)
             if addr != "24'h0":
-                body.append("    op_addr = %s;" % addr)
+                body.append("  op_addr = %s;" % addr)
             if data != "16'h0":
-                body.append("    op_data = %s;" % data)
-            body.append("    op_cost = %s;" % cost)
-            body.append("    n_st = %s;" % nxt)
+                body.append("  op_data = %s;" % data)
+            body.append("  op_cost = %s;" % cost)
+            body.append("  n_st = %s;" % nxt)
         body.append("end")
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "h8h_gen.svh").write_text("\n".join(out) + "\n")

@@ -76,21 +76,27 @@ def width(types, addr, depth=0):
         if r is None:
             return {"int": 32, "integer": 32, "longint": 64, "time": 64, "shortint": 16,
                     "byte": 8}.get(t.get("keyword"), 1), False
-        hi, lo = (int(x) for x in r.split(":"))
-        return abs(hi - lo) + 1, False
+        return span(r), False
     if kind == "REFDTYPE":
         return width(types, t.get("refDTypep") or t.get("subDTypep"), depth + 1)
     if kind == "PACKARRAYDTYPE":
         w, _ = width(types, t.get("subDTypep") or t.get("refDTypep"), depth + 1)
         r = t.get("range") or t.get("declRange")
         if w and r:
-            hi, lo = (int(x) for x in r.split(":"))
-            return w * (abs(hi - lo) + 1), False
+            return w * span(r), False
         return None, False
     if kind == "UNPACKARRAYDTYPE":
         w, _ = width(types, t.get("subDTypep") or t.get("refDTypep"), depth + 1)
         return w, True
     return None, False
+
+
+def span(r):
+    """Bits of a range string: "7:0", or several packed dimensions as "[11:0][7:0]"."""
+    n = 1
+    for hi, lo in re.findall(r"(-?\d+):(-?\d+)", r):
+        n *= abs(int(hi) - int(lo)) + 1
+    return n
 
 
 def counters(core):
