@@ -1,0 +1,3 @@
+# tests/u0_corpus.sh: case, seconds run, SHA-256 (first 16 hex) of the samples and of the SWP00
+# write log, number of SWP00 writes. MAME db140b2d + mame/patches/0001, ROM set mu50 (v1.05).
+basic 18 f19a8d2d159a7fb8 85748ecd662ba2ab 39507

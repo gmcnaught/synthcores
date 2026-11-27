@@ -14,7 +14,7 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   sample counts, 44,101 samples a second, two runs identical). Program ROM files need each byte
   pair swapped (checked with a reset vector).
 - **Next:** U1 (H8/300H instruction set against MAME on generated programs) and U3 (SWP00 on
-  synthetic write streams). U0's MIDI corpus waits for the user's MU50 ROMs.
+  synthetic write streams). U0 corpus case `basic` renders identically twice with the user's ROMs (installed 2026-11-27, all MAME hashes match).
 
 ## P2K release v20261125 (2026-11-25)
 
