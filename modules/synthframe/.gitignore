@@ -1,0 +1,2 @@
+# Test builds (persistent, so Verilator and ccache rebuild only what changed)
+/out/
