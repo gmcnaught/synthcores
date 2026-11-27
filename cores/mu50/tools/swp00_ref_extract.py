@@ -174,7 +174,7 @@ def main():
                 raise SystemExit("sound_stream_update: output not replaced")
         text = text.replace("swp00_device", "swp00_ref").replace("m_rom_cache", "m_wave")
         text = text.replace("return read_byte(", "return m_wave.read_byte(")
-        text = text.replace("\tm_stream->update();\n", "")
+        text = re.sub(r"\tm_stream->update\(\);[^\n]*\n", "", text)   # also patch 0002's
         text = re.sub(r'\tlogerror\("keyon %02x: %s\\n", chan, m_streaming\[chan\]\.describe\(\)\);\n', "", text)
         body.append(text)
 

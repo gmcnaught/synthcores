@@ -21,8 +21,11 @@ This directory contains:
     given as credit only; they do not endorse this core.
 
   * Files that remain BSD-3-Clause (MAME's licence):
-      - mame/patches/: a logging patch to MAME's own files, used only to
-        produce the reference traces.
+      - mame/patches/: patches to MAME's own files (logging, and stream
+        updates in two SWP00 handlers), used only to produce the reference
+        traces.
+      - ref/: MAME's swp00.cpp/.h as a plain C++ class (Olivier Galibert),
+        the reference model of the SWP00 bench.
 
 It does not contain the MU50's program ROM, its wave ROM or the HD44780
 character ROM.

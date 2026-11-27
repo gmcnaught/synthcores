@@ -68,21 +68,26 @@ module swp00
     logic [31:0] sample_counter;
     assign sample_count = sample_counter;
 
-    // MEG constants (m_const, 0xc0) and offsets (m_offset, 0x40): one RAM of 256 words,
-    // constants at 00-BF, offsets at C0-FF
-    logic [15:0] mram [256];
-    logic [7:0]  m_waddr, m_raddr_cmd, m_raddr_meg, m_raddr;
-    logic [15:0] m_wd, m_rd;
+    // MEG constants (m_const, 0xc0) and offsets (m_offset, 0x40): RAMs of 256 words, constants at
+    // 00-BF, offsets at C0-FF. Two copies, for the MEG's two read ports.
+    logic [15:0] mram [256], mram2 [256];
+    logic [7:0]  m_waddr, m_raddr_cmd, m_raddr_meg, m_raddr, m_raddr2;
+    logic [15:0] m_wd, m_rd, m_rd2;
     logic        m_we;
     logic        meg_busy;
     assign m_raddr = meg_busy ? m_raddr_meg : m_raddr_cmd;
     always_ff @(posedge clk) begin
-        if (m_we) mram[m_waddr] <= m_wd;
+        if (m_we) begin
+            mram[m_waddr] <= m_wd;
+            mram2[m_waddr] <= m_wd;
+        end
         m_rd <= mram[m_raddr];
+        m_rd2 <= mram2[m_raddr2];
     end
 
     // ---------------------------------------------------------------- MEG
     logic        meg_start, meg_done;
+    logic        meg_pend;           // the MEG has a sample (started or running)
     logic [31:0] meg_out_l, meg_out_r;
     logic [31:0] buffer_offset;
     logic [31:0] mix_r [7];
@@ -91,7 +96,7 @@ module swp00
         .start(meg_start), .done(meg_done), .busy(meg_busy),
         .variant(meg_control[7:6]), .buffer_offset,
         .mix(mix_r),
-        .c_addr(m_raddr_meg), .c_data(m_rd),
+        .c_addr(m_raddr_meg), .c_data(m_rd), .c2_addr(m_raddr2), .c2_data(m_rd2),
         .out_l(meg_out_l), .out_r(meg_out_r),
         .dm_req, .dm_we, .dm_addr, .dm_wdata, .dm_ack, .dm_rdata
     );
@@ -101,9 +106,10 @@ module swp00
         S_RESET, S_IDLE,
         S_CMD_RD, S_CMD_RD2, S_CMD_APPLY, S_KEYON_RD, S_KEYON_RD2, S_KEYON_WR,
         S_MRD2, S_WAVEVAL,
-        S_V_RD, S_V_RD2, S_V_LD, S_V_LFO, S_V_FETCH, S_V_FETCH2, S_V_DPCM, S_V_INTERP,
-        S_V_F1, S_V_F2, S_V_F3, S_V_F4, S_V_MIX, S_V_WB,
-        S_MEG, S_OUT
+        S_V_RD, S_V_RD2, S_V_LD, S_V_LFO, S_V_FETCH, S_V_FETCHA, S_V_FETCH2, S_V_DPCM, S_V_DPCMB,
+        S_V_DPCMC, S_V_VALS,
+        S_V_INTERP, S_V_POS,
+        S_V_F1, S_V_F2, S_V_F3, S_V_F4, S_V_F5, S_V_MIX, S_V_WB, S_V_DONE
     } st_t;
     st_t st;
 
@@ -123,6 +129,13 @@ module swp00
     logic [31:0] mix_s;          // filter output l
     logic [15:0] env_out;
     logic        wv_second;      // 12-bit format: second fetch
+    logic [21:0] fa;             // sample address
+    logic [31:0] dtgt;           // pos + 2: where read_8c stops
+    logic [1:0]  dbyte;          // compressed format: byte of b0_3 being decoded
+    logic [31:0] pdr;            // pos_dec + step + (fmod << 4)
+    logic [15:0] dsamp;          // compressed format: the decoded sample
+    logic [31:0] ddelta;         // and its delta before the decay
+    logic [31:0] val0r, val1r;   // the two samples to interpolate
 
     // shared multiplier: 33 x 33 signed, product used the clock after the inputs are set
     logic signed [32:0] mul_a, mul_b;
@@ -270,6 +283,7 @@ module swp00
             state_adr <= 8'h0; meg_control <= 8'h0; waverom_access <= 8'h0;
             sample_counter <= 32'h0;
             buffer_offset <= 32'h0;
+            meg_pend <= 1'b0;
             wv_req <= 1'b0;
             m_waddr <= 8'h0;
         end else case (st)
@@ -290,6 +304,10 @@ module swp00
                     for (int i = 0; i < 7; i++) acc[i] <= 32'h0;
                     vaddr <= 5'd0;
                     st <= S_V_RD;
+                end else if (meg_pend && (cmd_kind == CMD_GEN || cmd_reg == 11'h004 ||
+                                          (cmd_reg >= 11'h180 && cmd_reg < 11'h380))) begin
+                    // MEG constants, offsets and control (and the end of a run) wait for the
+                    // MEG to finish the samples before them
                 end else begin
                     creg <= cmd_reg; cdata <= cmd_data; ckind <= cmd_kind;
                     if (cmd_kind == CMD_GEN) cmd_ready <= 1'b1;
@@ -414,23 +432,29 @@ module swp00
                 if (v.env_mode == ENV_DONE && !($signed({{16{v.env_level[15]}}, v.env_level}) < 32'sh800))
                     st <= S_V_WB;
                 else if (v.done) begin
-                    smp1 <= v.last;
+                    smp1 <= v.last_;
                     st <= S_V_F1;
                 end else
                     st <= S_V_FETCH;
             end
+            // sample address (read_16 / read_12 / read_8 / read_8c), then the request
             S_V_FETCH: begin : fetch
-                logic [31:0] a;
+                logic [31:0] q;
+                q = 32'($signed(v.pos) >>> 2);
                 case (v.format[7:6])
-                    2'd0: a = {8'h0, v.address} + (v.pos << 1);
-                    2'd1: a = {8'h0, v.address} + 32'($signed(v.pos) >>> 2) * 32'd6;
-                    2'd2: a = {8'h0, v.address} + v.pos;
-                    default: a = {8'h0, v.address} + v.dpcm_pos;
+                    2'd0: fa <= 22'({8'h0, v.address} + (v.pos << 1));
+                    2'd1: fa <= 22'({8'h0, v.address} + (q << 2) + (q << 1));      // (pos >> 2) * 6
+                    2'd2: fa <= 22'({8'h0, v.address} + v.pos);
+                    default: fa <= 22'({8'h0, v.address} + v.dpcm_pos);
                 endcase
-                if (v.format[7:6] == 2'd3 && v.dpcm_pos == v.pos + 32'd2) begin
-                    st <= S_V_INTERP;               // nothing to decode
+                dtgt <= v.pos + 32'd2;
+                st <= S_V_FETCHA;
+            end
+            S_V_FETCHA: begin
+                if (v.format[7:6] == 2'd3 && v.dpcm_pos == dtgt) begin
+                    st <= S_V_VALS;               // nothing to decode
                 end else begin
-                    wv_req <= 1'b1; wv_addr <= a[21:0]; wv_second <= 1'b0;
+                    wv_req <= 1'b1; wv_addr <= fa; wv_second <= 1'b0;
                     st <= v.format[7:6] == 2'd3 ? S_V_DPCM : S_V_FETCH2;
                 end
             end
@@ -441,49 +465,70 @@ module swp00
                 end else begin
                     wv_req <= 1'b0;
                     if (wv_second) b4_7 <= wv_data; else b0_3 <= wv_data;
-                    st <= S_V_INTERP;
+                    st <= S_V_VALS;
                 end
             end
             // read_8c: dpcm_step over bytes until dpcm_pos == pos + 2, four bytes per fetch
-            S_V_DPCM: if (wv_ack) begin : dpcm
-                logic [15:0] s0, s1;
-                logic [31:0] d, p;
-                logic [63:0] r;
-                s0 = v.dpcm_s0; s1 = v.dpcm_s1; d = v.dpcm_delta; p = v.dpcm_pos;
-                for (int i = 0; i < 4; i++) begin
-                    if (p != v.pos + 32'd2) begin
-                        r = dpcm_step(v.format, s1, d, wv_data[8*i +: 8]);
-                        s0 = r[63:48]; s1 = r[47:32]; d = r[31:0];
-                        p = p + 32'd1;
-                    end
-                end
-                v.dpcm_s0 <= s0; v.dpcm_s1 <= s1; v.dpcm_delta <= d; v.dpcm_pos <= p;
-                if (p != v.pos + 32'd2)
-                    wv_addr <= 22'({8'h0, v.address} + p);
-                else begin
-                    wv_req <= 1'b0;
-                    st <= S_V_INTERP;
+            // read_8c: dpcm_step on each byte until dpcm_pos == pos + 2; four bytes a fetch,
+            // one byte a clock
+            S_V_DPCM: if (wv_ack) begin
+                wv_req <= 1'b0;
+                b0_3 <= wv_data;
+                dbyte <= 2'd0;
+                st <= S_V_DPCMB;
+            end
+            S_V_DPCMB: begin : dpcm
+                logic [47:0] r;
+                r = dpcm_sample(v.format, v.dpcm_s1, v.dpcm_delta, b0_3[8*dbyte +: 8]);
+                dsamp <= r[47:32]; ddelta <= r[31:0];
+                st <= S_V_DPCMC;
+            end
+            S_V_DPCMC: begin : dpcm2
+                logic [31:0] p;
+                p = v.dpcm_pos + 32'd1;
+                v.dpcm_s0 <= v.dpcm_s1; v.dpcm_s1 <= dsamp; v.dpcm_delta <= dpcm_decay(v.format, ddelta);
+                v.dpcm_pos <= p;
+                dbyte <= dbyte + 2'd1;
+                st <= S_V_DPCMB;
+                if (p == dtgt)
+                    st <= S_V_VALS;
+                else if (dbyte == 2'd3) begin
+                    wv_req <= 1'b1; wv_addr <= 22'({8'h0, v.address} + p);
+                    st <= S_V_DPCM;
                 end
             end
-            S_V_INTERP: begin : interp
-                logic [31:0] vals, val0, val1, step, result, pd, pos, dif;
-                logic [3:0]  e;
-                logic        trig;
+            // the two samples (read_16 / read_12 / read_8 / read_8c)
+            S_V_VALS: begin : vals_
+                logic [31:0] vals;
                 vals = fetch_vals(v.format[7:6], v.pos[1:0], b0_3, b4_7);
                 if (v.format[7:6] == 2'd3) begin
-                    val0 = {{16{v.dpcm_s0[15]}}, v.dpcm_s0}; val1 = {{16{v.dpcm_s1[15]}}, v.dpcm_s1};
+                    val0r <= {{16{v.dpcm_s0[15]}}, v.dpcm_s0}; val1r <= {{16{v.dpcm_s1[15]}}, v.dpcm_s1};
                 end else begin
-                    val0 = {{16{vals[31]}}, vals[31:16]}; val1 = {{16{vals[15]}}, vals[15:0]};
+                    val0r <= {{16{vals[31]}}, vals[31:16]}; val1r <= {{16{vals[15]}}, vals[15:0]};
                 end
+                st <= S_V_INTERP;
+            end
+            S_V_INTERP: begin : interp
+                logic [31:0] val0, val1, step, result, dif;
+                logic [3:0]  e;
+                val0 = val0r; val1 = val1r;
                 e = v.pitch[15:12];
                 step = ({20'h0, v.pitch[11:0]} << (4'd8 + e)) >> 4;   // 8 + (s16(pitch) >> 12)
                 dif = val1 - val0;
                 result = val0 + ((32'($signed(dif) * $signed({23'h0, v.pos_dec[14:6]})) >>> 10) << 1);
-                pd = v.pos_dec + step + (fmod << 4);
+                smp1 <= result[15:0];
+                pdr <= v.pos_dec + step + (fmod << 4);
+                st <= S_V_POS;
+            end
+            // the position update of streaming_block::step
+            S_V_POS: begin : posu
+                logic [31:0] pd, pos;
+                logic        trig;
+                pd = pdr;
                 pos = v.pos;
                 trig = 1'b0;
                 if ($signed(pd) >= 32'sh8000) begin
-                    v.first <= 1'b0;
+                    v.first_ <= 1'b0;
                     pos = pos + 32'($signed(pd) >>> 15);
                     pd = pd & 32'h7fff;
                     if ($signed(pos) >= $signed({16'h0, v.loop_})) begin
@@ -497,14 +542,13 @@ module swp00
                             v.dpcm_pos <= 32'd1;
                         end else begin
                             v.done <= 1'b1;
-                            v.last <= result[15:0];
+                            v.last_ <= smp1;
                             trig = 1'b1;
                         end
                     end
                 end
                 v.pos <= pos; v.pos_dec <= pd;
                 if (trig) v.env_mode <= ENV_DECAY;    // trigger_release
-                smp1 <= result[15:0];
                 st <= S_V_F1;
             end
             // filter_block::step
@@ -530,17 +574,23 @@ module swp00
                 st <= S_V_F4;
             end
             S_V_F4: begin : f4
-                logic [31:0] l, base;
+                logic [31:0] l;
                 logic [17:0] ks;
                 logic [33:0] es;
                 l = v.f_l + prod[55:24];
                 v.f_l <= l;
+                mix_s <= l;
                 ks = filter_k_step(v, sample_counter);
                 v.f_sweep <= ks[17:16]; v.f_k <= ks[15:0];
                 es = env_step(v, sample_counter);
                 v.env_mode <= es[17:16]; v.env_level <= es[15:0];
+                env_out <= es[33:18];
+                st <= S_V_F5;
+            end
+            S_V_F5: begin : f5
+                logic [31:0] base;
                 // mixer_block::step: base = u16(envelope + tremolo + cglo)
-                base = {16'h0, 16'(es[33:18] + amod[15:0] + {4'h0, v.cglo})};
+                base = {16'h0, 16'(env_out + amod[15:0] + {4'h0, v.cglo})};
                 mulv[0] <= volume_mul(base + {20'h0, v.dry, 4'h0} + {20'h0, v.cpanl});
                 mulv[1] <= volume_mul(base + {20'h0, v.dry, 4'h0} + {20'h0, v.cpanr});
                 mulv[2] <= volume_mul(base + {20'h0, v.rev, 4'h0});
@@ -548,7 +598,6 @@ module swp00
                 mulv[4] <= volume_mul(base + {20'h0, v.cho, 4'h0} + {20'h0, v.cpanr});
                 mulv[5] <= volume_mul(base + {20'h0, v.var_, 4'h0} + {20'h0, v.cpanl});
                 mulv[6] <= volume_mul(base + {20'h0, v.var_, 4'h0} + {20'h0, v.cpanr});
-                mix_s <= l;
                 mix_i <= 3'd0;
                 st <= S_V_MIX;
             end
@@ -568,30 +617,37 @@ module swp00
             end
             S_V_WB: begin
                 vaddr <= chan; vwd <= v; vwe <= 1'b1;
-                if (chan == 5'd31) begin
-                    for (int i = 0; i < 7; i++) mix_r[i] <= acc[i];
-                    mix_valid <= 1'b1;
-                    meg_start <= 1'b1;
-                    st <= S_MEG;
-                end else begin
+                if (chan == 5'd31)
+                    st <= S_V_DONE;
+                else begin
                     chan <= chan + 5'd1;
                     st <= S_V_RD;
                 end
             end
-            S_MEG: if (meg_done) st <= S_OUT;
-            S_OUT: begin : out
-                logic signed [31:0] l, r;
-                l = $signed(meg_out_l) >>> 6;
-                r = $signed(meg_out_r) >>> 6;
-                smp_l <= l < -32'sh20000 ? 18'h20000 : l > 32'sh1ffff ? 18'h1ffff : l[17:0];
-                smp_r <= r < -32'sh20000 ? 18'h20000 : r > 32'sh1ffff ? 18'h1ffff : r[17:0];
-                smp_valid <= 1'b1;
-                buffer_offset <= buffer_offset - 32'd1;
+            // the channels of this sample are done: hand their sums to the MEG once it has
+            // finished the previous sample; the MEG then runs while the next sample's channels do
+            S_V_DONE: if (!meg_pend) begin
+                for (int i = 0; i < 7; i++) mix_r[i] <= acc[i];
+                mix_valid <= 1'b1;
+                meg_start <= 1'b1;
+                meg_pend <= 1'b1;
                 sample_counter <= sample_counter + 32'd1;
                 st <= S_IDLE;
             end
             default: st <= S_IDLE;
         endcase
+
+        // the MEG's end of a sample: output, the delay lines move on
+        if (!rst && meg_done) begin : out
+            logic signed [31:0] l, r;
+            l = $signed(meg_out_l) >>> 6;
+            r = $signed(meg_out_r) >>> 6;
+            smp_l <= l < -32'sh20000 ? 18'h20000 : l > 32'sh1ffff ? 18'h1ffff : l[17:0];
+            smp_r <= r < -32'sh20000 ? 18'h20000 : r > 32'sh1ffff ? 18'h1ffff : r[17:0];
+            smp_valid <= 1'b1;
+            buffer_offset <= buffer_offset - 32'd1;
+            meg_pend <= 1'b0;
+        end
 
     end
 endmodule

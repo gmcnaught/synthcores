@@ -1,0 +1,35 @@
+--- a/src/mame/yamaha/ymmu50.cpp
++++ b/src/mame/yamaha/ymmu50.cpp
+@@ -131,6 +131,16 @@
+ 	if(const char *f = getenv("MU_SND_LOG")) {
+ 		FILE *log = fopen(f, "w");
+ 		m_mu50cpu->space(AS_PROGRAM).install_write_tap(0x400000, 0x4007ff, "mu_snd_log",
++			[this, log](offs_t offset, u16 &data, u16 mem_mask) {
++				u32 n = m_swp00->mu_sync_sample_counter();
++				fprintf(log, "%llu %u %03X %04X %04X\n", (unsigned long long)m_mu50cpu->total_cycles(), n, offset & 0x7ff, data, mem_mask);
++			});
++	}
++	// mu50 logging patch 0002: MU_SND_RLOG=file, the same line for every CPU read of the SWP00,
++	// with the data it returned
++	if(const char *f = getenv("MU_SND_RLOG")) {
++		FILE *log = fopen(f, "w");
++		m_mu50cpu->space(AS_PROGRAM).install_read_tap(0x400000, 0x4007ff, "mu_snd_rlog",
+ 			[this, log](offs_t offset, u16 &data, u16 mem_mask) {
+ 				u32 n = m_swp00->mu_sync_sample_counter();
+ 				fprintf(log, "%llu %u %03X %04X %04X\n", (unsigned long long)m_mu50cpu->total_cycles(), n, offset & 0x7ff, data, mem_mask);
+--- a/src/devices/sound/swp00.cpp
++++ b/src/devices/sound/swp00.cpp
+@@ -1706,11 +1706,13 @@
+ 
+ u8 swp00_device::waverom_val_r()
+ {
++	m_stream->update(); // mu50 patch 0002: apply at the CPU time, as every other access
+ 	return read_byte(m_streaming[0x1f].sample_address_get());
+ }
+ 
+ void swp00_device::meg_control_w(u8 data)
+ {
++	m_stream->update(); // mu50 patch 0002: apply at the CPU time, as every other access
+ 	m_meg_control = data;
+ 	logerror("meg_control %02x (variation %x, %s)\n", m_meg_control, m_meg_control >> 6, m_meg_control & 2 ? "mute" : "on");
+ }

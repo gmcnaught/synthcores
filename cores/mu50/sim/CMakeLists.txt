@@ -19,10 +19,13 @@ verilate(h8h_bench SOURCES "${HDL}/h8h/h8h_core.sv" INCLUDE_DIRS "${HDL}/h8h"
 # SWP00 against the C++ copy of MAME's model (milestone U3)
 set(REF "${CMAKE_CURRENT_SOURCE_DIR}/../ref")
 add_executable(swp00_bench swp00_bench.cpp "${REF}/swp00_ref.cpp")
-target_include_directories(swp00_bench PRIVATE "${REF}")
+target_include_directories(swp00_bench PRIVATE "${REF}" "${HDL}/swp00")
 verilate(swp00_bench SOURCES "${HDL}/swp00/swp00_pkg.sv" "${HDL}/swp00/swp00_meg.sv" "${HDL}/swp00/swp00.sv"
-         INCLUDE_DIRS "${HDL}/swp00" TOP_MODULE swp00 PREFIX Vswp00 VERILATOR_ARGS ${VFLAGS})
+         INCLUDE_DIRS "${HDL}/swp00" TOP_MODULE swp00 PREFIX Vswp00 VERILATOR_ARGS ${VFLAGS} --public-flat-rw)
 
 # the reference alone, replaying MAME's logs (U3 reference check)
 add_executable(swp00_replay swp00_replay.cpp "${REF}/swp00_ref.cpp")
 target_include_directories(swp00_replay PRIVATE "${REF}")
+# MAME's swp00 code overflows s32 sums under extreme settings; C leaves that undefined and clang
+# then differs from two's complement wrap. The reference wraps, as the HDL (docs/plan.md, U3).
+set_source_files_properties("${REF}/swp00_ref.cpp" PROPERTIES COMPILE_OPTIONS "-fwrapv")

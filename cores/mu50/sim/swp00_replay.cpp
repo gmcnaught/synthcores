@@ -9,6 +9,7 @@
 // MAME returned): each read is replayed in time order with the writes, and its value checked.
 #include "swp00_ref.h"
 
+#include <algorithm>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
@@ -73,6 +74,15 @@ int main(int argc, char **argv) {
     }
     run_to(total);
     if (rlog) fprintf(stderr, "%llu reads, %llu different\n", (unsigned long long)nreads, (unsigned long long)bad);
+    if (getenv("SWP00_PEAK")) {
+        // widest value now in each delay line (every value lives at least 0x8000 samples there)
+        auto bitsof = [](int32_t v) { int b = 1; while (b < 32 && (v < -(1 << (b - 1)) || v >= (1 << (b - 1)))) b++; return b; };
+        int br = 0, bc = 0, bv = 0;
+        for (auto v : swp->m_rev_buffer) br = std::max(br, bitsof(v));
+        for (auto v : swp->m_cho_buffer) bc = std::max(bc, bitsof(v));
+        for (auto v : swp->m_var_buffer) bv = std::max(bv, bitsof(v));
+        fprintf(stderr, "delay line widths (signed bits) at the end: reverb %d, chorus %d, variation %d\n", br, bc, bv);
+    }
     fclose(out);
     return 0;
 }

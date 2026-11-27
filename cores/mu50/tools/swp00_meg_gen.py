@@ -31,6 +31,112 @@ OPC = {n: i for i, n in enumerate(OPS)}
 BUF = {"brev": 0, "bcho": 1, "bvar": 2}
 MIX = ["dry_l", "dry_r", "rev", "cho_l", "cho_r", "var_l", "var_r"]
 R_ZERO = 0          # register 0 holds 0
+VIRT = 1 << 20      # virtual temporaries are numbered from here
+MEM_OPS = {"RD", "WR", "RLFO", "RLFO2"}
+NO_WRITE = {"WR", "OUT", "END"}
+
+
+def allocate_temps(ops, named):
+    """Map the virtual temporaries of a program to the registers no C variable uses, least
+    recently freed first, so a register is reused as late as possible (fewer false dependencies
+    for schedule())."""
+    last = {}
+    for i, op in enumerate(ops):
+        for r in (op[1], op[2], op[3]):
+            if r >= VIRT:
+                last[r] = i
+    free = [r for r in range(1, 256) if r not in named]
+    m = {}
+    out = []
+    for i, op in enumerate(ops):
+        f = list(op)
+        for k in (2, 3):                         # reads
+            if f[k] >= VIRT:
+                f[k] = m[f[k]]
+        if f[1] >= VIRT:                         # write
+            if not free:
+                raise GenError("out of registers")
+            m[op[1]] = free.pop(0)
+            f[1] = m[op[1]]
+        for r in {op[2], op[3]}:
+            if r >= VIRT and last[r] == i:
+                free.append(m[r])
+        if op[1] >= VIRT and last.get(op[1], -1) <= i:
+            free.append(m[op[1]])                # written, never read
+        out.append(tuple(f))
+    return out
+
+
+def schedule(ops):
+    """Reorder a program so that an op rarely reads the register the op just before it writes
+    (the executor waits a clock then). Keeps every register dependency (read after write, write
+    after read, write after write), the order of the delay line accesses, and END last."""
+    n = len(ops)
+    preds = [set() for _ in range(n)]
+    last_w, reads_since = {}, {}
+    last_mem = None
+    for j, op in enumerate(ops):
+        name = OPS[op[0]]
+        rd = {r for r in (op[2], op[3]) if r != R_ZERO}
+        wr = {op[1]} if name not in NO_WRITE and op[1] != R_ZERO else set()
+        for r in rd:
+            if r in last_w:
+                preds[j].add(last_w[r])
+        for r in wr:
+            if r in last_w:
+                preds[j].add(last_w[r])
+            preds[j] |= reads_since.get(r, set())
+        if name in MEM_OPS:
+            if last_mem is not None:
+                preds[j].add(last_mem)
+            last_mem = j
+        if name == "END":
+            preds[j] |= set(range(j))
+        for r in rd:
+            reads_since.setdefault(r, set()).add(j)
+        for r in wr:
+            last_w[r] = j
+            reads_since[r] = set()
+    done, order = set(), []
+    left = [len(p) for p in preds]
+    succ = [[] for _ in range(n)]
+    for j, p in enumerate(preds):
+        for i in p:
+            succ[i].append(j)
+    ready = sorted(j for j in range(n) if left[j] == 0)
+    prev_w = None
+    while ready:
+        pick = None
+        for j in ready:
+            op = ops[j]
+            if prev_w is None or prev_w not in (op[2], op[3]):
+                pick = j
+                break
+        if pick is None:
+            pick = ready[0]
+        ready.remove(pick)
+        order.append(pick)
+        done.add(pick)
+        op = ops[pick]
+        prev_w = op[1] if OPS[op[0]] not in NO_WRITE and op[1] != R_ZERO else None
+        for k in succ[pick]:
+            left[k] -= 1
+            if left[k] == 0:
+                ready.append(k)
+        ready.sort()
+    if len(order) != n:
+        raise GenError("schedule: dependency cycle")
+    return [ops[j] for j in order]
+
+
+def stalls(ops):
+    """Clocks the executor waits for a result (an op reading the previous op's register)."""
+    s = 0
+    for p, q in zip(ops, ops[1:]):
+        w = p[1] if OPS[p[0]] not in NO_WRITE and p[1] != R_ZERO else None
+        if w is not None and w in (q[2], q[3]):
+            s += 1
+    return s
 
 
 class GenError(Exception):
@@ -212,7 +318,7 @@ class Compiler:
     def __init__(self):
         self.regs = {"__zero": R_ZERO}
         self.nreg = 1
-        self.tfree = []
+        self.nvirt = 0
         self.consts = {}        # immediate value -> register (loaded by LDI at the program start)
 
     def reg(self, name):
@@ -222,16 +328,12 @@ class Compiler:
         return self.regs[name]
 
     def temp(self):
-        if self.tfree:
-            return self.tfree.pop()
-        r = self.nreg
-        self.nreg += 1
-        return r
+        # virtual temporaries, one per value; allocate_temps() maps them to registers
+        self.nvirt += 1
+        return VIRT + self.nvirt
 
     def free(self, r):
-        if r in self.temps_owned:
-            self.temps_owned.discard(r)
-            self.tfree.append(r)
+        self.temps_owned.discard(r)
 
     def imm(self, v):
         if v == 0:
@@ -467,6 +569,13 @@ def main():
         pr.ops = pre + pr.ops
     if comp.nreg > 256:
         raise GenError("%d registers, more than 256" % comp.nreg)
+    named = set(comp.regs.values())
+    waits = []
+    for pr in progs:
+        pr.ops = allocate_temps(pr.ops, named)
+        w0 = stalls(pr.ops)
+        pr.ops = schedule(pr.ops)
+        waits.append("%d->%d" % (w0, stalls(pr.ops)))
 
     words, starts, lst = [], [], []
     for v, pr in zip((0x00, 0x40, 0x80, 0xc0), progs):
@@ -486,17 +595,25 @@ def main():
            "localparam int PROG_LEN = %d;" % len(words),
            "localparam int PAW = %d;" % aw,
            "localparam int NREG = %d;" % comp.nreg,
-           "localparam logic [PAW-1:0] VAR_START [4] = '{%s};" % ", ".join("%d'd%d" % (aw, s) for s in starts),
-           "localparam logic [63:0] PROG [PROG_LEN] = '{"]
-    out.append(",\n".join("    64'h%016x" % w for w in words))
-    out.append("};")
+           "localparam logic [PAW-1:0] VAR_START [4] = '{%s};" % ", ".join("%d'd%d" % (aw, s) for s in starts)]
     for i, n in enumerate(OPS):
         out.append("localparam logic [4:0] OP_%s = 5'd%d;" % (n, i))
+    # the program ROM as a case statement in a clocked block (a ROM Quartus maps to block RAM);
+    # included in swp00_meg.sv where `pc`, `stall` and `ins_q` exist
+    rom = ["// Generated by cores/mu50/tools/swp00_meg_gen.py: the MEG program ROM. Do not edit.",
+           "always_ff @(posedge clk) if (!stall) case (pc)"]
+    rom += ["    %d'd%d: ins_q <= 64'h%016x;" % (aw, i, w) for i, w in enumerate(words)]
+    rom += ["    default: ins_q <= 64'h0;", "endcase"]
     outdir.mkdir(parents=True, exist_ok=True)
     (outdir / "swp00_meg_prog.svh").write_text("\n".join(out) + "\n")
+    (outdir / "swp00_meg_rom.svh").write_text("\n".join(rom) + "\n")
     (outdir / "swp00_meg_prog.txt").write_text("\n".join(lst) + "\n")
-    print("%d ops (%s), %d registers, %d immediates" % (
-        len(words), ", ".join(str(len(p.ops)) for p in progs), comp.nreg, len(comp.consts)))
+    # the MEG state (MAME's m_ members) in the register file, for the bench: R(member, register)
+    regs = ["// Generated by cores/mu50/tools/swp00_meg_gen.py: MEG state registers. Do not edit."]
+    regs += ["R(%s, %d)" % (n, i) for n, i in sorted(comp.regs.items(), key=lambda x: x[1]) if n.startswith("m_")]
+    (outdir / "swp00_meg_regs.inc").write_text("\n".join(regs) + "\n")
+    print("%d ops (%s), %d named registers, %d immediates; result waits per variant %s" % (
+        len(words), ", ".join(str(len(p.ops)) for p in progs), comp.nreg, len(comp.consts), ", ".join(waits)))
 
 
 if __name__ == "__main__":

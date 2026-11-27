@@ -1,5 +1,5 @@
 variant 00 at 0
-   0 LDI      d92  a0   b0   c00 c2 00 c3 00 x200  imm 200
+   0 LDI      d88  a0   b0   c00 c2 00 c3 00 x200  imm 200
    1 LDMIX    d1   a0   b0   c00 c2 00 c3 00 x000  dry_l = voice sum
    2 LDMIX    d2   a0   b0   c01 c2 00 c3 00 x000  dry_r = voice sum
    3 LDMIX    d3   a0   b0   c02 c2 00 c3 00 x000  rev = voice sum
@@ -7,322 +7,322 @@ variant 00 at 0
    5 LDMIX    d5   a0   b0   c04 c2 00 c3 00 x000  cho_r = voice sum
    6 LDMIX    d6   a0   b0   c05 c2 00 c3 00 x000  var_l = voice sum
    7 LDMIX    d7   a0   b0   c06 c2 00 c3 00 x000  var_r = voice sum
-   8 MUL9     d9   a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
-   9 CONST    d10  a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
-  10 ADD      d8   a9   b10  c00 c2 00 c3 00 x000  m_var_vol
-  11 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+   8 MUL9     d155 a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
+   9 CONST    d156 a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
+  10 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+  11 ADD      d8   a155 b156 c00 c2 00 c3 00 x000  m_var_vol
   12 MUL7     d7   a7   b0   c07 c2 00 c3 00 x000  m7(.., 7) -> var_r
-  13 ADD      d11  a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
-  14 ADD      d12  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
-  15 MUL7     d10  a14  b0   c7e c2 00 c3 00 x000  m7(.., 7e)
-  16 MUL7     d9   a6   b0   c7f c2 00 c3 00 x000  m7(.., 7f)
-  17 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-  18 MUL9     d9   a16  b0   c80 c2 00 c3 00 x000  m9(.., 80)
-  19 ADD      d13  a15  b9   c00 c2 00 c3 00 x000  var_filter_l_2
-  20 MUL7     d9   a16  b0   ca7 c2 00 c3 00 x000  m7(.., a7)
-  21 MUL7     d15  a13  b0   ca8 c2 00 c3 00 x000  m7(.., a8)
-  22 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-  23 MUL9     d15  a18  b0   ca9 c2 00 c3 00 x000  m9(.., a9)
-  24 ADD      d17  a10  b15  c00 c2 00 c3 00 x000  var_filtered_l
-  25 ADD      d14  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
-  26 ADD      d16  a13  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
-  27 ADD      d18  a17  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
-  28 MUL7     d15  a20  b0   c98 c2 00 c3 00 x000  m7(.., 98)
-  29 MUL7     d10  a7   b0   c99 c2 00 c3 00 x000  m7(.., 99)
-  30 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
-  31 MUL9     d10  a21  b0   c9a c2 00 c3 00 x000  m9(.., 9a)
-  32 ADD      d19  a9   b10  c00 c2 00 c3 00 x000  var_filter_r_2
-  33 MUL7     d10  a21  b0   c9b c2 00 c3 00 x000  m7(.., 9b)
-  34 MUL7     d9   a19  b0   c9c c2 00 c3 00 x000  m7(.., 9c)
-  35 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-  36 MUL9     d9   a23  b0   c9d c2 00 c3 00 x000  m9(.., 9d)
-  37 ADD      d22  a15  b9   c00 c2 00 c3 00 x000  var_filtered_r
-  38 ADD      d20  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
-  39 ADD      d21  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
-  40 ADD      d23  a22  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
-  41 LFOSTEP  d24  a24  b0   c77 c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
-  42 MUL7     d15  a24  b0   c6d c2 00 c3 00 x000  m7(.., 6d)
-  43 MUL7     d9   a15  b0   c70 c2 00 c3 00 x000  m7(.., 70)
-  44 AND23    d25  a9   b0   c00 c2 00 c3 00 x000  var_lfo_phase_2
-  45 WRAPI    d9   a24  b0   c00 c2 00 c3 00 x06e  lfo_wrap(phase, 6e)
-  46 SUBSAT   d9   a9   b0   c6f c2 00 c3 00 x000  lfo_saturate(.. - post)
-  47 FMIX     d26  a9   b26  c72 c2 71 c3 00 x000  filtered_lfo_step(m_var_lfo1a)
-  48 WRAPI    d9   a24  b0   c00 c2 00 c3 00 x079  lfo_wrap(phase, 79)
-  49 SUBSAT   d9   a9   b0   c7a c2 00 c3 00 x000  lfo_saturate(.. - post)
-  50 FMIX     d27  a9   b27  c7c c2 7b c3 00 x000  filtered_lfo_step(m_var_lfo2a)
-  51 WRAPI    d9   a24  b0   c00 c2 00 c3 00 x088  lfo_wrap(phase, 88)
-  52 SUBSAT   d9   a9   b0   c89 c2 00 c3 00 x000  lfo_saturate(.. - post)
-  53 FMIX     d28  a9   b28  c8b c2 8a c3 00 x000  filtered_lfo_step(m_var_lfo3a)
-  54 LFOSCALE d29  a26  b0   c73 c2 00 c3 00 x000  lfo_scale(.., 73) -> lfo1b
-  55 LFOSCALE d30  a26  b0   c7d c2 00 c3 00 x000  lfo_scale(.., 7d) -> lfo2b
-  56 LFOSCALE d31  a26  b0   c8c c2 00 c3 00 x000  lfo_scale(.., 8c) -> lfo3b
-  57 LFOWRAPR d32  a25  b0   c74 c2 00 c3 00 x000  lfo_wrap_reg(.., 74) -> lfo1c
-  58 LFOWRAPR d33  a25  b0   c84 c2 00 c3 00 x000  lfo_wrap_reg(.., 84) -> lfo2c
-  59 LFOWRAPR d34  a25  b0   c8d c2 00 c3 00 x000  lfo_wrap_reg(.., 8d) -> lfo3c
-  60 SUBSAT   d9   a34  b0   c8e c2 00 c3 00 x000  lfo_saturate(phase - post)
-  61 FMIX     d35  a9   b35  c90 c2 8f c3 00 x000  filtered_lfo_step(m_var_lfo4a)
-  62 LFOSCALE d36  a35  b0   c91 c2 00 c3 00 x000  lfo_scale(.., 91) -> lfo4b
-  63 MUL9     d9   a29  b0   c75 c2 00 c3 00 x000  m9(.., 75)
-  64 MUL9     d15  a32  b0   c76 c2 00 c3 00 x000  m9(.., 76)
-  65 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-  66 RLFO2    d37  a10  b0   c28 c2 02 c3 00 x000  bvar.rlfo2(78) -> tap1
-  67 MUL9     d10  a30  b0   c85 c2 00 c3 00 x000  m9(.., 85)
-  68 MUL9     d15  a33  b0   c86 c2 00 c3 00 x000  m9(.., 86)
-  69 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
-  70 RLFO2    d38  a9   b0   c2d c2 02 c3 00 x000  bvar.rlfo2(87) -> tap2
-  71 MUL9     d9   a31  b0   c95 c2 00 c3 00 x000  m9(.., 95)
-  72 MUL9     d15  a34  b0   c96 c2 00 c3 00 x000  m9(.., 96)
-  73 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-  74 RLFO2    d39  a10  b0   c33 c2 02 c3 00 x000  bvar.rlfo2(99) -> tap3
-  75 MUL9     d10  a36  b0   ca5 c2 00 c3 00 x000  m9(.., a5)
-  76 RLFO2    d40  a10  b0   c38 c2 02 c3 00 x000  bvar.rlfo2(a8) -> tap4
-  77 LFOMOD   d41  a29  b0   c83 c2 00 c3 00 x000  lfo_mod(.., 83) -> mod1
-  78 LFOMOD   d42  a30  b0   c94 c2 00 c3 00 x000  lfo_mod(.., 94) -> mod2
-  79 LFOMOD   d43  a31  b0   ca4 c2 00 c3 00 x000  lfo_mod(.., a4) -> mod3
-  80 MUL9     d10  a44  b0   c9e c2 00 c3 00 x000  m9(.., 9e)
-  81 MUL9     d15  a37  b0   c9f c2 00 c3 00 x000  m9(.., 9f)
-  82 ADD      d44  a10  b15  c00 c2 00 c3 00 x000  m_var_lfo_h_1
-  83 MUL9     d15  a45  b0   ca0 c2 00 c3 00 x000  m9(.., a0)
-  84 MUL9     d10  a37  b0   ca1 c2 00 c3 00 x000  m9(.., a1)
-  85 ADD      d45  a15  b10  c00 c2 00 c3 00 x000  m_var_lfo_h_2
-  86 MUL9     d10  a22  b0   caa c2 00 c3 00 x000  m9(.., aa)
-  87 ADD      d15  a17  b10  c00 c2 00 c3 00 x000  
-  88 MUL9     d10  a44  b0   cab c2 00 c3 00 x000  m9(.., ab)
-  89 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
-  90 MUL9     d10  a45  b0   cac c2 00 c3 00 x000  m9(.., ac)
-  91 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
-  92 WR       d0   a15  b0   c3a c2 02 c3 00 x000  bvar.w(ae)
-  93 MUL9     d15  a22  b0   cad c2 00 c3 00 x000  m9(.., ad)
-  94 MUL9     d10  a44  b0   cae c2 00 c3 00 x000  m9(.., ae)
-  95 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
-  96 MUL9     d10  a45  b0   caf c2 00 c3 00 x000  m9(.., af)
-  97 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
-  98 WR       d0   a15  b0   c3b c2 02 c3 00 x000  bvar.w(b1)
-  99 MUL9     d15  a17  b0   cb2 c2 00 c3 00 x000  m9(.., b2)
- 100 MUL9     d10  a22  b0   cb3 c2 00 c3 00 x000  m9(.., b3)
- 101 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
- 102 MUL9V    d15  a38  b41  c00 c2 00 c3 00 x000  m9v
- 103 MUL9     d10  a15  b0   cb4 c2 00 c3 00 x000  m9(.., b4)
- 104 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
- 105 MUL9V    d9   a39  b43  c00 c2 00 c3 00 x000  m9v
- 106 MUL9     d10  a9   b0   cb5 c2 00 c3 00 x000  m9(.., b5)
- 107 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
- 108 MUL9     d10  a40  b0   cb6 c2 00 c3 00 x000  m9(.., b6)
- 109 ADD      d11  a9   b10  c00 c2 00 c3 00 x000  var_out_l
- 110 MUL9     d10  a17  b0   cb7 c2 00 c3 00 x000  m9(.., b7)
- 111 MUL9     d9   a22  b0   cb8 c2 00 c3 00 x000  m9(.., b8)
- 112 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
- 113 MUL9V    d10  a38  b42  c00 c2 00 c3 00 x000  m9v
- 114 MUL9     d9   a10  b0   cb9 c2 00 c3 00 x000  m9(.., b9)
- 115 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
- 116 MUL9V    d15  a39  b43  c00 c2 00 c3 00 x000  m9v
- 117 MUL9     d9   a15  b0   cba c2 00 c3 00 x000  m9(.., ba)
- 118 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
- 119 MUL9     d9   a40  b0   cbb c2 00 c3 00 x000  m9(.., bb)
- 120 ADD      d12  a15  b9   c00 c2 00 c3 00 x000  var_out_r
- 121 MUL9     d9   a46  b0   c58 c2 00 c3 00 x000  m9(.., 58)
- 122 CONST    d15  a0   b0   c57 c2 00 c3 00 x000  m_const[57]
- 123 ADD      d46  a9   b15  c00 c2 00 c3 00 x000  m_cho_vol
- 124 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+  13 ADD      d9   a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
+  14 ADD      d10  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
+  15 MUL7     d157 a12  b0   c7e c2 00 c3 00 x000  m7(.., 7e)
+  16 MUL7     d158 a6   b0   c7f c2 00 c3 00 x000  m7(.., 7f)
+  17 MUL9     d160 a13  b0   c80 c2 00 c3 00 x000  m9(.., 80)
+  18 ADD      d159 a157 b158 c00 c2 00 c3 00 x000  
+  19 MUL7     d161 a13  b0   ca7 c2 00 c3 00 x000  m7(.., a7)
+  20 ADD      d11  a159 b160 c00 c2 00 c3 00 x000  var_filter_l_2
+  21 MUL9     d164 a15  b0   ca9 c2 00 c3 00 x000  m9(.., a9)
+  22 MUL7     d162 a11  b0   ca8 c2 00 c3 00 x000  m7(.., a8)
+  23 ADD      d12  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
+  24 ADD      d163 a161 b162 c00 c2 00 c3 00 x000  
+  25 ADD      d13  a11  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
+  26 ADD      d14  a163 b164 c00 c2 00 c3 00 x000  var_filtered_l
+  27 MUL7     d165 a17  b0   c98 c2 00 c3 00 x000  m7(.., 98)
+  28 ADD      d15  a14  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
+  29 MUL7     d166 a7   b0   c99 c2 00 c3 00 x000  m7(.., 99)
+  30 MUL9     d168 a18  b0   c9a c2 00 c3 00 x000  m9(.., 9a)
+  31 ADD      d167 a165 b166 c00 c2 00 c3 00 x000  
+  32 MUL7     d169 a18  b0   c9b c2 00 c3 00 x000  m7(.., 9b)
+  33 ADD      d16  a167 b168 c00 c2 00 c3 00 x000  var_filter_r_2
+  34 MUL9     d172 a20  b0   c9d c2 00 c3 00 x000  m9(.., 9d)
+  35 MUL7     d170 a16  b0   c9c c2 00 c3 00 x000  m7(.., 9c)
+  36 ADD      d17  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
+  37 ADD      d171 a169 b170 c00 c2 00 c3 00 x000  
+  38 ADD      d18  a16  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
+  39 ADD      d19  a171 b172 c00 c2 00 c3 00 x000  var_filtered_r
+  40 LFOSTEP  d21  a21  b0   c77 c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
+  41 ADD      d20  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
+  42 MUL7     d173 a21  b0   c6d c2 00 c3 00 x000  m7(.., 6d)
+  43 WRAPI    d175 a21  b0   c00 c2 00 c3 00 x06e  lfo_wrap(phase, 6e)
+  44 MUL7     d174 a173 b0   c70 c2 00 c3 00 x000  m7(.., 70)
+  45 SUBSAT   d176 a175 b0   c6f c2 00 c3 00 x000  lfo_saturate(.. - post)
+  46 AND23    d22  a174 b0   c00 c2 00 c3 00 x000  var_lfo_phase_2
+  47 FMIX     d23  a176 b23  c72 c2 71 c3 00 x000  filtered_lfo_step(m_var_lfo1a)
+  48 WRAPI    d177 a21  b0   c00 c2 00 c3 00 x079  lfo_wrap(phase, 79)
+  49 WRAPI    d179 a21  b0   c00 c2 00 c3 00 x088  lfo_wrap(phase, 88)
+  50 SUBSAT   d178 a177 b0   c7a c2 00 c3 00 x000  lfo_saturate(.. - post)
+  51 SUBSAT   d180 a179 b0   c89 c2 00 c3 00 x000  lfo_saturate(.. - post)
+  52 FMIX     d24  a178 b24  c7c c2 7b c3 00 x000  filtered_lfo_step(m_var_lfo2a)
+  53 FMIX     d25  a180 b25  c8b c2 8a c3 00 x000  filtered_lfo_step(m_var_lfo3a)
+  54 LFOSCALE d26  a23  b0   c73 c2 00 c3 00 x000  lfo_scale(.., 73) -> lfo1b
+  55 LFOSCALE d27  a23  b0   c7d c2 00 c3 00 x000  lfo_scale(.., 7d) -> lfo2b
+  56 LFOSCALE d28  a23  b0   c8c c2 00 c3 00 x000  lfo_scale(.., 8c) -> lfo3b
+  57 LFOWRAPR d29  a22  b0   c74 c2 00 c3 00 x000  lfo_wrap_reg(.., 74) -> lfo1c
+  58 LFOWRAPR d30  a22  b0   c84 c2 00 c3 00 x000  lfo_wrap_reg(.., 84) -> lfo2c
+  59 LFOWRAPR d31  a22  b0   c8d c2 00 c3 00 x000  lfo_wrap_reg(.., 8d) -> lfo3c
+  60 MUL9     d182 a26  b0   c75 c2 00 c3 00 x000  m9(.., 75)
+  61 SUBSAT   d181 a31  b0   c8e c2 00 c3 00 x000  lfo_saturate(phase - post)
+  62 MUL9     d183 a29  b0   c76 c2 00 c3 00 x000  m9(.., 76)
+  63 FMIX     d32  a181 b32  c90 c2 8f c3 00 x000  filtered_lfo_step(m_var_lfo4a)
+  64 ADD      d184 a182 b183 c00 c2 00 c3 00 x000  
+  65 LFOSCALE d33  a32  b0   c91 c2 00 c3 00 x000  lfo_scale(.., 91) -> lfo4b
+  66 RLFO2    d34  a184 b0   c28 c2 02 c3 00 x000  bvar.rlfo2(78) -> tap1
+  67 MUL9     d185 a27  b0   c85 c2 00 c3 00 x000  m9(.., 85)
+  68 MUL9     d186 a30  b0   c86 c2 00 c3 00 x000  m9(.., 86)
+  69 MUL9     d188 a28  b0   c95 c2 00 c3 00 x000  m9(.., 95)
+  70 ADD      d187 a185 b186 c00 c2 00 c3 00 x000  
+  71 MUL9     d189 a31  b0   c96 c2 00 c3 00 x000  m9(.., 96)
+  72 RLFO2    d35  a187 b0   c2d c2 02 c3 00 x000  bvar.rlfo2(87) -> tap2
+  73 ADD      d190 a188 b189 c00 c2 00 c3 00 x000  
+  74 MUL9     d191 a33  b0   ca5 c2 00 c3 00 x000  m9(.., a5)
+  75 RLFO2    d36  a190 b0   c33 c2 02 c3 00 x000  bvar.rlfo2(99) -> tap3
+  76 RLFO2    d37  a191 b0   c38 c2 02 c3 00 x000  bvar.rlfo2(a8) -> tap4
+  77 LFOMOD   d38  a26  b0   c83 c2 00 c3 00 x000  lfo_mod(.., 83) -> mod1
+  78 LFOMOD   d39  a27  b0   c94 c2 00 c3 00 x000  lfo_mod(.., 94) -> mod2
+  79 LFOMOD   d40  a28  b0   ca4 c2 00 c3 00 x000  lfo_mod(.., a4) -> mod3
+  80 MUL9     d192 a41  b0   c9e c2 00 c3 00 x000  m9(.., 9e)
+  81 MUL9     d193 a34  b0   c9f c2 00 c3 00 x000  m9(.., 9f)
+  82 MUL9     d194 a42  b0   ca0 c2 00 c3 00 x000  m9(.., a0)
+  83 ADD      d41  a192 b193 c00 c2 00 c3 00 x000  m_var_lfo_h_1
+  84 MUL9     d195 a34  b0   ca1 c2 00 c3 00 x000  m9(.., a1)
+  85 MUL9     d196 a19  b0   caa c2 00 c3 00 x000  m9(.., aa)
+  86 ADD      d42  a194 b195 c00 c2 00 c3 00 x000  m_var_lfo_h_2
+  87 ADD      d197 a14  b196 c00 c2 00 c3 00 x000  
+  88 MUL9     d198 a41  b0   cab c2 00 c3 00 x000  m9(.., ab)
+  89 MUL9     d200 a42  b0   cac c2 00 c3 00 x000  m9(.., ac)
+  90 ADD      d199 a197 b198 c00 c2 00 c3 00 x000  
+  91 MUL9     d202 a19  b0   cad c2 00 c3 00 x000  m9(.., ad)
+  92 ADD      d201 a199 b200 c00 c2 00 c3 00 x000  
+  93 MUL9     d203 a41  b0   cae c2 00 c3 00 x000  m9(.., ae)
+  94 WR       d0   a201 b0   c3a c2 02 c3 00 x000  bvar.w(ae)
+  95 ADD      d204 a202 b203 c00 c2 00 c3 00 x000  
+  96 MUL9     d205 a42  b0   caf c2 00 c3 00 x000  m9(.., af)
+  97 MUL9     d207 a14  b0   cb2 c2 00 c3 00 x000  m9(.., b2)
+  98 ADD      d206 a204 b205 c00 c2 00 c3 00 x000  
+  99 MUL9     d208 a19  b0   cb3 c2 00 c3 00 x000  m9(.., b3)
+ 100 WR       d0   a206 b0   c3b c2 02 c3 00 x000  bvar.w(b1)
+ 101 ADD      d209 a207 b208 c00 c2 00 c3 00 x000  
+ 102 MUL9V    d210 a35  b38  c00 c2 00 c3 00 x000  m9v
+ 103 MUL9V    d213 a36  b40  c00 c2 00 c3 00 x000  m9v
+ 104 MUL9     d211 a210 b0   cb4 c2 00 c3 00 x000  m9(.., b4)
+ 105 MUL9     d214 a213 b0   cb5 c2 00 c3 00 x000  m9(.., b5)
+ 106 ADD      d212 a209 b211 c00 c2 00 c3 00 x000  
+ 107 MUL9     d216 a37  b0   cb6 c2 00 c3 00 x000  m9(.., b6)
+ 108 ADD      d215 a212 b214 c00 c2 00 c3 00 x000  
+ 109 MUL9     d217 a14  b0   cb7 c2 00 c3 00 x000  m9(.., b7)
+ 110 ADD      d9   a215 b216 c00 c2 00 c3 00 x000  var_out_l
+ 111 MUL9     d218 a19  b0   cb8 c2 00 c3 00 x000  m9(.., b8)
+ 112 MUL9V    d220 a35  b39  c00 c2 00 c3 00 x000  m9v
+ 113 ADD      d219 a217 b218 c00 c2 00 c3 00 x000  
+ 114 MUL9     d221 a220 b0   cb9 c2 00 c3 00 x000  m9(.., b9)
+ 115 MUL9V    d223 a36  b40  c00 c2 00 c3 00 x000  m9v
+ 116 ADD      d222 a219 b221 c00 c2 00 c3 00 x000  
+ 117 MUL9     d224 a223 b0   cba c2 00 c3 00 x000  m9(.., ba)
+ 118 MUL9     d226 a37  b0   cbb c2 00 c3 00 x000  m9(.., bb)
+ 119 ADD      d225 a222 b224 c00 c2 00 c3 00 x000  
+ 120 MUL9     d227 a43  b0   c58 c2 00 c3 00 x000  m9(.., 58)
+ 121 ADD      d10  a225 b226 c00 c2 00 c3 00 x000  var_out_r
+ 122 CONST    d228 a0   b0   c57 c2 00 c3 00 x000  m_const[57]
+ 123 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+ 124 ADD      d43  a227 b228 c00 c2 00 c3 00 x000  m_cho_vol
  125 MUL7     d5   a5   b0   c05 c2 00 c3 00 x000  m7(.., 5) -> cho_r
- 126 MUL7     d9   a11  b0   c03 c2 00 c3 00 x000  m7(.., 3)
- 127 MUL9V    d15  a9   b8   c00 c2 00 c3 00 x000  m9v
- 128 ADD      d4   a4   b15  c00 c2 00 c3 00 x000  cho_l +=
- 129 MUL7     d9   a12  b0   c06 c2 00 c3 00 x000  m7(.., 6)
- 130 MUL9V    d15  a9   b8   c00 c2 00 c3 00 x000  m9v
- 131 ADD      d5   a5   b15  c00 c2 00 c3 00 x000  cho_r +=
- 132 LFOSTEP  d47  a47  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
- 133 RLFO     d48  a47  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
- 134 CONST    d15  a0   b0   c25 c2 00 c3 00 x000  m_const[25]
- 135 RLFO     d49  a47  b15  c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
- 136 CONST    d15  a0   b0   c34 c2 00 c3 00 x000  m_const[34]
- 137 RLFO     d50  a47  b15  c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
- 138 MUL7     d15  a52  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
- 139 MUL7     d9   a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
- 140 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
- 141 MUL9     d9   a53  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
- 142 ADD      d51  a10  b9   c00 c2 00 c3 00 x000  cho_filter_r_2
- 143 MUL7     d9   a53  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
- 144 MUL7     d10  a51  b0   c40 c2 00 c3 00 x000  m7(.., 40)
- 145 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
- 146 MUL9     d10  a55  b0   c41 c2 00 c3 00 x000  m9(.., 41)
- 147 ADD      d54  a15  b10  c00 c2 00 c3 00 x000  cho_filtered_r
- 148 ADD      d52  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
- 149 ADD      d53  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
- 150 ADD      d55  a54  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
- 151 MUL7     d10  a57  b0   c49 c2 00 c3 00 x000  m7(.., 49)
- 152 MUL7     d15  a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
- 153 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 154 MUL9     d15  a58  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
- 155 ADD      d56  a9   b15  c00 c2 00 c3 00 x000  cho_filter_l_2
- 156 MUL7     d15  a58  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
- 157 MUL7     d9   a56  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
- 158 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
- 159 MUL9     d9   a60  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
- 160 ADD      d59  a10  b9   c00 c2 00 c3 00 x000  cho_filtered_l
- 161 ADD      d57  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
- 162 ADD      d58  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
- 163 ADD      d60  a59  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
- 164 MUL9     d9   a49  b0   c42 c2 00 c3 00 x000  m9(.., 42)
- 165 ADD      d10  a9   b54  c00 c2 00 c3 00 x000  
- 166 WR       d0   a10  b0   c16 c2 01 c3 00 x000  bcho.w(42)
- 167 MUL9     d10  a48  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
- 168 ADD      d9   a10  b59  c00 c2 00 c3 00 x000  
- 169 MUL9     d10  a54  b0   c50 c2 00 c3 00 x000  m9(.., 50)
- 170 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
- 171 WR       d0   a15  b0   c1b c2 01 c3 00 x000  bcho.w(51)
- 172 MUL9     d15  a48  b0   c60 c2 00 c3 00 x000  m9(.., 60)
- 173 MUL9     d10  a50  b0   c61 c2 00 c3 00 x000  m9(.., 61)
- 174 ADD      d61  a15  b10  c00 c2 00 c3 00 x000  cho_out_l
- 175 MUL9     d10  a49  b0   c69 c2 00 c3 00 x000  m9(.., 69)
- 176 MUL9     d15  a50  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
- 177 ADD      d62  a10  b15  c00 c2 00 c3 00 x000  cho_out_r
- 178 MUL9     d15  a63  b0   c0c c2 00 c3 00 x000  m9(.., c)
- 179 CONST    d10  a0   b0   c0b c2 00 c3 00 x000  m_const[b]
- 180 ADD      d63  a15  b10  c00 c2 00 c3 00 x000  m_rev_vol
- 181 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
- 182 MUL7     d15  a61  b0   c12 c2 00 c3 00 x000  m7(.., 12)
- 183 MUL7     d9   a62  b0   c13 c2 00 c3 00 x000  m7(.., 13)
- 184 ADD      d64  a15  b9   c00 c2 00 c3 00 x000  
- 185 MUL9V    d10  a64  b46  c00 c2 00 c3 00 x000  m9v
- 186 ADD      d3   a3   b10  c00 c2 00 c3 00 x000  rev +=
- 187 MUL7     d64  a11  b0   c14 c2 00 c3 00 x000  m7(.., 14)
- 188 MUL7     d9   a12  b0   c15 c2 00 c3 00 x000  m7(.., 15)
- 189 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 190 MUL9V    d10  a15  b8   c00 c2 00 c3 00 x000  m9v
- 191 ADD      d3   a3   b10  c00 c2 00 c3 00 x000  rev +=
- 192 MUL7     d10  a66  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
- 193 MUL7     d15  a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
- 194 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 195 MUL9     d15  a67  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
- 196 ADD      d65  a9   b15  c00 c2 00 c3 00 x000  rev_filter_2
- 197 MUL7     d15  a67  b0   c30 c2 00 c3 00 x000  m7(.., 30)
- 198 MUL7     d9   a65  b0   c31 c2 00 c3 00 x000  m7(.., 31)
- 199 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
- 200 MUL9     d9   a69  b0   c32 c2 00 c3 00 x000  m9(.., 32)
- 201 ADD      d68  a10  b9   c00 c2 00 c3 00 x000  rev_filtered
- 202 ADD      d66  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
- 203 ADD      d67  a65  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
- 204 ADD      d69  a68  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
- 205 RD       d10  a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
- 206 MUL9     d9   a10  b0   c29 c2 00 c3 00 x000  m9(.., 29)
- 207 RD       d15  a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 208 MUL9     d10  a15  b0   c2a c2 00 c3 00 x000  m9(.., 2a)
- 209 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
- 210 WR       d0   a15  b0   c10 c2 00 c3 00 x000  brev.w(30)
- 211 RD       d10  a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
- 212 MUL9     d15  a10  b0   c33 c2 00 c3 00 x000  m9(.., 33)
- 213 ADD      d10  a15  b68  c00 c2 00 c3 00 x000  
- 214 WR       d0   a10  b0   c11 c2 00 c3 00 x000  brev.w(33)
- 215 RD       d15  a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
- 216 MUL7     d10  a15  b0   c2b c2 00 c3 00 x000  m7(.., 2b)
- 217 RD       d9   a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 218 MUL7     d15  a9   b0   c2c c2 00 c3 00 x000  m7(.., 2c)
- 219 ADD      d70  a10  b15  c00 c2 00 c3 00 x000  rev_1
- 220 RD       d10  a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
- 221 MUL7     d15  a10  b0   c3a c2 00 c3 00 x000  m7(.., 3a)
- 222 MUL7     d10  a70  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
- 223 ADD      d71  a15  b10  c00 c2 00 c3 00 x000  rev_2
- 224 RD       d15  a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
- 225 MUL9     d10  a15  b0   c38 c2 00 c3 00 x000  m9(.., 38)
- 226 MUL9     d15  a70  b0   c39 c2 00 c3 00 x000  m9(.., 39)
- 227 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 228 WR       d0   a9   b0   c15 c2 00 c3 00 x000  brev.w(3f)
- 229 MUL9     d9   a72  b0   c59 c2 00 c3 00 x000  m9(.., 59)
- 230 RD       d10  a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
- 231 MUL9     d15  a10  b0   c5a c2 00 c3 00 x000  m9(.., 5a)
- 232 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
- 233 MUL9     d15  a71  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
- 234 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 235 WR       d0   a9   b0   c1f c2 00 c3 00 x000  brev.w(5d)
- 236 RD       d72  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
- 237 MUL9     d9   a73  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
- 238 RD       d10  a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
- 239 MUL9     d15  a10  b0   c5d c2 00 c3 00 x000  m9(.., 5d)
- 240 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
- 241 MUL9     d15  a71  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
- 242 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 243 WR       d0   a9   b0   c21 c2 00 c3 00 x000  brev.w(63)
- 244 RD       d73  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
- 245 MUL9     d9   a74  b0   c62 c2 00 c3 00 x000  m9(.., 62)
- 246 RD       d10  a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
- 247 MUL9     d15  a10  b0   c63 c2 00 c3 00 x000  m9(.., 63)
- 248 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
- 249 MUL9     d15  a71  b0   c64 c2 00 c3 00 x000  m9(.., 64)
- 250 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 251 WR       d0   a9   b0   c23 c2 00 c3 00 x000  brev.w(69)
- 252 RD       d74  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
- 253 MUL9     d9   a75  b0   c65 c2 00 c3 00 x000  m9(.., 65)
- 254 RD       d10  a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
- 255 MUL9     d15  a10  b0   c66 c2 00 c3 00 x000  m9(.., 66)
- 256 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
- 257 MUL9     d15  a71  b0   c67 c2 00 c3 00 x000  m9(.., 67)
- 258 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
- 259 WR       d0   a9   b0   c24 c2 00 c3 00 x000  brev.w(6c)
- 260 RD       d75  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
- 261 RD       d15  a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
- 262 RD       d10  a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
- 263 ADD      d64  a15  b10  c00 c2 00 c3 00 x000  
- 264 RD       d10  a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
- 265 ADD      d15  a64  b10  c00 c2 00 c3 00 x000  
- 266 RD       d10  a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
- 267 ADD      d64  a15  b10  c00 c2 00 c3 00 x000  
- 268 MUL9     d9   a64  b0   c1c c2 00 c3 00 x000  m9(.., 1c)
- 269 RD       d10  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 270 MUL9     d64  a10  b0   c1b c2 00 c3 00 x000  m9(.., 1b)
- 271 ADD      d76  a9   b64  c00 c2 00 c3 00 x000  rev_base_l
- 272 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 273 MUL9     d64  a9   b0   c45 c2 00 c3 00 x000  m9(.., 45)
- 274 MUL9     d9   a76  b0   c46 c2 00 c3 00 x000  m9(.., 46)
- 275 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 276 WR       d0   a10  b0   c18 c2 00 c3 00 x000  brev.w(48)
- 277 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 278 MUL7     d10  a9   b0   c47 c2 00 c3 00 x000  m7(.., 47)
- 279 MUL7     d9   a76  b0   c48 c2 00 c3 00 x000  m7(.., 48)
- 280 ADD      d77  a10  b9   c00 c2 00 c3 00 x000  rev_out_l
- 281 RD       d10  a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
- 282 RD       d64  a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
- 283 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
- 284 RD       d64  a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
- 285 ADD      d10  a15  b64  c00 c2 00 c3 00 x000  
- 286 RD       d64  a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
- 287 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
- 288 MUL9     d9   a15  b0   c21 c2 00 c3 00 x000  m9(.., 21)
- 289 RD       d64  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 290 MUL9     d15  a64  b0   c20 c2 00 c3 00 x000  m9(.., 20)
- 291 ADD      d78  a9   b15  c00 c2 00 c3 00 x000  rev_base_r
- 292 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 293 MUL9     d15  a9   b0   c51 c2 00 c3 00 x000  m9(.., 51)
- 294 MUL9     d9   a78  b0   c52 c2 00 c3 00 x000  m9(.., 52)
- 295 ADD      d64  a15  b9   c00 c2 00 c3 00 x000  
- 296 WR       d0   a64  b0   c18 c2 00 c3 00 x000  brev.w(48)
- 297 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 298 MUL7     d64  a9   b0   c53 c2 00 c3 00 x000  m7(.., 53)
- 299 MUL7     d9   a78  b0   c54 c2 00 c3 00 x000  m7(.., 54)
- 300 ADD      d79  a64  b9   c00 c2 00 c3 00 x000  rev_out_r
- 301 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
- 302 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
- 303 MUL9V    d9   a77  b63  c00 c2 00 c3 00 x000  m9v
- 304 MUL9     d15  a61  b0   c17 c2 00 c3 00 x000  m9(.., 17)
- 305 MUL9V    d64  a15  b46  c00 c2 00 c3 00 x000  m9v
- 306 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 307 MUL9     d9   a11  b0   c18 c2 00 c3 00 x000  m9(.., 18)
- 308 MUL9V    d64  a9   b8   c00 c2 00 c3 00 x000  m9v
- 309 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 310 ADD      d1   a1   b9   c00 c2 00 c3 00 x000  dry_l +=
- 311 MUL9V    d9   a79  b63  c00 c2 00 c3 00 x000  m9v
- 312 MUL9     d15  a62  b0   c0e c2 00 c3 00 x000  m9(.., e)
- 313 MUL9V    d64  a15  b46  c00 c2 00 c3 00 x000  m9v
- 314 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 315 MUL9     d9   a12  b0   c0f c2 00 c3 00 x000  m9(.., f)
- 316 MUL9V    d64  a9   b8   c00 c2 00 c3 00 x000  m9v
- 317 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 318 ADD      d2   a2   b9   c00 c2 00 c3 00 x000  dry_r +=
- 319 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+ 126 MUL7     d229 a9   b0   c03 c2 00 c3 00 x000  m7(.., 3)
+ 127 MUL7     d231 a10  b0   c06 c2 00 c3 00 x000  m7(.., 6)
+ 128 MUL9V    d230 a229 b8   c00 c2 00 c3 00 x000  m9v
+ 129 MUL9V    d232 a231 b8   c00 c2 00 c3 00 x000  m9v
+ 130 ADD      d4   a4   b230 c00 c2 00 c3 00 x000  cho_l +=
+ 131 ADD      d5   a5   b232 c00 c2 00 c3 00 x000  cho_r +=
+ 132 LFOSTEP  d44  a44  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
+ 133 CONST    d233 a0   b0   c25 c2 00 c3 00 x000  m_const[25]
+ 134 RLFO     d45  a44  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
+ 135 RLFO     d46  a44  b233 c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
+ 136 CONST    d234 a0   b0   c34 c2 00 c3 00 x000  m_const[34]
+ 137 MUL7     d235 a49  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
+ 138 RLFO     d47  a44  b234 c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
+ 139 MUL7     d236 a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
+ 140 MUL9     d238 a50  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
+ 141 ADD      d237 a235 b236 c00 c2 00 c3 00 x000  
+ 142 MUL7     d239 a50  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
+ 143 ADD      d48  a237 b238 c00 c2 00 c3 00 x000  cho_filter_r_2
+ 144 MUL9     d242 a52  b0   c41 c2 00 c3 00 x000  m9(.., 41)
+ 145 MUL7     d240 a48  b0   c40 c2 00 c3 00 x000  m7(.., 40)
+ 146 ADD      d49  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
+ 147 ADD      d241 a239 b240 c00 c2 00 c3 00 x000  
+ 148 ADD      d50  a48  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
+ 149 ADD      d51  a241 b242 c00 c2 00 c3 00 x000  cho_filtered_r
+ 150 MUL7     d243 a54  b0   c49 c2 00 c3 00 x000  m7(.., 49)
+ 151 ADD      d52  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
+ 152 MUL7     d244 a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
+ 153 MUL9     d246 a55  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
+ 154 ADD      d245 a243 b244 c00 c2 00 c3 00 x000  
+ 155 MUL7     d247 a55  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
+ 156 ADD      d53  a245 b246 c00 c2 00 c3 00 x000  cho_filter_l_2
+ 157 MUL9     d250 a57  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
+ 158 MUL7     d248 a53  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
+ 159 ADD      d54  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
+ 160 ADD      d249 a247 b248 c00 c2 00 c3 00 x000  
+ 161 ADD      d55  a53  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
+ 162 ADD      d56  a249 b250 c00 c2 00 c3 00 x000  cho_filtered_l
+ 163 MUL9     d251 a46  b0   c42 c2 00 c3 00 x000  m9(.., 42)
+ 164 ADD      d57  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
+ 165 ADD      d252 a251 b51  c00 c2 00 c3 00 x000  
+ 166 MUL9     d253 a45  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
+ 167 WR       d0   a252 b0   c16 c2 01 c3 00 x000  bcho.w(42)
+ 168 ADD      d254 a253 b56  c00 c2 00 c3 00 x000  
+ 169 MUL9     d255 a51  b0   c50 c2 00 c3 00 x000  m9(.., 50)
+ 170 MUL9     d156 a45  b0   c60 c2 00 c3 00 x000  m9(.., 60)
+ 171 ADD      d155 a254 b255 c00 c2 00 c3 00 x000  
+ 172 MUL9     d157 a47  b0   c61 c2 00 c3 00 x000  m9(.., 61)
+ 173 WR       d0   a155 b0   c1b c2 01 c3 00 x000  bcho.w(51)
+ 174 ADD      d58  a156 b157 c00 c2 00 c3 00 x000  cho_out_l
+ 175 MUL9     d158 a46  b0   c69 c2 00 c3 00 x000  m9(.., 69)
+ 176 MUL9     d159 a47  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
+ 177 MUL9     d160 a60  b0   c0c c2 00 c3 00 x000  m9(.., c)
+ 178 ADD      d59  a158 b159 c00 c2 00 c3 00 x000  cho_out_r
+ 179 CONST    d162 a0   b0   c0b c2 00 c3 00 x000  m_const[b]
+ 180 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
+ 181 ADD      d60  a160 b162 c00 c2 00 c3 00 x000  m_rev_vol
+ 182 MUL7     d161 a58  b0   c12 c2 00 c3 00 x000  m7(.., 12)
+ 183 MUL7     d163 a59  b0   c13 c2 00 c3 00 x000  m7(.., 13)
+ 184 MUL7     d166 a9   b0   c14 c2 00 c3 00 x000  m7(.., 14)
+ 185 ADD      d164 a161 b163 c00 c2 00 c3 00 x000  
+ 186 MUL7     d167 a10  b0   c15 c2 00 c3 00 x000  m7(.., 15)
+ 187 MUL9V    d165 a164 b43  c00 c2 00 c3 00 x000  m9v
+ 188 ADD      d168 a166 b167 c00 c2 00 c3 00 x000  
+ 189 ADD      d3   a3   b165 c00 c2 00 c3 00 x000  rev +=
+ 190 MUL9V    d170 a168 b8   c00 c2 00 c3 00 x000  m9v
+ 191 MUL7     d169 a62  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
+ 192 ADD      d3   a3   b170 c00 c2 00 c3 00 x000  rev +=
+ 193 MUL9     d173 a63  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
+ 194 MUL7     d171 a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
+ 195 MUL7     d174 a63  b0   c30 c2 00 c3 00 x000  m7(.., 30)
+ 196 ADD      d172 a169 b171 c00 c2 00 c3 00 x000  
+ 197 MUL9     d180 a65  b0   c32 c2 00 c3 00 x000  m9(.., 32)
+ 198 ADD      d61  a172 b173 c00 c2 00 c3 00 x000  rev_filter_2
+ 199 ADD      d62  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
+ 200 MUL7     d176 a61  b0   c31 c2 00 c3 00 x000  m7(.., 31)
+ 201 ADD      d63  a61  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
+ 202 ADD      d178 a174 b176 c00 c2 00 c3 00 x000  
+ 203 RD       d181 a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
+ 204 ADD      d64  a178 b180 c00 c2 00 c3 00 x000  rev_filtered
+ 205 MUL9     d182 a181 b0   c29 c2 00 c3 00 x000  m9(.., 29)
+ 206 ADD      d65  a64  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
+ 207 RD       d183 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 208 MUL9     d200 a68  b0   c59 c2 00 c3 00 x000  m9(.., 59)
+ 209 MUL9     d184 a183 b0   c2a c2 00 c3 00 x000  m9(.., 2a)
+ 210 MUL9     d206 a69  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
+ 211 ADD      d185 a182 b184 c00 c2 00 c3 00 x000  
+ 212 MUL9     d213 a70  b0   c62 c2 00 c3 00 x000  m9(.., 62)
+ 213 WR       d0   a185 b0   c10 c2 00 c3 00 x000  brev.w(30)
+ 214 RD       d186 a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
+ 215 MUL9     d218 a71  b0   c65 c2 00 c3 00 x000  m9(.., 65)
+ 216 MUL9     d187 a186 b0   c33 c2 00 c3 00 x000  m9(.., 33)
+ 217 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
+ 218 ADD      d189 a187 b64  c00 c2 00 c3 00 x000  
+ 219 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
+ 220 WR       d0   a189 b0   c11 c2 00 c3 00 x000  brev.w(33)
+ 221 RD       d188 a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
+ 222 RD       d191 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 223 MUL7     d190 a188 b0   c2b c2 00 c3 00 x000  m7(.., 2b)
+ 224 MUL7     d192 a191 b0   c2c c2 00 c3 00 x000  m7(.., 2c)
+ 225 RD       d193 a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
+ 226 ADD      d66  a190 b192 c00 c2 00 c3 00 x000  rev_1
+ 227 MUL7     d194 a193 b0   c3a c2 00 c3 00 x000  m7(.., 3a)
+ 228 MUL7     d195 a66  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
+ 229 RD       d196 a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
+ 230 ADD      d67  a194 b195 c00 c2 00 c3 00 x000  rev_2
+ 231 MUL9     d197 a196 b0   c38 c2 00 c3 00 x000  m9(.., 38)
+ 232 MUL9     d198 a66  b0   c39 c2 00 c3 00 x000  m9(.., 39)
+ 233 MUL9     d205 a67  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
+ 234 ADD      d199 a197 b198 c00 c2 00 c3 00 x000  
+ 235 MUL9     d209 a67  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
+ 236 WR       d0   a199 b0   c15 c2 00 c3 00 x000  brev.w(3f)
+ 237 RD       d201 a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
+ 238 MUL9     d216 a67  b0   c64 c2 00 c3 00 x000  m9(.., 64)
+ 239 MUL9     d202 a201 b0   c5a c2 00 c3 00 x000  m9(.., 5a)
+ 240 MUL9     d223 a67  b0   c67 c2 00 c3 00 x000  m9(.., 67)
+ 241 ADD      d203 a200 b202 c00 c2 00 c3 00 x000  
+ 242 MUL9     d158 a58  b0   c17 c2 00 c3 00 x000  m9(.., 17)
+ 243 ADD      d204 a203 b205 c00 c2 00 c3 00 x000  
+ 244 MUL9V    d159 a158 b43  c00 c2 00 c3 00 x000  m9v
+ 245 WR       d0   a204 b0   c1f c2 00 c3 00 x000  brev.w(5d)
+ 246 RD       d68  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
+ 247 RD       d207 a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
+ 248 MUL9     d162 a9   b0   c18 c2 00 c3 00 x000  m9(.., 18)
+ 249 MUL9     d208 a207 b0   c5d c2 00 c3 00 x000  m9(.., 5d)
+ 250 MUL9V    d161 a162 b8   c00 c2 00 c3 00 x000  m9v
+ 251 ADD      d210 a206 b208 c00 c2 00 c3 00 x000  
+ 252 MUL9     d165 a59  b0   c0e c2 00 c3 00 x000  m9(.., e)
+ 253 ADD      d211 a210 b209 c00 c2 00 c3 00 x000  
+ 254 MUL9V    d167 a165 b43  c00 c2 00 c3 00 x000  m9v
+ 255 WR       d0   a211 b0   c21 c2 00 c3 00 x000  brev.w(63)
+ 256 RD       d69  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
+ 257 RD       d214 a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
+ 258 MUL9     d168 a10  b0   c0f c2 00 c3 00 x000  m9(.., f)
+ 259 MUL9     d212 a214 b0   c63 c2 00 c3 00 x000  m9(.., 63)
+ 260 MUL9V    d170 a168 b8   c00 c2 00 c3 00 x000  m9v
+ 261 ADD      d215 a213 b212 c00 c2 00 c3 00 x000  
+ 262 ADD      d217 a215 b216 c00 c2 00 c3 00 x000  
+ 263 WR       d0   a217 b0   c23 c2 00 c3 00 x000  brev.w(69)
+ 264 RD       d70  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
+ 265 RD       d220 a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
+ 266 MUL9     d219 a220 b0   c66 c2 00 c3 00 x000  m9(.., 66)
+ 267 ADD      d221 a218 b219 c00 c2 00 c3 00 x000  
+ 268 ADD      d222 a221 b223 c00 c2 00 c3 00 x000  
+ 269 WR       d0   a222 b0   c24 c2 00 c3 00 x000  brev.w(6c)
+ 270 RD       d71  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
+ 271 RD       d224 a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
+ 272 RD       d225 a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
+ 273 RD       d227 a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
+ 274 ADD      d226 a224 b225 c00 c2 00 c3 00 x000  
+ 275 RD       d229 a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
+ 276 ADD      d228 a226 b227 c00 c2 00 c3 00 x000  
+ 277 RD       d232 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+ 278 ADD      d230 a228 b229 c00 c2 00 c3 00 x000  
+ 279 MUL9     d233 a232 b0   c1b c2 00 c3 00 x000  m9(.., 1b)
+ 280 MUL9     d231 a230 b0   c1c c2 00 c3 00 x000  m9(.., 1c)
+ 281 RD       d234 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 282 ADD      d72  a231 b233 c00 c2 00 c3 00 x000  rev_base_l
+ 283 MUL9     d235 a234 b0   c45 c2 00 c3 00 x000  m9(.., 45)
+ 284 MUL9     d236 a72  b0   c46 c2 00 c3 00 x000  m9(.., 46)
+ 285 MUL7     d240 a72  b0   c48 c2 00 c3 00 x000  m7(.., 48)
+ 286 ADD      d237 a235 b236 c00 c2 00 c3 00 x000  
+ 287 WR       d0   a237 b0   c18 c2 00 c3 00 x000  brev.w(48)
+ 288 RD       d238 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 289 RD       d241 a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
+ 290 MUL7     d239 a238 b0   c47 c2 00 c3 00 x000  m7(.., 47)
+ 291 RD       d242 a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
+ 292 ADD      d73  a239 b240 c00 c2 00 c3 00 x000  rev_out_l
+ 293 ADD      d243 a241 b242 c00 c2 00 c3 00 x000  
+ 294 RD       d244 a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
+ 295 RD       d246 a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
+ 296 ADD      d245 a243 b244 c00 c2 00 c3 00 x000  
+ 297 RD       d249 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+ 298 ADD      d247 a245 b246 c00 c2 00 c3 00 x000  
+ 299 MUL9     d250 a249 b0   c20 c2 00 c3 00 x000  m9(.., 20)
+ 300 MUL9     d248 a247 b0   c21 c2 00 c3 00 x000  m9(.., 21)
+ 301 RD       d251 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 302 ADD      d74  a248 b250 c00 c2 00 c3 00 x000  rev_base_r
+ 303 MUL9     d252 a251 b0   c51 c2 00 c3 00 x000  m9(.., 51)
+ 304 MUL9     d253 a74  b0   c52 c2 00 c3 00 x000  m9(.., 52)
+ 305 MUL7     d156 a74  b0   c54 c2 00 c3 00 x000  m7(.., 54)
+ 306 ADD      d254 a252 b253 c00 c2 00 c3 00 x000  
+ 307 MUL9V    d157 a73  b60  c00 c2 00 c3 00 x000  m9v
+ 308 WR       d0   a254 b0   c18 c2 00 c3 00 x000  brev.w(48)
+ 309 RD       d255 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 310 ADD      d160 a157 b159 c00 c2 00 c3 00 x000  
+ 311 MUL7     d155 a255 b0   c53 c2 00 c3 00 x000  m7(.., 53)
+ 312 ADD      d163 a160 b161 c00 c2 00 c3 00 x000  
+ 313 ADD      d75  a155 b156 c00 c2 00 c3 00 x000  rev_out_r
+ 314 ADD      d1   a1   b163 c00 c2 00 c3 00 x000  dry_l +=
+ 315 MUL9V    d164 a75  b60  c00 c2 00 c3 00 x000  m9v
+ 316 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+ 317 ADD      d166 a164 b167 c00 c2 00 c3 00 x000  
+ 318 ADD      d169 a166 b170 c00 c2 00 c3 00 x000  
+ 319 ADD      d2   a2   b169 c00 c2 00 c3 00 x000  dry_r +=
  320 OUT      d0   a2   b0   c01 c2 00 c3 00 x000  out dry_r
  321 END      d0   a0   b0   c00 c2 00 c3 00 x000  
 variant 40 at 322
- 322 LDI      d92  a0   b0   c00 c2 00 c3 00 x200  imm 200
+ 322 LDI      d88  a0   b0   c00 c2 00 c3 00 x200  imm 200
  323 LDMIX    d1   a0   b0   c00 c2 00 c3 00 x000  dry_l = voice sum
  324 LDMIX    d2   a0   b0   c01 c2 00 c3 00 x000  dry_r = voice sum
  325 LDMIX    d3   a0   b0   c02 c2 00 c3 00 x000  rev = voice sum
@@ -330,320 +330,320 @@ variant 40 at 322
  327 LDMIX    d5   a0   b0   c04 c2 00 c3 00 x000  cho_r = voice sum
  328 LDMIX    d6   a0   b0   c05 c2 00 c3 00 x000  var_l = voice sum
  329 LDMIX    d7   a0   b0   c06 c2 00 c3 00 x000  var_r = voice sum
- 330 MUL9     d9   a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
- 331 CONST    d64  a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
- 332 ADD      d8   a9   b64  c00 c2 00 c3 00 x000  m_var_vol
- 333 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+ 330 MUL9     d155 a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
+ 331 CONST    d156 a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
+ 332 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+ 333 ADD      d8   a155 b156 c00 c2 00 c3 00 x000  m_var_vol
  334 MUL7     d7   a7   b0   c07 c2 00 c3 00 x000  m7(.., 7) -> var_r
- 335 ADD      d11  a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
- 336 ADD      d12  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
- 337 MUL7     d64  a14  b0   c6d c2 00 c3 00 x000  m7(.., 6d)
- 338 MUL7     d9   a6   b0   c6e c2 00 c3 00 x000  m7(.., 6e)
- 339 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 340 MUL9     d9   a16  b0   c6f c2 00 c3 00 x000  m9(.., 6f)
- 341 ADD      d13  a15  b9   c00 c2 00 c3 00 x000  var_filter_l_2
- 342 MUL7     d9   a16  b0   c70 c2 00 c3 00 x000  m7(.., 70)
- 343 MUL7     d15  a13  b0   c71 c2 00 c3 00 x000  m7(.., 71)
- 344 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 345 MUL9     d15  a18  b0   c72 c2 00 c3 00 x000  m9(.., 72)
- 346 ADD      d17  a64  b15  c00 c2 00 c3 00 x000  var_filtered_l
- 347 ADD      d14  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
- 348 ADD      d16  a13  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
- 349 ADD      d18  a17  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
- 350 MUL7     d15  a20  b0   c73 c2 00 c3 00 x000  m7(.., 73)
- 351 MUL7     d64  a7   b0   c74 c2 00 c3 00 x000  m7(.., 74)
- 352 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 353 MUL9     d64  a21  b0   c75 c2 00 c3 00 x000  m9(.., 75)
- 354 ADD      d19  a9   b64  c00 c2 00 c3 00 x000  var_filter_r_2
- 355 MUL7     d64  a21  b0   c76 c2 00 c3 00 x000  m7(.., 76)
- 356 MUL7     d9   a19  b0   c77 c2 00 c3 00 x000  m7(.., 77)
- 357 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 358 MUL9     d9   a23  b0   c78 c2 00 c3 00 x000  m9(.., 78)
- 359 ADD      d22  a15  b9   c00 c2 00 c3 00 x000  var_filtered_r
- 360 ADD      d20  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
- 361 ADD      d21  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
- 362 ADD      d23  a22  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
- 363 MUL9     d9   a81  b0   c7b c2 00 c3 00 x000  m9(.., 7b)
- 364 MUL9     d15  a82  b0   c7c c2 00 c3 00 x000  m9(.., 7c)
- 365 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 366 MUL9     d15  a83  b0   c7d c2 00 c3 00 x000  m9(.., 7d)
- 367 ADD      d80  a64  b15  c00 c2 00 c3 00 x000  var_raw_l
- 368 MUL9     d15  a85  b0   c7e c2 00 c3 00 x000  m9(.., 7e)
- 369 MUL9     d64  a86  b0   c7f c2 00 c3 00 x000  m9(.., 7f)
- 370 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 371 MUL9     d64  a87  b0   c80 c2 00 c3 00 x000  m9(.., 80)
- 372 ADD      d84  a9   b64  c00 c2 00 c3 00 x000  var_raw_r
- 373 MUL9     d64  a80  b0   ca3 c2 00 c3 00 x000  m9(.., a3)
- 374 MUL9     d9   a89  b0   ca4 c2 00 c3 00 x000  m9(.., a4)
- 375 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 376 MUL9     d9   a86  b0   ca5 c2 00 c3 00 x000  m9(.., a5)
- 377 ADD      d88  a15  b9   c00 c2 00 c3 00 x000  var_o_l
- 378 MUL9     d90  a84  b0   ca7 c2 00 c3 00 x000  m9(.., a7) -> var_o_r
- 379 LFOSTEP  d24  a24  b0   c79 c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
- 380 ALFO     d9   a24  b0   c83 c2 82 c3 00 x000  alfo(.., 83, 82, false)
- 381 SUB      d91  a92  b9   c00 c2 00 c3 00 x000  alfo_l
- 382 CONST    d15  a0   b0   c9c c2 00 c3 00 x000  m_const[9c]
- 383 ALFO     d9   a24  b15  c9e c2 9d c3 00 x000  alfo(.., 9e, 9d, false)
- 384 SUB      d93  a92  b9   c00 c2 00 c3 00 x000  alfo_r
- 385 MUL9     d9   a17  b0   c84 c2 00 c3 00 x000  m9(.., 84)
- 386 MUL9     d15  a22  b0   c85 c2 00 c3 00 x000  m9(.., 85)
- 387 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 388 MUL9     d15  a80  b0   c86 c2 00 c3 00 x000  m9(.., 86)
- 389 ADD      d9   a64  b15  c00 c2 00 c3 00 x000  
- 390 MUL9     d15  a84  b0   c87 c2 00 c3 00 x000  m9(.., 87)
- 391 ADD      d94  a9   b15  c00 c2 00 c3 00 x000  var_l_1
- 392 SUB      d9   a97  b94  c00 c2 00 c3 00 x000  
- 393 MUL9V    d15  a9   b91  c00 c2 00 c3 00 x000  m9v
- 394 ADD      d95  a96  b15  c00 c2 00 c3 00 x000  var_l_2
- 395 ADD      d96  a94  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_1 = ..
- 396 SUB      d9   a99  b95  c00 c2 00 c3 00 x000  
- 397 MUL9V    d15  a9   b91  c00 c2 00 c3 00 x000  m9v
- 398 ADD      d98  a97  b15  c00 c2 00 c3 00 x000  var_l_3
- 399 ADD      d97  a95  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_2 = ..
- 400 SUB      d9   a81  b98  c00 c2 00 c3 00 x000  
- 401 MUL9V    d15  a9   b91  c00 c2 00 c3 00 x000  m9v
- 402 ADD      d100 a99  b15  c00 c2 00 c3 00 x000  var_l_4
- 403 ADD      d99  a98  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_3 = ..
- 404 SUB      d9   a82  b100 c00 c2 00 c3 00 x000  
- 405 MUL9V    d15  a9   b91  c00 c2 00 c3 00 x000  m9v
- 406 ADD      d101 a81  b15  c00 c2 00 c3 00 x000  var_l_5
- 407 ADD      d81  a100 b0   c00 c2 00 c3 00 x000  m_var_filterp_l_4 = ..
- 408 SUB      d9   a83  b101 c00 c2 00 c3 00 x000  
- 409 MUL9V    d15  a9   b91  c00 c2 00 c3 00 x000  m9v
- 410 ADD      d83  a82  b15  c00 c2 00 c3 00 x000  m_var_filterp_l_6
- 411 ADD      d82  a101 b0   c00 c2 00 c3 00 x000  m_var_filterp_l_5 = ..
- 412 MUL9     d15  a22  b0   c9f c2 00 c3 00 x000  m9(.., 9f)
- 413 MUL9     d9   a80  b0   ca0 c2 00 c3 00 x000  m9(.., a0)
- 414 ADD      d64  a15  b9   c00 c2 00 c3 00 x000  
- 415 MUL9     d9   a84  b0   ca1 c2 00 c3 00 x000  m9(.., a1)
- 416 ADD      d102 a64  b9   c00 c2 00 c3 00 x000  var_r_1
- 417 SUB      d64  a105 b102 c00 c2 00 c3 00 x000  
- 418 MUL9V    d9   a64  b93  c00 c2 00 c3 00 x000  m9v
- 419 ADD      d103 a104 b9   c00 c2 00 c3 00 x000  var_r_2
- 420 ADD      d104 a102 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_1 = ..
- 421 SUB      d64  a89  b103 c00 c2 00 c3 00 x000  
- 422 MUL9V    d9   a64  b93  c00 c2 00 c3 00 x000  m9v
- 423 ADD      d106 a105 b9   c00 c2 00 c3 00 x000  var_r_3
- 424 ADD      d105 a103 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_2 = ..
- 425 SUB      d64  a85  b106 c00 c2 00 c3 00 x000  
- 426 MUL9V    d9   a64  b93  c00 c2 00 c3 00 x000  m9v
- 427 ADD      d107 a89  b9   c00 c2 00 c3 00 x000  var_r_4
- 428 ADD      d89  a106 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_3 = ..
- 429 SUB      d64  a86  b107 c00 c2 00 c3 00 x000  
- 430 MUL9V    d9   a64  b93  c00 c2 00 c3 00 x000  m9v
- 431 ADD      d108 a85  b9   c00 c2 00 c3 00 x000  var_r_5
- 432 ADD      d85  a107 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_4 = ..
- 433 SUB      d64  a87  b108 c00 c2 00 c3 00 x000  
- 434 MUL9V    d9   a64  b93  c00 c2 00 c3 00 x000  m9v
- 435 ADD      d87  a86  b9   c00 c2 00 c3 00 x000  m_var_filterp_r_6
- 436 ADD      d86  a108 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_5 = ..
- 437 MUL9     d9   a17  b0   ca2 c2 00 c3 00 x000  m9(.., a2)
- 438 ADD      d11  a88  b9   c00 c2 00 c3 00 x000  var_out_l
- 439 MUL9     d9   a22  b0   ca6 c2 00 c3 00 x000  m9(.., a6)
- 440 ADD      d12  a90  b9   c00 c2 00 c3 00 x000  var_out_r
- 441 MUL9     d9   a46  b0   c58 c2 00 c3 00 x000  m9(.., 58)
- 442 CONST    d64  a0   b0   c57 c2 00 c3 00 x000  m_const[57]
- 443 ADD      d46  a9   b64  c00 c2 00 c3 00 x000  m_cho_vol
+ 335 ADD      d9   a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
+ 336 ADD      d10  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
+ 337 MUL7     d157 a12  b0   c6d c2 00 c3 00 x000  m7(.., 6d)
+ 338 MUL7     d158 a6   b0   c6e c2 00 c3 00 x000  m7(.., 6e)
+ 339 MUL9     d160 a13  b0   c6f c2 00 c3 00 x000  m9(.., 6f)
+ 340 ADD      d159 a157 b158 c00 c2 00 c3 00 x000  
+ 341 MUL7     d161 a13  b0   c70 c2 00 c3 00 x000  m7(.., 70)
+ 342 ADD      d11  a159 b160 c00 c2 00 c3 00 x000  var_filter_l_2
+ 343 MUL9     d164 a15  b0   c72 c2 00 c3 00 x000  m9(.., 72)
+ 344 MUL7     d162 a11  b0   c71 c2 00 c3 00 x000  m7(.., 71)
+ 345 ADD      d12  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
+ 346 ADD      d163 a161 b162 c00 c2 00 c3 00 x000  
+ 347 ADD      d13  a11  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
+ 348 ADD      d14  a163 b164 c00 c2 00 c3 00 x000  var_filtered_l
+ 349 MUL7     d165 a17  b0   c73 c2 00 c3 00 x000  m7(.., 73)
+ 350 ADD      d15  a14  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
+ 351 MUL7     d166 a7   b0   c74 c2 00 c3 00 x000  m7(.., 74)
+ 352 MUL9     d168 a18  b0   c75 c2 00 c3 00 x000  m9(.., 75)
+ 353 ADD      d167 a165 b166 c00 c2 00 c3 00 x000  
+ 354 MUL7     d169 a18  b0   c76 c2 00 c3 00 x000  m7(.., 76)
+ 355 ADD      d16  a167 b168 c00 c2 00 c3 00 x000  var_filter_r_2
+ 356 MUL9     d172 a20  b0   c78 c2 00 c3 00 x000  m9(.., 78)
+ 357 MUL7     d170 a16  b0   c77 c2 00 c3 00 x000  m7(.., 77)
+ 358 ADD      d17  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
+ 359 ADD      d171 a169 b170 c00 c2 00 c3 00 x000  
+ 360 ADD      d18  a16  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
+ 361 ADD      d19  a171 b172 c00 c2 00 c3 00 x000  var_filtered_r
+ 362 MUL9     d173 a77  b0   c7b c2 00 c3 00 x000  m9(.., 7b)
+ 363 ADD      d20  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
+ 364 MUL9     d174 a78  b0   c7c c2 00 c3 00 x000  m9(.., 7c)
+ 365 MUL9     d176 a79  b0   c7d c2 00 c3 00 x000  m9(.., 7d)
+ 366 ADD      d175 a173 b174 c00 c2 00 c3 00 x000  
+ 367 MUL9     d177 a81  b0   c7e c2 00 c3 00 x000  m9(.., 7e)
+ 368 ADD      d76  a175 b176 c00 c2 00 c3 00 x000  var_raw_l
+ 369 MUL9     d178 a82  b0   c7f c2 00 c3 00 x000  m9(.., 7f)
+ 370 MUL9     d180 a83  b0   c80 c2 00 c3 00 x000  m9(.., 80)
+ 371 ADD      d179 a177 b178 c00 c2 00 c3 00 x000  
+ 372 MUL9     d181 a76  b0   ca3 c2 00 c3 00 x000  m9(.., a3)
+ 373 ADD      d80  a179 b180 c00 c2 00 c3 00 x000  var_raw_r
+ 374 MUL9     d182 a85  b0   ca4 c2 00 c3 00 x000  m9(.., a4)
+ 375 MUL9     d184 a82  b0   ca5 c2 00 c3 00 x000  m9(.., a5)
+ 376 ADD      d183 a181 b182 c00 c2 00 c3 00 x000  
+ 377 MUL9     d86  a80  b0   ca7 c2 00 c3 00 x000  m9(.., a7) -> var_o_r
+ 378 ADD      d84  a183 b184 c00 c2 00 c3 00 x000  var_o_l
+ 379 LFOSTEP  d21  a21  b0   c79 c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
+ 380 CONST    d186 a0   b0   c9c c2 00 c3 00 x000  m_const[9c]
+ 381 ALFO     d185 a21  b0   c83 c2 82 c3 00 x000  alfo(.., 83, 82, false)
+ 382 ALFO     d187 a21  b186 c9e c2 9d c3 00 x000  alfo(.., 9e, 9d, false)
+ 383 SUB      d87  a88  b185 c00 c2 00 c3 00 x000  alfo_l
+ 384 SUB      d89  a88  b187 c00 c2 00 c3 00 x000  alfo_r
+ 385 MUL9     d188 a14  b0   c84 c2 00 c3 00 x000  m9(.., 84)
+ 386 MUL9     d189 a19  b0   c85 c2 00 c3 00 x000  m9(.., 85)
+ 387 MUL9     d191 a76  b0   c86 c2 00 c3 00 x000  m9(.., 86)
+ 388 ADD      d190 a188 b189 c00 c2 00 c3 00 x000  
+ 389 MUL9     d193 a80  b0   c87 c2 00 c3 00 x000  m9(.., 87)
+ 390 ADD      d192 a190 b191 c00 c2 00 c3 00 x000  
+ 391 MUL9     d204 a19  b0   c9f c2 00 c3 00 x000  m9(.., 9f)
+ 392 ADD      d90  a192 b193 c00 c2 00 c3 00 x000  var_l_1
+ 393 MUL9     d205 a76  b0   ca0 c2 00 c3 00 x000  m9(.., a0)
+ 394 SUB      d194 a93  b90  c00 c2 00 c3 00 x000  
+ 395 ADD      d206 a204 b205 c00 c2 00 c3 00 x000  
+ 396 MUL9V    d195 a194 b87  c00 c2 00 c3 00 x000  m9v
+ 397 MUL9     d207 a80  b0   ca1 c2 00 c3 00 x000  m9(.., a1)
+ 398 ADD      d91  a92  b195 c00 c2 00 c3 00 x000  var_l_2
+ 399 ADD      d92  a90  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_1 = ..
+ 400 SUB      d196 a95  b91  c00 c2 00 c3 00 x000  
+ 401 ADD      d98  a206 b207 c00 c2 00 c3 00 x000  var_r_1
+ 402 MUL9V    d197 a196 b87  c00 c2 00 c3 00 x000  m9v
+ 403 SUB      d208 a101 b98  c00 c2 00 c3 00 x000  
+ 404 ADD      d94  a93  b197 c00 c2 00 c3 00 x000  var_l_3
+ 405 ADD      d93  a91  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_2 = ..
+ 406 SUB      d198 a77  b94  c00 c2 00 c3 00 x000  
+ 407 MUL9V    d209 a208 b89  c00 c2 00 c3 00 x000  m9v
+ 408 MUL9V    d199 a198 b87  c00 c2 00 c3 00 x000  m9v
+ 409 ADD      d99  a100 b209 c00 c2 00 c3 00 x000  var_r_2
+ 410 ADD      d96  a95  b199 c00 c2 00 c3 00 x000  var_l_4
+ 411 ADD      d95  a94  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_3 = ..
+ 412 SUB      d200 a78  b96  c00 c2 00 c3 00 x000  
+ 413 ADD      d100 a98  b0   c00 c2 00 c3 00 x000  m_var_filterp_r_1 = ..
+ 414 MUL9V    d201 a200 b87  c00 c2 00 c3 00 x000  m9v
+ 415 SUB      d210 a85  b99  c00 c2 00 c3 00 x000  
+ 416 ADD      d97  a77  b201 c00 c2 00 c3 00 x000  var_l_5
+ 417 ADD      d77  a96  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_4 = ..
+ 418 SUB      d202 a79  b97  c00 c2 00 c3 00 x000  
+ 419 MUL9V    d211 a210 b89  c00 c2 00 c3 00 x000  m9v
+ 420 MUL9V    d203 a202 b87  c00 c2 00 c3 00 x000  m9v
+ 421 ADD      d102 a101 b211 c00 c2 00 c3 00 x000  var_r_3
+ 422 ADD      d79  a78  b203 c00 c2 00 c3 00 x000  m_var_filterp_l_6
+ 423 ADD      d78  a97  b0   c00 c2 00 c3 00 x000  m_var_filterp_l_5 = ..
+ 424 ADD      d101 a99  b0   c00 c2 00 c3 00 x000  m_var_filterp_r_2 = ..
+ 425 SUB      d212 a81  b102 c00 c2 00 c3 00 x000  
+ 426 MUL9     d218 a14  b0   ca2 c2 00 c3 00 x000  m9(.., a2)
+ 427 MUL9V    d213 a212 b89  c00 c2 00 c3 00 x000  m9v
+ 428 ADD      d9   a84  b218 c00 c2 00 c3 00 x000  var_out_l
+ 429 ADD      d103 a85  b213 c00 c2 00 c3 00 x000  var_r_4
+ 430 ADD      d85  a102 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_3 = ..
+ 431 SUB      d214 a82  b103 c00 c2 00 c3 00 x000  
+ 432 MUL9     d219 a19  b0   ca6 c2 00 c3 00 x000  m9(.., a6)
+ 433 MUL9V    d215 a214 b89  c00 c2 00 c3 00 x000  m9v
+ 434 ADD      d10  a86  b219 c00 c2 00 c3 00 x000  var_out_r
+ 435 ADD      d104 a81  b215 c00 c2 00 c3 00 x000  var_r_5
+ 436 ADD      d81  a103 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_4 = ..
+ 437 SUB      d216 a83  b104 c00 c2 00 c3 00 x000  
+ 438 MUL9     d220 a43  b0   c58 c2 00 c3 00 x000  m9(.., 58)
+ 439 MUL9V    d217 a216 b89  c00 c2 00 c3 00 x000  m9v
+ 440 CONST    d221 a0   b0   c57 c2 00 c3 00 x000  m_const[57]
+ 441 ADD      d83  a82  b217 c00 c2 00 c3 00 x000  m_var_filterp_r_6
+ 442 ADD      d82  a104 b0   c00 c2 00 c3 00 x000  m_var_filterp_r_5 = ..
+ 443 ADD      d43  a220 b221 c00 c2 00 c3 00 x000  m_cho_vol
  444 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
  445 MUL7     d5   a5   b0   c05 c2 00 c3 00 x000  m7(.., 5) -> cho_r
- 446 MUL7     d9   a11  b0   c03 c2 00 c3 00 x000  m7(.., 3)
- 447 MUL9V    d64  a9   b8   c00 c2 00 c3 00 x000  m9v
- 448 ADD      d4   a4   b64  c00 c2 00 c3 00 x000  cho_l +=
- 449 MUL7     d9   a12  b0   c06 c2 00 c3 00 x000  m7(.., 6)
- 450 MUL9V    d64  a9   b8   c00 c2 00 c3 00 x000  m9v
- 451 ADD      d5   a5   b64  c00 c2 00 c3 00 x000  cho_r +=
- 452 LFOSTEP  d47  a47  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
- 453 RLFO     d48  a47  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
- 454 CONST    d64  a0   b0   c25 c2 00 c3 00 x000  m_const[25]
- 455 RLFO     d49  a47  b64  c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
- 456 CONST    d64  a0   b0   c34 c2 00 c3 00 x000  m_const[34]
- 457 RLFO     d50  a47  b64  c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
- 458 MUL7     d64  a52  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
- 459 MUL7     d9   a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
- 460 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 461 MUL9     d9   a53  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
- 462 ADD      d51  a15  b9   c00 c2 00 c3 00 x000  cho_filter_r_2
- 463 MUL7     d9   a53  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
- 464 MUL7     d15  a51  b0   c40 c2 00 c3 00 x000  m7(.., 40)
- 465 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 466 MUL9     d15  a55  b0   c41 c2 00 c3 00 x000  m9(.., 41)
- 467 ADD      d54  a64  b15  c00 c2 00 c3 00 x000  cho_filtered_r
- 468 ADD      d52  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
- 469 ADD      d53  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
- 470 ADD      d55  a54  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
- 471 MUL7     d15  a57  b0   c49 c2 00 c3 00 x000  m7(.., 49)
- 472 MUL7     d64  a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
- 473 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 474 MUL9     d64  a58  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
- 475 ADD      d56  a9   b64  c00 c2 00 c3 00 x000  cho_filter_l_2
- 476 MUL7     d64  a58  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
- 477 MUL7     d9   a56  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
- 478 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 479 MUL9     d9   a60  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
- 480 ADD      d59  a15  b9   c00 c2 00 c3 00 x000  cho_filtered_l
- 481 ADD      d57  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
- 482 ADD      d58  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
- 483 ADD      d60  a59  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
- 484 MUL9     d9   a49  b0   c42 c2 00 c3 00 x000  m9(.., 42)
- 485 ADD      d15  a9   b54  c00 c2 00 c3 00 x000  
- 486 WR       d0   a15  b0   c16 c2 01 c3 00 x000  bcho.w(42)
- 487 MUL9     d15  a48  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
- 488 ADD      d9   a15  b59  c00 c2 00 c3 00 x000  
- 489 MUL9     d15  a54  b0   c50 c2 00 c3 00 x000  m9(.., 50)
- 490 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 491 WR       d0   a64  b0   c1b c2 01 c3 00 x000  bcho.w(51)
- 492 MUL9     d64  a48  b0   c60 c2 00 c3 00 x000  m9(.., 60)
- 493 MUL9     d15  a50  b0   c61 c2 00 c3 00 x000  m9(.., 61)
- 494 ADD      d61  a64  b15  c00 c2 00 c3 00 x000  cho_out_l
- 495 MUL9     d15  a49  b0   c69 c2 00 c3 00 x000  m9(.., 69)
- 496 MUL9     d64  a50  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
- 497 ADD      d62  a15  b64  c00 c2 00 c3 00 x000  cho_out_r
- 498 MUL9     d64  a63  b0   c0c c2 00 c3 00 x000  m9(.., c)
- 499 CONST    d15  a0   b0   c0b c2 00 c3 00 x000  m_const[b]
- 500 ADD      d63  a64  b15  c00 c2 00 c3 00 x000  m_rev_vol
- 501 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
- 502 MUL7     d64  a61  b0   c12 c2 00 c3 00 x000  m7(.., 12)
- 503 MUL7     d9   a62  b0   c13 c2 00 c3 00 x000  m7(.., 13)
- 504 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 505 MUL9V    d15  a10  b46  c00 c2 00 c3 00 x000  m9v
- 506 ADD      d3   a3   b15  c00 c2 00 c3 00 x000  rev +=
- 507 MUL7     d10  a11  b0   c14 c2 00 c3 00 x000  m7(.., 14)
- 508 MUL7     d9   a12  b0   c15 c2 00 c3 00 x000  m7(.., 15)
- 509 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 510 MUL9V    d15  a64  b8   c00 c2 00 c3 00 x000  m9v
- 511 ADD      d3   a3   b15  c00 c2 00 c3 00 x000  rev +=
- 512 MUL7     d15  a66  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
- 513 MUL7     d64  a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
- 514 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 515 MUL9     d64  a67  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
- 516 ADD      d65  a9   b64  c00 c2 00 c3 00 x000  rev_filter_2
- 517 MUL7     d64  a67  b0   c30 c2 00 c3 00 x000  m7(.., 30)
- 518 MUL7     d9   a65  b0   c31 c2 00 c3 00 x000  m7(.., 31)
- 519 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
- 520 MUL9     d9   a69  b0   c32 c2 00 c3 00 x000  m9(.., 32)
- 521 ADD      d68  a15  b9   c00 c2 00 c3 00 x000  rev_filtered
- 522 ADD      d66  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
- 523 ADD      d67  a65  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
- 524 ADD      d69  a68  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
- 525 RD       d15  a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
- 526 MUL9     d9   a15  b0   c29 c2 00 c3 00 x000  m9(.., 29)
- 527 RD       d64  a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 528 MUL9     d15  a64  b0   c2a c2 00 c3 00 x000  m9(.., 2a)
- 529 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
- 530 WR       d0   a64  b0   c10 c2 00 c3 00 x000  brev.w(30)
- 531 RD       d15  a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
- 532 MUL9     d64  a15  b0   c33 c2 00 c3 00 x000  m9(.., 33)
- 533 ADD      d15  a64  b68  c00 c2 00 c3 00 x000  
- 534 WR       d0   a15  b0   c11 c2 00 c3 00 x000  brev.w(33)
- 535 RD       d64  a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
- 536 MUL7     d15  a64  b0   c2b c2 00 c3 00 x000  m7(.., 2b)
- 537 RD       d9   a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 538 MUL7     d64  a9   b0   c2c c2 00 c3 00 x000  m7(.., 2c)
- 539 ADD      d70  a15  b64  c00 c2 00 c3 00 x000  rev_1
- 540 RD       d15  a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
- 541 MUL7     d64  a15  b0   c3a c2 00 c3 00 x000  m7(.., 3a)
- 542 MUL7     d15  a70  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
- 543 ADD      d71  a64  b15  c00 c2 00 c3 00 x000  rev_2
- 544 RD       d64  a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
- 545 MUL9     d15  a64  b0   c38 c2 00 c3 00 x000  m9(.., 38)
- 546 MUL9     d64  a70  b0   c39 c2 00 c3 00 x000  m9(.., 39)
- 547 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 548 WR       d0   a9   b0   c15 c2 00 c3 00 x000  brev.w(3f)
- 549 MUL9     d9   a72  b0   c59 c2 00 c3 00 x000  m9(.., 59)
- 550 RD       d15  a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
- 551 MUL9     d64  a15  b0   c5a c2 00 c3 00 x000  m9(.., 5a)
- 552 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 553 MUL9     d64  a71  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
- 554 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 555 WR       d0   a9   b0   c1f c2 00 c3 00 x000  brev.w(5d)
- 556 RD       d72  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
- 557 MUL9     d9   a73  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
- 558 RD       d15  a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
- 559 MUL9     d64  a15  b0   c5d c2 00 c3 00 x000  m9(.., 5d)
- 560 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 561 MUL9     d64  a71  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
- 562 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 563 WR       d0   a9   b0   c21 c2 00 c3 00 x000  brev.w(63)
- 564 RD       d73  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
- 565 MUL9     d9   a74  b0   c62 c2 00 c3 00 x000  m9(.., 62)
- 566 RD       d15  a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
- 567 MUL9     d64  a15  b0   c63 c2 00 c3 00 x000  m9(.., 63)
- 568 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 569 MUL9     d64  a71  b0   c64 c2 00 c3 00 x000  m9(.., 64)
- 570 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 571 WR       d0   a9   b0   c23 c2 00 c3 00 x000  brev.w(69)
- 572 RD       d74  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
- 573 MUL9     d9   a75  b0   c65 c2 00 c3 00 x000  m9(.., 65)
- 574 RD       d15  a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
- 575 MUL9     d64  a15  b0   c66 c2 00 c3 00 x000  m9(.., 66)
- 576 ADD      d15  a9   b64  c00 c2 00 c3 00 x000  
- 577 MUL9     d64  a71  b0   c67 c2 00 c3 00 x000  m9(.., 67)
- 578 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
- 579 WR       d0   a9   b0   c24 c2 00 c3 00 x000  brev.w(6c)
- 580 RD       d75  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
- 581 RD       d64  a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
- 582 RD       d15  a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
- 583 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
- 584 RD       d15  a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
- 585 ADD      d64  a10  b15  c00 c2 00 c3 00 x000  
- 586 RD       d15  a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
- 587 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
- 588 MUL9     d9   a10  b0   c1c c2 00 c3 00 x000  m9(.., 1c)
- 589 RD       d15  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 590 MUL9     d10  a15  b0   c1b c2 00 c3 00 x000  m9(.., 1b)
- 591 ADD      d76  a9   b10  c00 c2 00 c3 00 x000  rev_base_l
- 592 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 593 MUL9     d10  a9   b0   c45 c2 00 c3 00 x000  m9(.., 45)
- 594 MUL9     d9   a76  b0   c46 c2 00 c3 00 x000  m9(.., 46)
- 595 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
- 596 WR       d0   a15  b0   c18 c2 00 c3 00 x000  brev.w(48)
- 597 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 598 MUL7     d15  a9   b0   c47 c2 00 c3 00 x000  m7(.., 47)
- 599 MUL7     d9   a76  b0   c48 c2 00 c3 00 x000  m7(.., 48)
- 600 ADD      d77  a15  b9   c00 c2 00 c3 00 x000  rev_out_l
- 601 RD       d15  a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
- 602 RD       d10  a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
- 603 ADD      d64  a15  b10  c00 c2 00 c3 00 x000  
- 604 RD       d10  a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
- 605 ADD      d15  a64  b10  c00 c2 00 c3 00 x000  
- 606 RD       d10  a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
- 607 ADD      d64  a15  b10  c00 c2 00 c3 00 x000  
- 608 MUL9     d9   a64  b0   c21 c2 00 c3 00 x000  m9(.., 21)
- 609 RD       d10  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 610 MUL9     d64  a10  b0   c20 c2 00 c3 00 x000  m9(.., 20)
- 611 ADD      d78  a9   b64  c00 c2 00 c3 00 x000  rev_base_r
- 612 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 613 MUL9     d64  a9   b0   c51 c2 00 c3 00 x000  m9(.., 51)
- 614 MUL9     d9   a78  b0   c52 c2 00 c3 00 x000  m9(.., 52)
- 615 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 616 WR       d0   a10  b0   c18 c2 00 c3 00 x000  brev.w(48)
- 617 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 618 MUL7     d10  a9   b0   c53 c2 00 c3 00 x000  m7(.., 53)
- 619 MUL7     d9   a78  b0   c54 c2 00 c3 00 x000  m7(.., 54)
- 620 ADD      d79  a10  b9   c00 c2 00 c3 00 x000  rev_out_r
- 621 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
- 622 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
- 623 MUL9V    d9   a77  b63  c00 c2 00 c3 00 x000  m9v
- 624 MUL9     d64  a61  b0   c17 c2 00 c3 00 x000  m9(.., 17)
- 625 MUL9V    d10  a64  b46  c00 c2 00 c3 00 x000  m9v
- 626 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 627 MUL9     d9   a11  b0   c18 c2 00 c3 00 x000  m9(.., 18)
- 628 MUL9V    d10  a9   b8   c00 c2 00 c3 00 x000  m9v
- 629 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 630 ADD      d1   a1   b9   c00 c2 00 c3 00 x000  dry_l +=
- 631 MUL9V    d9   a79  b63  c00 c2 00 c3 00 x000  m9v
- 632 MUL9     d64  a62  b0   c0e c2 00 c3 00 x000  m9(.., e)
- 633 MUL9V    d10  a64  b46  c00 c2 00 c3 00 x000  m9v
- 634 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 635 MUL9     d9   a12  b0   c0f c2 00 c3 00 x000  m9(.., f)
- 636 MUL9V    d10  a9   b8   c00 c2 00 c3 00 x000  m9v
- 637 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 638 ADD      d2   a2   b9   c00 c2 00 c3 00 x000  dry_r +=
- 639 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+ 446 MUL7     d222 a9   b0   c03 c2 00 c3 00 x000  m7(.., 3)
+ 447 MUL7     d224 a10  b0   c06 c2 00 c3 00 x000  m7(.., 6)
+ 448 MUL9V    d223 a222 b8   c00 c2 00 c3 00 x000  m9v
+ 449 MUL9V    d225 a224 b8   c00 c2 00 c3 00 x000  m9v
+ 450 ADD      d4   a4   b223 c00 c2 00 c3 00 x000  cho_l +=
+ 451 ADD      d5   a5   b225 c00 c2 00 c3 00 x000  cho_r +=
+ 452 LFOSTEP  d44  a44  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
+ 453 CONST    d226 a0   b0   c25 c2 00 c3 00 x000  m_const[25]
+ 454 RLFO     d45  a44  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
+ 455 RLFO     d46  a44  b226 c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
+ 456 CONST    d227 a0   b0   c34 c2 00 c3 00 x000  m_const[34]
+ 457 MUL7     d228 a49  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
+ 458 RLFO     d47  a44  b227 c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
+ 459 MUL7     d229 a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
+ 460 MUL9     d231 a50  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
+ 461 ADD      d230 a228 b229 c00 c2 00 c3 00 x000  
+ 462 MUL7     d232 a50  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
+ 463 ADD      d48  a230 b231 c00 c2 00 c3 00 x000  cho_filter_r_2
+ 464 MUL9     d235 a52  b0   c41 c2 00 c3 00 x000  m9(.., 41)
+ 465 MUL7     d233 a48  b0   c40 c2 00 c3 00 x000  m7(.., 40)
+ 466 ADD      d49  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
+ 467 ADD      d234 a232 b233 c00 c2 00 c3 00 x000  
+ 468 ADD      d50  a48  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
+ 469 ADD      d51  a234 b235 c00 c2 00 c3 00 x000  cho_filtered_r
+ 470 MUL7     d236 a54  b0   c49 c2 00 c3 00 x000  m7(.., 49)
+ 471 ADD      d52  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
+ 472 MUL7     d237 a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
+ 473 MUL9     d239 a55  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
+ 474 ADD      d238 a236 b237 c00 c2 00 c3 00 x000  
+ 475 MUL7     d240 a55  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
+ 476 ADD      d53  a238 b239 c00 c2 00 c3 00 x000  cho_filter_l_2
+ 477 MUL9     d243 a57  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
+ 478 MUL7     d241 a53  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
+ 479 ADD      d54  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
+ 480 ADD      d242 a240 b241 c00 c2 00 c3 00 x000  
+ 481 ADD      d55  a53  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
+ 482 ADD      d56  a242 b243 c00 c2 00 c3 00 x000  cho_filtered_l
+ 483 MUL9     d244 a46  b0   c42 c2 00 c3 00 x000  m9(.., 42)
+ 484 ADD      d57  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
+ 485 ADD      d245 a244 b51  c00 c2 00 c3 00 x000  
+ 486 MUL9     d246 a45  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
+ 487 WR       d0   a245 b0   c16 c2 01 c3 00 x000  bcho.w(42)
+ 488 ADD      d247 a246 b56  c00 c2 00 c3 00 x000  
+ 489 MUL9     d248 a51  b0   c50 c2 00 c3 00 x000  m9(.., 50)
+ 490 MUL9     d250 a45  b0   c60 c2 00 c3 00 x000  m9(.., 60)
+ 491 ADD      d249 a247 b248 c00 c2 00 c3 00 x000  
+ 492 MUL9     d251 a47  b0   c61 c2 00 c3 00 x000  m9(.., 61)
+ 493 WR       d0   a249 b0   c1b c2 01 c3 00 x000  bcho.w(51)
+ 494 ADD      d58  a250 b251 c00 c2 00 c3 00 x000  cho_out_l
+ 495 MUL9     d252 a46  b0   c69 c2 00 c3 00 x000  m9(.., 69)
+ 496 MUL9     d253 a47  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
+ 497 MUL9     d254 a60  b0   c0c c2 00 c3 00 x000  m9(.., c)
+ 498 ADD      d59  a252 b253 c00 c2 00 c3 00 x000  cho_out_r
+ 499 CONST    d255 a0   b0   c0b c2 00 c3 00 x000  m_const[b]
+ 500 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
+ 501 ADD      d60  a254 b255 c00 c2 00 c3 00 x000  m_rev_vol
+ 502 MUL7     d155 a58  b0   c12 c2 00 c3 00 x000  m7(.., 12)
+ 503 MUL7     d156 a59  b0   c13 c2 00 c3 00 x000  m7(.., 13)
+ 504 MUL7     d159 a9   b0   c14 c2 00 c3 00 x000  m7(.., 14)
+ 505 ADD      d158 a155 b156 c00 c2 00 c3 00 x000  
+ 506 MUL7     d160 a10  b0   c15 c2 00 c3 00 x000  m7(.., 15)
+ 507 MUL9V    d157 a158 b43  c00 c2 00 c3 00 x000  m9v
+ 508 ADD      d161 a159 b160 c00 c2 00 c3 00 x000  
+ 509 ADD      d3   a3   b157 c00 c2 00 c3 00 x000  rev +=
+ 510 MUL9V    d162 a161 b8   c00 c2 00 c3 00 x000  m9v
+ 511 MUL7     d163 a62  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
+ 512 ADD      d3   a3   b162 c00 c2 00 c3 00 x000  rev +=
+ 513 MUL9     d165 a63  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
+ 514 MUL7     d164 a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
+ 515 MUL7     d167 a63  b0   c30 c2 00 c3 00 x000  m7(.., 30)
+ 516 ADD      d166 a163 b164 c00 c2 00 c3 00 x000  
+ 517 MUL9     d170 a65  b0   c32 c2 00 c3 00 x000  m9(.., 32)
+ 518 ADD      d61  a166 b165 c00 c2 00 c3 00 x000  rev_filter_2
+ 519 ADD      d62  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
+ 520 MUL7     d168 a61  b0   c31 c2 00 c3 00 x000  m7(.., 31)
+ 521 ADD      d63  a61  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
+ 522 ADD      d169 a167 b168 c00 c2 00 c3 00 x000  
+ 523 RD       d171 a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
+ 524 ADD      d64  a169 b170 c00 c2 00 c3 00 x000  rev_filtered
+ 525 MUL9     d172 a171 b0   c29 c2 00 c3 00 x000  m9(.., 29)
+ 526 ADD      d65  a64  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
+ 527 RD       d174 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 528 MUL9     d190 a68  b0   c59 c2 00 c3 00 x000  m9(.., 59)
+ 529 MUL9     d173 a174 b0   c2a c2 00 c3 00 x000  m9(.., 2a)
+ 530 MUL9     d196 a69  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
+ 531 ADD      d175 a172 b173 c00 c2 00 c3 00 x000  
+ 532 MUL9     d202 a70  b0   c62 c2 00 c3 00 x000  m9(.., 62)
+ 533 WR       d0   a175 b0   c10 c2 00 c3 00 x000  brev.w(30)
+ 534 RD       d176 a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
+ 535 MUL9     d208 a71  b0   c65 c2 00 c3 00 x000  m9(.., 65)
+ 536 MUL9     d177 a176 b0   c33 c2 00 c3 00 x000  m9(.., 33)
+ 537 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
+ 538 ADD      d178 a177 b64  c00 c2 00 c3 00 x000  
+ 539 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
+ 540 WR       d0   a178 b0   c11 c2 00 c3 00 x000  brev.w(33)
+ 541 RD       d179 a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
+ 542 RD       d182 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 543 MUL7     d180 a179 b0   c2b c2 00 c3 00 x000  m7(.., 2b)
+ 544 MUL7     d181 a182 b0   c2c c2 00 c3 00 x000  m7(.., 2c)
+ 545 RD       d183 a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
+ 546 ADD      d66  a180 b181 c00 c2 00 c3 00 x000  rev_1
+ 547 MUL7     d184 a183 b0   c3a c2 00 c3 00 x000  m7(.., 3a)
+ 548 MUL7     d185 a66  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
+ 549 RD       d186 a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
+ 550 ADD      d67  a184 b185 c00 c2 00 c3 00 x000  rev_2
+ 551 MUL9     d187 a186 b0   c38 c2 00 c3 00 x000  m9(.., 38)
+ 552 MUL9     d188 a66  b0   c39 c2 00 c3 00 x000  m9(.., 39)
+ 553 MUL9     d194 a67  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
+ 554 ADD      d189 a187 b188 c00 c2 00 c3 00 x000  
+ 555 MUL9     d200 a67  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
+ 556 WR       d0   a189 b0   c15 c2 00 c3 00 x000  brev.w(3f)
+ 557 RD       d191 a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
+ 558 MUL9     d206 a67  b0   c64 c2 00 c3 00 x000  m9(.., 64)
+ 559 MUL9     d192 a191 b0   c5a c2 00 c3 00 x000  m9(.., 5a)
+ 560 MUL9     d212 a67  b0   c67 c2 00 c3 00 x000  m9(.., 67)
+ 561 ADD      d193 a190 b192 c00 c2 00 c3 00 x000  
+ 562 MUL9     d249 a58  b0   c17 c2 00 c3 00 x000  m9(.., 17)
+ 563 ADD      d195 a193 b194 c00 c2 00 c3 00 x000  
+ 564 MUL9V    d250 a249 b43  c00 c2 00 c3 00 x000  m9v
+ 565 WR       d0   a195 b0   c1f c2 00 c3 00 x000  brev.w(5d)
+ 566 RD       d68  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
+ 567 RD       d197 a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
+ 568 MUL9     d252 a9   b0   c18 c2 00 c3 00 x000  m9(.., 18)
+ 569 MUL9     d198 a197 b0   c5d c2 00 c3 00 x000  m9(.., 5d)
+ 570 MUL9V    d253 a252 b8   c00 c2 00 c3 00 x000  m9v
+ 571 ADD      d199 a196 b198 c00 c2 00 c3 00 x000  
+ 572 MUL9     d155 a59  b0   c0e c2 00 c3 00 x000  m9(.., e)
+ 573 ADD      d201 a199 b200 c00 c2 00 c3 00 x000  
+ 574 MUL9V    d156 a155 b43  c00 c2 00 c3 00 x000  m9v
+ 575 WR       d0   a201 b0   c21 c2 00 c3 00 x000  brev.w(63)
+ 576 RD       d69  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
+ 577 RD       d203 a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
+ 578 MUL9     d157 a10  b0   c0f c2 00 c3 00 x000  m9(.., f)
+ 579 MUL9     d204 a203 b0   c63 c2 00 c3 00 x000  m9(.., 63)
+ 580 MUL9V    d160 a157 b8   c00 c2 00 c3 00 x000  m9v
+ 581 ADD      d205 a202 b204 c00 c2 00 c3 00 x000  
+ 582 ADD      d207 a205 b206 c00 c2 00 c3 00 x000  
+ 583 WR       d0   a207 b0   c23 c2 00 c3 00 x000  brev.w(69)
+ 584 RD       d70  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
+ 585 RD       d209 a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
+ 586 MUL9     d210 a209 b0   c66 c2 00 c3 00 x000  m9(.., 66)
+ 587 ADD      d211 a208 b210 c00 c2 00 c3 00 x000  
+ 588 ADD      d213 a211 b212 c00 c2 00 c3 00 x000  
+ 589 WR       d0   a213 b0   c24 c2 00 c3 00 x000  brev.w(6c)
+ 590 RD       d71  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
+ 591 RD       d214 a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
+ 592 RD       d215 a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
+ 593 RD       d217 a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
+ 594 ADD      d216 a214 b215 c00 c2 00 c3 00 x000  
+ 595 RD       d219 a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
+ 596 ADD      d218 a216 b217 c00 c2 00 c3 00 x000  
+ 597 RD       d222 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+ 598 ADD      d220 a218 b219 c00 c2 00 c3 00 x000  
+ 599 MUL9     d223 a222 b0   c1b c2 00 c3 00 x000  m9(.., 1b)
+ 600 MUL9     d221 a220 b0   c1c c2 00 c3 00 x000  m9(.., 1c)
+ 601 RD       d224 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 602 ADD      d72  a221 b223 c00 c2 00 c3 00 x000  rev_base_l
+ 603 MUL9     d225 a224 b0   c45 c2 00 c3 00 x000  m9(.., 45)
+ 604 MUL9     d226 a72  b0   c46 c2 00 c3 00 x000  m9(.., 46)
+ 605 MUL7     d230 a72  b0   c48 c2 00 c3 00 x000  m7(.., 48)
+ 606 ADD      d227 a225 b226 c00 c2 00 c3 00 x000  
+ 607 WR       d0   a227 b0   c18 c2 00 c3 00 x000  brev.w(48)
+ 608 RD       d228 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 609 RD       d231 a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
+ 610 MUL7     d229 a228 b0   c47 c2 00 c3 00 x000  m7(.., 47)
+ 611 RD       d232 a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
+ 612 ADD      d73  a229 b230 c00 c2 00 c3 00 x000  rev_out_l
+ 613 ADD      d233 a231 b232 c00 c2 00 c3 00 x000  
+ 614 RD       d234 a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
+ 615 RD       d236 a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
+ 616 ADD      d235 a233 b234 c00 c2 00 c3 00 x000  
+ 617 RD       d239 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+ 618 ADD      d237 a235 b236 c00 c2 00 c3 00 x000  
+ 619 MUL9     d240 a239 b0   c20 c2 00 c3 00 x000  m9(.., 20)
+ 620 MUL9     d238 a237 b0   c21 c2 00 c3 00 x000  m9(.., 21)
+ 621 RD       d241 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 622 ADD      d74  a238 b240 c00 c2 00 c3 00 x000  rev_base_r
+ 623 MUL9     d242 a241 b0   c51 c2 00 c3 00 x000  m9(.., 51)
+ 624 MUL9     d243 a74  b0   c52 c2 00 c3 00 x000  m9(.., 52)
+ 625 MUL7     d247 a74  b0   c54 c2 00 c3 00 x000  m7(.., 54)
+ 626 ADD      d244 a242 b243 c00 c2 00 c3 00 x000  
+ 627 MUL9V    d248 a73  b60  c00 c2 00 c3 00 x000  m9v
+ 628 WR       d0   a244 b0   c18 c2 00 c3 00 x000  brev.w(48)
+ 629 RD       d245 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 630 ADD      d251 a248 b250 c00 c2 00 c3 00 x000  
+ 631 MUL7     d246 a245 b0   c53 c2 00 c3 00 x000  m7(.., 53)
+ 632 ADD      d254 a251 b253 c00 c2 00 c3 00 x000  
+ 633 ADD      d75  a246 b247 c00 c2 00 c3 00 x000  rev_out_r
+ 634 ADD      d1   a1   b254 c00 c2 00 c3 00 x000  dry_l +=
+ 635 MUL9V    d255 a75  b60  c00 c2 00 c3 00 x000  m9v
+ 636 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+ 637 ADD      d158 a255 b156 c00 c2 00 c3 00 x000  
+ 638 ADD      d159 a158 b160 c00 c2 00 c3 00 x000  
+ 639 ADD      d2   a2   b159 c00 c2 00 c3 00 x000  dry_r +=
  640 OUT      d0   a2   b0   c01 c2 00 c3 00 x000  out dry_r
  641 END      d0   a0   b0   c00 c2 00 c3 00 x000  
 variant 80 at 642
- 642 LDI      d92  a0   b0   c00 c2 00 c3 00 x200  imm 200
+ 642 LDI      d88  a0   b0   c00 c2 00 c3 00 x200  imm 200
  643 LDMIX    d1   a0   b0   c00 c2 00 c3 00 x000  dry_l = voice sum
  644 LDMIX    d2   a0   b0   c01 c2 00 c3 00 x000  dry_r = voice sum
  645 LDMIX    d3   a0   b0   c02 c2 00 c3 00 x000  rev = voice sum
@@ -651,386 +651,386 @@ variant 80 at 642
  647 LDMIX    d5   a0   b0   c04 c2 00 c3 00 x000  cho_r = voice sum
  648 LDMIX    d6   a0   b0   c05 c2 00 c3 00 x000  var_l = voice sum
  649 LDMIX    d7   a0   b0   c06 c2 00 c3 00 x000  var_r = voice sum
- 650 MUL9     d9   a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
- 651 CONST    d10  a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
- 652 ADD      d8   a9   b10  c00 c2 00 c3 00 x000  m_var_vol
- 653 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+ 650 MUL9     d155 a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
+ 651 CONST    d156 a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
+ 652 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+ 653 ADD      d8   a155 b156 c00 c2 00 c3 00 x000  m_var_vol
  654 MUL7     d7   a7   b0   c07 c2 00 c3 00 x000  m7(.., 7) -> var_r
- 655 ADD      d11  a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
- 656 ADD      d12  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
- 657 MUL9     d10  a6   b0   c6d c2 00 c3 00 x000  m9(.., 6d)
- 658 MUL9     d9   a7   b0   c6e c2 00 c3 00 x000  m9(.., 6e)
- 659 ADD      d109 a10  b9   c00 c2 00 c3 00 x000  var_m
- 660 MUL7     d9   a111 b0   c6f c2 00 c3 00 x000  m7(.., 6f)
- 661 MUL7     d10  a109 b0   c70 c2 00 c3 00 x000  m7(.., 70)
- 662 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 663 MUL9     d10  a112 b0   c71 c2 00 c3 00 x000  m9(.., 71)
- 664 ADD      d110 a64  b10  c00 c2 00 c3 00 x000  var_filter_2
- 665 MUL7     d10  a112 b0   c72 c2 00 c3 00 x000  m7(.., 72)
- 666 MUL7     d64  a110 b0   c73 c2 00 c3 00 x000  m7(.., 73)
- 667 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 668 MUL9     d64  a114 b0   c74 c2 00 c3 00 x000  m9(.., 74)
- 669 ADD      d113 a9   b64  c00 c2 00 c3 00 x000  var_filtered
- 670 ADD      d111 a109 b0   c00 c2 00 c3 00 x000  m_var_filter_1 = ..
- 671 ADD      d112 a110 b0   c00 c2 00 c3 00 x000  m_var_filter_2 = ..
- 672 ADD      d114 a113 b0   c00 c2 00 c3 00 x000  m_var_filter_3 = ..
- 673 RD       d9   a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c)
- 674 MUL9     d64  a9   b0   c7b c2 00 c3 00 x000  m9(.., 7b)
- 675 MUL9     d9   a109 b0   c7c c2 00 c3 00 x000  m9(.., 7c)
- 676 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 677 WR       d0   a10  b0   c2a c2 02 c3 00 x000  bvar.w(7e)
- 678 RD       d9   a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c)
- 679 MUL7     d10  a9   b0   c7e c2 00 c3 00 x000  m7(.., 7e)
- 680 MUL7     d9   a109 b0   c7f c2 00 c3 00 x000  m7(.., 7f)
- 681 ADD      d115 a10  b9   c00 c2 00 c3 00 x000  tap0
- 682 RD       d10  a0   b0   c28 c2 02 c3 00 x000  bvar.r(78)
- 683 MUL9     d9   a10  b0   c81 c2 00 c3 00 x000  m9(.., 81)
- 684 MUL9     d10  a115 b0   c82 c2 00 c3 00 x000  m9(.., 82)
- 685 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 686 WR       d0   a64  b0   c2c c2 02 c3 00 x000  bvar.w(84)
- 687 RD       d116 a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f) -> var_f3_1
- 688 MUL7     d64  a118 b0   c77 c2 00 c3 00 x000  m7(.., 77)
- 689 MUL7     d10  a116 b0   c78 c2 00 c3 00 x000  m7(.., 78)
- 690 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 691 MUL9     d10  a119 b0   c79 c2 00 c3 00 x000  m9(.., 79)
- 692 ADD      d117 a9   b10  c00 c2 00 c3 00 x000  var_f3_2
- 693 RD       d9   a0   b0   c28 c2 02 c3 00 x000  bvar.r(78)
- 694 MUL7     d10  a9   b0   c84 c2 00 c3 00 x000  m7(.., 84)
- 695 MUL7     d9   a115 b0   c85 c2 00 c3 00 x000  m7(.., 85)
- 696 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 697 MUL9     d9   a117 b0   c86 c2 00 c3 00 x000  m9(.., 86)
- 698 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 699 WR       d0   a10  b0   c2d c2 02 c3 00 x000  bvar.w(87)
- 700 ADD      d120 a116 b0   c00 c2 00 c3 00 x000  m_var_filter3_1 = ..
- 701 ADD      d119 a117 b0   c00 c2 00 c3 00 x000  m_var_filter3_2 = ..
- 702 RD       d9   a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f)
- 703 MUL9     d10  a9   b0   c99 c2 00 c3 00 x000  m9(.., 99)
- 704 RD       d64  a0   b0   c26 c2 02 c3 00 x000  bvar.r(72)
- 705 MUL9     d9   a64  b0   c9a c2 00 c3 00 x000  m9(.., 9a)
- 706 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 707 RD       d10  a0   b0   c27 c2 02 c3 00 x000  bvar.r(75)
- 708 MUL9     d9   a10  b0   c9b c2 00 c3 00 x000  m9(.., 9b)
- 709 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 710 RD       d64  a0   b0   c2f c2 02 c3 00 x000  bvar.r(8d)
- 711 MUL9     d9   a64  b0   c9c c2 00 c3 00 x000  m9(.., 9c)
- 712 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 713 RD       d10  a0   b0   c30 c2 02 c3 00 x000  bvar.r(90)
- 714 MUL9     d9   a10  b0   c9d c2 00 c3 00 x000  m9(.., 9d)
- 715 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 716 RD       d64  a0   b0   c31 c2 02 c3 00 x000  bvar.r(93)
- 717 MUL9     d9   a64  b0   c9e c2 00 c3 00 x000  m9(.., 9e)
- 718 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 719 RD       d10  a0   b0   c32 c2 02 c3 00 x000  bvar.r(96)
- 720 MUL9     d9   a10  b0   c9f c2 00 c3 00 x000  m9(.., 9f)
- 721 ADD      d37  a64  b9   c00 c2 00 c3 00 x000  tap1
- 722 RD       d64  a0   b0   c35 c2 02 c3 00 x000  bvar.r(9f)
- 723 MUL9     d9   a64  b0   cb4 c2 00 c3 00 x000  m9(.., b4)
- 724 RD       d10  a0   b0   c36 c2 02 c3 00 x000  bvar.r(a2)
- 725 MUL9     d64  a10  b0   cb5 c2 00 c3 00 x000  m9(.., b5)
- 726 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 727 RD       d9   a0   b0   c37 c2 02 c3 00 x000  bvar.r(a5)
- 728 MUL9     d64  a9   b0   cb6 c2 00 c3 00 x000  m9(.., b6)
- 729 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 730 RD       d10  a0   b0   c38 c2 02 c3 00 x000  bvar.r(a8)
- 731 MUL9     d64  a10  b0   cb7 c2 00 c3 00 x000  m9(.., b7)
- 732 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 733 RD       d9   a0   b0   c39 c2 02 c3 00 x000  bvar.r(ab)
- 734 MUL9     d64  a9   b0   cb8 c2 00 c3 00 x000  m9(.., b8)
- 735 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 736 RD       d10  a0   b0   c3a c2 02 c3 00 x000  bvar.r(ae)
- 737 MUL9     d64  a10  b0   cb9 c2 00 c3 00 x000  m9(.., b9)
- 738 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 739 RD       d9   a0   b0   c3b c2 02 c3 00 x000  bvar.r(b1)
- 740 MUL9     d64  a9   b0   cba c2 00 c3 00 x000  m9(.., ba)
- 741 ADD      d38  a10  b64  c00 c2 00 c3 00 x000  tap2
- 742 WR       d0   a37  b0   c3d c2 02 c3 00 x000  bvar.w(b7)
- 743 WR       d0   a38  b0   c3e c2 02 c3 00 x000  bvar.w(ba)
- 744 RD       d10  a0   b0   c3c c2 00 c3 00 x000  brev.r(b4)
- 745 MUL9     d64  a10  b0   cbb c2 00 c3 00 x000  m9(.., bb)
- 746 ADD      d121 a38  b64  c00 c2 00 c3 00 x000  tap2b
- 747 RD       d10  a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
- 748 MUL9     d64  a10  b0   c88 c2 00 c3 00 x000  m9(.., 88)
- 749 MUL9     d10  a121 b0   c89 c2 00 c3 00 x000  m9(.., 89)
- 750 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 751 WR       d0   a9   b0   c2e c2 02 c3 00 x000  bvar.w(8a)
- 752 RD       d10  a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
- 753 MUL7     d9   a10  b0   c8b c2 00 c3 00 x000  m7(.., 8b)
- 754 MUL7     d10  a121 b0   c8c c2 00 c3 00 x000  m7(.., 8c)
- 755 ADD      d122 a9   b10  c00 c2 00 c3 00 x000  var_gate_l
- 756 RD       d9   a0   b0   c33 c2 00 c3 00 x000  brev.r(99)
- 757 MUL9     d10  a9   b0   ca0 c2 00 c3 00 x000  m9(.., a0)
- 758 ADD      d123 a37  b10  c00 c2 00 c3 00 x000  tap1b
- 759 RD       d9   a0   b0   c2b c2 02 c3 00 x000  bvar.r(81)
- 760 MUL9     d10  a9   b0   c8e c2 00 c3 00 x000  m9(.., 8e)
- 761 MUL9     d9   a123 b0   c8f c2 00 c3 00 x000  m9(.., 8f)
- 762 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 763 WR       d0   a64  b0   c34 c2 02 c3 00 x000  bvar.w(9c)
- 764 RD       d9   a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
- 765 MUL7     d64  a9   b0   c8b c2 00 c3 00 x000  m7(.., 8b)
- 766 MUL7     d9   a123 b0   c8c c2 00 c3 00 x000  m7(.., 8c)
- 767 ADD      d124 a64  b9   c00 c2 00 c3 00 x000  var_gate_r
- 768 MUL7     d9   a113 b0   c76 c2 00 c3 00 x000  m7(.., 76)
- 769 SAT      d125 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist1
- 770 MUL7     d9   a125 b0   c83 c2 00 c3 00 x000  m7(.., 83)
- 771 SAT      d126 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist2
- 772 MUL7     d9   a126 b0   c87 c2 00 c3 00 x000  m7(.., 87)
- 773 SAT      d127 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist3
- 774 MUL7     d9   a127 b0   c8a c2 00 c3 00 x000  m7(.., 8a)
- 775 SAT      d128 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist4
- 776 MUL7     d9   a128 b0   c8d c2 00 c3 00 x000  m7(.., 8d)
- 777 SAT      d129 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist5
- 778 MUL7     d9   a129 b0   c90 c2 00 c3 00 x000  m7(.., 90)
- 779 SAT      d130 a9   b0   c00 c2 00 c3 00 x000  saturate -> dist6
- 780 MUL9     d9   a125 b0   c91 c2 00 c3 00 x000  m9(.., 91)
- 781 MUL9     d64  a126 b0   c92 c2 00 c3 00 x000  m9(.., 92)
- 782 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 783 MUL9     d64  a127 b0   c93 c2 00 c3 00 x000  m9(.., 93)
- 784 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 785 MUL9     d64  a128 b0   c94 c2 00 c3 00 x000  m9(.., 94)
- 786 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 787 MUL9     d64  a129 b0   c95 c2 00 c3 00 x000  m9(.., 95)
- 788 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 789 MUL9     d64  a130 b0   c96 c2 00 c3 00 x000  m9(.., 96)
- 790 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 791 MUL9     d131 a10  b0   ca1 c2 00 c3 00 x000  m9(.., a1) -> disto
- 792 MUL7     d10  a118 b0   ca2 c2 00 c3 00 x000  m7(.., a2)
- 793 MUL7     d64  a131 b0   ca3 c2 00 c3 00 x000  m7(.., a3)
- 794 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 795 MUL9     d64  a133 b0   ca4 c2 00 c3 00 x000  m9(.., a4)
- 796 ADD      d132 a9   b64  c00 c2 00 c3 00 x000  var_f2_2
- 797 MUL7     d64  a135 b0   ca5 c2 00 c3 00 x000  m7(.., a5)
- 798 MUL7     d9   a136 b0   ca6 c2 00 c3 00 x000  m7(.., a6)
- 799 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 800 MUL7     d9   a137 b0   ca7 c2 00 c3 00 x000  m7(.., a7)
- 801 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 802 MUL7     d9   a133 b0   ca8 c2 00 c3 00 x000  m7(.., a8)
- 803 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 804 MUL7     d9   a132 b0   ca9 c2 00 c3 00 x000  m7(.., a9)
- 805 ADD      d134 a10  b9   c00 c2 00 c3 00 x000  var_f2_3
- 806 MUL7     d9   a136 b0   caa c2 00 c3 00 x000  m7(.., aa)
- 807 MUL7     d10  a134 b0   cab c2 00 c3 00 x000  m7(.., ab)
- 808 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 809 MUL9     d10  a139 b0   cac c2 00 c3 00 x000  m9(.., ac)
- 810 ADD      d138 a64  b10  c00 c2 00 c3 00 x000  var_f2_4
- 811 ADD      d118 a131 b0   c00 c2 00 c3 00 x000  m_var_filter2_1 = ..
- 812 ADD      d137 a133 b0   c00 c2 00 c3 00 x000  m_var_filter2_2b = ..
- 813 ADD      d133 a132 b0   c00 c2 00 c3 00 x000  m_var_filter2_2a = ..
- 814 ADD      d135 a136 b0   c00 c2 00 c3 00 x000  m_var_filter2_3b = ..
- 815 ADD      d136 a134 b0   c00 c2 00 c3 00 x000  m_var_filter2_3a = ..
- 816 ADD      d139 a138 b0   c00 c2 00 c3 00 x000  m_var_filter2_4 = ..
- 817 MUL9     d10  a6   b0   cad c2 00 c3 00 x000  m9(.., ad)
- 818 MUL9     d64  a122 b0   caf c2 00 c3 00 x000  m9(.., af)
- 819 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
- 820 MUL9     d64  a138 b0   cb0 c2 00 c3 00 x000  m9(.., b0)
- 821 ADD      d11  a9   b64  c00 c2 00 c3 00 x000  var_out_l
- 822 MUL9     d64  a7   b0   cb1 c2 00 c3 00 x000  m9(.., b1)
- 823 MUL9     d9   a124 b0   cb2 c2 00 c3 00 x000  m9(.., b2)
- 824 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
- 825 MUL9     d9   a138 b0   cb3 c2 00 c3 00 x000  m9(.., b3)
- 826 ADD      d12  a10  b9   c00 c2 00 c3 00 x000  var_out_r
- 827 MUL9     d9   a46  b0   c58 c2 00 c3 00 x000  m9(.., 58)
- 828 CONST    d10  a0   b0   c57 c2 00 c3 00 x000  m_const[57]
- 829 ADD      d46  a9   b10  c00 c2 00 c3 00 x000  m_cho_vol
- 830 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+ 655 ADD      d9   a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
+ 656 ADD      d10  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
+ 657 MUL9     d157 a6   b0   c6d c2 00 c3 00 x000  m9(.., 6d)
+ 658 MUL9     d158 a7   b0   c6e c2 00 c3 00 x000  m9(.., 6e)
+ 659 MUL7     d159 a107 b0   c6f c2 00 c3 00 x000  m7(.., 6f)
+ 660 ADD      d105 a157 b158 c00 c2 00 c3 00 x000  var_m
+ 661 MUL9     d162 a108 b0   c71 c2 00 c3 00 x000  m9(.., 71)
+ 662 MUL7     d160 a105 b0   c70 c2 00 c3 00 x000  m7(.., 70)
+ 663 MUL7     d163 a108 b0   c72 c2 00 c3 00 x000  m7(.., 72)
+ 664 ADD      d161 a159 b160 c00 c2 00 c3 00 x000  
+ 665 MUL9     d166 a110 b0   c74 c2 00 c3 00 x000  m9(.., 74)
+ 666 ADD      d106 a161 b162 c00 c2 00 c3 00 x000  var_filter_2
+ 667 ADD      d107 a105 b0   c00 c2 00 c3 00 x000  m_var_filter_1 = ..
+ 668 MUL7     d164 a106 b0   c73 c2 00 c3 00 x000  m7(.., 73)
+ 669 ADD      d108 a106 b0   c00 c2 00 c3 00 x000  m_var_filter_2 = ..
+ 670 ADD      d165 a163 b164 c00 c2 00 c3 00 x000  
+ 671 RD       d167 a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c)
+ 672 ADD      d109 a165 b166 c00 c2 00 c3 00 x000  var_filtered
+ 673 MUL9     d168 a167 b0   c7b c2 00 c3 00 x000  m9(.., 7b)
+ 674 ADD      d110 a109 b0   c00 c2 00 c3 00 x000  m_var_filter_3 = ..
+ 675 MUL9     d169 a105 b0   c7c c2 00 c3 00 x000  m9(.., 7c)
+ 676 MUL7     d173 a105 b0   c7f c2 00 c3 00 x000  m7(.., 7f)
+ 677 ADD      d170 a168 b169 c00 c2 00 c3 00 x000  
+ 678 MUL7     d178 a114 b0   c77 c2 00 c3 00 x000  m7(.., 77)
+ 679 WR       d0   a170 b0   c2a c2 02 c3 00 x000  bvar.w(7e)
+ 680 RD       d171 a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c)
+ 681 RD       d174 a0   b0   c28 c2 02 c3 00 x000  bvar.r(78)
+ 682 MUL7     d172 a171 b0   c7e c2 00 c3 00 x000  m7(.., 7e)
+ 683 MUL9     d175 a174 b0   c81 c2 00 c3 00 x000  m9(.., 81)
+ 684 ADD      d111 a172 b173 c00 c2 00 c3 00 x000  tap0
+ 685 MUL9     d181 a115 b0   c79 c2 00 c3 00 x000  m9(.., 79)
+ 686 MUL9     d176 a111 b0   c82 c2 00 c3 00 x000  m9(.., 82)
+ 687 MUL7     d184 a111 b0   c85 c2 00 c3 00 x000  m7(.., 85)
+ 688 ADD      d177 a175 b176 c00 c2 00 c3 00 x000  
+ 689 MUL7     d244 a109 b0   c76 c2 00 c3 00 x000  m7(.., 76)
+ 690 WR       d0   a177 b0   c2c c2 02 c3 00 x000  bvar.w(84)
+ 691 RD       d112 a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f) -> var_f3_1
+ 692 RD       d182 a0   b0   c28 c2 02 c3 00 x000  bvar.r(78)
+ 693 MUL7     d179 a112 b0   c78 c2 00 c3 00 x000  m7(.., 78)
+ 694 MUL7     d183 a182 b0   c84 c2 00 c3 00 x000  m7(.., 84)
+ 695 ADD      d180 a178 b179 c00 c2 00 c3 00 x000  
+ 696 ADD      d185 a183 b184 c00 c2 00 c3 00 x000  
+ 697 ADD      d113 a180 b181 c00 c2 00 c3 00 x000  var_f3_2
+ 698 ADD      d116 a112 b0   c00 c2 00 c3 00 x000  m_var_filter3_1 = ..
+ 699 MUL9     d186 a113 b0   c86 c2 00 c3 00 x000  m9(.., 86)
+ 700 ADD      d115 a113 b0   c00 c2 00 c3 00 x000  m_var_filter3_2 = ..
+ 701 ADD      d187 a185 b186 c00 c2 00 c3 00 x000  
+ 702 SAT      d121 a244 b0   c00 c2 00 c3 00 x000  saturate -> dist1
+ 703 WR       d0   a187 b0   c2d c2 02 c3 00 x000  bvar.w(87)
+ 704 RD       d188 a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f)
+ 705 RD       d190 a0   b0   c26 c2 02 c3 00 x000  bvar.r(72)
+ 706 MUL9     d189 a188 b0   c99 c2 00 c3 00 x000  m9(.., 99)
+ 707 MUL9     d191 a190 b0   c9a c2 00 c3 00 x000  m9(.., 9a)
+ 708 RD       d193 a0   b0   c27 c2 02 c3 00 x000  bvar.r(75)
+ 709 ADD      d192 a189 b191 c00 c2 00 c3 00 x000  
+ 710 MUL9     d194 a193 b0   c9b c2 00 c3 00 x000  m9(.., 9b)
+ 711 RD       d196 a0   b0   c2f c2 02 c3 00 x000  bvar.r(8d)
+ 712 ADD      d195 a192 b194 c00 c2 00 c3 00 x000  
+ 713 MUL9     d197 a196 b0   c9c c2 00 c3 00 x000  m9(.., 9c)
+ 714 RD       d199 a0   b0   c30 c2 02 c3 00 x000  bvar.r(90)
+ 715 ADD      d198 a195 b197 c00 c2 00 c3 00 x000  
+ 716 MUL9     d200 a199 b0   c9d c2 00 c3 00 x000  m9(.., 9d)
+ 717 RD       d202 a0   b0   c31 c2 02 c3 00 x000  bvar.r(93)
+ 718 ADD      d201 a198 b200 c00 c2 00 c3 00 x000  
+ 719 MUL9     d203 a202 b0   c9e c2 00 c3 00 x000  m9(.., 9e)
+ 720 RD       d205 a0   b0   c32 c2 02 c3 00 x000  bvar.r(96)
+ 721 ADD      d204 a201 b203 c00 c2 00 c3 00 x000  
+ 722 MUL9     d206 a205 b0   c9f c2 00 c3 00 x000  m9(.., 9f)
+ 723 RD       d207 a0   b0   c35 c2 02 c3 00 x000  bvar.r(9f)
+ 724 ADD      d34  a204 b206 c00 c2 00 c3 00 x000  tap1
+ 725 MUL9     d208 a207 b0   cb4 c2 00 c3 00 x000  m9(.., b4)
+ 726 RD       d209 a0   b0   c36 c2 02 c3 00 x000  bvar.r(a2)
+ 727 RD       d212 a0   b0   c37 c2 02 c3 00 x000  bvar.r(a5)
+ 728 MUL9     d210 a209 b0   cb5 c2 00 c3 00 x000  m9(.., b5)
+ 729 MUL9     d213 a212 b0   cb6 c2 00 c3 00 x000  m9(.., b6)
+ 730 ADD      d211 a208 b210 c00 c2 00 c3 00 x000  
+ 731 RD       d215 a0   b0   c38 c2 02 c3 00 x000  bvar.r(a8)
+ 732 ADD      d214 a211 b213 c00 c2 00 c3 00 x000  
+ 733 MUL9     d216 a215 b0   cb7 c2 00 c3 00 x000  m9(.., b7)
+ 734 RD       d218 a0   b0   c39 c2 02 c3 00 x000  bvar.r(ab)
+ 735 ADD      d217 a214 b216 c00 c2 00 c3 00 x000  
+ 736 MUL9     d219 a218 b0   cb8 c2 00 c3 00 x000  m9(.., b8)
+ 737 RD       d221 a0   b0   c3a c2 02 c3 00 x000  bvar.r(ae)
+ 738 ADD      d220 a217 b219 c00 c2 00 c3 00 x000  
+ 739 MUL9     d222 a221 b0   cb9 c2 00 c3 00 x000  m9(.., b9)
+ 740 RD       d224 a0   b0   c3b c2 02 c3 00 x000  bvar.r(b1)
+ 741 ADD      d223 a220 b222 c00 c2 00 c3 00 x000  
+ 742 MUL9     d225 a224 b0   cba c2 00 c3 00 x000  m9(.., ba)
+ 743 WR       d0   a34  b0   c3d c2 02 c3 00 x000  bvar.w(b7)
+ 744 ADD      d35  a223 b225 c00 c2 00 c3 00 x000  tap2
+ 745 MUL7     d245 a121 b0   c83 c2 00 c3 00 x000  m7(.., 83)
+ 746 WR       d0   a35  b0   c3e c2 02 c3 00 x000  bvar.w(ba)
+ 747 RD       d226 a0   b0   c3c c2 00 c3 00 x000  brev.r(b4)
+ 748 RD       d228 a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
+ 749 MUL9     d227 a226 b0   cbb c2 00 c3 00 x000  m9(.., bb)
+ 750 MUL9     d229 a228 b0   c88 c2 00 c3 00 x000  m9(.., 88)
+ 751 ADD      d117 a35  b227 c00 c2 00 c3 00 x000  tap2b
+ 752 SAT      d122 a245 b0   c00 c2 00 c3 00 x000  saturate -> dist2
+ 753 MUL9     d230 a117 b0   c89 c2 00 c3 00 x000  m9(.., 89)
+ 754 MUL7     d234 a117 b0   c8c c2 00 c3 00 x000  m7(.., 8c)
+ 755 ADD      d231 a229 b230 c00 c2 00 c3 00 x000  
+ 756 MUL7     d246 a122 b0   c87 c2 00 c3 00 x000  m7(.., 87)
+ 757 WR       d0   a231 b0   c2e c2 02 c3 00 x000  bvar.w(8a)
+ 758 RD       d232 a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
+ 759 RD       d235 a0   b0   c33 c2 00 c3 00 x000  brev.r(99)
+ 760 MUL7     d233 a232 b0   c8b c2 00 c3 00 x000  m7(.., 8b)
+ 761 MUL9     d236 a235 b0   ca0 c2 00 c3 00 x000  m9(.., a0)
+ 762 ADD      d118 a233 b234 c00 c2 00 c3 00 x000  var_gate_l
+ 763 ADD      d119 a34  b236 c00 c2 00 c3 00 x000  tap1b
+ 764 RD       d237 a0   b0   c2b c2 02 c3 00 x000  bvar.r(81)
+ 765 MUL9     d239 a119 b0   c8f c2 00 c3 00 x000  m9(.., 8f)
+ 766 MUL9     d238 a237 b0   c8e c2 00 c3 00 x000  m9(.., 8e)
+ 767 MUL7     d243 a119 b0   c8c c2 00 c3 00 x000  m7(.., 8c)
+ 768 ADD      d240 a238 b239 c00 c2 00 c3 00 x000  
+ 769 SAT      d123 a246 b0   c00 c2 00 c3 00 x000  saturate -> dist3
+ 770 WR       d0   a240 b0   c34 c2 02 c3 00 x000  bvar.w(9c)
+ 771 RD       d241 a0   b0   c29 c2 02 c3 00 x000  bvar.r(7b)
+ 772 MUL7     d247 a123 b0   c8a c2 00 c3 00 x000  m7(.., 8a)
+ 773 MUL7     d242 a241 b0   c8b c2 00 c3 00 x000  m7(.., 8b)
+ 774 SAT      d124 a247 b0   c00 c2 00 c3 00 x000  saturate -> dist4
+ 775 ADD      d120 a242 b243 c00 c2 00 c3 00 x000  var_gate_r
+ 776 MUL7     d248 a124 b0   c8d c2 00 c3 00 x000  m7(.., 8d)
+ 777 MUL9     d250 a121 b0   c91 c2 00 c3 00 x000  m9(.., 91)
+ 778 SAT      d125 a248 b0   c00 c2 00 c3 00 x000  saturate -> dist5
+ 779 MUL9     d251 a122 b0   c92 c2 00 c3 00 x000  m9(.., 92)
+ 780 MUL7     d249 a125 b0   c90 c2 00 c3 00 x000  m7(.., 90)
+ 781 ADD      d252 a250 b251 c00 c2 00 c3 00 x000  
+ 782 SAT      d126 a249 b0   c00 c2 00 c3 00 x000  saturate -> dist6
+ 783 MUL9     d253 a123 b0   c93 c2 00 c3 00 x000  m9(.., 93)
+ 784 MUL9     d255 a124 b0   c94 c2 00 c3 00 x000  m9(.., 94)
+ 785 ADD      d254 a252 b253 c00 c2 00 c3 00 x000  
+ 786 MUL9     d156 a125 b0   c95 c2 00 c3 00 x000  m9(.., 95)
+ 787 ADD      d155 a254 b255 c00 c2 00 c3 00 x000  
+ 788 MUL9     d157 a126 b0   c96 c2 00 c3 00 x000  m9(.., 96)
+ 789 ADD      d158 a155 b156 c00 c2 00 c3 00 x000  
+ 790 MUL7     d160 a114 b0   ca2 c2 00 c3 00 x000  m7(.., a2)
+ 791 ADD      d159 a158 b157 c00 c2 00 c3 00 x000  
+ 792 MUL9     d163 a129 b0   ca4 c2 00 c3 00 x000  m9(.., a4)
+ 793 MUL9     d127 a159 b0   ca1 c2 00 c3 00 x000  m9(.., a1) -> disto
+ 794 MUL7     d164 a131 b0   ca5 c2 00 c3 00 x000  m7(.., a5)
+ 795 MUL7     d161 a127 b0   ca3 c2 00 c3 00 x000  m7(.., a3)
+ 796 MUL7     d166 a132 b0   ca6 c2 00 c3 00 x000  m7(.., a6)
+ 797 ADD      d162 a160 b161 c00 c2 00 c3 00 x000  
+ 798 ADD      d165 a164 b166 c00 c2 00 c3 00 x000  
+ 799 ADD      d128 a162 b163 c00 c2 00 c3 00 x000  var_f2_2
+ 800 MUL7     d167 a133 b0   ca7 c2 00 c3 00 x000  m7(.., a7)
+ 801 MUL7     d169 a129 b0   ca8 c2 00 c3 00 x000  m7(.., a8)
+ 802 ADD      d168 a165 b167 c00 c2 00 c3 00 x000  
+ 803 MUL7     d171 a128 b0   ca9 c2 00 c3 00 x000  m7(.., a9)
+ 804 ADD      d170 a168 b169 c00 c2 00 c3 00 x000  
+ 805 MUL7     d172 a132 b0   caa c2 00 c3 00 x000  m7(.., aa)
+ 806 ADD      d130 a170 b171 c00 c2 00 c3 00 x000  var_f2_3
+ 807 MUL9     d175 a135 b0   cac c2 00 c3 00 x000  m9(.., ac)
+ 808 MUL7     d173 a130 b0   cab c2 00 c3 00 x000  m7(.., ab)
+ 809 ADD      d114 a127 b0   c00 c2 00 c3 00 x000  m_var_filter2_1 = ..
+ 810 ADD      d174 a172 b173 c00 c2 00 c3 00 x000  
+ 811 ADD      d133 a129 b0   c00 c2 00 c3 00 x000  m_var_filter2_2b = ..
+ 812 ADD      d134 a174 b175 c00 c2 00 c3 00 x000  var_f2_4
+ 813 ADD      d129 a128 b0   c00 c2 00 c3 00 x000  m_var_filter2_2a = ..
+ 814 ADD      d131 a132 b0   c00 c2 00 c3 00 x000  m_var_filter2_3b = ..
+ 815 ADD      d132 a130 b0   c00 c2 00 c3 00 x000  m_var_filter2_3a = ..
+ 816 ADD      d135 a134 b0   c00 c2 00 c3 00 x000  m_var_filter2_4 = ..
+ 817 MUL9     d176 a6   b0   cad c2 00 c3 00 x000  m9(.., ad)
+ 818 MUL9     d177 a118 b0   caf c2 00 c3 00 x000  m9(.., af)
+ 819 MUL9     d179 a134 b0   cb0 c2 00 c3 00 x000  m9(.., b0)
+ 820 ADD      d178 a176 b177 c00 c2 00 c3 00 x000  
+ 821 MUL9     d180 a7   b0   cb1 c2 00 c3 00 x000  m9(.., b1)
+ 822 ADD      d9   a178 b179 c00 c2 00 c3 00 x000  var_out_l
+ 823 MUL9     d181 a120 b0   cb2 c2 00 c3 00 x000  m9(.., b2)
+ 824 MUL9     d183 a134 b0   cb3 c2 00 c3 00 x000  m9(.., b3)
+ 825 ADD      d182 a180 b181 c00 c2 00 c3 00 x000  
+ 826 MUL9     d184 a43  b0   c58 c2 00 c3 00 x000  m9(.., 58)
+ 827 ADD      d10  a182 b183 c00 c2 00 c3 00 x000  var_out_r
+ 828 CONST    d185 a0   b0   c57 c2 00 c3 00 x000  m_const[57]
+ 829 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+ 830 ADD      d43  a184 b185 c00 c2 00 c3 00 x000  m_cho_vol
  831 MUL7     d5   a5   b0   c05 c2 00 c3 00 x000  m7(.., 5) -> cho_r
- 832 MUL7     d9   a11  b0   c03 c2 00 c3 00 x000  m7(.., 3)
- 833 MUL9V    d10  a9   b8   c00 c2 00 c3 00 x000  m9v
- 834 ADD      d4   a4   b10  c00 c2 00 c3 00 x000  cho_l +=
- 835 MUL7     d9   a12  b0   c06 c2 00 c3 00 x000  m7(.., 6)
- 836 MUL9V    d10  a9   b8   c00 c2 00 c3 00 x000  m9v
- 837 ADD      d5   a5   b10  c00 c2 00 c3 00 x000  cho_r +=
- 838 LFOSTEP  d47  a47  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
- 839 RLFO     d48  a47  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
- 840 CONST    d10  a0   b0   c25 c2 00 c3 00 x000  m_const[25]
- 841 RLFO     d49  a47  b10  c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
- 842 CONST    d10  a0   b0   c34 c2 00 c3 00 x000  m_const[34]
- 843 RLFO     d50  a47  b10  c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
- 844 MUL7     d10  a52  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
- 845 MUL7     d9   a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
- 846 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 847 MUL9     d9   a53  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
- 848 ADD      d51  a64  b9   c00 c2 00 c3 00 x000  cho_filter_r_2
- 849 MUL7     d9   a53  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
- 850 MUL7     d64  a51  b0   c40 c2 00 c3 00 x000  m7(.., 40)
- 851 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 852 MUL9     d64  a55  b0   c41 c2 00 c3 00 x000  m9(.., 41)
- 853 ADD      d54  a10  b64  c00 c2 00 c3 00 x000  cho_filtered_r
- 854 ADD      d52  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
- 855 ADD      d53  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
- 856 ADD      d55  a54  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
- 857 MUL7     d64  a57  b0   c49 c2 00 c3 00 x000  m7(.., 49)
- 858 MUL7     d10  a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
- 859 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 860 MUL9     d10  a58  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
- 861 ADD      d56  a9   b10  c00 c2 00 c3 00 x000  cho_filter_l_2
- 862 MUL7     d10  a58  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
- 863 MUL7     d9   a56  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
- 864 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 865 MUL9     d9   a60  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
- 866 ADD      d59  a64  b9   c00 c2 00 c3 00 x000  cho_filtered_l
- 867 ADD      d57  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
- 868 ADD      d58  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
- 869 ADD      d60  a59  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
- 870 MUL9     d9   a49  b0   c42 c2 00 c3 00 x000  m9(.., 42)
- 871 ADD      d64  a9   b54  c00 c2 00 c3 00 x000  
- 872 WR       d0   a64  b0   c16 c2 01 c3 00 x000  bcho.w(42)
- 873 MUL9     d64  a48  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
- 874 ADD      d9   a64  b59  c00 c2 00 c3 00 x000  
- 875 MUL9     d64  a54  b0   c50 c2 00 c3 00 x000  m9(.., 50)
- 876 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 877 WR       d0   a10  b0   c1b c2 01 c3 00 x000  bcho.w(51)
- 878 MUL9     d10  a48  b0   c60 c2 00 c3 00 x000  m9(.., 60)
- 879 MUL9     d64  a50  b0   c61 c2 00 c3 00 x000  m9(.., 61)
- 880 ADD      d61  a10  b64  c00 c2 00 c3 00 x000  cho_out_l
- 881 MUL9     d64  a49  b0   c69 c2 00 c3 00 x000  m9(.., 69)
- 882 MUL9     d10  a50  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
- 883 ADD      d62  a64  b10  c00 c2 00 c3 00 x000  cho_out_r
- 884 MUL9     d10  a63  b0   c0c c2 00 c3 00 x000  m9(.., c)
- 885 CONST    d64  a0   b0   c0b c2 00 c3 00 x000  m_const[b]
- 886 ADD      d63  a10  b64  c00 c2 00 c3 00 x000  m_rev_vol
- 887 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
- 888 MUL7     d10  a61  b0   c12 c2 00 c3 00 x000  m7(.., 12)
- 889 MUL7     d9   a62  b0   c13 c2 00 c3 00 x000  m7(.., 13)
- 890 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
- 891 MUL9V    d64  a15  b46  c00 c2 00 c3 00 x000  m9v
- 892 ADD      d3   a3   b64  c00 c2 00 c3 00 x000  rev +=
- 893 MUL7     d15  a11  b0   c14 c2 00 c3 00 x000  m7(.., 14)
- 894 MUL7     d9   a12  b0   c15 c2 00 c3 00 x000  m7(.., 15)
- 895 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
- 896 MUL9V    d64  a10  b8   c00 c2 00 c3 00 x000  m9v
- 897 ADD      d3   a3   b64  c00 c2 00 c3 00 x000  rev +=
- 898 MUL7     d64  a66  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
- 899 MUL7     d10  a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
- 900 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 901 MUL9     d10  a67  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
- 902 ADD      d65  a9   b10  c00 c2 00 c3 00 x000  rev_filter_2
- 903 MUL7     d10  a67  b0   c30 c2 00 c3 00 x000  m7(.., 30)
- 904 MUL7     d9   a65  b0   c31 c2 00 c3 00 x000  m7(.., 31)
- 905 ADD      d64  a10  b9   c00 c2 00 c3 00 x000  
- 906 MUL9     d9   a69  b0   c32 c2 00 c3 00 x000  m9(.., 32)
- 907 ADD      d68  a64  b9   c00 c2 00 c3 00 x000  rev_filtered
- 908 ADD      d66  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
- 909 ADD      d67  a65  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
- 910 ADD      d69  a68  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
- 911 RD       d64  a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
- 912 MUL9     d9   a64  b0   c29 c2 00 c3 00 x000  m9(.., 29)
- 913 RD       d10  a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 914 MUL9     d64  a10  b0   c2a c2 00 c3 00 x000  m9(.., 2a)
- 915 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
- 916 WR       d0   a10  b0   c10 c2 00 c3 00 x000  brev.w(30)
- 917 RD       d64  a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
- 918 MUL9     d10  a64  b0   c33 c2 00 c3 00 x000  m9(.., 33)
- 919 ADD      d64  a10  b68  c00 c2 00 c3 00 x000  
- 920 WR       d0   a64  b0   c11 c2 00 c3 00 x000  brev.w(33)
- 921 RD       d10  a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
- 922 MUL7     d64  a10  b0   c2b c2 00 c3 00 x000  m7(.., 2b)
- 923 RD       d9   a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
- 924 MUL7     d10  a9   b0   c2c c2 00 c3 00 x000  m7(.., 2c)
- 925 ADD      d70  a64  b10  c00 c2 00 c3 00 x000  rev_1
- 926 RD       d64  a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
- 927 MUL7     d10  a64  b0   c3a c2 00 c3 00 x000  m7(.., 3a)
- 928 MUL7     d64  a70  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
- 929 ADD      d71  a10  b64  c00 c2 00 c3 00 x000  rev_2
- 930 RD       d10  a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
- 931 MUL9     d64  a10  b0   c38 c2 00 c3 00 x000  m9(.., 38)
- 932 MUL9     d10  a70  b0   c39 c2 00 c3 00 x000  m9(.., 39)
- 933 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 934 WR       d0   a9   b0   c15 c2 00 c3 00 x000  brev.w(3f)
- 935 MUL9     d9   a72  b0   c59 c2 00 c3 00 x000  m9(.., 59)
- 936 RD       d64  a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
- 937 MUL9     d10  a64  b0   c5a c2 00 c3 00 x000  m9(.., 5a)
- 938 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 939 MUL9     d10  a71  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
- 940 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 941 WR       d0   a9   b0   c1f c2 00 c3 00 x000  brev.w(5d)
- 942 RD       d72  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
- 943 MUL9     d9   a73  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
- 944 RD       d64  a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
- 945 MUL9     d10  a64  b0   c5d c2 00 c3 00 x000  m9(.., 5d)
- 946 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 947 MUL9     d10  a71  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
- 948 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 949 WR       d0   a9   b0   c21 c2 00 c3 00 x000  brev.w(63)
- 950 RD       d73  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
- 951 MUL9     d9   a74  b0   c62 c2 00 c3 00 x000  m9(.., 62)
- 952 RD       d64  a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
- 953 MUL9     d10  a64  b0   c63 c2 00 c3 00 x000  m9(.., 63)
- 954 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 955 MUL9     d10  a71  b0   c64 c2 00 c3 00 x000  m9(.., 64)
- 956 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 957 WR       d0   a9   b0   c23 c2 00 c3 00 x000  brev.w(69)
- 958 RD       d74  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
- 959 MUL9     d9   a75  b0   c65 c2 00 c3 00 x000  m9(.., 65)
- 960 RD       d64  a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
- 961 MUL9     d10  a64  b0   c66 c2 00 c3 00 x000  m9(.., 66)
- 962 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
- 963 MUL9     d10  a71  b0   c67 c2 00 c3 00 x000  m9(.., 67)
- 964 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
- 965 WR       d0   a9   b0   c24 c2 00 c3 00 x000  brev.w(6c)
- 966 RD       d75  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
- 967 RD       d10  a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
- 968 RD       d64  a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
- 969 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
- 970 RD       d64  a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
- 971 ADD      d10  a15  b64  c00 c2 00 c3 00 x000  
- 972 RD       d64  a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
- 973 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
- 974 MUL9     d9   a15  b0   c1c c2 00 c3 00 x000  m9(.., 1c)
- 975 RD       d64  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 976 MUL9     d15  a64  b0   c1b c2 00 c3 00 x000  m9(.., 1b)
- 977 ADD      d76  a9   b15  c00 c2 00 c3 00 x000  rev_base_l
- 978 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 979 MUL9     d15  a9   b0   c45 c2 00 c3 00 x000  m9(.., 45)
- 980 MUL9     d9   a76  b0   c46 c2 00 c3 00 x000  m9(.., 46)
- 981 ADD      d64  a15  b9   c00 c2 00 c3 00 x000  
- 982 WR       d0   a64  b0   c18 c2 00 c3 00 x000  brev.w(48)
- 983 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 984 MUL7     d64  a9   b0   c47 c2 00 c3 00 x000  m7(.., 47)
- 985 MUL7     d9   a76  b0   c48 c2 00 c3 00 x000  m7(.., 48)
- 986 ADD      d77  a64  b9   c00 c2 00 c3 00 x000  rev_out_l
- 987 RD       d64  a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
- 988 RD       d15  a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
- 989 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
- 990 RD       d15  a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
- 991 ADD      d64  a10  b15  c00 c2 00 c3 00 x000  
- 992 RD       d15  a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
- 993 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
- 994 MUL9     d9   a10  b0   c21 c2 00 c3 00 x000  m9(.., 21)
- 995 RD       d15  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
- 996 MUL9     d10  a15  b0   c20 c2 00 c3 00 x000  m9(.., 20)
- 997 ADD      d78  a9   b10  c00 c2 00 c3 00 x000  rev_base_r
- 998 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
- 999 MUL9     d10  a9   b0   c51 c2 00 c3 00 x000  m9(.., 51)
-1000 MUL9     d9   a78  b0   c52 c2 00 c3 00 x000  m9(.., 52)
-1001 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1002 WR       d0   a15  b0   c18 c2 00 c3 00 x000  brev.w(48)
-1003 RD       d9   a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
-1004 MUL7     d15  a9   b0   c53 c2 00 c3 00 x000  m7(.., 53)
-1005 MUL7     d9   a78  b0   c54 c2 00 c3 00 x000  m7(.., 54)
-1006 ADD      d79  a15  b9   c00 c2 00 c3 00 x000  rev_out_r
-1007 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
-1008 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
-1009 MUL9V    d9   a77  b63  c00 c2 00 c3 00 x000  m9v
-1010 MUL9     d10  a61  b0   c17 c2 00 c3 00 x000  m9(.., 17)
-1011 MUL9V    d15  a10  b46  c00 c2 00 c3 00 x000  m9v
-1012 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-1013 MUL9     d9   a11  b0   c18 c2 00 c3 00 x000  m9(.., 18)
-1014 MUL9V    d15  a9   b8   c00 c2 00 c3 00 x000  m9v
-1015 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
-1016 ADD      d1   a1   b9   c00 c2 00 c3 00 x000  dry_l +=
-1017 MUL9V    d9   a79  b63  c00 c2 00 c3 00 x000  m9v
-1018 MUL9     d10  a62  b0   c0e c2 00 c3 00 x000  m9(.., e)
-1019 MUL9V    d15  a10  b46  c00 c2 00 c3 00 x000  m9v
-1020 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-1021 MUL9     d9   a12  b0   c0f c2 00 c3 00 x000  m9(.., f)
-1022 MUL9V    d15  a9   b8   c00 c2 00 c3 00 x000  m9v
-1023 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
-1024 ADD      d2   a2   b9   c00 c2 00 c3 00 x000  dry_r +=
-1025 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+ 832 MUL7     d186 a9   b0   c03 c2 00 c3 00 x000  m7(.., 3)
+ 833 MUL7     d188 a10  b0   c06 c2 00 c3 00 x000  m7(.., 6)
+ 834 MUL9V    d187 a186 b8   c00 c2 00 c3 00 x000  m9v
+ 835 MUL9V    d190 a188 b8   c00 c2 00 c3 00 x000  m9v
+ 836 ADD      d4   a4   b187 c00 c2 00 c3 00 x000  cho_l +=
+ 837 ADD      d5   a5   b190 c00 c2 00 c3 00 x000  cho_r +=
+ 838 LFOSTEP  d44  a44  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
+ 839 CONST    d191 a0   b0   c25 c2 00 c3 00 x000  m_const[25]
+ 840 RLFO     d45  a44  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
+ 841 RLFO     d46  a44  b191 c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
+ 842 CONST    d189 a0   b0   c34 c2 00 c3 00 x000  m_const[34]
+ 843 MUL7     d193 a49  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
+ 844 RLFO     d47  a44  b189 c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
+ 845 MUL7     d192 a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
+ 846 MUL9     d196 a50  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
+ 847 ADD      d194 a193 b192 c00 c2 00 c3 00 x000  
+ 848 MUL7     d195 a50  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
+ 849 ADD      d48  a194 b196 c00 c2 00 c3 00 x000  cho_filter_r_2
+ 850 MUL9     d198 a52  b0   c41 c2 00 c3 00 x000  m9(.., 41)
+ 851 MUL7     d197 a48  b0   c40 c2 00 c3 00 x000  m7(.., 40)
+ 852 ADD      d49  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
+ 853 ADD      d199 a195 b197 c00 c2 00 c3 00 x000  
+ 854 ADD      d50  a48  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
+ 855 ADD      d51  a199 b198 c00 c2 00 c3 00 x000  cho_filtered_r
+ 856 MUL7     d200 a54  b0   c49 c2 00 c3 00 x000  m7(.., 49)
+ 857 ADD      d52  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
+ 858 MUL7     d202 a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
+ 859 MUL9     d203 a55  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
+ 860 ADD      d201 a200 b202 c00 c2 00 c3 00 x000  
+ 861 MUL7     d205 a55  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
+ 862 ADD      d53  a201 b203 c00 c2 00 c3 00 x000  cho_filter_l_2
+ 863 MUL9     d207 a57  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
+ 864 MUL7     d204 a53  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
+ 865 ADD      d54  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
+ 866 ADD      d206 a205 b204 c00 c2 00 c3 00 x000  
+ 867 ADD      d55  a53  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
+ 868 ADD      d56  a206 b207 c00 c2 00 c3 00 x000  cho_filtered_l
+ 869 MUL9     d209 a46  b0   c42 c2 00 c3 00 x000  m9(.., 42)
+ 870 ADD      d57  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
+ 871 ADD      d208 a209 b51  c00 c2 00 c3 00 x000  
+ 872 MUL9     d210 a45  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
+ 873 WR       d0   a208 b0   c16 c2 01 c3 00 x000  bcho.w(42)
+ 874 ADD      d212 a210 b56  c00 c2 00 c3 00 x000  
+ 875 MUL9     d211 a51  b0   c50 c2 00 c3 00 x000  m9(.., 50)
+ 876 MUL9     d215 a45  b0   c60 c2 00 c3 00 x000  m9(.., 60)
+ 877 ADD      d213 a212 b211 c00 c2 00 c3 00 x000  
+ 878 MUL9     d214 a47  b0   c61 c2 00 c3 00 x000  m9(.., 61)
+ 879 WR       d0   a213 b0   c1b c2 01 c3 00 x000  bcho.w(51)
+ 880 ADD      d58  a215 b214 c00 c2 00 c3 00 x000  cho_out_l
+ 881 MUL9     d216 a46  b0   c69 c2 00 c3 00 x000  m9(.., 69)
+ 882 MUL9     d218 a47  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
+ 883 MUL9     d217 a60  b0   c0c c2 00 c3 00 x000  m9(.., c)
+ 884 ADD      d59  a216 b218 c00 c2 00 c3 00 x000  cho_out_r
+ 885 CONST    d219 a0   b0   c0b c2 00 c3 00 x000  m_const[b]
+ 886 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
+ 887 ADD      d60  a217 b219 c00 c2 00 c3 00 x000  m_rev_vol
+ 888 MUL7     d221 a58  b0   c12 c2 00 c3 00 x000  m7(.., 12)
+ 889 MUL7     d220 a59  b0   c13 c2 00 c3 00 x000  m7(.., 13)
+ 890 MUL7     d223 a9   b0   c14 c2 00 c3 00 x000  m7(.., 14)
+ 891 ADD      d222 a221 b220 c00 c2 00 c3 00 x000  
+ 892 MUL7     d225 a10  b0   c15 c2 00 c3 00 x000  m7(.., 15)
+ 893 MUL9V    d224 a222 b43  c00 c2 00 c3 00 x000  m9v
+ 894 ADD      d226 a223 b225 c00 c2 00 c3 00 x000  
+ 895 ADD      d3   a3   b224 c00 c2 00 c3 00 x000  rev +=
+ 896 MUL9V    d227 a226 b8   c00 c2 00 c3 00 x000  m9v
+ 897 MUL7     d228 a62  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
+ 898 ADD      d3   a3   b227 c00 c2 00 c3 00 x000  rev +=
+ 899 MUL9     d231 a63  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
+ 900 MUL7     d230 a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
+ 901 MUL7     d232 a63  b0   c30 c2 00 c3 00 x000  m7(.., 30)
+ 902 ADD      d229 a228 b230 c00 c2 00 c3 00 x000  
+ 903 MUL9     d235 a65  b0   c32 c2 00 c3 00 x000  m9(.., 32)
+ 904 ADD      d61  a229 b231 c00 c2 00 c3 00 x000  rev_filter_2
+ 905 ADD      d62  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
+ 906 MUL7     d233 a61  b0   c31 c2 00 c3 00 x000  m7(.., 31)
+ 907 ADD      d63  a61  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
+ 908 ADD      d234 a232 b233 c00 c2 00 c3 00 x000  
+ 909 RD       d236 a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
+ 910 ADD      d64  a234 b235 c00 c2 00 c3 00 x000  rev_filtered
+ 911 MUL9     d237 a236 b0   c29 c2 00 c3 00 x000  m9(.., 29)
+ 912 ADD      d65  a64  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
+ 913 RD       d239 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 914 MUL9     d255 a68  b0   c59 c2 00 c3 00 x000  m9(.., 59)
+ 915 MUL9     d238 a239 b0   c2a c2 00 c3 00 x000  m9(.., 2a)
+ 916 MUL9     d161 a69  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
+ 917 ADD      d240 a237 b238 c00 c2 00 c3 00 x000  
+ 918 MUL9     d165 a70  b0   c62 c2 00 c3 00 x000  m9(.., 62)
+ 919 WR       d0   a240 b0   c10 c2 00 c3 00 x000  brev.w(30)
+ 920 RD       d241 a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
+ 921 MUL9     d172 a71  b0   c65 c2 00 c3 00 x000  m9(.., 65)
+ 922 MUL9     d242 a241 b0   c33 c2 00 c3 00 x000  m9(.., 33)
+ 923 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
+ 924 ADD      d243 a242 b64  c00 c2 00 c3 00 x000  
+ 925 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
+ 926 WR       d0   a243 b0   c11 c2 00 c3 00 x000  brev.w(33)
+ 927 RD       d244 a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
+ 928 RD       d246 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+ 929 MUL7     d245 a244 b0   c2b c2 00 c3 00 x000  m7(.., 2b)
+ 930 MUL7     d247 a246 b0   c2c c2 00 c3 00 x000  m7(.., 2c)
+ 931 RD       d248 a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
+ 932 ADD      d66  a245 b247 c00 c2 00 c3 00 x000  rev_1
+ 933 MUL7     d249 a248 b0   c3a c2 00 c3 00 x000  m7(.., 3a)
+ 934 MUL7     d250 a66  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
+ 935 RD       d251 a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
+ 936 ADD      d67  a249 b250 c00 c2 00 c3 00 x000  rev_2
+ 937 MUL9     d252 a251 b0   c38 c2 00 c3 00 x000  m9(.., 38)
+ 938 MUL9     d253 a66  b0   c39 c2 00 c3 00 x000  m9(.., 39)
+ 939 MUL9     d157 a67  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
+ 940 ADD      d254 a252 b253 c00 c2 00 c3 00 x000  
+ 941 MUL9     d164 a67  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
+ 942 WR       d0   a254 b0   c15 c2 00 c3 00 x000  brev.w(3f)
+ 943 RD       d155 a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
+ 944 MUL9     d170 a67  b0   c64 c2 00 c3 00 x000  m9(.., 64)
+ 945 MUL9     d156 a155 b0   c5a c2 00 c3 00 x000  m9(.., 5a)
+ 946 MUL9     d177 a67  b0   c67 c2 00 c3 00 x000  m9(.., 67)
+ 947 ADD      d158 a255 b156 c00 c2 00 c3 00 x000  
+ 948 MUL9     d213 a58  b0   c17 c2 00 c3 00 x000  m9(.., 17)
+ 949 ADD      d159 a158 b157 c00 c2 00 c3 00 x000  
+ 950 MUL9V    d215 a213 b43  c00 c2 00 c3 00 x000  m9v
+ 951 WR       d0   a159 b0   c1f c2 00 c3 00 x000  brev.w(5d)
+ 952 RD       d68  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
+ 953 RD       d160 a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
+ 954 MUL9     d218 a9   b0   c18 c2 00 c3 00 x000  m9(.., 18)
+ 955 MUL9     d162 a160 b0   c5d c2 00 c3 00 x000  m9(.., 5d)
+ 956 MUL9V    d216 a218 b8   c00 c2 00 c3 00 x000  m9v
+ 957 ADD      d163 a161 b162 c00 c2 00 c3 00 x000  
+ 958 MUL9     d221 a59  b0   c0e c2 00 c3 00 x000  m9(.., e)
+ 959 ADD      d166 a163 b164 c00 c2 00 c3 00 x000  
+ 960 MUL9V    d220 a221 b43  c00 c2 00 c3 00 x000  m9v
+ 961 WR       d0   a166 b0   c21 c2 00 c3 00 x000  brev.w(63)
+ 962 RD       d69  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
+ 963 RD       d167 a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
+ 964 MUL9     d224 a10  b0   c0f c2 00 c3 00 x000  m9(.., f)
+ 965 MUL9     d169 a167 b0   c63 c2 00 c3 00 x000  m9(.., 63)
+ 966 MUL9V    d223 a224 b8   c00 c2 00 c3 00 x000  m9v
+ 967 ADD      d168 a165 b169 c00 c2 00 c3 00 x000  
+ 968 ADD      d171 a168 b170 c00 c2 00 c3 00 x000  
+ 969 WR       d0   a171 b0   c23 c2 00 c3 00 x000  brev.w(69)
+ 970 RD       d70  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
+ 971 RD       d173 a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
+ 972 MUL9     d174 a173 b0   c66 c2 00 c3 00 x000  m9(.., 66)
+ 973 ADD      d175 a172 b174 c00 c2 00 c3 00 x000  
+ 974 ADD      d176 a175 b177 c00 c2 00 c3 00 x000  
+ 975 WR       d0   a176 b0   c24 c2 00 c3 00 x000  brev.w(6c)
+ 976 RD       d71  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
+ 977 RD       d178 a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
+ 978 RD       d179 a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
+ 979 RD       d181 a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
+ 980 ADD      d180 a178 b179 c00 c2 00 c3 00 x000  
+ 981 RD       d183 a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
+ 982 ADD      d182 a180 b181 c00 c2 00 c3 00 x000  
+ 983 RD       d186 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+ 984 ADD      d185 a182 b183 c00 c2 00 c3 00 x000  
+ 985 MUL9     d187 a186 b0   c1b c2 00 c3 00 x000  m9(.., 1b)
+ 986 MUL9     d184 a185 b0   c1c c2 00 c3 00 x000  m9(.., 1c)
+ 987 RD       d188 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 988 ADD      d72  a184 b187 c00 c2 00 c3 00 x000  rev_base_l
+ 989 MUL9     d190 a188 b0   c45 c2 00 c3 00 x000  m9(.., 45)
+ 990 MUL9     d191 a72  b0   c46 c2 00 c3 00 x000  m9(.., 46)
+ 991 MUL7     d194 a72  b0   c48 c2 00 c3 00 x000  m7(.., 48)
+ 992 ADD      d189 a190 b191 c00 c2 00 c3 00 x000  
+ 993 WR       d0   a189 b0   c18 c2 00 c3 00 x000  brev.w(48)
+ 994 RD       d192 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+ 995 RD       d196 a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
+ 996 MUL7     d193 a192 b0   c47 c2 00 c3 00 x000  m7(.., 47)
+ 997 RD       d195 a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
+ 998 ADD      d73  a193 b194 c00 c2 00 c3 00 x000  rev_out_l
+ 999 ADD      d197 a196 b195 c00 c2 00 c3 00 x000  
+1000 RD       d199 a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
+1001 RD       d202 a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
+1002 ADD      d198 a197 b199 c00 c2 00 c3 00 x000  
+1003 RD       d203 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+1004 ADD      d200 a198 b202 c00 c2 00 c3 00 x000  
+1005 MUL9     d205 a203 b0   c20 c2 00 c3 00 x000  m9(.., 20)
+1006 MUL9     d201 a200 b0   c21 c2 00 c3 00 x000  m9(.., 21)
+1007 RD       d204 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1008 ADD      d74  a201 b205 c00 c2 00 c3 00 x000  rev_base_r
+1009 MUL9     d206 a204 b0   c51 c2 00 c3 00 x000  m9(.., 51)
+1010 MUL9     d207 a74  b0   c52 c2 00 c3 00 x000  m9(.., 52)
+1011 MUL7     d212 a74  b0   c54 c2 00 c3 00 x000  m7(.., 54)
+1012 ADD      d209 a206 b207 c00 c2 00 c3 00 x000  
+1013 MUL9V    d211 a73  b60  c00 c2 00 c3 00 x000  m9v
+1014 WR       d0   a209 b0   c18 c2 00 c3 00 x000  brev.w(48)
+1015 RD       d208 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1016 ADD      d214 a211 b215 c00 c2 00 c3 00 x000  
+1017 MUL7     d210 a208 b0   c53 c2 00 c3 00 x000  m7(.., 53)
+1018 ADD      d217 a214 b216 c00 c2 00 c3 00 x000  
+1019 ADD      d75  a210 b212 c00 c2 00 c3 00 x000  rev_out_r
+1020 ADD      d1   a1   b217 c00 c2 00 c3 00 x000  dry_l +=
+1021 MUL9V    d219 a75  b60  c00 c2 00 c3 00 x000  m9v
+1022 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+1023 ADD      d222 a219 b220 c00 c2 00 c3 00 x000  
+1024 ADD      d225 a222 b223 c00 c2 00 c3 00 x000  
+1025 ADD      d2   a2   b225 c00 c2 00 c3 00 x000  dry_r +=
 1026 OUT      d0   a2   b0   c01 c2 00 c3 00 x000  out dry_r
 1027 END      d0   a0   b0   c00 c2 00 c3 00 x000  
 variant c0 at 1028
-1028 LDI      d92  a0   b0   c00 c2 00 c3 00 x200  imm 200
+1028 LDI      d88  a0   b0   c00 c2 00 c3 00 x200  imm 200
 1029 LDMIX    d1   a0   b0   c00 c2 00 c3 00 x000  dry_l = voice sum
 1030 LDMIX    d2   a0   b0   c01 c2 00 c3 00 x000  dry_r = voice sum
 1031 LDMIX    d3   a0   b0   c02 c2 00 c3 00 x000  rev = voice sum
@@ -1038,380 +1038,380 @@ variant c0 at 1028
 1033 LDMIX    d5   a0   b0   c04 c2 00 c3 00 x000  cho_r = voice sum
 1034 LDMIX    d6   a0   b0   c05 c2 00 c3 00 x000  var_l = voice sum
 1035 LDMIX    d7   a0   b0   c06 c2 00 c3 00 x000  var_r = voice sum
-1036 MUL9     d9   a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
-1037 CONST    d15  a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
-1038 ADD      d8   a9   b15  c00 c2 00 c3 00 x000  m_var_vol
-1039 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+1036 MUL9     d155 a8   b0   cbd c2 00 c3 00 x000  m9(.., bd)
+1037 CONST    d156 a0   b0   cbc c2 00 c3 00 x000  m_const[bc]
+1038 MUL7     d6   a6   b0   c04 c2 00 c3 00 x000  m7(.., 4) -> var_l
+1039 ADD      d8   a155 b156 c00 c2 00 c3 00 x000  m_var_vol
 1040 MUL7     d7   a7   b0   c07 c2 00 c3 00 x000  m7(.., 7) -> var_r
-1041 ADD      d11  a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
-1042 ADD      d12  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
-1043 MUL9     d15  a6   b0   c6d c2 00 c3 00 x000  m9(.., 6d)
-1044 MUL9     d9   a7   b0   c6e c2 00 c3 00 x000  m9(.., 6e)
-1045 ADD      d109 a15  b9   c00 c2 00 c3 00 x000  var_m
-1046 MUL7     d9   a111 b0   c6f c2 00 c3 00 x000  m7(.., 6f)
-1047 MUL7     d15  a109 b0   c70 c2 00 c3 00 x000  m7(.., 70)
-1048 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-1049 MUL9     d15  a112 b0   c71 c2 00 c3 00 x000  m9(.., 71)
-1050 ADD      d110 a10  b15  c00 c2 00 c3 00 x000  var_filter_2
-1051 MUL7     d15  a112 b0   c72 c2 00 c3 00 x000  m7(.., 72)
-1052 MUL7     d10  a110 b0   c73 c2 00 c3 00 x000  m7(.., 73)
-1053 ADD      d9   a15  b10  c00 c2 00 c3 00 x000  
-1054 MUL9     d10  a114 b0   c74 c2 00 c3 00 x000  m9(.., 74)
-1055 ADD      d113 a9   b10  c00 c2 00 c3 00 x000  var_filtered
-1056 ADD      d111 a109 b0   c00 c2 00 c3 00 x000  m_var_filter_1 = ..
-1057 ADD      d112 a110 b0   c00 c2 00 c3 00 x000  m_var_filter_2 = ..
-1058 ADD      d114 a113 b0   c00 c2 00 c3 00 x000  m_var_filter_3 = ..
-1059 RD       d140 a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c) -> tap1a
-1060 RD       d123 a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f) -> tap1b
-1061 RD       d141 a0   b0   c26 c2 02 c3 00 x000  bvar.r(72) -> tap1c
-1062 MUL9     d10  a140 b0   c75 c2 00 c3 00 x000  m9(.., 75)
-1063 ADD      d9   a113 b10  c00 c2 00 c3 00 x000  
-1064 WR       d0   a9   b0   c27 c2 02 c3 00 x000  bvar.w(75)
-1065 MUL9     d9   a123 b0   c76 c2 00 c3 00 x000  m9(.., 76)
-1066 MUL9     d10  a140 b0   c77 c2 00 c3 00 x000  m9(.., 77)
-1067 ADD      d15  a9   b10  c00 c2 00 c3 00 x000  
-1068 WR       d0   a15  b0   c28 c2 02 c3 00 x000  bvar.w(78)
-1069 MUL7     d15  a123 b0   c78 c2 00 c3 00 x000  m7(.., 78)
-1070 MUL7     d10  a140 b0   c79 c2 00 c3 00 x000  m7(.., 79)
-1071 ADD      d142 a15  b10  c00 c2 00 c3 00 x000  tap2a
-1072 MUL9     d10  a123 b0   c7a c2 00 c3 00 x000  m9(.., 7a)
-1073 MUL9     d15  a142 b0   c7b c2 00 c3 00 x000  m9(.., 7b)
-1074 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
-1075 WR       d0   a9   b0   c29 c2 02 c3 00 x000  bvar.w(7b)
-1076 MUL7     d9   a141 b0   c7c c2 00 c3 00 x000  m7(.., 7c)
-1077 MUL7     d15  a142 b0   c7d c2 00 c3 00 x000  m7(.., 7d)
-1078 ADD      d121 a9   b15  c00 c2 00 c3 00 x000  tap2b
-1079 RD       d143 a0   b0   c34 c2 02 c3 00 x000  bvar.r(9c) -> tap1d
-1080 RD       d144 a0   b0   c35 c2 02 c3 00 x000  bvar.r(9f) -> tap1e
-1081 MUL9     d15  a145 b0   ca5 c2 00 c3 00 x000  m9(.., a5)
-1082 MUL9     d9   a143 b0   ca6 c2 00 c3 00 x000  m9(.., a6)
-1083 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
-1084 MUL9     d9   a121 b0   ca7 c2 00 c3 00 x000  m9(.., a7)
-1085 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1086 WR       d0   a15  b0   c38 c2 02 c3 00 x000  bvar.w(a8)
-1087 ADD      d145 a143 b0   c00 c2 00 c3 00 x000  m_var_h1 = ..
-1088 MUL9     d15  a146 b0   ca8 c2 00 c3 00 x000  m9(.., a8)
-1089 MUL9     d9   a144 b0   ca9 c2 00 c3 00 x000  m9(.., a9)
-1090 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
-1091 MUL9     d9   a121 b0   caa c2 00 c3 00 x000  m9(.., aa)
-1092 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1093 WR       d0   a15  b0   c3a c2 02 c3 00 x000  bvar.w(ae)
-1094 ADD      d146 a144 b0   c00 c2 00 c3 00 x000  m_var_h2 = ..
-1095 RD       d147 a0   b0   c39 c2 02 c3 00 x000  bvar.r(ab) -> tap1f
-1096 RD       d148 a0   b0   c3b c2 02 c3 00 x000  bvar.r(b1) -> tap1g
-1097 MUL9     d15  a149 b0   cb3 c2 00 c3 00 x000  m9(.., b3)
-1098 MUL9     d9   a147 b0   cb4 c2 00 c3 00 x000  m9(.., b4)
-1099 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
-1100 MUL9     d9   a121 b0   cb5 c2 00 c3 00 x000  m9(.., b5)
-1101 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1102 WR       d0   a15  b0   c3d c2 02 c3 00 x000  bvar.w(b7)
-1103 ADD      d149 a147 b0   c00 c2 00 c3 00 x000  m_var_h3 = ..
-1104 MUL9     d15  a150 b0   cb6 c2 00 c3 00 x000  m9(.., b6)
-1105 MUL9     d9   a148 b0   cb7 c2 00 c3 00 x000  m9(.., b7)
-1106 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
-1107 MUL9     d9   a121 b0   cb8 c2 00 c3 00 x000  m9(.., b8)
-1108 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1109 WR       d0   a15  b0   c3e c2 02 c3 00 x000  bvar.w(ba)
-1110 ADD      d150 a148 b0   c00 c2 00 c3 00 x000  m_var_h4 = ..
-1111 RD       d151 a0   b0   c2a c2 02 c3 00 x000  bvar.r(7e) -> tap1h
-1112 RD       d9   a0   b0   c2b c2 02 c3 00 x000  bvar.r(81)
-1113 RD       d10  a0   b0   c2c c2 02 c3 00 x000  bvar.r(84)
-1114 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1115 RD       d10  a0   b0   c2d c2 02 c3 00 x000  bvar.r(87)
-1116 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
-1117 RD       d10  a0   b0   c2e c2 02 c3 00 x000  bvar.r(8a)
-1118 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1119 MUL9     d15  a64  b0   c8f c2 00 c3 00 x000  m9(.., 8f)
-1120 MUL9     d64  a151 b0   c93 c2 00 c3 00 x000  m9(.., 93)
-1121 ADD      d152 a15  b64  c00 c2 00 c3 00 x000  tap3a
-1122 RD       d153 a0   b0   c37 c2 02 c3 00 x000  bvar.r(a5) -> tap3b
-1123 MUL9     d64  a153 b0   caf c2 00 c3 00 x000  m9(.., af)
-1124 MUL9     d15  a152 b0   cb0 c2 00 c3 00 x000  m9(.., b0)
-1125 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
-1126 WR       d0   a10  b0   c3c c2 02 c3 00 x000  bvar.w(b4)
-1127 MUL7     d10  a153 b0   cb1 c2 00 c3 00 x000  m7(.., b1)
-1128 MUL7     d15  a152 b0   cb2 c2 00 c3 00 x000  m7(.., b2)
-1129 ADD      d88  a10  b15  c00 c2 00 c3 00 x000  var_o_l
-1130 RD       d10  a0   b0   c2f c2 02 c3 00 x000  bvar.r(8d)
-1131 RD       d64  a0   b0   c30 c2 02 c3 00 x000  bvar.r(90)
-1132 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1133 RD       d64  a0   b0   c31 c2 02 c3 00 x000  bvar.r(93)
-1134 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
-1135 RD       d64  a0   b0   c32 c2 02 c3 00 x000  bvar.r(96)
-1136 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1137 MUL9     d15  a9   b0   c9c c2 00 c3 00 x000  m9(.., 9c)
-1138 MUL9     d9   a151 b0   ca0 c2 00 c3 00 x000  m9(.., a0)
-1139 ADD      d154 a15  b9   c00 c2 00 c3 00 x000  tap4a
-1140 RD       d155 a0   b0   c33 c2 02 c3 00 x000  bvar.r(99) -> tap4b
-1141 MUL9     d9   a155 b0   ca1 c2 00 c3 00 x000  m9(.., a1)
-1142 MUL9     d15  a154 b0   ca2 c2 00 c3 00 x000  m9(.., a2)
-1143 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
-1144 WR       d0   a64  b0   c36 c2 02 c3 00 x000  bvar.w(a2)
-1145 MUL7     d64  a155 b0   ca3 c2 00 c3 00 x000  m7(.., a3)
-1146 MUL7     d15  a154 b0   ca4 c2 00 c3 00 x000  m7(.., a4)
-1147 ADD      d90  a64  b15  c00 c2 00 c3 00 x000  var_o_r
-1148 MUL7     d15  a14  b0   c80 c2 00 c3 00 x000  m7(.., 80)
-1149 MUL7     d64  a6   b0   c81 c2 00 c3 00 x000  m7(.., 81)
-1150 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
-1151 MUL9     d64  a16  b0   c82 c2 00 c3 00 x000  m9(.., 82)
-1152 ADD      d13  a9   b64  c00 c2 00 c3 00 x000  var_filter_l_2
-1153 MUL7     d64  a16  b0   c83 c2 00 c3 00 x000  m7(.., 83)
-1154 MUL7     d9   a13  b0   c84 c2 00 c3 00 x000  m7(.., 84)
-1155 ADD      d15  a64  b9   c00 c2 00 c3 00 x000  
-1156 MUL9     d9   a18  b0   c85 c2 00 c3 00 x000  m9(.., 85)
-1157 ADD      d17  a15  b9   c00 c2 00 c3 00 x000  var_filtered_l
-1158 ADD      d14  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
-1159 ADD      d16  a13  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
-1160 ADD      d18  a17  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
-1161 MUL7     d9   a20  b0   c6f c2 00 c3 00 x000  m7(.., 6f)
-1162 MUL7     d15  a7   b0   c70 c2 00 c3 00 x000  m7(.., 70)
-1163 ADD      d64  a9   b15  c00 c2 00 c3 00 x000  
-1164 MUL9     d15  a21  b0   c71 c2 00 c3 00 x000  m9(.., 71)
-1165 ADD      d19  a64  b15  c00 c2 00 c3 00 x000  var_filter_r_2
-1166 MUL7     d15  a21  b0   c72 c2 00 c3 00 x000  m7(.., 72)
-1167 MUL7     d64  a19  b0   c73 c2 00 c3 00 x000  m7(.., 73)
-1168 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
-1169 MUL9     d64  a23  b0   c74 c2 00 c3 00 x000  m9(.., 74)
-1170 ADD      d22  a9   b64  c00 c2 00 c3 00 x000  var_filtered_r
-1171 ADD      d20  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
-1172 ADD      d21  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
-1173 ADD      d23  a22  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
-1174 MUL7     d64  a17  b0   c94 c2 00 c3 00 x000  m7(.., 94)
-1175 MUL7     d9   a22  b0   c95 c2 00 c3 00 x000  m7(.., 95)
-1176 ADD      d156 a64  b9   c00 c2 00 c3 00 x000  var_w_l
-1177 MUL7     d157 a22  b0   c88 c2 00 c3 00 x000  m7(.., 88) -> var_w_r
-1178 LFOSTEP  d24  a24  b0   c7e c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
-1179 ALFO     d158 a24  b0   c86 c2 87 c3 00 x001  alfo(.., 86, 87, true) -> amp
-1180 MUL9     d64  a96  b0   c89 c2 00 c3 00 x000  m9(.., 89)
-1181 MUL9     d15  a97  b0   c8a c2 00 c3 00 x000  m9(.., 8a)
-1182 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
-1183 ADD      d15  a10  b156 c00 c2 00 c3 00 x000  
-1184 MUL9V    d9   a15  b158 c00 c2 00 c3 00 x000  m9v
-1185 MUL9     d15  a96  b0   c8b c2 00 c3 00 x000  m9(.., 8b)
-1186 ADD      d96  a9   b15  c00 c2 00 c3 00 x000  m_var_filterp_l_1
-1187 MUL9V    d15  a96  b158 c00 c2 00 c3 00 x000  m9v
-1188 MUL9     d9   a97  b0   c8d c2 00 c3 00 x000  m9(.., 8d)
-1189 ADD      d97  a15  b9   c00 c2 00 c3 00 x000  m_var_filterp_l_2
-1190 MUL9     d15  a104 b0   c96 c2 00 c3 00 x000  m9(.., 96)
-1191 MUL9     d10  a105 b0   c97 c2 00 c3 00 x000  m9(.., 97)
-1192 ADD      d64  a15  b10  c00 c2 00 c3 00 x000  
-1193 ADD      d10  a64  b157 c00 c2 00 c3 00 x000  
-1194 MUL9V    d9   a10  b158 c00 c2 00 c3 00 x000  m9v
-1195 MUL9     d10  a104 b0   c98 c2 00 c3 00 x000  m9(.., 98)
-1196 ADD      d104 a9   b10  c00 c2 00 c3 00 x000  m_var_filterp_r_1
-1197 MUL9V    d10  a104 b158 c00 c2 00 c3 00 x000  m9v
-1198 MUL9     d9   a105 b0   c9a c2 00 c3 00 x000  m9(.., 9a)
-1199 ADD      d105 a10  b9   c00 c2 00 c3 00 x000  m_var_filterp_r_2
-1200 MUL9     d9   a17  b0   cb9 c2 00 c3 00 x000  m9(.., b9)
-1201 MUL9     d10  a96  b0   cba c2 00 c3 00 x000  m9(.., ba)
-1202 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1203 MUL9     d10  a88  b0   cbb c2 00 c3 00 x000  m9(.., bb)
-1204 ADD      d11  a64  b10  c00 c2 00 c3 00 x000  var_out_l
-1205 MUL9     d10  a22  b0   cab c2 00 c3 00 x000  m9(.., ab)
-1206 MUL9     d64  a7   b0   cac c2 00 c3 00 x000  m9(.., ac)
-1207 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1208 MUL9     d64  a104 b0   cad c2 00 c3 00 x000  m9(.., ad)
-1209 ADD      d10  a9   b64  c00 c2 00 c3 00 x000  
-1210 MUL9     d64  a90  b0   cae c2 00 c3 00 x000  m9(.., ae)
-1211 ADD      d12  a10  b64  c00 c2 00 c3 00 x000  var_out_r
-1212 MUL9     d64  a46  b0   c58 c2 00 c3 00 x000  m9(.., 58)
-1213 CONST    d10  a0   b0   c57 c2 00 c3 00 x000  m_const[57]
-1214 ADD      d46  a64  b10  c00 c2 00 c3 00 x000  m_cho_vol
-1215 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+1041 ADD      d9   a0   b0   c00 c2 00 c3 00 x000  var_out_l = ..
+1042 ADD      d10  a0   b0   c00 c2 00 c3 00 x000  var_out_r = ..
+1043 MUL9     d157 a6   b0   c6d c2 00 c3 00 x000  m9(.., 6d)
+1044 MUL9     d158 a7   b0   c6e c2 00 c3 00 x000  m9(.., 6e)
+1045 MUL7     d159 a107 b0   c6f c2 00 c3 00 x000  m7(.., 6f)
+1046 ADD      d105 a157 b158 c00 c2 00 c3 00 x000  var_m
+1047 MUL9     d162 a108 b0   c71 c2 00 c3 00 x000  m9(.., 71)
+1048 MUL7     d160 a105 b0   c70 c2 00 c3 00 x000  m7(.., 70)
+1049 MUL7     d163 a108 b0   c72 c2 00 c3 00 x000  m7(.., 72)
+1050 ADD      d161 a159 b160 c00 c2 00 c3 00 x000  
+1051 MUL9     d166 a110 b0   c74 c2 00 c3 00 x000  m9(.., 74)
+1052 ADD      d106 a161 b162 c00 c2 00 c3 00 x000  var_filter_2
+1053 ADD      d107 a105 b0   c00 c2 00 c3 00 x000  m_var_filter_1 = ..
+1054 MUL7     d164 a106 b0   c73 c2 00 c3 00 x000  m7(.., 73)
+1055 ADD      d108 a106 b0   c00 c2 00 c3 00 x000  m_var_filter_2 = ..
+1056 ADD      d165 a163 b164 c00 c2 00 c3 00 x000  
+1057 RD       d136 a0   b0   c24 c2 02 c3 00 x000  bvar.r(6c) -> tap1a
+1058 ADD      d109 a165 b166 c00 c2 00 c3 00 x000  var_filtered
+1059 RD       d119 a0   b0   c25 c2 02 c3 00 x000  bvar.r(6f) -> tap1b
+1060 ADD      d110 a109 b0   c00 c2 00 c3 00 x000  m_var_filter_3 = ..
+1061 RD       d137 a0   b0   c26 c2 02 c3 00 x000  bvar.r(72) -> tap1c
+1062 MUL9     d167 a136 b0   c75 c2 00 c3 00 x000  m9(.., 75)
+1063 MUL9     d169 a119 b0   c76 c2 00 c3 00 x000  m9(.., 76)
+1064 ADD      d168 a109 b167 c00 c2 00 c3 00 x000  
+1065 MUL9     d170 a136 b0   c77 c2 00 c3 00 x000  m9(.., 77)
+1066 WR       d0   a168 b0   c27 c2 02 c3 00 x000  bvar.w(75)
+1067 ADD      d171 a169 b170 c00 c2 00 c3 00 x000  
+1068 MUL7     d172 a119 b0   c78 c2 00 c3 00 x000  m7(.., 78)
+1069 WR       d0   a171 b0   c28 c2 02 c3 00 x000  bvar.w(78)
+1070 MUL7     d173 a136 b0   c79 c2 00 c3 00 x000  m7(.., 79)
+1071 MUL9     d174 a119 b0   c7a c2 00 c3 00 x000  m9(.., 7a)
+1072 ADD      d138 a172 b173 c00 c2 00 c3 00 x000  tap2a
+1073 MUL7     d177 a137 b0   c7c c2 00 c3 00 x000  m7(.., 7c)
+1074 MUL9     d175 a138 b0   c7b c2 00 c3 00 x000  m9(.., 7b)
+1075 MUL7     d178 a138 b0   c7d c2 00 c3 00 x000  m7(.., 7d)
+1076 ADD      d176 a174 b175 c00 c2 00 c3 00 x000  
+1077 ADD      d117 a177 b178 c00 c2 00 c3 00 x000  tap2b
+1078 WR       d0   a176 b0   c29 c2 02 c3 00 x000  bvar.w(7b)
+1079 RD       d139 a0   b0   c34 c2 02 c3 00 x000  bvar.r(9c) -> tap1d
+1080 RD       d140 a0   b0   c35 c2 02 c3 00 x000  bvar.r(9f) -> tap1e
+1081 MUL9     d179 a141 b0   ca5 c2 00 c3 00 x000  m9(.., a5)
+1082 MUL9     d180 a139 b0   ca6 c2 00 c3 00 x000  m9(.., a6)
+1083 MUL9     d182 a117 b0   ca7 c2 00 c3 00 x000  m9(.., a7)
+1084 ADD      d181 a179 b180 c00 c2 00 c3 00 x000  
+1085 ADD      d141 a139 b0   c00 c2 00 c3 00 x000  m_var_h1 = ..
+1086 ADD      d183 a181 b182 c00 c2 00 c3 00 x000  
+1087 MUL9     d184 a142 b0   ca8 c2 00 c3 00 x000  m9(.., a8)
+1088 WR       d0   a183 b0   c38 c2 02 c3 00 x000  bvar.w(a8)
+1089 MUL9     d185 a140 b0   ca9 c2 00 c3 00 x000  m9(.., a9)
+1090 MUL9     d187 a117 b0   caa c2 00 c3 00 x000  m9(.., aa)
+1091 ADD      d186 a184 b185 c00 c2 00 c3 00 x000  
+1092 ADD      d142 a140 b0   c00 c2 00 c3 00 x000  m_var_h2 = ..
+1093 ADD      d188 a186 b187 c00 c2 00 c3 00 x000  
+1094 MUL9     d189 a145 b0   cb3 c2 00 c3 00 x000  m9(.., b3)
+1095 WR       d0   a188 b0   c3a c2 02 c3 00 x000  bvar.w(ae)
+1096 RD       d143 a0   b0   c39 c2 02 c3 00 x000  bvar.r(ab) -> tap1f
+1097 RD       d144 a0   b0   c3b c2 02 c3 00 x000  bvar.r(b1) -> tap1g
+1098 MUL9     d190 a143 b0   cb4 c2 00 c3 00 x000  m9(.., b4)
+1099 MUL9     d192 a117 b0   cb5 c2 00 c3 00 x000  m9(.., b5)
+1100 ADD      d191 a189 b190 c00 c2 00 c3 00 x000  
+1101 ADD      d145 a143 b0   c00 c2 00 c3 00 x000  m_var_h3 = ..
+1102 ADD      d193 a191 b192 c00 c2 00 c3 00 x000  
+1103 MUL9     d194 a146 b0   cb6 c2 00 c3 00 x000  m9(.., b6)
+1104 WR       d0   a193 b0   c3d c2 02 c3 00 x000  bvar.w(b7)
+1105 MUL9     d195 a144 b0   cb7 c2 00 c3 00 x000  m9(.., b7)
+1106 MUL9     d197 a117 b0   cb8 c2 00 c3 00 x000  m9(.., b8)
+1107 ADD      d196 a194 b195 c00 c2 00 c3 00 x000  
+1108 ADD      d146 a144 b0   c00 c2 00 c3 00 x000  m_var_h4 = ..
+1109 ADD      d198 a196 b197 c00 c2 00 c3 00 x000  
+1110 MUL7     d227 a12  b0   c80 c2 00 c3 00 x000  m7(.., 80)
+1111 WR       d0   a198 b0   c3e c2 02 c3 00 x000  bvar.w(ba)
+1112 RD       d147 a0   b0   c2a c2 02 c3 00 x000  bvar.r(7e) -> tap1h
+1113 RD       d199 a0   b0   c2b c2 02 c3 00 x000  bvar.r(81)
+1114 RD       d200 a0   b0   c2c c2 02 c3 00 x000  bvar.r(84)
+1115 RD       d202 a0   b0   c2d c2 02 c3 00 x000  bvar.r(87)
+1116 ADD      d201 a199 b200 c00 c2 00 c3 00 x000  
+1117 RD       d204 a0   b0   c2e c2 02 c3 00 x000  bvar.r(8a)
+1118 ADD      d203 a201 b202 c00 c2 00 c3 00 x000  
+1119 MUL9     d207 a147 b0   c93 c2 00 c3 00 x000  m9(.., 93)
+1120 ADD      d205 a203 b204 c00 c2 00 c3 00 x000  
+1121 RD       d149 a0   b0   c37 c2 02 c3 00 x000  bvar.r(a5) -> tap3b
+1122 MUL9     d206 a205 b0   c8f c2 00 c3 00 x000  m9(.., 8f)
+1123 MUL9     d208 a149 b0   caf c2 00 c3 00 x000  m9(.., af)
+1124 ADD      d148 a206 b207 c00 c2 00 c3 00 x000  tap3a
+1125 MUL7     d211 a149 b0   cb1 c2 00 c3 00 x000  m7(.., b1)
+1126 MUL9     d209 a148 b0   cb0 c2 00 c3 00 x000  m9(.., b0)
+1127 MUL7     d212 a148 b0   cb2 c2 00 c3 00 x000  m7(.., b2)
+1128 ADD      d210 a208 b209 c00 c2 00 c3 00 x000  
+1129 ADD      d84  a211 b212 c00 c2 00 c3 00 x000  var_o_l
+1130 WR       d0   a210 b0   c3c c2 02 c3 00 x000  bvar.w(b4)
+1131 RD       d213 a0   b0   c2f c2 02 c3 00 x000  bvar.r(8d)
+1132 RD       d214 a0   b0   c30 c2 02 c3 00 x000  bvar.r(90)
+1133 RD       d216 a0   b0   c31 c2 02 c3 00 x000  bvar.r(93)
+1134 ADD      d215 a213 b214 c00 c2 00 c3 00 x000  
+1135 RD       d218 a0   b0   c32 c2 02 c3 00 x000  bvar.r(96)
+1136 ADD      d217 a215 b216 c00 c2 00 c3 00 x000  
+1137 MUL9     d221 a147 b0   ca0 c2 00 c3 00 x000  m9(.., a0)
+1138 ADD      d219 a217 b218 c00 c2 00 c3 00 x000  
+1139 RD       d151 a0   b0   c33 c2 02 c3 00 x000  bvar.r(99) -> tap4b
+1140 MUL9     d220 a219 b0   c9c c2 00 c3 00 x000  m9(.., 9c)
+1141 MUL9     d222 a151 b0   ca1 c2 00 c3 00 x000  m9(.., a1)
+1142 ADD      d150 a220 b221 c00 c2 00 c3 00 x000  tap4a
+1143 MUL7     d225 a151 b0   ca3 c2 00 c3 00 x000  m7(.., a3)
+1144 MUL9     d223 a150 b0   ca2 c2 00 c3 00 x000  m9(.., a2)
+1145 MUL7     d226 a150 b0   ca4 c2 00 c3 00 x000  m7(.., a4)
+1146 ADD      d224 a222 b223 c00 c2 00 c3 00 x000  
+1147 ADD      d86  a225 b226 c00 c2 00 c3 00 x000  var_o_r
+1148 WR       d0   a224 b0   c36 c2 02 c3 00 x000  bvar.w(a2)
+1149 MUL7     d228 a6   b0   c81 c2 00 c3 00 x000  m7(.., 81)
+1150 MUL9     d230 a13  b0   c82 c2 00 c3 00 x000  m9(.., 82)
+1151 ADD      d229 a227 b228 c00 c2 00 c3 00 x000  
+1152 MUL7     d231 a13  b0   c83 c2 00 c3 00 x000  m7(.., 83)
+1153 ADD      d11  a229 b230 c00 c2 00 c3 00 x000  var_filter_l_2
+1154 MUL9     d234 a15  b0   c85 c2 00 c3 00 x000  m9(.., 85)
+1155 MUL7     d232 a11  b0   c84 c2 00 c3 00 x000  m7(.., 84)
+1156 ADD      d12  a6   b0   c00 c2 00 c3 00 x000  m_var_filter_l_1 = ..
+1157 ADD      d233 a231 b232 c00 c2 00 c3 00 x000  
+1158 ADD      d13  a11  b0   c00 c2 00 c3 00 x000  m_var_filter_l_2 = ..
+1159 ADD      d14  a233 b234 c00 c2 00 c3 00 x000  var_filtered_l
+1160 MUL7     d235 a17  b0   c6f c2 00 c3 00 x000  m7(.., 6f)
+1161 ADD      d15  a14  b0   c00 c2 00 c3 00 x000  m_var_filter_l_3 = ..
+1162 MUL7     d236 a7   b0   c70 c2 00 c3 00 x000  m7(.., 70)
+1163 MUL9     d238 a18  b0   c71 c2 00 c3 00 x000  m9(.., 71)
+1164 ADD      d237 a235 b236 c00 c2 00 c3 00 x000  
+1165 MUL7     d239 a18  b0   c72 c2 00 c3 00 x000  m7(.., 72)
+1166 ADD      d16  a237 b238 c00 c2 00 c3 00 x000  var_filter_r_2
+1167 MUL9     d242 a20  b0   c74 c2 00 c3 00 x000  m9(.., 74)
+1168 MUL7     d240 a16  b0   c73 c2 00 c3 00 x000  m7(.., 73)
+1169 ADD      d17  a7   b0   c00 c2 00 c3 00 x000  m_var_filter_r_1 = ..
+1170 ADD      d241 a239 b240 c00 c2 00 c3 00 x000  
+1171 ADD      d18  a16  b0   c00 c2 00 c3 00 x000  m_var_filter_r_2 = ..
+1172 ADD      d19  a241 b242 c00 c2 00 c3 00 x000  var_filtered_r
+1173 MUL7     d243 a14  b0   c94 c2 00 c3 00 x000  m7(.., 94)
+1174 ADD      d20  a19  b0   c00 c2 00 c3 00 x000  m_var_filter_r_3 = ..
+1175 MUL7     d244 a19  b0   c95 c2 00 c3 00 x000  m7(.., 95)
+1176 MUL7     d153 a19  b0   c88 c2 00 c3 00 x000  m7(.., 88) -> var_w_r
+1177 ADD      d152 a243 b244 c00 c2 00 c3 00 x000  var_w_l
+1178 LFOSTEP  d21  a21  b0   c7e c2 00 c3 00 x000  lfo_step(m_var_lfo_phase)
+1179 MUL9     d245 a92  b0   c89 c2 00 c3 00 x000  m9(.., 89)
+1180 ALFO     d154 a21  b0   c86 c2 87 c3 00 x001  alfo(.., 86, 87, true) -> amp
+1181 MUL9     d246 a93  b0   c8a c2 00 c3 00 x000  m9(.., 8a)
+1182 MUL9     d250 a92  b0   c8b c2 00 c3 00 x000  m9(.., 8b)
+1183 ADD      d247 a245 b246 c00 c2 00 c3 00 x000  
+1184 MUL9     d252 a93  b0   c8d c2 00 c3 00 x000  m9(.., 8d)
+1185 ADD      d248 a247 b152 c00 c2 00 c3 00 x000  
+1186 MUL9     d253 a100 b0   c96 c2 00 c3 00 x000  m9(.., 96)
+1187 MUL9V    d249 a248 b154 c00 c2 00 c3 00 x000  m9v
+1188 MUL9     d254 a101 b0   c97 c2 00 c3 00 x000  m9(.., 97)
+1189 ADD      d92  a249 b250 c00 c2 00 c3 00 x000  m_var_filterp_l_1
+1190 ADD      d255 a253 b254 c00 c2 00 c3 00 x000  
+1191 MUL9V    d251 a92  b154 c00 c2 00 c3 00 x000  m9v
+1192 ADD      d155 a255 b153 c00 c2 00 c3 00 x000  
+1193 ADD      d93  a251 b252 c00 c2 00 c3 00 x000  m_var_filterp_l_2
+1194 MUL9V    d156 a155 b154 c00 c2 00 c3 00 x000  m9v
+1195 MUL9     d157 a100 b0   c98 c2 00 c3 00 x000  m9(.., 98)
+1196 MUL9     d159 a101 b0   c9a c2 00 c3 00 x000  m9(.., 9a)
+1197 ADD      d100 a156 b157 c00 c2 00 c3 00 x000  m_var_filterp_r_1
+1198 MUL9     d160 a14  b0   cb9 c2 00 c3 00 x000  m9(.., b9)
+1199 MUL9V    d158 a100 b154 c00 c2 00 c3 00 x000  m9v
+1200 MUL9     d161 a92  b0   cba c2 00 c3 00 x000  m9(.., ba)
+1201 ADD      d101 a158 b159 c00 c2 00 c3 00 x000  m_var_filterp_r_2
+1202 ADD      d162 a160 b161 c00 c2 00 c3 00 x000  
+1203 MUL9     d163 a84  b0   cbb c2 00 c3 00 x000  m9(.., bb)
+1204 MUL9     d164 a19  b0   cab c2 00 c3 00 x000  m9(.., ab)
+1205 ADD      d9   a162 b163 c00 c2 00 c3 00 x000  var_out_l
+1206 MUL9     d165 a7   b0   cac c2 00 c3 00 x000  m9(.., ac)
+1207 MUL9     d167 a100 b0   cad c2 00 c3 00 x000  m9(.., ad)
+1208 ADD      d166 a164 b165 c00 c2 00 c3 00 x000  
+1209 MUL9     d169 a86  b0   cae c2 00 c3 00 x000  m9(.., ae)
+1210 ADD      d168 a166 b167 c00 c2 00 c3 00 x000  
+1211 MUL9     d170 a43  b0   c58 c2 00 c3 00 x000  m9(.., 58)
+1212 ADD      d10  a168 b169 c00 c2 00 c3 00 x000  var_out_r
+1213 CONST    d171 a0   b0   c57 c2 00 c3 00 x000  m_const[57]
+1214 MUL7     d4   a4   b0   c02 c2 00 c3 00 x000  m7(.., 2) -> cho_l
+1215 ADD      d43  a170 b171 c00 c2 00 c3 00 x000  m_cho_vol
 1216 MUL7     d5   a5   b0   c05 c2 00 c3 00 x000  m7(.., 5) -> cho_r
-1217 MUL7     d64  a11  b0   c03 c2 00 c3 00 x000  m7(.., 3)
-1218 MUL9V    d10  a64  b8   c00 c2 00 c3 00 x000  m9v
-1219 ADD      d4   a4   b10  c00 c2 00 c3 00 x000  cho_l +=
-1220 MUL7     d64  a12  b0   c06 c2 00 c3 00 x000  m7(.., 6)
-1221 MUL9V    d10  a64  b8   c00 c2 00 c3 00 x000  m9v
-1222 ADD      d5   a5   b10  c00 c2 00 c3 00 x000  cho_r +=
-1223 LFOSTEP  d47  a47  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
-1224 RLFO     d48  a47  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
-1225 CONST    d10  a0   b0   c25 c2 00 c3 00 x000  m_const[25]
-1226 RLFO     d49  a47  b10  c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
-1227 CONST    d10  a0   b0   c34 c2 00 c3 00 x000  m_const[34]
-1228 RLFO     d50  a47  b10  c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
-1229 MUL7     d10  a52  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
-1230 MUL7     d64  a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
-1231 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1232 MUL9     d64  a53  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
-1233 ADD      d51  a9   b64  c00 c2 00 c3 00 x000  cho_filter_r_2
-1234 MUL7     d64  a53  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
-1235 MUL7     d9   a51  b0   c40 c2 00 c3 00 x000  m7(.., 40)
-1236 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
-1237 MUL9     d9   a55  b0   c41 c2 00 c3 00 x000  m9(.., 41)
-1238 ADD      d54  a10  b9   c00 c2 00 c3 00 x000  cho_filtered_r
-1239 ADD      d52  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
-1240 ADD      d53  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
-1241 ADD      d55  a54  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
-1242 MUL7     d9   a57  b0   c49 c2 00 c3 00 x000  m7(.., 49)
-1243 MUL7     d10  a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
-1244 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1245 MUL9     d10  a58  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
-1246 ADD      d56  a64  b10  c00 c2 00 c3 00 x000  cho_filter_l_2
-1247 MUL7     d10  a58  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
-1248 MUL7     d64  a56  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
-1249 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1250 MUL9     d64  a60  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
-1251 ADD      d59  a9   b64  c00 c2 00 c3 00 x000  cho_filtered_l
-1252 ADD      d57  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
-1253 ADD      d58  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
-1254 ADD      d60  a59  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
-1255 MUL9     d64  a49  b0   c42 c2 00 c3 00 x000  m9(.., 42)
-1256 ADD      d9   a64  b54  c00 c2 00 c3 00 x000  
-1257 WR       d0   a9   b0   c16 c2 01 c3 00 x000  bcho.w(42)
-1258 MUL9     d9   a48  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
-1259 ADD      d64  a9   b59  c00 c2 00 c3 00 x000  
-1260 MUL9     d9   a54  b0   c50 c2 00 c3 00 x000  m9(.., 50)
-1261 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
-1262 WR       d0   a10  b0   c1b c2 01 c3 00 x000  bcho.w(51)
-1263 MUL9     d10  a48  b0   c60 c2 00 c3 00 x000  m9(.., 60)
-1264 MUL9     d9   a50  b0   c61 c2 00 c3 00 x000  m9(.., 61)
-1265 ADD      d61  a10  b9   c00 c2 00 c3 00 x000  cho_out_l
-1266 MUL9     d9   a49  b0   c69 c2 00 c3 00 x000  m9(.., 69)
-1267 MUL9     d10  a50  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
-1268 ADD      d62  a9   b10  c00 c2 00 c3 00 x000  cho_out_r
-1269 MUL9     d10  a63  b0   c0c c2 00 c3 00 x000  m9(.., c)
-1270 CONST    d9   a0   b0   c0b c2 00 c3 00 x000  m_const[b]
-1271 ADD      d63  a10  b9   c00 c2 00 c3 00 x000  m_rev_vol
-1272 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
-1273 MUL7     d10  a61  b0   c12 c2 00 c3 00 x000  m7(.., 12)
-1274 MUL7     d64  a62  b0   c13 c2 00 c3 00 x000  m7(.., 13)
-1275 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
-1276 MUL9V    d9   a15  b46  c00 c2 00 c3 00 x000  m9v
-1277 ADD      d3   a3   b9   c00 c2 00 c3 00 x000  rev +=
-1278 MUL7     d15  a11  b0   c14 c2 00 c3 00 x000  m7(.., 14)
-1279 MUL7     d64  a12  b0   c15 c2 00 c3 00 x000  m7(.., 15)
-1280 ADD      d10  a15  b64  c00 c2 00 c3 00 x000  
-1281 MUL9V    d9   a10  b8   c00 c2 00 c3 00 x000  m9v
-1282 ADD      d3   a3   b9   c00 c2 00 c3 00 x000  rev +=
-1283 MUL7     d9   a66  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
-1284 MUL7     d10  a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
-1285 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1286 MUL9     d10  a67  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
-1287 ADD      d65  a64  b10  c00 c2 00 c3 00 x000  rev_filter_2
-1288 MUL7     d10  a67  b0   c30 c2 00 c3 00 x000  m7(.., 30)
-1289 MUL7     d64  a65  b0   c31 c2 00 c3 00 x000  m7(.., 31)
-1290 ADD      d9   a10  b64  c00 c2 00 c3 00 x000  
-1291 MUL9     d64  a69  b0   c32 c2 00 c3 00 x000  m9(.., 32)
-1292 ADD      d68  a9   b64  c00 c2 00 c3 00 x000  rev_filtered
-1293 ADD      d66  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
-1294 ADD      d67  a65  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
-1295 ADD      d69  a68  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
-1296 RD       d9   a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
-1297 MUL9     d64  a9   b0   c29 c2 00 c3 00 x000  m9(.., 29)
-1298 RD       d10  a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
-1299 MUL9     d9   a10  b0   c2a c2 00 c3 00 x000  m9(.., 2a)
-1300 ADD      d10  a64  b9   c00 c2 00 c3 00 x000  
-1301 WR       d0   a10  b0   c10 c2 00 c3 00 x000  brev.w(30)
-1302 RD       d9   a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
-1303 MUL9     d10  a9   b0   c33 c2 00 c3 00 x000  m9(.., 33)
-1304 ADD      d9   a10  b68  c00 c2 00 c3 00 x000  
-1305 WR       d0   a9   b0   c11 c2 00 c3 00 x000  brev.w(33)
-1306 RD       d10  a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
-1307 MUL7     d9   a10  b0   c2b c2 00 c3 00 x000  m7(.., 2b)
-1308 RD       d64  a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
-1309 MUL7     d10  a64  b0   c2c c2 00 c3 00 x000  m7(.., 2c)
-1310 ADD      d70  a9   b10  c00 c2 00 c3 00 x000  rev_1
-1311 RD       d9   a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
-1312 MUL7     d10  a9   b0   c3a c2 00 c3 00 x000  m7(.., 3a)
-1313 MUL7     d9   a70  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
-1314 ADD      d71  a10  b9   c00 c2 00 c3 00 x000  rev_2
-1315 RD       d10  a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
-1316 MUL9     d9   a10  b0   c38 c2 00 c3 00 x000  m9(.., 38)
-1317 MUL9     d10  a70  b0   c39 c2 00 c3 00 x000  m9(.., 39)
-1318 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1319 WR       d0   a64  b0   c15 c2 00 c3 00 x000  brev.w(3f)
-1320 MUL9     d64  a72  b0   c59 c2 00 c3 00 x000  m9(.., 59)
-1321 RD       d9   a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
-1322 MUL9     d10  a9   b0   c5a c2 00 c3 00 x000  m9(.., 5a)
-1323 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
-1324 MUL9     d10  a71  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
-1325 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1326 WR       d0   a64  b0   c1f c2 00 c3 00 x000  brev.w(5d)
-1327 RD       d72  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
-1328 MUL9     d64  a73  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
-1329 RD       d9   a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
-1330 MUL9     d10  a9   b0   c5d c2 00 c3 00 x000  m9(.., 5d)
-1331 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
-1332 MUL9     d10  a71  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
-1333 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1334 WR       d0   a64  b0   c21 c2 00 c3 00 x000  brev.w(63)
-1335 RD       d73  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
-1336 MUL9     d64  a74  b0   c62 c2 00 c3 00 x000  m9(.., 62)
-1337 RD       d9   a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
-1338 MUL9     d10  a9   b0   c63 c2 00 c3 00 x000  m9(.., 63)
-1339 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
-1340 MUL9     d10  a71  b0   c64 c2 00 c3 00 x000  m9(.., 64)
-1341 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1342 WR       d0   a64  b0   c23 c2 00 c3 00 x000  brev.w(69)
-1343 RD       d74  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
-1344 MUL9     d64  a75  b0   c65 c2 00 c3 00 x000  m9(.., 65)
-1345 RD       d9   a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
-1346 MUL9     d10  a9   b0   c66 c2 00 c3 00 x000  m9(.., 66)
-1347 ADD      d9   a64  b10  c00 c2 00 c3 00 x000  
-1348 MUL9     d10  a71  b0   c67 c2 00 c3 00 x000  m9(.., 67)
-1349 ADD      d64  a9   b10  c00 c2 00 c3 00 x000  
-1350 WR       d0   a64  b0   c24 c2 00 c3 00 x000  brev.w(6c)
-1351 RD       d75  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
-1352 RD       d10  a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
-1353 RD       d9   a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
-1354 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1355 RD       d9   a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
-1356 ADD      d10  a15  b9   c00 c2 00 c3 00 x000  
-1357 RD       d9   a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
-1358 ADD      d15  a10  b9   c00 c2 00 c3 00 x000  
-1359 MUL9     d64  a15  b0   c1c c2 00 c3 00 x000  m9(.., 1c)
-1360 RD       d9   a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
-1361 MUL9     d15  a9   b0   c1b c2 00 c3 00 x000  m9(.., 1b)
-1362 ADD      d76  a64  b15  c00 c2 00 c3 00 x000  rev_base_l
-1363 RD       d64  a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
-1364 MUL9     d15  a64  b0   c45 c2 00 c3 00 x000  m9(.., 45)
-1365 MUL9     d64  a76  b0   c46 c2 00 c3 00 x000  m9(.., 46)
-1366 ADD      d9   a15  b64  c00 c2 00 c3 00 x000  
-1367 WR       d0   a9   b0   c18 c2 00 c3 00 x000  brev.w(48)
-1368 RD       d64  a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
-1369 MUL7     d9   a64  b0   c47 c2 00 c3 00 x000  m7(.., 47)
-1370 MUL7     d64  a76  b0   c48 c2 00 c3 00 x000  m7(.., 48)
-1371 ADD      d77  a9   b64  c00 c2 00 c3 00 x000  rev_out_l
-1372 RD       d9   a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
-1373 RD       d15  a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
-1374 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-1375 RD       d15  a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
-1376 ADD      d9   a10  b15  c00 c2 00 c3 00 x000  
-1377 RD       d15  a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
-1378 ADD      d10  a9   b15  c00 c2 00 c3 00 x000  
-1379 MUL9     d64  a10  b0   c21 c2 00 c3 00 x000  m9(.., 21)
-1380 RD       d15  a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
-1381 MUL9     d10  a15  b0   c20 c2 00 c3 00 x000  m9(.., 20)
-1382 ADD      d78  a64  b10  c00 c2 00 c3 00 x000  rev_base_r
-1383 RD       d64  a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
-1384 MUL9     d10  a64  b0   c51 c2 00 c3 00 x000  m9(.., 51)
-1385 MUL9     d64  a78  b0   c52 c2 00 c3 00 x000  m9(.., 52)
-1386 ADD      d15  a10  b64  c00 c2 00 c3 00 x000  
-1387 WR       d0   a15  b0   c18 c2 00 c3 00 x000  brev.w(48)
-1388 RD       d64  a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
-1389 MUL7     d15  a64  b0   c53 c2 00 c3 00 x000  m7(.., 53)
-1390 MUL7     d64  a78  b0   c54 c2 00 c3 00 x000  m7(.., 54)
-1391 ADD      d79  a15  b64  c00 c2 00 c3 00 x000  rev_out_r
-1392 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
-1393 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
-1394 MUL9V    d64  a77  b63  c00 c2 00 c3 00 x000  m9v
-1395 MUL9     d10  a61  b0   c17 c2 00 c3 00 x000  m9(.., 17)
-1396 MUL9V    d15  a10  b46  c00 c2 00 c3 00 x000  m9v
-1397 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
-1398 MUL9     d64  a11  b0   c18 c2 00 c3 00 x000  m9(.., 18)
-1399 MUL9V    d15  a64  b8   c00 c2 00 c3 00 x000  m9v
-1400 ADD      d64  a10  b15  c00 c2 00 c3 00 x000  
-1401 ADD      d1   a1   b64  c00 c2 00 c3 00 x000  dry_l +=
-1402 MUL9V    d64  a79  b63  c00 c2 00 c3 00 x000  m9v
-1403 MUL9     d10  a62  b0   c0e c2 00 c3 00 x000  m9(.., e)
-1404 MUL9V    d15  a10  b46  c00 c2 00 c3 00 x000  m9v
-1405 ADD      d10  a64  b15  c00 c2 00 c3 00 x000  
-1406 MUL9     d64  a12  b0   c0f c2 00 c3 00 x000  m9(.., f)
-1407 MUL9V    d15  a64  b8   c00 c2 00 c3 00 x000  m9v
-1408 ADD      d64  a10  b15  c00 c2 00 c3 00 x000  
-1409 ADD      d2   a2   b64  c00 c2 00 c3 00 x000  dry_r +=
-1410 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+1217 MUL7     d173 a9   b0   c03 c2 00 c3 00 x000  m7(.., 3)
+1218 MUL7     d174 a10  b0   c06 c2 00 c3 00 x000  m7(.., 6)
+1219 MUL9V    d172 a173 b8   c00 c2 00 c3 00 x000  m9v
+1220 MUL9V    d175 a174 b8   c00 c2 00 c3 00 x000  m9v
+1221 ADD      d4   a4   b172 c00 c2 00 c3 00 x000  cho_l +=
+1222 ADD      d5   a5   b175 c00 c2 00 c3 00 x000  cho_r +=
+1223 LFOSTEP  d44  a44  b0   c09 c2 00 c3 00 x000  lfo_step(m_cho_lfo_phase)
+1224 CONST    d176 a0   b0   c25 c2 00 c3 00 x000  m_const[25]
+1225 RLFO     d45  a44  b0   c09 c2 01 c3 1a x000  bcho.rlfo(1b, .., 1a) -> cho_lfo_1
+1226 RLFO     d46  a44  b176 c0e c2 01 c3 28 x000  bcho.rlfo(2a, .., 28) -> cho_lfo_2
+1227 CONST    d177 a0   b0   c34 c2 00 c3 00 x000  m_const[34]
+1228 MUL7     d178 a49  b0   c3c c2 00 c3 00 x000  m7(.., 3c)
+1229 RLFO     d47  a44  b177 c13 c2 01 c3 37 x000  bcho.rlfo(39, .., 37) -> cho_lfo_3
+1230 MUL7     d179 a5   b0   c3d c2 00 c3 00 x000  m7(.., 3d)
+1231 MUL9     d181 a50  b0   c3e c2 00 c3 00 x000  m9(.., 3e)
+1232 ADD      d180 a178 b179 c00 c2 00 c3 00 x000  
+1233 MUL7     d182 a50  b0   c3f c2 00 c3 00 x000  m7(.., 3f)
+1234 ADD      d48  a180 b181 c00 c2 00 c3 00 x000  cho_filter_r_2
+1235 MUL9     d185 a52  b0   c41 c2 00 c3 00 x000  m9(.., 41)
+1236 MUL7     d183 a48  b0   c40 c2 00 c3 00 x000  m7(.., 40)
+1237 ADD      d49  a5   b0   c00 c2 00 c3 00 x000  m_cho_filter_r_1 = ..
+1238 ADD      d184 a182 b183 c00 c2 00 c3 00 x000  
+1239 ADD      d50  a48  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_2 = ..
+1240 ADD      d51  a184 b185 c00 c2 00 c3 00 x000  cho_filtered_r
+1241 MUL7     d186 a54  b0   c49 c2 00 c3 00 x000  m7(.., 49)
+1242 ADD      d52  a51  b0   c00 c2 00 c3 00 x000  m_cho_filter_r_3 = ..
+1243 MUL7     d187 a4   b0   c4a c2 00 c3 00 x000  m7(.., 4a)
+1244 MUL9     d189 a55  b0   c4b c2 00 c3 00 x000  m9(.., 4b)
+1245 ADD      d188 a186 b187 c00 c2 00 c3 00 x000  
+1246 MUL7     d190 a55  b0   c4c c2 00 c3 00 x000  m7(.., 4c)
+1247 ADD      d53  a188 b189 c00 c2 00 c3 00 x000  cho_filter_l_2
+1248 MUL9     d193 a57  b0   c4e c2 00 c3 00 x000  m9(.., 4e)
+1249 MUL7     d191 a53  b0   c4d c2 00 c3 00 x000  m7(.., 4d)
+1250 ADD      d54  a4   b0   c00 c2 00 c3 00 x000  m_cho_filter_l_1 = ..
+1251 ADD      d192 a190 b191 c00 c2 00 c3 00 x000  
+1252 ADD      d55  a53  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_2 = ..
+1253 ADD      d56  a192 b193 c00 c2 00 c3 00 x000  cho_filtered_l
+1254 MUL9     d194 a46  b0   c42 c2 00 c3 00 x000  m9(.., 42)
+1255 ADD      d57  a56  b0   c00 c2 00 c3 00 x000  m_cho_filter_l_3 = ..
+1256 ADD      d195 a194 b51  c00 c2 00 c3 00 x000  
+1257 MUL9     d197 a45  b0   c4f c2 00 c3 00 x000  m9(.., 4f)
+1258 WR       d0   a195 b0   c16 c2 01 c3 00 x000  bcho.w(42)
+1259 ADD      d196 a197 b56  c00 c2 00 c3 00 x000  
+1260 MUL9     d198 a51  b0   c50 c2 00 c3 00 x000  m9(.., 50)
+1261 MUL9     d200 a45  b0   c60 c2 00 c3 00 x000  m9(.., 60)
+1262 ADD      d199 a196 b198 c00 c2 00 c3 00 x000  
+1263 MUL9     d201 a47  b0   c61 c2 00 c3 00 x000  m9(.., 61)
+1264 WR       d0   a199 b0   c1b c2 01 c3 00 x000  bcho.w(51)
+1265 ADD      d58  a200 b201 c00 c2 00 c3 00 x000  cho_out_l
+1266 MUL9     d202 a46  b0   c69 c2 00 c3 00 x000  m9(.., 69)
+1267 MUL9     d204 a47  b0   c6a c2 00 c3 00 x000  m9(.., 6a)
+1268 MUL9     d203 a60  b0   c0c c2 00 c3 00 x000  m9(.., c)
+1269 ADD      d59  a202 b204 c00 c2 00 c3 00 x000  cho_out_r
+1270 CONST    d205 a0   b0   c0b c2 00 c3 00 x000  m_const[b]
+1271 MUL7     d3   a3   b0   c11 c2 00 c3 00 x000  m7(.., 11) -> rev
+1272 ADD      d60  a203 b205 c00 c2 00 c3 00 x000  m_rev_vol
+1273 MUL7     d206 a58  b0   c12 c2 00 c3 00 x000  m7(.., 12)
+1274 MUL7     d207 a59  b0   c13 c2 00 c3 00 x000  m7(.., 13)
+1275 MUL7     d210 a9   b0   c14 c2 00 c3 00 x000  m7(.., 14)
+1276 ADD      d208 a206 b207 c00 c2 00 c3 00 x000  
+1277 MUL7     d211 a10  b0   c15 c2 00 c3 00 x000  m7(.., 15)
+1278 MUL9V    d209 a208 b43  c00 c2 00 c3 00 x000  m9v
+1279 ADD      d212 a210 b211 c00 c2 00 c3 00 x000  
+1280 ADD      d3   a3   b209 c00 c2 00 c3 00 x000  rev +=
+1281 MUL9V    d213 a212 b8   c00 c2 00 c3 00 x000  m9v
+1282 MUL7     d214 a62  b0   c2d c2 00 c3 00 x000  m7(.., 2d)
+1283 ADD      d3   a3   b213 c00 c2 00 c3 00 x000  rev +=
+1284 MUL9     d217 a63  b0   c2f c2 00 c3 00 x000  m9(.., 2f)
+1285 MUL7     d215 a3   b0   c2e c2 00 c3 00 x000  m7(.., 2e)
+1286 MUL7     d218 a63  b0   c30 c2 00 c3 00 x000  m7(.., 30)
+1287 ADD      d216 a214 b215 c00 c2 00 c3 00 x000  
+1288 MUL9     d221 a65  b0   c32 c2 00 c3 00 x000  m9(.., 32)
+1289 ADD      d61  a216 b217 c00 c2 00 c3 00 x000  rev_filter_2
+1290 ADD      d62  a3   b0   c00 c2 00 c3 00 x000  m_rev_filter_1 = ..
+1291 MUL7     d219 a61  b0   c31 c2 00 c3 00 x000  m7(.., 31)
+1292 ADD      d63  a61  b0   c00 c2 00 c3 00 x000  m_rev_filter_2 = ..
+1293 ADD      d220 a218 b219 c00 c2 00 c3 00 x000  
+1294 RD       d222 a0   b0   c0b c2 00 c3 00 x000  brev.r(21)
+1295 ADD      d64  a220 b221 c00 c2 00 c3 00 x000  rev_filtered
+1296 MUL9     d223 a222 b0   c29 c2 00 c3 00 x000  m9(.., 29)
+1297 ADD      d65  a64  b0   c00 c2 00 c3 00 x000  m_rev_filter_3 = ..
+1298 RD       d224 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+1299 MUL9     d241 a68  b0   c59 c2 00 c3 00 x000  m9(.., 59)
+1300 MUL9     d225 a224 b0   c2a c2 00 c3 00 x000  m9(.., 2a)
+1301 MUL9     d247 a69  b0   c5c c2 00 c3 00 x000  m9(.., 5c)
+1302 ADD      d226 a223 b225 c00 c2 00 c3 00 x000  
+1303 MUL9     d253 a70  b0   c62 c2 00 c3 00 x000  m9(.., 62)
+1304 WR       d0   a226 b0   c10 c2 00 c3 00 x000  brev.w(30)
+1305 RD       d227 a0   b0   c09 c2 00 c3 00 x000  brev.r(1b)
+1306 MUL9     d158 a71  b0   c65 c2 00 c3 00 x000  m9(.., 65)
+1307 MUL9     d228 a227 b0   c33 c2 00 c3 00 x000  m9(.., 33)
+1308 MUL7     d1   a1   b0   cbe c2 00 c3 00 x000  m7(.., be) -> dry_l
+1309 ADD      d229 a228 b64  c00 c2 00 c3 00 x000  
+1310 MUL7     d2   a2   b0   c01 c2 00 c3 00 x000  m7(.., 1) -> dry_r
+1311 WR       d0   a229 b0   c11 c2 00 c3 00 x000  brev.w(33)
+1312 RD       d230 a0   b0   c11 c2 00 c3 00 x000  brev.r(33)
+1313 RD       d232 a0   b0   c08 c2 00 c3 00 x000  brev.r(18)
+1314 MUL7     d231 a230 b0   c2b c2 00 c3 00 x000  m7(.., 2b)
+1315 MUL7     d233 a232 b0   c2c c2 00 c3 00 x000  m7(.., 2c)
+1316 RD       d234 a0   b0   c0d c2 00 c3 00 x000  brev.r(27)
+1317 ADD      d66  a231 b233 c00 c2 00 c3 00 x000  rev_1
+1318 MUL7     d235 a234 b0   c3a c2 00 c3 00 x000  m7(.., 3a)
+1319 MUL7     d236 a66  b0   c3b c2 00 c3 00 x000  m7(.., 3b)
+1320 RD       d237 a0   b0   c13 c2 00 c3 00 x000  brev.r(39)
+1321 ADD      d67  a235 b236 c00 c2 00 c3 00 x000  rev_2
+1322 MUL9     d238 a237 b0   c38 c2 00 c3 00 x000  m9(.., 38)
+1323 MUL9     d239 a66  b0   c39 c2 00 c3 00 x000  m9(.., 39)
+1324 MUL9     d245 a67  b0   c5b c2 00 c3 00 x000  m9(.., 5b)
+1325 ADD      d240 a238 b239 c00 c2 00 c3 00 x000  
+1326 MUL9     d251 a67  b0   c5e c2 00 c3 00 x000  m9(.., 5e)
+1327 WR       d0   a240 b0   c15 c2 00 c3 00 x000  brev.w(3f)
+1328 RD       d242 a0   b0   c0c c2 00 c3 00 x000  brev.r(24)
+1329 MUL9     d156 a67  b0   c64 c2 00 c3 00 x000  m9(.., 64)
+1330 MUL9     d243 a242 b0   c5a c2 00 c3 00 x000  m9(.., 5a)
+1331 MUL9     d162 a67  b0   c67 c2 00 c3 00 x000  m9(.., 67)
+1332 ADD      d244 a241 b243 c00 c2 00 c3 00 x000  
+1333 MUL9     d199 a58  b0   c17 c2 00 c3 00 x000  m9(.., 17)
+1334 ADD      d246 a244 b245 c00 c2 00 c3 00 x000  
+1335 MUL9V    d200 a199 b43  c00 c2 00 c3 00 x000  m9v
+1336 WR       d0   a246 b0   c1f c2 00 c3 00 x000  brev.w(5d)
+1337 RD       d68  a0   b0   c0c c2 00 c3 00 x000  brev.r(24) -> m_rev_hist_a
+1338 RD       d248 a0   b0   c1c c2 00 c3 00 x000  brev.r(54)
+1339 MUL9     d202 a9   b0   c18 c2 00 c3 00 x000  m9(.., 18)
+1340 MUL9     d249 a248 b0   c5d c2 00 c3 00 x000  m9(.., 5d)
+1341 MUL9V    d204 a202 b8   c00 c2 00 c3 00 x000  m9v
+1342 ADD      d250 a247 b249 c00 c2 00 c3 00 x000  
+1343 MUL9     d207 a59  b0   c0e c2 00 c3 00 x000  m9(.., e)
+1344 ADD      d252 a250 b251 c00 c2 00 c3 00 x000  
+1345 MUL9V    d206 a207 b43  c00 c2 00 c3 00 x000  m9v
+1346 WR       d0   a252 b0   c21 c2 00 c3 00 x000  brev.w(63)
+1347 RD       d69  a0   b0   c1c c2 00 c3 00 x000  brev.r(54) -> m_rev_hist_b
+1348 RD       d254 a0   b0   c1e c2 00 c3 00 x000  brev.r(5a)
+1349 MUL9     d209 a10  b0   c0f c2 00 c3 00 x000  m9(.., f)
+1350 MUL9     d255 a254 b0   c63 c2 00 c3 00 x000  m9(.., 63)
+1351 MUL9V    d210 a209 b8   c00 c2 00 c3 00 x000  m9v
+1352 ADD      d155 a253 b255 c00 c2 00 c3 00 x000  
+1353 ADD      d157 a155 b156 c00 c2 00 c3 00 x000  
+1354 WR       d0   a157 b0   c23 c2 00 c3 00 x000  brev.w(69)
+1355 RD       d70  a0   b0   c21 c2 00 c3 00 x000  brev.r(63) -> m_rev_hist_c
+1356 RD       d159 a0   b0   c20 c2 00 c3 00 x000  brev.r(60)
+1357 MUL9     d160 a159 b0   c66 c2 00 c3 00 x000  m9(.., 66)
+1358 ADD      d161 a158 b160 c00 c2 00 c3 00 x000  
+1359 ADD      d163 a161 b162 c00 c2 00 c3 00 x000  
+1360 WR       d0   a163 b0   c24 c2 00 c3 00 x000  brev.w(6c)
+1361 RD       d71  a0   b0   c22 c2 00 c3 00 x000  brev.r(66) -> m_rev_hist_d
+1362 RD       d164 a0   b0   c00 c2 00 c3 00 x000  brev.r(0)
+1363 RD       d165 a0   b0   c01 c2 00 c3 00 x000  brev.r(3)
+1364 RD       d167 a0   b0   c02 c2 00 c3 00 x000  brev.r(6)
+1365 ADD      d166 a164 b165 c00 c2 00 c3 00 x000  
+1366 RD       d169 a0   b0   c03 c2 00 c3 00 x000  brev.r(9)
+1367 ADD      d168 a166 b167 c00 c2 00 c3 00 x000  
+1368 RD       d173 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+1369 ADD      d170 a168 b169 c00 c2 00 c3 00 x000  
+1370 MUL9     d172 a173 b0   c1b c2 00 c3 00 x000  m9(.., 1b)
+1371 MUL9     d171 a170 b0   c1c c2 00 c3 00 x000  m9(.., 1c)
+1372 RD       d174 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1373 ADD      d72  a171 b172 c00 c2 00 c3 00 x000  rev_base_l
+1374 MUL9     d175 a174 b0   c45 c2 00 c3 00 x000  m9(.., 45)
+1375 MUL9     d176 a72  b0   c46 c2 00 c3 00 x000  m9(.., 46)
+1376 MUL7     d180 a72  b0   c48 c2 00 c3 00 x000  m7(.., 48)
+1377 ADD      d177 a175 b176 c00 c2 00 c3 00 x000  
+1378 WR       d0   a177 b0   c18 c2 00 c3 00 x000  brev.w(48)
+1379 RD       d178 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1380 RD       d181 a0   b0   c04 c2 00 c3 00 x000  brev.r(c)
+1381 MUL7     d179 a178 b0   c47 c2 00 c3 00 x000  m7(.., 47)
+1382 RD       d182 a0   b0   c05 c2 00 c3 00 x000  brev.r(f)
+1383 ADD      d73  a179 b180 c00 c2 00 c3 00 x000  rev_out_l
+1384 ADD      d183 a181 b182 c00 c2 00 c3 00 x000  
+1385 RD       d184 a0   b0   c06 c2 00 c3 00 x000  brev.r(12)
+1386 RD       d186 a0   b0   c07 c2 00 c3 00 x000  brev.r(15)
+1387 ADD      d185 a183 b184 c00 c2 00 c3 00 x000  
+1388 RD       d189 a0   b0   c3f c2 00 c3 00 x000  brev.r(bd)
+1389 ADD      d187 a185 b186 c00 c2 00 c3 00 x000  
+1390 MUL9     d190 a189 b0   c20 c2 00 c3 00 x000  m9(.., 20)
+1391 MUL9     d188 a187 b0   c21 c2 00 c3 00 x000  m9(.., 21)
+1392 RD       d191 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1393 ADD      d74  a188 b190 c00 c2 00 c3 00 x000  rev_base_r
+1394 MUL9     d192 a191 b0   c51 c2 00 c3 00 x000  m9(.., 51)
+1395 MUL9     d193 a74  b0   c52 c2 00 c3 00 x000  m9(.., 52)
+1396 MUL7     d196 a74  b0   c54 c2 00 c3 00 x000  m7(.., 54)
+1397 ADD      d194 a192 b193 c00 c2 00 c3 00 x000  
+1398 MUL9V    d198 a73  b60  c00 c2 00 c3 00 x000  m9v
+1399 WR       d0   a194 b0   c18 c2 00 c3 00 x000  brev.w(48)
+1400 RD       d195 a0   b0   c12 c2 00 c3 00 x000  brev.r(36)
+1401 ADD      d201 a198 b200 c00 c2 00 c3 00 x000  
+1402 MUL7     d197 a195 b0   c53 c2 00 c3 00 x000  m7(.., 53)
+1403 ADD      d203 a201 b204 c00 c2 00 c3 00 x000  
+1404 ADD      d75  a197 b196 c00 c2 00 c3 00 x000  rev_out_r
+1405 ADD      d1   a1   b203 c00 c2 00 c3 00 x000  dry_l +=
+1406 MUL9V    d205 a75  b60  c00 c2 00 c3 00 x000  m9v
+1407 OUT      d0   a1   b0   c00 c2 00 c3 00 x000  out dry_l
+1408 ADD      d208 a205 b206 c00 c2 00 c3 00 x000  
+1409 ADD      d211 a208 b210 c00 c2 00 c3 00 x000  
+1410 ADD      d2   a2   b211 c00 c2 00 c3 00 x000  dry_r +=
 1411 OUT      d0   a2   b0   c01 c2 00 c3 00 x000  out dry_r
 1412 END      d0   a0   b0   c00 c2 00 c3 00 x000  

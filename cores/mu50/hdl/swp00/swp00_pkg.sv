@@ -17,8 +17,8 @@ package swp00_pkg;
         logic [23:0] address;
         logic [7:0]  format;
         logic [31:0] pos, pos_dec, dpcm_pos, dpcm_delta;   // s32, s32, u32, s32
-        logic [15:0] dpcm_s0, dpcm_s1, last;               // s16
-        logic        first, done;
+        logic [15:0] dpcm_s0, dpcm_s1, last_;              // s16 (m_last)
+        logic        first_, done;                     // m_first, m_done
         // envelope_block
         logic [7:0]  att_speed, att_level, dec_speed, dec_level;
         logic [15:0] env_level;                            // s32 in MAME, always 0..fff
@@ -60,11 +60,11 @@ package swp00_pkg;
         voice_t v;
         v = vi;
         v.pos = 32'h0 - {16'h0, v.start};
-        v.pos_dec = {16'h0, v.phase[14:0], 1'b0};          // (phase << 1) & 0x7ffe
+        v.pos_dec = {17'h0, v.phase[13:0], 1'b0};          // (phase << 1) & 0x7ffe
         v.dpcm_s0 = 16'h0; v.dpcm_s1 = 16'h0;
         v.dpcm_pos = v.pos + 32'd1;
         v.dpcm_delta = 32'h0;
-        v.first = 1'b1; v.done = 1'b0;
+        v.first_ = 1'b1; v.done = 1'b0;
         if (v.dec_speed[7]) begin
             v.env_level = 16'h0; v.env_mode = ENV_DECAY;
         end else begin
@@ -247,8 +247,10 @@ package swp00_pkg;
     endfunction
 
     // streaming_block::dpcm_step on (s0, s1, delta): returns {s0, s1, delta}
-    function automatic logic [63:0] dpcm_step(input logic [7:0] format, input logic [15:0] s1,
-                                               input logic [31:0] dpcm_delta, input logic [7:0] in);
+    // streaming_block::dpcm_step, in two parts (one a clock): the new sample with its clamp,
+    // returning {sample, delta}; then the delta decay of the mode
+    function automatic logic [47:0] dpcm_sample(input logic [7:0] format, input logic [15:0] s1,
+                                                 input logic [31:0] dpcm_delta, input logic [7:0] in);
         logic [2:0]  scale;
         logic [31:0] limit, delta, sample;
         scale = format[4:2];
@@ -260,13 +262,15 @@ package swp00_pkg;
         end else if ($signed(sample) > $signed(limit)) begin
             sample = limit; delta = 32'h0;
         end
+        return {sample[15:0], delta};
+    endfunction
+    function automatic logic [31:0] dpcm_decay(input logic [7:0] format, input logic [31:0] delta);
         case (format[1:0])
-            2'd0: delta = cdiv_pow2(delta * 32'd7, 3);
-            2'd1: delta = cdiv_pow2(delta * 32'd3, 2);
-            2'd2: delta = cdiv_pow2(delta, 1);
-            default: delta = 32'h0;
+            2'd0: return cdiv_pow2(delta * 32'd7, 3);
+            2'd1: return cdiv_pow2(delta * 32'd3, 2);
+            2'd2: return cdiv_pow2(delta, 1);
+            default: return 32'h0;
         endcase
-        return {s1, sample[15:0], delta};
     endfunction
 
     // mixer_block::volume_apply multiplier: (0x1000000 - (m << 15)) >> e, 0 when level >= 0xfff
