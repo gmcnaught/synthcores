@@ -1,0 +1,6 @@
+# seed lines sha256: MAME's trace of tools/h8h_randprog.py SEED --count 2000 (tests/u1/SEED.bin.gz),
+# the first <lines> instruction lines with their writes (tools/u1_run.sh)
+1 8100 2b3fd0ea556e3ddb5f8e7026e15708df6ef43e66828150afe19c5aff81659770
+2 8100 f5a8483063127d3c7a1fa88f20f0e09440636f9628585afb0ae83e177f7b8b3b
+3 8100 29d55c70789109ad140f2673c2cda8d7d07cc4d956892243567a935832833d4f
+4 8100 9c227ac2287eab6e69ced9180fe1a97ee8a00483508b3ea1e9156b20a13b3a84

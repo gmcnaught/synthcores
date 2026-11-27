@@ -13,8 +13,15 @@ One entry per iteration of `SESSION-PLAN.md`, newest first.
   programs; `cores/mu50/tests/u0_check.sh` passes (trace, state counts, SWP00 write log with
   sample counts, 44,101 samples a second, two runs identical). Program ROM files need each byte
   pair swapped (checked with a reset vector).
-- **Next:** U1 (H8/300H instruction set against MAME on generated programs) and U3 (SWP00 on
-  synthetic write streams). U0 corpus case `basic` renders identically twice with the user's ROMs (installed 2026-11-27, all MAME hashes match).
+- **U0 with the user's ROMs:** corpus case `basic` renders identically twice (installed
+  2026-11-27, all MAME hashes match).
+- **U1 (branch `mu50-u1`):** H8/300H core generated from MAME's `h8.lst` and `h8.cpp`
+  (`tools/h8h_gen.py`, 881 states). 200 random programs (1.5 M instructions, 263 of 264 handlers)
+  identical to MAME; the v1.05 firmware runs 212,098 instructions identically before its first
+  read of a port (no peripherals yet). MAME's TRAPA pushes its own address. Quartus, CPU alone:
+  18,325 ALMs and ~10 MHz as first generated; 5,108 ALMs and +5.3 ns at 50 MHz with a shared
+  ALU, an iterative divider and one register write port.
+- **Next:** U2 (peripherals) and U3 (SWP00 on synthetic write streams).
 
 ## P2K release v20261125 (2026-11-25)
 
