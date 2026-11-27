@@ -7,7 +7,7 @@
 # ROM pack already on the card (games/SC-55/boot.rom), switches the MIDI input to 9600 baud
 # (zero bytes, then a GM reset), screenshots the boot screen, plays avmidi 0A.mid repeated for
 # SECONDS (default 100) and screenshots again. MIDI out (MIDI-OUT-PLAN.md): after the boot
-# screenshot, the GS data request (RQ1) for master tune goes out and scripts/mister/tty_midi_xfer.py
+# screenshot, the GS data request (RQ1) for master tune goes out and tty_midi_xfer.py
 # reads /dev/ttyS1 for 3 s (at 9600: synthframe_midi_tx follows the input's speed); every model
 # sends Active Sensing (FE), and the mk2 / SC-155mk2 answer with the DT1 the reference sends,
 # F0 41 10 42 12 40 00 00 00 04 00 00 3C F7 (the mk1's firmware does not answer in the reference).
@@ -20,7 +20,7 @@ RBF=${1:?usage: smoke.sh RBF OUTDIR [SECONDS]}; OUT=${2:?usage: smoke.sh RBF OUT
 SECS=${3:-100}
 M=../../modules/synthframe/bin/synth-mister
 mkdir -p "$OUT"
-python3 scripts/mister/smf2events.py ../../modules/nuked-sc55/test/integration/avmidi/0A.mid "$OUT/0A.txt" >/dev/null
+python3 ../../modules/synthframe/tools/midi/smf2events.py ../../modules/nuked-sc55/test/integration/avmidi/0A.mid "$OUT/0A.txt" >/dev/null
 
 $M lock sc55-smoke
 trap '$M unlock' EXIT
@@ -33,10 +33,10 @@ $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # 2 s after the GM reset: with 1 s, one boot screenshot in 6 came before the level bars were drawn
 printf '0000000000000000f07e7f0901f7' | xxd -r -p | $M sh "cat > /dev/ttyS1; sleep 2"
 $M shot sc55 "$OUT/boot.png" >/dev/null
-scp -q scripts/mister/tty_midi_xfer.py "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
 $M sh "od -An -tx1 -j5 -N1 /media/fat/games/SC-55/boot.rom" | tr -d ' \n' > "$OUT/model"
 $M sh "python3 /tmp/tty_midi_xfer.py 3 f0411042114000000000043cf7" > "$OUT/midi_out.txt"
-scp -q scripts/mister/play_tty.py "$OUT/0A.txt" "$MISTER:/tmp/"
+scp -q ../../modules/synthframe/tools/mister/play_tty.py "$OUT/0A.txt" "$MISTER:/tmp/"
 $M sh "python3 /tmp/play_tty.py /tmp/0A.txt $SECS"
 $M shot sc55 "$OUT/end.png" >/dev/null
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"

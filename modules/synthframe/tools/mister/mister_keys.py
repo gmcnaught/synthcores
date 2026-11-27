@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
 """Type on the MiSTer through a virtual uinput keyboard (runs on the MiSTer:
-python3, 32-bit ARM; copied there by the caller).
+python3, 32-bit ARM; the cores' smoke scripts copy it to /tmp there).
 Same approach as maldita.castilla-cps3/scripts/mister_keys.py.
 
     mister_keys.py ARG...    each ARG is typed in order:
@@ -9,6 +10,8 @@ Same approach as maldita.castilla-cps3/scripts/mister_keys.py.
         CHORD       key names or characters joined by + (F12, ENTER, ESC,
                     LEFTSHIFT+..., LEFTCTRL+c)
         sleep:S     wait S seconds
+        down:KEY    hold KEY down (a key name or character) until up:KEY
+        up:KEY      release KEY
         mouse:DX,DY move a virtual mouse (Linux axes: +Y is down), in steps
         click[:S]   left button down for S seconds (default 0.3), then up
 """
@@ -21,7 +24,8 @@ import time
 # Linux input event codes
 NAMED = {'ESC': 1, 'BACKSPACE': 14, 'TAB': 15, 'ENTER': 28, 'LEFTCTRL': 29, 'LEFTSHIFT': 42,
          'SPACE': 57, 'F1': 59, 'F2': 60, 'F3': 61, 'F12': 88, 'UP': 103, 'DOWN': 108,
-         'LEFT': 105, 'RIGHT': 106, 'F4': 62, 'KPENTER': 96}
+         'LEFT': 105, 'RIGHT': 106, 'F4': 62, 'KPENTER': 96, 'F5': 63, 'F6': 64, 'F7': 65,
+         'F8': 66}
 ROWS = {'1234567890': 2, 'qwertyuiop': 16, 'asdfghjkl': 30, 'zxcvbnm': 44}
 CHAR = {}
 for row, start in ROWS.items():
@@ -79,7 +83,7 @@ def main():
     fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
     for c in set(NAMED.values()) | {c for c, _ in CHAR.values()}:
         fcntl.ioctl(fd, UI_SET_KEYBIT, c)
-    os.write(fd, struct.pack('80sHHHHi', b'proteus-keys', 3, 0x1234, 0x5679, 1, 0) + b'\0' * (256 * 4))
+    os.write(fd, struct.pack('80sHHHHi', b'synclavier-keys', 3, 0x1234, 0x5679, 1, 0) + b'\0' * (256 * 4))
     fcntl.ioctl(fd, UI_DEV_CREATE)
     time.sleep(2)                                   # Main_MiSTer picks up the new device
     mouse = None
@@ -112,6 +116,11 @@ def main():
                 press(fd, [NAMED['LEFTSHIFT'], code] if shift else [code])
         elif arg.startswith('sleep:'):
             time.sleep(float(arg[6:]))
+        elif arg.startswith('down:') or arg.startswith('up:'):
+            k = arg.split(':', 1)[1]
+            ev(fd, EV_KEY, NAMED[k] if k in NAMED else CHAR[k.lower()][0], 1 if arg[0] == 'd' else 0)
+            ev(fd, EV_SYN, 0, 0)
+            time.sleep(0.05)
         else:
             press(fd, [NAMED[k] if k in NAMED else CHAR[k.lower()][0] for k in arg.split('+')])
             time.sleep(1)

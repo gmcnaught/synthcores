@@ -10,7 +10,7 @@
 //     --flash      2 MB flash image (big-endian words: tools/p2k_flash_image.py, or a MAME flash NVRAM)
 //     --big/--baby SIMM slot N (1-4) Big / Baby images (big-endian words)
 //     --seconds    system time to run (default 15)
-//     --midi       "seconds hexbytes" lines (cores/sc55/scripts/mister/smf2events.py), seconds from
+//     --midi       "seconds hexbytes" lines (modules/synthframe/tools/midi/smf2events.py), seconds from
 //                  power-on; sent to UART1 at 31250 baud
 //     --lcd        the LCD text every 0.25 s when it changed, as MAME's LOG_LCD lines
 //     --sndlog     every sound-chip write as the engine applies it, with its sample index
