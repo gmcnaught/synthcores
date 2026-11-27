@@ -64,6 +64,7 @@ Assumptions:
 | 18 | P2K MiSTer core (`cores/p2k/docs/plan.md`, P0–P6) | 11, 16 | yes | OS 2.26 boots to its main screen in the system bench and on the MiSTer with the Composer stand-in SIMM; the bench's sound-write log replayed by `p2k_render` equals the bench audio; plays MIDI on the MiSTer; user data in flash survives a reload |
 | 19 | P2K downloads straight to DDR3 | 18 | yes | the loader bench places packs and SIMMs identically by bytes and direct (3 seeds and a 34 MB SIMM); Quartus build meets timing; the MiSTer smoke test passes, with the main screen well under the 110 s of iteration 18 |
 | 21 | P2K user flash SIMMs (P6) and the P2K release | 18, 19 | yes | the sound bus against MAME's `p2k::intel_flash` and the image transfers against an hps_io model (3 seeds each); RENAME FLASH SIMM 106 → 108 in the system bench and on the MiSTer leaves the images MAME leaves; no late sample; Quartus build meets timing; smoke tests pass; release built by CI and smoke-tested |
+| 22 | MU50 core on the MiSTer (`cores/mu50/docs/plan.md`, U0–U5) | 1, 2 | yes | H8/3003 trace and SWP00 samples identical to MAME (`mu50`) over generated programs and the firmware; U4 corpus hashes identical to MAME's; U5 on the MiSTer |
 
 Order: 0 → 1 → 2 and 3 → 4 → 5 and 6 → 8 → 12 (JV-880) → 13 (CZ-101, brief §8's next Phase 1 core; the MT-32 follows it). 9 and 11 fill build wait time. Overnight 2026-11-23 (user): 14, with 15 filling build and simulation wait time. 7 and 10 (M64) are deferred until the open source community answers the M64's open questions (user, 2026-11-22).
 
@@ -297,6 +298,15 @@ the 256 KB regions the OS changes are written back to the file with the flash sa
 `p2k_flashsave` becomes `p2k_imgsave` (the save file and both SIMM files). Then the release:
 CI build of `main`, both smoke tests on that RBF, tag `p2k-YYYYMMDD`, release repository
 `gmcnaught/Proteus-2000-MiSTer` as for the CZ-101.
+
+### 22. MU50 (2026-11-27, user: "let's start with the MU50 core addition")
+
+- Scope, hardware map and milestones U0–U5: `cores/mu50/docs/plan.md`.
+- Reference: MAME `mu50` (BSD-3-Clause): H8/3003 core, `swp00`, `mulcd`. Built with logging
+  patches in `../mame-mu50`.
+- ROMs: none on this machine yet; tests use `MU50_ROM_DIR`. U0's test-ROM mode, U1 and U3 run on
+  generated programs and register streams and do not wait for them.
+- **Gate:** U4's corpus hashes identical to MAME's, and U5 on the MiSTer.
 
 ## Not in this session
 

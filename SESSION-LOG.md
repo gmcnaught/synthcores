@@ -2,6 +2,15 @@
 
 One entry per iteration of `SESSION-PLAN.md`, newest first.
 
+## Iteration 22: MU50 (2026-11-27, branch `mu50-plan`)
+
+- **Started:** plan `cores/mu50/docs/plan.md` (U0–U5), from MAME upstream master (2026-11-27):
+  `ymmu50.cpp`, the H8 core and `swp00.cpp`.
+- **Findings:** the SWP00 model is integer (bit-exact gate possible); MAME's H8/300H charges 2
+  states per bus access with no wait states and updates peripherals between accesses; no usable
+  H8/300H HDL exists; the user's MU50 ROMs are not on this machine.
+- **Next:** U0, the patched MAME (`../mame-mu50`) and the test-ROM harness.
+
 ## P2K release v20261125 (2026-11-25)
 
 - CI `build-rbf.yml` run 45652297962 on 63d5544 (#44, #46): timing met (clk_sys +1.210 ns, clk_cpu
