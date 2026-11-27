@@ -10,7 +10,8 @@
 # mounted), waits BOOT seconds (default 8), screenshots, plays tests/midi/basic.txt once over
 # the UART at 9600 baud (synthframe_midi_rx also takes 9600), screenshots again (its last
 # program change selects preset 15). MIDI out: keys "3" (Preset) and F3 (Tone 3) while
-# tty_midi_xfer.py --baud 31250 reads /dev/ttyS1 at 31,250 baud; Tone 3 in the bank half
+# tty_midi_xfer.py --baud 9600 reads /dev/ttyS1 at 9600 baud (synthframe_midi_rx found the HPS
+# UART at 9600 above, and synthframe_midi_tx follows it); Tone 3 in the bank half
 # that holds preset 15 selects preset 11, and the firmware sends its program change, C0 0A
 # (the C4 panel case, tests/panel/basic.txt, checks the MIDI-out bytes against MAME).
 # An edited tone survives a reload: with Write ("y") held, Internal ("4") and Tone 2 (F2) store
@@ -61,7 +62,7 @@ $M shot cz101 "$OUT/end.png" >/dev/null
 
 # MIDI out
 scp -q ../../modules/synthframe/tools/mister/tty_midi_xfer.py "$MISTER:/tmp/"
-$M sh "nohup python3 /tmp/tty_midi_xfer.py --baud 31250 6 > /tmp/cz101_midi_out.txt 2>&1 < /dev/null &"
+$M sh "nohup python3 /tmp/tty_midi_xfer.py --baud 9600 6 > /tmp/cz101_midi_out.txt 2>&1 < /dev/null &"
 sleep 1
 keys text:3 sleep:1 F3 sleep:1
 sleep 2

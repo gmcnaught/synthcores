@@ -17,7 +17,7 @@ The MiSTer screen: the front panel from MAME's `cz101.lay` with the LCD above it
 | uPD7811 peripherals | 160 random programs (timers, serial, interrupts, HLT) | identical, 309,527 interrupt entries |
 | uPD933 | standalone copy of MAME's model on synthetic stimuli | identical |
 | Board | `tests/c4_run.sh tests/midi/basic.txt 6500000`: real firmware, boot and MIDI playback | 6.5 M instructions (17.9 s) and 716,728 samples identical to MAME, SHA-256 08745dc2…0eb7; the same through the MiSTer's live-MIDI path |
-| Panel keys, pitch wheel, MIDI out | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/basic.txt`: the same, plus tone selection and pitch-wheel moves at the same CPU cycles in MAME and the HDL | trace and 717,228 samples identical, SHA-256 472320fd…08a9; the 63 MIDI-out bytes (program changes, the wheel's pitch bends) identical, each within 19 CPU cycles of MAME's |
+| Panel keys, pitch wheel, MIDI out | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/basic.txt`: the same, plus tone selection and pitch-wheel moves at the same CPU cycles in MAME and the HDL | trace and 717,228 samples identical, SHA-256 472320fd…08a9; the 63 MIDI-out bytes (program changes, the wheel's pitch bends) identical, each within 19 CPU cycles of MAME's; the bytes the MiSTer sends (`CZ_TX_BYTES`) identical, each loaded at the serial clock edge one bit before MAME's start bit |
 | Key inside a prefixed read | `tests/c4_run.sh tests/midi/basic.txt 6500000 tests/panel/prefixed.txt`: Preset pressed 5 cycles into a `MOV A,(B800)` key read (MAME's `keys_r()` runs at the instruction's end) | trace and 716,894 samples identical to MAME, SHA-256 a8fcea99…08d0; the 2 MIDI-out bytes identical |
 | CI (no ROMs) | `tests/ci.sh`: the uPD933 gate (`tests/upd933_test.sh`) and `tests/board_test.sh` (short uPD7811 programs on the board bench) | uPD933 identical to the reference, also across the 40-bit tick wrap; samples continue across the wrap and after a firmware power-down (LCD dark); a far IRQ-timer deadline does not fire early; /NMI never changes an interrupt's vector mid-push; live-MIDI bytes 1,280 SCK edges apart |
 | Tick wrap (30.5 h) | `tests/wrap_run.sh`: the firmware from power-on with the tick time 2 s before 2^40 | 2 M instructions: trace and 219,359 samples identical to a run from tick 0 |
@@ -40,7 +40,8 @@ notes and the MAME flag bugs found on the way are in [`docs/upd7810.md`](docs/up
 3. **MIDI:** set the UART to MidiLink and route MidiLink to the UART (not to FluidSynth). The
    CZ-101 receives on the channel set with its MIDI button. Program change n selects preset
    n + 1 (the test corpus's program change 14 shows PRESET NO.15). MIDI out (tone selection,
-   the pitch wheel) leaves through the UART's TX at 31,250 baud (the smoke test reads it back
+   the pitch wheel) leaves through the UART's TX at 31,250 baud (9600 once MIDI in arrives at
+   9600) (the smoke test reads it back
    on the MiSTer's `/dev/ttyS1`). Tone dumps load and save over the CZ handshake with
    `modules/synthframe/tools/syx.py` (`SYX.md` there): 16 tones into internal memory, kept in
    the save file.

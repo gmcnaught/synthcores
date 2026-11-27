@@ -220,12 +220,12 @@ wire cyc_ce = !lag[31] && lag != 0 && !nv_pause;
 
 ///////////////////////   MIDI IN   //////////////////////////////
 
-wire       mb_valid;
+wire       mb_valid, midi_alt;
 wire [7:0] mb_data;
 synthframe_midi_rx #(.CLK_HZ(CLK_HZ)) midi_rx
 (
 	.clk(clk_sys), .rst(rst_hard), .rxd(UART_RXD),
-	.byte_valid(mb_valid), .byte_data(mb_data), .frame_err(), .alt()
+	.byte_valid(mb_valid), .byte_data(mb_data), .frame_err(), .alt(midi_alt)
 );
 
 // 64-byte queue: bytes arrive in real time, the board sends them in virtual time
@@ -270,7 +270,8 @@ wire  [3:0] r_pos;
 wire  [7:0] r_code;
 wire  [2:0] r_row;
 wire  [4:0] r_cg_bits;
-wire        midi_tx;
+wire        midi_out_valid;
+wire  [7:0] midi_out_byte;
 
 cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../hdl/upd933/")) board
 (
@@ -288,7 +289,7 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.pitch_wheel(pitch_wheel),
 	.rx_valid(1'b0), .rx_cycle(32'd0), .rx_edge(32'd0), .rx_level(1'b1), .rx_pop(),
 	.midi_valid(!mq_empty), .midi_byte(mq[mq_rp]), .midi_pop(midi_pop),
-	.midi_tx(midi_tx),
+	.midi_tx(), .midi_out_valid(midi_out_valid), .midi_out_byte(midi_out_byte),
 	.nv_addr(nv_addr), .nv_we(nv_we), .nv_wdata(nv_wdata), .nv_rdata(nv_rdata), .nv_written(nv_written),
 	.powered_down(powered_down),
 	.cycles(cycles),
@@ -307,6 +308,16 @@ cz101_board #(.DECODE_HEX("../hdl/upd7810/upd7810_decode.hex"), .TABLE_DIR("../h
 	.wr_done(), .wr_addr(), .wr_data(), .upd933_late()
 );
 
+// MIDI out: each byte the uPD7811 loads into its TxD shift register, sent from a real-time
+// 31,250 baud clock (or 9600 when the receiver found the HPS UART there). The board's own TxD
+// moves only at instruction boundaries, so a bit edge due inside a DIV (59 cycles) or MUL (32)
+// came out up to half a bit late and the receiver misread bytes (#58).
+wire midi_tx;
+synthframe_midi_tx #(.CLK_HZ(CLK_HZ)) midi_tx_out
+(
+	.clk(clk_sys), .rst(rst_hard), .alt(midi_alt),
+	.valid(midi_out_valid), .data(midi_out_byte), .txd(midi_tx), .busy(), .dropped()
+);
 assign UART_TXD = midi_tx;
 
 // LEDs: MIDI activity (stretched); disk: loading or saving

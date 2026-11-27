@@ -19,6 +19,11 @@
 // wraps after 2^40 ticks, about 30.5 h); trace and samples must not change.
 // CZ_RX_LINE_LOG=FILE: the CPU's serial input line, "EDGE LEVEL" per change (EDGE = index of
 // the next 2 MHz SCK edge).
+// CZ_PACE=1: pace cyc_ce as mister/CZ101.sv does (50 MHz clock, 3,333,334 CPU cycles a second)
+// instead of running free; CZ_TX_LOG lines then carry the clock count as a third column.
+// CZ_TX_BYTES=FILE: MIDI out as the MiSTer sends it (the board's midi_out_valid), "CYCLE BYTE" per
+// byte; CYCLE = the 2 MHz SCK edge that loaded the byte into the TxD shift register (its due
+// cycle, floor(k E / P), not the instruction boundary it was applied at).
 // CZ_POWER=FILE: power switch changes, lines "CYCLE LEVEL" (decimal; 1 = on, as at time 0).
 // Last line: "board: ..." with the final time (cycles), the power-down state, the samples made
 // after a power-down, the uPD933 IRQ rises and the last IRQ timer arming.
@@ -106,6 +111,10 @@ int main(int argc, char **argv) {
     const uint64_t tick_base = getenv("CZ_TICK_BASE") ? strtoull(getenv("CZ_TICK_BASE"), nullptr, 0) : 0;
     FILE *txlog = getenv("CZ_TX_LOG") ? fopen(getenv("CZ_TX_LOG"), "w") : nullptr;
     int tx_last = 1;
+    const bool pace = getenv("CZ_PACE") != nullptr;
+    FILE *txbytes = getenv("CZ_TX_BYTES") ? fopen(getenv("CZ_TX_BYTES"), "w") : nullptr;
+    uint32_t sck_pre = 0, sck_applied = 0;
+    uint32_t rt_cycles = 0, pace_acc = 0, max_lag = 0;
     FILE *lcdlog = getenv("CZ_LCD_LOG") ? fopen(getenv("CZ_LCD_LOG"), "w") : nullptr;
     std::string lcd_last;
     FILE *rxline = getenv("CZ_RX_LINE_LOG") ? fopen(getenv("CZ_RX_LINE_LOG"), "w") : nullptr;
@@ -164,7 +173,22 @@ int main(int argc, char **argv) {
         }
         while (wi < wheel.size() && wheel[wi].cycle <= c->cycles) c->pitch_wheel = wheel[wi++].v;
         while (pi < power.size() && power[pi].cycle <= c->cycles) c->power_on = power[pi++].on;
+        if (pace) {
+            const uint32_t cy = c->cycles, lag = rt_cycles - cy;
+            c->cyc_ce = !(lag >> 31) && lag != 0;
+            if (!(lag >> 31) && lag > max_lag) max_lag = lag;
+            if (pace_acc + 3333334u >= 50000000u) {
+                pace_acc = pace_acc + 3333334u - 50000000u;
+                rt_cycles = (!(lag >> 31) && lag > 333333u) ? cy + 1 : rt_cycles + 1;
+            } else pace_acc += 3333334u;
+        }
+        sck_pre = c->rootp->cz101_board__DOT__sck_cyc;   // the due cycle of the edge applied this clock
+        // sck_edge (board) -> the periph shifts on the next clock -> midi_out_valid: the load's edge is
+        // the one sck_edge showed a clock before midi_out_valid
+        const uint32_t load_edge = sck_applied;
         tick();
+        if (txbytes && c->midi_out_valid) fprintf(txbytes, "%u %02X\n", load_edge, c->midi_out_byte);
+        if (c->rootp->cz101_board__DOT__sck_edge) sck_applied = sck_pre;
         {
             auto *r = c->rootp;
             if (down_at < 0 && c->powered_down) down_at = c->cycles;
@@ -178,7 +202,7 @@ int main(int argc, char **argv) {
                 fprintf(rxline, "%u %d\n", r->cz101_board__DOT__sck_k, rxline_last);
             }
         }
-        if (txlog && c->midi_tx != tx_last) { tx_last = c->midi_tx; fprintf(txlog, "%u %d\n", c->cycles, tx_last); }
+        if (txlog && c->midi_tx != tx_last) { tx_last = c->midi_tx; if (pace) fprintf(txlog, "%u %d %llu\n", c->cycles, tx_last, (unsigned long long)clk); else fprintf(txlog, "%u %d\n", c->cycles, tx_last); }
         if (lcdlog && (clk & 4095) == 0) {
             std::string t = lcd_text();
             if (t != lcd_last) { fprintf(lcdlog, "%u %s\n", c->cycles, t.c_str()); lcd_last = t; }
@@ -208,6 +232,7 @@ int main(int argc, char **argv) {
     if (smp) fclose(smp);
     if (lcdlog) fclose(lcdlog);
     if (txlog) fclose(txlog);
+    if (txbytes) fclose(txbytes);
     if (rxline) fclose(rxline);
     if (const char *nf = getenv("CZ_NV_OUT")) {
         FILE *f = fopen(nf, "wb");
@@ -226,6 +251,7 @@ int main(int argc, char **argv) {
     printf("%llu instructions, %llu cycles, %llu samples, %zu/%zu MIDI-in changes, %zu/%zu MIDI bytes, late %d\nLCD [%s]\n    [%s]\n",
            (unsigned long long)count, (unsigned long long)cyc, (unsigned long long)samples, rxi, rx.size(),
            mbi, mb.size(), c->upd933_late, l[0].c_str(), l[1].c_str());
+    if (pace) fprintf(stderr, "pace: max lag %u cycles\n", max_lag);
     printf("board: cycles %u, powered_down %d at %lld, samples after power-down %llu, lcd_power %d, "
            "uPD933 IRQ rises %llu (first at %lld), timer armed %llu (last n %u)\n",
            c->cycles, c->powered_down, (long long)down_at, (unsigned long long)down_samples, c->lcd_power,

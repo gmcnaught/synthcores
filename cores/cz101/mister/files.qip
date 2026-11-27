@@ -15,6 +15,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/p
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_panel_art.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/cz101_lcd_video.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/audio/synthframe_resample.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/save/synthframe_nvsave.sv
