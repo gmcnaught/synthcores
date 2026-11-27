@@ -4,14 +4,22 @@
 //  - CPU register writes (0x800000) and pan writes (0x500000) go into a FIFO
 //    that is drained between output samples, so a write affects the next
 //    sample, as in MAME (stream update before each write).
-//  - CPU reads: raw register words directly; +0x18 read-back waits for the
-//    FIFO to be empty and the engine to be idle, then runs a read-back.
+//  - CPU reads: raw register words once no write is queued or in flight
+//    (cpu_raw_ok; until then proteus_sys holds the read); +0x18 read-back waits for
+//    the FIFO to be empty and the engine to be idle, then runs a read-back.
 //  - DDR3: image loader (byte offsets < 8 MB), sample reads, output capture
-//    ring at 0x31000000 (left/right s16 LE per sample).
-//  - Status word at 0x30FFFF00, rewritten every 4096 samples (64-bit LE):
-//    bits 31..0 samples produced, 47..32 missed sample deadlines (a tick arrived
-//    while the previous one was still pending), 63..48 worst clocks from a tick
-//    to its sample (of 2048 available).
+//    ring at 0x31000000 (left/right s16 LE per sample). The loader also writes the
+//    first 16 bytes again at 0x30800000, so a 3-beat sample fetch that starts in the
+//    last 8 words of the 4M-word space reads words 0, 1, ... after word 0x3FFFFF
+//    (MAME mirrors the sample ROM; tools/proteus_model.py masks the address).
+//  - Status words, rewritten every 4096 samples (64-bit LE; tools/mister_soak.py):
+//    0x30FFFF00: bits 31..0 samples produced since the last reset, 47..32 missed
+//    sample deadlines (a tick arrived while the previous one was still pending;
+//    saturates at 0xFFFF), 63..48 worst clocks from a tick to its sample (of 2048).
+//    0x30FFFF08: bits 15..0 reset epoch (resets of the sound subsystem since the FPGA
+//    was configured, saturating; a reader sees whether the counters above restarted),
+//    31..16 peak |sample| of either channel over the last 4096 samples,
+//    47..32 0x5031 (marks this layout), 63..48 0.
 //============================================================================
 
 module snd_ctrl #(parameter SAMPLE_DIV = 2048)
@@ -39,6 +47,7 @@ module snd_ctrl #(parameter SAMPLE_DIV = 2048)
 	output reg        cpu_rb_done,
 	output     [15:0] cpu_rb_data,
 	output     [15:0] cpu_raw,         // raw register word cpu_voice/cpu_word
+	output            cpu_raw_ok,      // cpu_raw includes every write the CPU has made
 
 	// audio
 	output reg signed [15:0] out_l,
@@ -82,7 +91,7 @@ proteus_snd snd
 	.clk(clk), .reset(reset), .tone_en(tone_en),
 	.wr(snd_wr), .wr_voice(snd_voice), .wr_word(snd_word), .wr_data(snd_data), .wr_mask(snd_mask),
 	.pan_wr(pan_wr), .pan_voice(snd_voice), .pan_data(snd_data[7:0]),
-	.rd_voice(rb_start ? cpu_voice : cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),
+	.rd_voice(cpu_voice), .rd_word(cpu_word), .rd_raw(cpu_raw),
 	.rd_start(rb_start), .rd_done(rb_done), .rd_data(cpu_rb_data),
 	.start(snd_start), .busy(snd_busy), .done(snd_done), .out_l(snd_l), .out_r(snd_r),
 	.mem_req(mem_req), .mem_addr(mem_addr), .mem_ack(mem_ack), .mem_win(mem_win),
@@ -104,6 +113,7 @@ end
 reg  [63:0] ld_word;
 reg  [26:0] ld_addr;
 reg         ld_pend;
+reg         ld_mirror;       // after this write, write the same word again 8 MB higher
 reg  [31:0] cap_lo;
 reg         cap_half;
 reg  [63:0] cap_word;
@@ -114,6 +124,16 @@ reg  [15:0] st_missed;
 reg  [15:0] st_worst;
 reg  [15:0] st_busy;         // clocks since the current tick
 reg         st_pend;
+reg         st_sel;          // status word being written: 0 counters, 1 epoch/peak
+reg  [15:0] st_epoch = 16'd0;
+reg  [15:0] st_peak, st_peak_out;
+reg         reset_d;
+localparam [15:0] ST_MAGIC = 16'h5031;
+
+function [15:0] mag(input signed [15:0] x);
+	mag = x[15] ? 16'd0 - x : x;
+endfunction
+wire [15:0] smp_mag = (mag(snd_l) > mag(snd_r)) ? mag(snd_l) : mag(snd_r);
 
 // ---------------------------------------------------------------- DDR arbiter
 // Sample fetch: 3 beats (12 words) from the aligned address; the engine gets the 8 words
@@ -176,8 +196,8 @@ assign c_req_valid[1] = cap_pend;
 assign c_req_addr[1]  = CAPT_BASE + {8'd0, cap_ptr};
 assign c_req_wdata[1] = cap_word;
 assign c_req_valid[2] = st_pend;
-assign c_req_addr[2]  = STAT_ADDR;
-assign c_req_wdata[2] = {st_worst, st_missed, st_samples};
+assign c_req_addr[2]  = STAT_ADDR + {28'd0, st_sel};
+assign c_req_wdata[2] = st_sel ? {16'd0, ST_MAGIC, st_peak_out, st_epoch} : {st_worst, st_missed, st_samples};
 assign c_req_valid[3] = mem_req && !mem_ack && !s_wait;
 assign c_req_addr[3]  = DDR_BASE + {9'd0, mem_addr[21:2]};
 assign c_req_wdata[3] = 64'd0;
@@ -221,6 +241,7 @@ wire st_done  = c_req_valid[2] && c_req_ready[2];
 always @(posedge clk) begin
 	if (!loading) begin
 		ld_pend    <= 0;
+		ld_mirror  <= 0;
 		ioctl_wait <= 0;
 	end
 	else begin
@@ -229,12 +250,19 @@ always @(posedge clk) begin
 			if (ioctl_addr[2:0] == 3'd7) begin
 				ld_addr    <= ioctl_addr;
 				ld_pend    <= 1;
+				ld_mirror  <= (ioctl_addr[26:4] == 23'd0);   // sample words 0-7
 				ioctl_wait <= 1;
 			end
 		end
 		if (ld_done) begin
-			ld_pend    <= 0;
-			ioctl_wait <= 0;
+			if (ld_mirror) begin
+				ld_mirror   <= 0;
+				ld_addr[23] <= 1'b1;                          // + 8 MB: 0x30800000
+			end
+			else begin
+				ld_pend    <= 0;
+				ioctl_wait <= 0;
+			end
 		end
 	end
 end
@@ -246,6 +274,8 @@ reg  [11:0] div;
 reg         tick_pending;
 reg         rb_pending;
 reg  [1:0]  wgap;            // proteus_snd needs 2 clocks between writes and before start
+// proteus_snd updates raw[][] 2 clocks after a write; wgap counts those clocks down
+assign cpu_raw_ok = f_empty && !cpu_wr && !snd_wr && !pan_wr && wgap == 0;
 
 always @(posedge clk) begin
 	snd_wr        <= 0;
@@ -255,6 +285,8 @@ always @(posedge clk) begin
 	cpu_rb_done   <= 0;
 	sample_strobe <= 0;
 	wgap <= (snd_wr || pan_wr) ? 2'd2 : (wgap != 0 ? wgap - 1'd1 : 2'd0);
+	reset_d <= reset;
+	if (reset_d && !reset && st_epoch != 16'hFFFF) st_epoch <= st_epoch + 1'd1;
 
 	if (reset) begin
 		q_state      <= Q_IDLE;
@@ -273,6 +305,9 @@ always @(posedge clk) begin
 		st_worst     <= 0;
 		st_busy      <= 0;
 		st_pend      <= 0;
+		st_sel       <= 0;
+		st_peak      <= 0;
+		st_peak_out  <= 0;
 	end
 	else begin
 		if (cpu_wr && !cpu_wr_full) f_wp <= f_wp + 1'd1;
@@ -281,11 +316,14 @@ always @(posedge clk) begin
 		if (div == SAMPLE_DIV - 1) begin
 			div <= 0;
 			tick_pending <= 1;
-			if (tick_pending) st_missed <= st_missed + 1'd1;
+			if (tick_pending && st_missed != 16'hFFFF) st_missed <= st_missed + 1'd1;
 		end
 		else div <= div + 1'd1;
 		if (st_busy != 16'hFFFF) st_busy <= st_busy + 1'd1;
-		if (st_done) st_pend <= 0;
+		if (st_done) begin
+			if (!st_sel) st_sel <= 1;                  // then the second word
+			else begin st_sel <= 0; st_pend <= 0; end
+		end
 
 		if (cap_done) begin
 			cap_pend <= 0;
@@ -324,7 +362,12 @@ always @(posedge clk) begin
 				sample_strobe <= 1;
 				st_samples <= st_samples + 1'd1;
 				if (st_busy > st_worst) st_worst <= st_busy;
-				if (st_samples[11:0] == 12'hFFF) st_pend <= 1;
+				if (st_samples[11:0] == 12'hFFF) begin
+					st_pend     <= 1;
+					st_peak_out <= (smp_mag > st_peak) ? smp_mag : st_peak;
+					st_peak     <= 0;
+				end
+				else if (smp_mag > st_peak) st_peak <= smp_mag;
 				if (!cap_half) begin
 					cap_lo   <= {snd_r, snd_l};
 					cap_half <= 1;

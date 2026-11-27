@@ -52,8 +52,11 @@ class Chip:
     def reg_long(self, v, w):
         return (self.regs[v * 16 + w] << 16) | self.regs[v * 16 + w + 1]
 
-    def write(self, v, w, data):
-        self.regs[v * 16 + w] = data
+    def write(self, v, w, data, mask=0xFFFF):
+        # MAME COMBINE_DATA: only the byte lanes in mask are written; the voice state is
+        # rebuilt from the merged words either way
+        i = v * 16 + w
+        self.regs[i] = (self.regs[i] & ~mask & 0xFFFF) | (data & mask)
         vc = self.v[v]
         if w in (0, 1):
             vc.addr = self.reg_long(v, 0) & ADDR_MASK
@@ -150,7 +153,8 @@ def run(rom, events, ticks, tone=True):
                 if e & 0x40000000:
                     chip.pan(v, e & 0xFF)
                 else:
-                    chip.write(v, (e >> 21) & 15, e & 0xFFFF)
+                    mask = (0 if e & 0x20000 else 0xFF00) | (0 if e & 0x10000 else 0x00FF)
+                    chip.write(v, (e >> 21) & 15, e & 0xFFFF, mask)
         out.extend(chip.sample())
     return out
 

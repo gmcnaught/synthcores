@@ -8,7 +8,9 @@
 //     (4 x 16 KB requests) before the CPU leaves reset; otherwise the RAM keeps
 //     the image's contents
 //   - on save (OSD "Save Presets", or autosave when the OSD opens): pauses the
-//     CPU and writes the 64 KB RAM to the file (4 x 16 KB requests)
+//     CPU and writes the 64 KB RAM to the file (4 x 16 KB requests). No save starts
+//     while `inhibit` is set (the preset-initialisation macro drives the panel open
+//     loop and must not lose CPU time); a trigger in that time is dropped.
 //  File layout = RAM bytes in 68000 order (byte 2n = high byte of word n),
 //  the same as the image's RAM section.
 //============================================================================
@@ -38,6 +40,7 @@ module nv_ctrl
 	input             save_req,       // OSD menu item (level, rising edge used)
 	input             osd_open,       // OSD_STATUS
 	input             autosave,       // save when the OSD opens
+	input             inhibit,        // do not start a save
 
 	// RAM access (proteus_sys)
 	output reg        nv_active,      // RAM port belongs to this module
@@ -102,7 +105,7 @@ always @(posedge clk) begin
 				end
 				else boot_hold <= 0;
 			end
-			else if (loaded && !reset && mounted && !ro &&
+			else if (loaded && !reset && !inhibit && mounted && !ro &&
 			         ((save_req && !save_d) || (autosave && osd_open && !osd_d))) begin
 				cpu_pause <= 1;
 				saving    <= 1;

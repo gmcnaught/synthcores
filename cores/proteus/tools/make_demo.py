@@ -9,7 +9,9 @@ Image layout (byte offsets; loaded to DDR3 at 0x30000000 by the core):
   0x800000  events, 32-bit little-endian:
               0x00000000                 END (restart from the first event)
               0 nnnnnnn... (bit31 = 0)   WAIT n output samples (n = bits 30..0, n >= 1)
-              1 0 vvvvv wwww .... dddd   sound register write: voice v, word w (0..15), data d
+              1 0 vvvvv wwww ...h l dddd sound register write: voice v, word w (0..15), data d;
+                                         h / l set: the high / low byte lane is not written
+                                         (a byte write, MAME COMBINE_DATA)
               1 1 vvvvv ........ pppp    pan write: voice v, byte p (bits 7..0)
 
 A write at time t affects output samples k >= ceil(t * 39062.5): MAME's stream generates
@@ -43,12 +45,15 @@ def parse_trace(path, t_from, t_to):
         t = float(p[0])
         if t < t_from or t > t_to:
             continue
-        addr, data = int(p[3], 16), int(p[4], 16)
+        addr, data, mask = int(p[3], 16), int(p[4], 16), int(p[5], 16)
         tick = math.ceil((t - t_from) * FS)
         if p[1] == "snd":
             off = (addr - 0x800000) >> 1
-            ev = 0x80000000 | ((off >> 4) << 25) | ((off & 15) << 21) | (data & 0xFFFF)
+            skip = (0 if mask & 0xFF00 else 0x20000) | (0 if mask & 0x00FF else 0x10000)
+            ev = 0x80000000 | ((off >> 4) << 25) | ((off & 15) << 21) | skip | (data & 0xFFFF)
         else:
+            if not mask & 0x00FF:
+                continue  # pan_w is umask16(0x00ff): an upper-byte-only access does not reach it
             voice = (((addr - 0x500000) >> 1) - 4) & 31
             ev = 0xC0000000 | (voice << 25) | (data & 0xFF)
         yield tick, ev

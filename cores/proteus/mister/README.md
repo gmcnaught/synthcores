@@ -63,7 +63,7 @@ the OSD rewrote the save; reloading the core came back on `003 BigCityBrass`.
 | Top | `Proteus.sv` | 80 MHz `clk_sys`; `UART31250,MIDI` in CONF_STR enables MidiLink |
 | System | `rtl/proteus_sys.sv` | fx68k at 10 MHz (phi enables every 4 clocks), MAME `proteusxr` memory map, ROM/RAM/font block RAM (`rtl/bram.sv`), volume one-shot, IACK |
 | MFP | `rtl/mfp68901.sv` | MC68901 subset modelled on MAME (interrupts, timers incl. pulse-width, 8N1 USART) |
-| LCD | `rtl/hd44780.sv`, `rtl/display.sv` | HD44780 modelled on MAME incl. busy timing; 2×16 LCD, front panel art (`rtl/panel/`) + 32 voice bars on 320×240 |
+| LCD | `modules/synthframe/hdl/panel/synthframe_hd44780.sv`, `rtl/display.sv` | HD44780 modelled on MAME incl. busy timing; 2×16 LCD, front panel art (`rtl/panel/`) + 32 voice bars on 320×240 |
 | Sound | `rtl/snd_ctrl.sv`, `rtl/proteus_snd.sv` | CPU write FIFO drained between samples, +0x18 read-back, DDR3 samples, capture ring |
 | CPU | `rtl/fx68k/` | fx68k by Jorge Cwik (GPL-3), unmodified |
 
@@ -77,10 +77,13 @@ DDR3 (physical): `0x30000000` samples (8 MB), `0x31000000` output capture ring (
 - With the MAME fixes in patch 0001 (2026-11-23), 6 s from power-on: sound-chip (770) and other
   I/O writes still equal; the firmware's stored volume (0xFFF98E) is 0xCA on all 188 measurements
   in both (the previous MAME stored one 0xCF, from a timer B catch-up burst).
-- `sim/sim_main.cpp` (sound chip only): bit-exact with `tools/proteus_model.py`.
+- `tests/test_snd_model.py` (sound subsystem: `snd_ctrl` with its write FIFO, the synthframe DDR3
+  port and `proteus_snd`; `sim/snd_tb.cpp`): bit-exact with `tools/proteus_model.py` on random
+  sample data and random register, byte-lane and pan writes. Runs in CI (`tests/ci.sh`).
 - Earlier event-replay demo build: hardware capture bit-exact with the model for 66 s.
+
+Benches are built with `sim/build.sh snd|mfp|unit|core|sys [OUTDIR]` (Verilator 5.048); the
+script lists what each one checks and which need the ROMs. `tests/ci.sh` runs the ROM-free ones.
 
 ## Build
 `bash mister/build.sh` with Quartus Lite 17.0, or the `Build RBF` GitHub workflow.
-The event-replay demo (`rtl/demo_ctrl.sv`, `rtl/level_display.sv`) is kept for the sound-chip
-testbench but is not in the core.

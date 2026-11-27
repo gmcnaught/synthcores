@@ -18,8 +18,9 @@ This is a FUNCTIONAL reconstruction, not a dump:
       0x020-0x027  per-chip 16-bit checksums: lo bytes in 0x20+p, hi bytes in 0x24+p,
                    lane = pair p, byte (lo/hi); value = 16-bit sum of all bytes of that chip
       0x150-0x1BF  test sine, copied from the ProtoLogic ROM when available
-    One compensation byte per chip (words 0x14C-0x14F, unused header area) makes each
-    chip's byte sum equal its stored checksum, so the firmware's Sound ROM test passes.
+    Compensation bytes per chip (words 0x14C-0x14F, and 0x148-0x14B when one byte is not
+    enough; unused header area) make each chip's byte sum equal its stored checksum, so the
+    firmware's Sound ROM test passes.
   * Output: 8 chip images in the ProtoLogic chip layout (word n -> pair n&3, address n>>2,
     hi byte -> "hi" chip, lo byte -> "lo" chip) plus a combined big-endian 4 MB image.
 
@@ -224,29 +225,38 @@ def build(records, samples, sine_words=None):
         for n in range(0x150, 0x1C0):
             rom[n] = sine_words[n - 0x150]
 
+    set_checksums(rom)
+    return rom, placed, unmatched, sum(written)
+
+
+def set_checksums(rom):
+    """Store each chip's 16-bit byte sum in the header and make it come out right.
+
+    The stored value (lo byte at word 0x20+p, hi byte at 0x24+p, in this lane) is part of the
+    summed bytes, so with S0 = sum with the stored and compensation bytes zero we need
+    S0 + lo + hi + c == hi*256 + lo (mod 2^16), i.e. c == 255*hi - S0, where c is the sum of
+    the compensation bytes (word 0x14C+p, and 0x148+p when c > 255). 255*hi reaches every
+    residue within 510 of S0, but not always within 255 (S0 in 65026..65280), hence two bytes.
+    """
     def chip_bytes(p, lane):
         return [(rom[n] >> (8 * lane)) & 0xFF for n in range(p, WORDS, 4)]
 
-    # Checksums. The stored value (lo byte at word 0x20+p, hi byte at 0x24+p, in this lane) is
-    # part of the summed bytes, so with S0 = sum with both stored bytes zero we need
-    # S0 + lo + hi == hi*256 + lo  (mod 2^16), i.e. 255*hi == S0 + c, where c is added to
-    # one compensation byte (word 0x14C+p, inside the header's unused area).
     for p in range(4):
         for lane in (0, 1):
             mask = ~(0xFF << (8 * lane))
-            for n in (0x20 + p, 0x24 + p, 0x14C + p):
+            for n in (0x20 + p, 0x24 + p, 0x14C + p, 0x148 + p):
                 rom[n] &= mask
             s0 = sum(chip_bytes(p, lane)) & 0xFFFF
-            for hi_b in range(256):
-                c = (255 * hi_b - s0) & 0xFFFF
-                if c <= 0xFF:
-                    break
+            # one compensation byte when possible (the layout of earlier images), else two
+            hi_b, c = next((h, c) for lim in (0xFF, 0x1FE) for h in range(256)
+                           for c in [(255 * h - s0) & 0xFFFF] if c <= lim)
+            c1 = min(c, 0xFF)
             lo_b = 0
-            rom[0x14C + p] |= c << (8 * lane)
+            rom[0x14C + p] |= c1 << (8 * lane)
+            rom[0x148 + p] |= (c - c1) << (8 * lane)
             rom[0x20 + p] |= lo_b << (8 * lane)
             rom[0x24 + p] |= hi_b << (8 * lane)
             assert sum(chip_bytes(p, lane)) & 0xFFFF == (hi_b << 8 | lo_b)
-    return rom, placed, unmatched, sum(written)
 
 
 def to_bytes(rom):

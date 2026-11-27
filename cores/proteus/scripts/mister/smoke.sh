@@ -7,8 +7,15 @@
 # /media/fat/Proteus.mgl with the system image already on the card, waits BOOT seconds (default
 # 15), screenshots, runs tools/mister_soak.py for SECONDS (default 60, seed 1: dense random MIDI
 # at 31250 baud, more than 32 voices) and screenshots again. Writes OUTDIR/{boot,end}.png,
-# OUTDIR/soak.txt and OUTDIR/result.txt. Exit 1 if a sample deadline was missed during the soak
-# or fewer than 95% of the expected samples were produced, or the running bar is not green.
+# OUTDIR/soak.txt and OUTDIR/result.txt. Exit 1 (the failed checks are listed) if:
+#   - a sample deadline was missed during the soak, or fewer than 95% of the expected samples
+#     were produced, or the sound subsystem reset during the soak (status epoch changed), or the
+#     status words are not this layout (an old RBF);
+#   - the peak output level during the MIDI soak stayed below PEAK_MIN (default 64): no audio;
+#   - the end screenshot shows fewer than LCD_MIN (default 40) lit LCD dots: the firmware did
+#     not boot or stopped driving the LCD (the sample engine runs without the CPU, so the
+#     sample counters alone do not show that the firmware runs);
+#   - the running bar is not green.
 # Screen (mister/rtl/display.sv, 320 x 240, cfg/panel.yaml): LCD at x 12-304, y 16-74, dots
 # on d2ffc8; voice bars y 162-225; running bar y 232-239, 00a000 running / a00000 not.
 # Screenshots come scaled; offsets are scaled by height / 240. boot_sha is for information only:
@@ -31,14 +38,18 @@ $M midi-stop
 $M sh "python3 /tmp/mister_soak.py $SECS 1" | tee "$OUT/soak.txt"
 $M shot proteus "$OUT/end.png" >/dev/null
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
-import hashlib, re, sys
+import hashlib, os, re, sys
 from PIL import Image
 out = sys.argv[1]
+PEAK_MIN = int(os.environ.get("PEAK_MIN", "64"))
+LCD_MIN = int(os.environ.get("LCD_MIN", "40"))
 t = open(f"{out}/soak.txt").read()
 el = float(re.search(r"elapsed ([\d.]+) s", t).group(1))
-prod = int(re.search(r"samples produced (\d+)", t).group(1))
+prod = int(re.search(r"samples produced (-?\d+)", t).group(1))
 m0, m1 = map(int, re.search(r"missed deadlines: before (\d+), after (\d+)", t).groups())
 worst = int(re.search(r"worst clocks per sample: (\d+)", t).group(1))
+magic, e0, e1 = re.search(r"status layout (\w+); reset epoch: before (\d+), after (\d+)", t).groups()
+peak = int(re.search(r"peak level during soak: (\d+)", t).group(1))
 ratio = prod / (el * 39062.5)
 boot = Image.open(f"{out}/boot.png").convert("RGB")
 def near(c, ref, tol=40):
@@ -64,14 +75,26 @@ def screen(im):
     kx, ky = (x1 - x0 + 1) / 320, (bot - top + 1) / 8
     y0 = bot + 1 - 240 * ky
     lcd = im.crop((int(x0 + 12 * kx), int(y0 + 16 * ky), int(x0 + 305 * kx), int(y0 + 75 * ky)))
-    return name, sum(1 for c in lcd.getdata() if near(c, (210, 255, 200)))
+    # lit pixels / pixels per LCD dot (3 x 3 frame pixels, scaled) = lit dots
+    return name, round(sum(1 for c in lcd.getdata() if near(c, (210, 255, 200))) / (9 * kx * ky))
 bar, dots = screen(boot)
 end_bar, end_dots = screen(Image.open(f"{out}/end.png").convert("RGB"))
 print(f"missed: {m1 - m0}")
 print(f"produced_ratio: {ratio:.3f}")
 print(f"worst_clocks: {worst}")
 print(f"running_bar: boot {bar}, end {end_bar}")
-print(f"lcd_dot_pixels: boot {dots}, end {end_dots}")
+print(f"lcd_lit_dots: boot {dots}, end {end_dots}")
+print(f"reset_epoch: before {e0}, after {e1} (status layout {magic})")
+print(f"peak_level: {peak}")
 print("boot_sha: " + hashlib.sha256(boot.tobytes()).hexdigest())
-sys.exit(0 if m1 == m0 and ratio > 0.95 and bar == end_bar == "running" else 1)
+fails = [name for name, ok in (
+    ("missed deadlines", m1 == m0),
+    ("status layout (old RBF?)", magic == "5031"),
+    ("core reset during the soak", e0 == e1 and prod >= 0),
+    ("samples produced < 95%", ratio > 0.95),
+    (f"no audio (peak < {PEAK_MIN})", peak >= PEAK_MIN),
+    (f"LCD blank (< {LCD_MIN} lit dots)", end_dots >= LCD_MIN),
+    ("running bar", bar == end_bar == "running")) if not ok]
+print("result: " + ("PASS" if not fails else "FAIL: " + ", ".join(fails)))
+sys.exit(1 if fails else 0)
 EOF
