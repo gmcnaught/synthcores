@@ -25,11 +25,15 @@
 //   sides for LEN steps from STEP. At the end the bench prints the panel LEDs the HDL latched.
 //   MIDI out: uart_txd, decoded at 31250 baud, must carry the bytes the model sends
 //   (cores/sc55/ref/patch_ref.py's tx hook), in order, with none dropped.
+//   --gain G sets the board's gain input (0..3). --zero-init starts every register and memory at 0. --out-hash prints a hash of every board output over every clock (sc55/sim/common/out_hash.h).
+//   --free-run N [--stall-at A L]: after the load, N clocks with the step gate open and pacing on
+//   (no model), loud MIDI injected from 40 M clocks; the gate is closed for L clocks from A.
 #include "Vjv880_board.h"
 #include "Vjv880_board___024root.h"
 #include "verilated.h"
 
 #include "../../sc55/sim/common/midi_demo.h"
+#include "../../sc55/sim/common/out_hash.h"
 #include "../../sc55/sim/common/uart_decode.h"
 #include "ref_hooks.h"
 #include "emu.h"
@@ -64,11 +68,13 @@ static void sample_cb(void*, const AudioFrame<int32_t>& f) { g_model.push_back({
 
 int main(int argc, char** argv)
 {
+    int gain = 0;   // --gain G: the board's output gain input (0..3, 6 dB steps)
     std::string rom_dir, pack_path, romset = "jv880-v1.0.1", smf_path, out_path;
     uint64_t    steps = 6'000'000, seed = 1, reset_steps = 24'000'000, midi_start = 4'000'000;
     int64_t     midi_seed = -1;
     int         busy_mod = 4, lat_min = 8, lat_max = 24;
     std::string sav_path, sav_out;
+    bool        zero_init = false;   // --zero-init: every register and memory starts at 0 (default: random)
     bool        uart = false;             // MIDI through uart_rxd at 31250 baud (no lockstep)
     uint64_t    clock_from = 0, clock_until = ~0ull;   // --clock-steps FROM UNTIL: when the clock runs
     double      clock_hz = 0;
@@ -77,6 +83,7 @@ int main(int argc, char** argv)
     std::deque<std::pair<uint64_t, uint8_t>> sched;   // --midi-at
     struct Press { uint64_t at, len; unsigned bit; };
     std::vector<Press> presses;                         // --press
+    uint64_t free_run = 0, stall_at = 0, stall_len = 0;   // --free-run, --stall-at
     for (int i = 1; i < argc; ++i)
     {
         std::string a = argv[i];
@@ -113,6 +120,11 @@ int main(int argc, char** argv)
         else if (a == "--sav" && i + 1 < argc) sav_path = argv[++i];
         else if (a == "--save-at" && i + 1 < argc) save_at.push_back(std::strtoull(argv[++i], nullptr, 0));
         else if (a == "--sav-out" && i + 1 < argc) sav_out = argv[++i];
+        else if (a == "--out-hash") out_hash_enable();
+        else if (a == "--zero-init") zero_init = true;
+        else if (a == "--gain" && i + 1 < argc) gain = std::atoi(argv[++i]) & 3;
+        else if (a == "--free-run" && i + 1 < argc) free_run = std::strtoull(argv[++i], nullptr, 0);
+        else if (a == "--stall-at" && i + 2 < argc) { stall_at = std::strtoull(argv[++i], nullptr, 0); stall_len = std::strtoull(argv[++i], nullptr, 0); }
         else { fprintf(stderr, "unknown argument %s\n", a.c_str()); return 2; }
     }
 
@@ -168,7 +180,7 @@ int main(int argc, char** argv)
     // ---------------------------------------------------------------- the HDL
     VerilatedContext ctx;
     ctx.commandArgs(argc, argv);
-    ctx.randReset(2);                         // random contents in every register and memory
+    ctx.randReset(zero_init ? 0 : 2);         // random contents in every register and memory (default)
     Vjv880_board* t = new Vjv880_board{&ctx};
     auto* R = t->rootp;
     std::mt19937_64 rng(seed);
@@ -279,6 +291,29 @@ int main(int argc, char** argv)
                         ddr[w] = (ddr[w] & ~(0xffull << (8 * b))) | (((t->DDRAM_DIN >> (8 * b)) & 0xff) << (8 * b));
         }
         t->clk = 1; t->clk_vid = 1; t->eval();
+        if (g_out_hash.on)
+        {
+            OutHash& o = g_out_hash;
+            o.add((uint16_t)t->audio_l | (uint64_t)(uint16_t)t->audio_r << 16 | (uint64_t)t->underruns << 32 | (uint64_t)t->overruns << 48);
+            o.add((uint64_t)t->sample_valid | (uint64_t)t->rom_ok << 1 | (uint64_t)t->running << 2 | (uint64_t)t->step_done << 3 |
+                  (uint64_t)t->midi_seen << 4 | (uint64_t)t->midi_alt << 5 | (uint64_t)t->ioctl_wait << 6 | (uint64_t)t->uart_txd << 7 |
+                  (uint64_t)t->vid_hs << 8 | (uint64_t)t->vid_vs << 9 | (uint64_t)t->vid_hblank << 10 | (uint64_t)t->vid_vblank << 11 |
+                  (uint64_t)t->DDRAM_RD << 13 | (uint64_t)t->DDRAM_WE << 14 | (uint64_t)t->saving << 15 |
+                  (uint64_t)t->vid_r << 16 | (uint64_t)t->vid_g << 24 | (uint64_t)t->vid_b << 32 | (uint64_t)t->nv_restored << 40 |
+                  (uint64_t)t->sd_rd << 41 | (uint64_t)t->sd_wr << 42 | (uint64_t)t->sd_blk_cnt << 43 | (uint64_t)t->sd_buff_din << 49);
+            o.add((uint32_t)t->sample_l | (uint64_t)(uint32_t)t->sample_r << 32);
+            o.add((uint64_t)t->lag_us | (uint64_t)t->dbg_pc << 32 | (uint64_t)t->dbg_cp << 48);
+            o.add((uint64_t)t->DDRAM_ADDR | (uint64_t)t->DDRAM_BURSTCNT << 32 | (uint64_t)t->DDRAM_BE << 40);
+            o.add(t->DDRAM_DIN);
+            o.add(t->sd_lba);
+            for (int i = 0; i < 80; i += 8)
+            {
+                uint64_t w = 0;
+                for (int k = 0; k < 8; ++k) w |= (uint64_t)t->lcd_dd[i + k] << (8 * k);
+                o.add(w);
+            }
+            ++o.clocks;
+        }
         ++clocks;
         dbg_pcm_max = std::max<uint32_t>(dbg_pcm_max, R->jv880_board__DOT__dbg_pcm_pk);
         dbg_out_max = std::max<uint32_t>(dbg_out_max, R->jv880_board__DOT__dbg_out_pk);
@@ -287,7 +322,7 @@ int main(int argc, char** argv)
     };
 
     t->rst = 1; t->user_reset = 0; t->ioctl_download = 0; t->ioctl_wr = 0; t->uart_rxd = 1;
-    t->midi_inject = 0; t->buttons = 0; t->enc_we = 0; t->enc_dir = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = 0; t->diag = 1;
+    t->midi_inject = 0; t->buttons = 0; t->enc_we = 0; t->enc_dir = 0; t->pace_enable = 0; t->step_gate = 0; t->gain = gain; t->diag = 1;
     t->img_mounted = 0; t->img_readonly = 0; t->img_size = 0; t->sd_ack = 0; t->sd_buff_wr = 0; t->sd_buff_addr = 0;
     t->save_req = 0; t->osd_open = 0; t->autosave = 0;
     for (int i = 0; i < 8; ++i) tick();
@@ -335,6 +370,27 @@ int main(int argc, char** argv)
             for (int b = 0; b < 8; ++b) want |= (uint64_t)pack[WAVE_AT + (size_t)w * 8 + b] << (8 * b);
             if (ddr[w] != want) { fprintf(stderr, "DDR3 word %x after load: %016" PRIx64 ", pack %016" PRIx64 "\n", w, ddr[w], want); return 1; }
         }
+    }
+
+    if (free_run)
+    {
+        // the HDL alone, paced as on hardware: the status strip's lag and underrun flags (no model)
+        std::vector<uint8_t> fm = make_midi_loud(1);
+        size_t fp = 0;
+        const uint64_t c0 = clocks;
+        uint64_t steps0 = 0;
+        t->pace_enable = 1;
+        for (uint64_t i = 0; i < free_run; ++i)
+        {
+            t->step_gate = !(stall_len && i >= stall_at && i < stall_at + stall_len);
+            if ((i % 16000) == 0 && fp < fm.size() && clocks - c0 > 40'000'000) { t->midi_inject = 1; t->midi_inject_data = fm[fp++]; }
+            tick();
+            t->midi_inject = 0;
+            steps0 += t->step_done;
+        }
+        printf("free run: %" PRIu64 " clocks, %" PRIu64 " steps, MIDI bytes %zu, lag_us %u, underruns %u, lag_seen %d\n", free_run, steps0, fp,
+               (unsigned)t->lag_us, (unsigned)t->underruns, (int)R->jv880_board__DOT__lag_seen);
+        return 0;
     }
 
     // ---------------------------------------------------------------- lockstep
