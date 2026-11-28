@@ -74,6 +74,9 @@ int main(int argc, char **argv) {
     c->rst = 0;
 
     uint64_t samples = 0, clk = 0, bh = 1469598103934665603ULL;   // FNV hash of the bus log
+    // MIDI out: the CPU's TDR1 writes, and the board's transmit line read back in virtual time
+    std::vector<uint8_t> tdr, line;
+    int l_prev = 1, l_k = -1; uint64_t l_t = 0; uint8_t l_byte = 0;
     int rx_busy = 0, wv_pend = 0, dm_pend = 0;
     uint32_t wv_q = 0, dm_q = 0;
     while (samples < want) {
@@ -135,6 +138,18 @@ int main(int argc, char **argv) {
             fprintf(tr, "W%d %06X %0*X %llu\n", c->bl_kind == 4 ? 1 : 2, c->bl_addr,
                     c->bl_kind == 4 ? 2 : 4, c->bl_kind == 4 ? c->bl_data & 0xff : c->bl_data,
                     (unsigned long long)c->bl_time);
+        if (c->bl_stb && c->bl_kind == 4 && c->bl_addr == 0xffffbb) tdr.push_back(c->bl_data & 0xff);
+        {
+            int txd = c->midi_tx;
+            uint64_t vt = c->vtime;
+            if (l_k < 0 && l_prev && !txd) { l_k = 0; l_t = vt + 160; }
+            else if (l_k >= 0 && vt >= l_t) {
+                if (l_k >= 1 && l_k <= 8) l_byte = (l_byte >> 1) | (txd << 7);
+                if (l_k == 9) { line.push_back(l_byte); l_k = -1; }
+                else { l_k++; l_t += 320; }
+            }
+            l_prev = txd;
+        }
         if (c->bl_stb) {
             uint64_t v[4] = {c->bl_kind, c->bl_addr, c->bl_data, (uint64_t)c->bl_time};
             for (uint64_t x : v) { bh ^= x; bh *= 1099511628211ULL; }
@@ -161,6 +176,11 @@ int main(int argc, char **argv) {
         }
         fclose(o);
     }
+    fprintf(stderr, "TDR1 writes (%zu):", tdr.size());
+    for (uint8_t b : tdr) fprintf(stderr, " %02X", b);
+    fprintf(stderr, "\nMIDI out line (%zu):", line.size());
+    for (uint8_t b : line) fprintf(stderr, " %02X", b);
+    fprintf(stderr, "\n");
     fprintf(stderr, "%llu samples, %llu clocks, CPU at %llu states, bus hash %016llx\n",
             (unsigned long long)samples, (unsigned long long)clk, (unsigned long long)c->vtime,
             (unsigned long long)bh);

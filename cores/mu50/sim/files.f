@@ -19,6 +19,7 @@
 ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 ../hdl/mu50_lcd_video.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
+../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv
 ../../../modules/synthframe/hdl/audio/synthframe_audio_fifo.sv
 ../../../modules/synthframe/hdl/save/synthframe_nvsave.sv
 ../hdl/mu50_top.sv

@@ -1,0 +1,9 @@
+# MU50 MIDI out: XG System On, then XG bulk dump requests (F0 43 20 4C addr F7, device 0): the
+# system block (00 00 00) and part 1 (08 00 00). The firmware answers on MIDI out (SCI1), which
+# MAME's TDR1 writes (FFFFBB) give byte for byte. Times in seconds from the start of playback
+# (MAME's midiin starts 10 s after power-on).
+0.00  syx 43 10 4c 00 00 7e 00
+1.00  syx 43 20 4c 00 00 00
+2.00  syx 43 20 4c 08 00 00
+3.00  on  1 60 100
+3.50  off 1 60
