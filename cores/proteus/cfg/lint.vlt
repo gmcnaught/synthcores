@@ -183,3 +183,8 @@ lint_off -rule PINCONNECTEMPTY -file "*p2k/sim/p2k_snd_bench.sv"
 // snd_ctrl.sv: a -GSAMPLE_DIV=N override (tests/test_snd_model.py's overload case) makes
 // SAMPLE_DIV a 32-bit constant; the 12-bit div counter is compared with SAMPLE_DIV - 1 (< 4096).
 lint_off -rule WIDTHEXPAND -file "*mister/rtl/snd_ctrl.sv" -match "Operator EQ expects 32 bits on the LHS, but LHS's VARREF 'div' generates 12 bits."
+
+// midi_in.sv: style only (unconnected rx outputs, power-up idle level, no timescale).
+lint_off -rule PINCONNECTEMPTY -file "*mister/rtl/midi_in.sv"
+lint_off -rule PROCASSINIT -file "*mister/rtl/midi_in.sv"
+lint_off -rule TIMESCALEMOD -file "*mister/rtl/midi_in.sv"

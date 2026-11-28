@@ -279,6 +279,15 @@ always @(posedge clk) begin
 	end
 end
 
+// ---------------------------------------------------------------- MIDI in
+// queued and re-sent to the MFP only while its receive buffer is empty (no overrun while
+// the CPU is paused or late to read UDR)
+wire mfp_si, mfp_rx_full;
+midi_in #(.CLK_HZ(80_000_000)) midi_rx
+(
+	.clk(clk), .reset(reset), .uart_rxd(midi_in), .hold(mfp_rx_full), .mfp_rxd(mfp_si), .dropped()
+);
+
 // ---------------------------------------------------------------- MFP
 mfp68901 mfp
 (
@@ -287,7 +296,7 @@ mfp68901 mfp
 	.iack(mfp_iack), .vector(mfp_vector), .irq(mfp_irq),
 	.ce_timer(ce_timer), .ce_ser(ce_ser),
 	.gpio_in(buttons), .tai(1'b0), .tbi(vol_pulse), .tout(),
-	.si(midi_in), .so(midi_out)
+	.si(mfp_si), .so(midi_out), .rx_full(mfp_rx_full)
 );
 
 // ---------------------------------------------------------------- LCD

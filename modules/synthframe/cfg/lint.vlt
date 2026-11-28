@@ -18,3 +18,6 @@ lint_off -rule TIMESCALEMOD -file "*hdl/panel/synthframe_panel_art.sv"
 // A -GCLK_HZ=N override (ver/midi/test_midi_tx.py) is a 32-bit constant for the 64-bit (longint)
 // CLK_HZ parameter.
 lint_off -rule WIDTHEXPAND -file "*hdl/midi/synthframe_midi_tx.sv" -match "Operator VAR 'CLK_HZ' expects 64 bits on the Initial value, but Initial value's CONST '32'h* generates 32 bits."
+
+// synthframe_midi_rx.sv: no timescale (style), next to cores whose CPU sets one (Proteus fx68k).
+lint_off -rule TIMESCALEMOD -file "*hdl/midi/synthframe_midi_rx.sv"
