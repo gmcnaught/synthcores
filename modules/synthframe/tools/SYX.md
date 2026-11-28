@@ -57,7 +57,14 @@ Notes from those runs:
   closed-loop packet it sends WAIT, then the ACK.
 - **CZ-101 MIDI out:** 3 bytes in about 12,700 read back with bit 7 set (`00` read as `80`), so a
   dump from the CZ may need repeating; what was sent to it was stored correctly each time.
-- **Proteus/1:** the factory RAM preset dumps on sysexdb.com need a login to download; without
-  one the site returns an HTML page, which `syx.py info` reports.
+- **Proteus/1 XR:** *Initialize* sets user presets 64–127 and 192–255 to `--Default--` and 128–191 to firmware
+  presets 64–127 (table at 0x8000), not a real unit's factory set. sysexdb.com
+  [#1320](https://www.sysexdb.com/sysex/1320) "Factory RAM Presets (Proteus 1 XR)" has it
+  (256 presets; 0–63 are byte-identical to the core's ROM presets 0–63). Its presets 64–255 sent
+  in 30 s (2026-11-27), read back byte for byte, kept after reload; program change 64 plays
+  `FMstylePiano`. [#1319](https://www.sysexdb.com/sysex/1319) (plain Proteus/1, presets 64–127)
+  matches #1320's 64–127 except parameter 12 (likely the instrument number [I]) in 10 presets.
+  The downloads need a login; without one the site returns an HTML page, which `syx.py info`
+  reports.
 
 Unit tests (a fake device on a pty, no MiSTer): `python3 modules/synthframe/tests/syx/test_syx.py`.
