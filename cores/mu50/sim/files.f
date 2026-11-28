@@ -2,6 +2,7 @@
 // The core's HDL for verilator -F; add the top level and options in the bench.
 +incdir+../hdl/h8h
 +incdir+../hdl/swp00
++incdir+../hdl/panel
 ../hdl/h8h/h8h_core.sv
 ../hdl/h8h/h83003_periph.sv
 ../hdl/h8h/h8h_sys.sv
@@ -17,6 +18,7 @@
 ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
 ../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv
 ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
+../../../modules/synthframe/hdl/panel/synthframe_panel_art.sv
 ../hdl/mu50_lcd_video.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 ../../../modules/synthframe/hdl/midi/synthframe_midi_tx.sv

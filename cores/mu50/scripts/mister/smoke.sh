@@ -51,7 +51,7 @@ rm -f "$OUT/save.sav"
 scp -q "$MISTER:/media/fat/saves/MU50/mu50_smoke.sav" "$OUT/save.sav" 2>/dev/null || true
 grep -v '^#' tests/midi/dump.out > "$OUT/midi_out_expected.txt"
 python3 -I - "$OUT" <<'EOF' | tee "$OUT/result.txt"
-# mu50_lcd_video.sv, 800 x 600 frame: the LCD panel at (80, 120), 640 x 220, dot on 102018;
+# mu50_lcd_video.sv, 800 x 600 frame: the LCD panel at (80, 48), 640 x 220, dot on 102018;
 # synthframe_status_strip at (16, 560): band at x 0-199 (green running, amber loading, blue ROM
 # pack not running, red no ROM), boxes at 220-259 (MIDI), 280-319 (underrun: dark red seen,
 # bright red now). Screenshots come scaled; offsets are scaled by width / 800; the strip is
@@ -75,7 +75,7 @@ if not s:
 k = end.size[0] / 800
 def panel(name):
     im = Image.open(f"{out}/{name}.png").convert("RGB")
-    x0, y0 = s[0] + int((80 - 16) * k), s[1] - int((560 - 120) * k)
+    x0, y0 = s[0] + int((80 - 16) * k), s[1] - int((560 - 48) * k)
     return im.crop((x0, y0, x0 + int(640 * k), y0 + int(220 * k)))
 def lit(p):
     return sum(1 for c in p.getdata() if abs(c[0] - 0x10) < 16 and abs(c[1] - 0x20) < 16 and abs(c[2] - 0x18) < 16)

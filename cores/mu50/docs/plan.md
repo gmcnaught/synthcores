@@ -104,8 +104,10 @@ CZ-101's tables were generated from MAME's.
   `modules/` once a second core needs it.
 - From synthframe: `midi_rx`, `midi_tx`, `audio_fifo`, `nvsave` (the 64 KB RAM to the SD card),
   `mem_ddr3` / `mem_arb` (wave ROM, program ROM and the effects delay lines),
-  `synthframe_hd44780` with the B04 character ROM, `synthframe_charlcd` and `synthframe_vtiming`
-  for the screen.
+  `synthframe_hd44780` with the B04 character ROM, `synthframe_charlcd`, `synthframe_vtiming`
+  and `synthframe_panel_art` for the screen. The front panel under the LCD is MAME's CC0
+  `mu50.lay` (`cfg/panel.yaml`, `docs/panel.png`): the five lit buttons (PLAY, EDIT, UTIL,
+  EFFECT, MODE) show the firmware's LEDs, the other nine show pressed, each with its PS/2 key.
 
 ## Size [INF, to be checked by the first build]
 

@@ -4,6 +4,7 @@
 search:
   - hdl/h8h
   - hdl/swp00
+  - hdl/panel
 files:
   - hdl/h8h/h8h_core.sv
   - hdl/h8h/h83003_periph.sv
@@ -20,6 +21,7 @@ files:
   - modules/synthframe/hdl/panel/synthframe_vtiming.sv
   - modules/synthframe/hdl/panel/synthframe_charlcd.sv
   - modules/synthframe/hdl/panel/synthframe_status_strip.sv
+  - modules/synthframe/hdl/panel/synthframe_panel_art.sv
   - hdl/mu50_lcd_video.sv
   - modules/synthframe/hdl/midi/synthframe_midi_rx.sv
   - modules/synthframe/hdl/midi/synthframe_midi_tx.sv

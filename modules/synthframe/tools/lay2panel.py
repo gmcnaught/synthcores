@@ -6,7 +6,10 @@
 
 The view's bounds are scaled into the rectangle (X, Y, W, H) of the output, keeping the aspect
 ratio. Buttons keep MAME's inputtag/inputmask, LEDs their output name, so the core's panel.yaml
-can map them to its key and LED bits.
+can map them to its key and LED bits. Buttons are `button*` elements or, with an inputtag, any
+element drawn as disks (MU50 `round_button`); a `led*` element of disks is a round LED, and
+with an inputtag a lit button. An element drawn by an SVG image becomes a `svg` element;
+elements blended onto the screen (contrast, dot mask) are left to the LCD renderer.
 """
 import re
 import sys
@@ -92,9 +95,21 @@ def convert(lay, view_name, X, Y, W, H):
             elif ch.tag == 'screen':
                 out.append({'type': 'lcd', 'rect': r})
             elif ch.tag == 'element':
+                if ch.get('blend'):     # LCD overlays (contrast, dot mask): the LCD renderer's
+                    continue
                 ref = ch.get('ref')
                 e = elems[ref]
-                if ref.startswith('button'):
+                img = e.find('image')
+                if (img is not None and img.find('data') is not None and not ch.get('inputtag')
+                        and not ref.startswith('button')):
+                    out.append({'type': 'svg', 'rect': r, 'svg': img.find('data').text.strip()})
+                    continue
+                disks = {c.get('state'): c for c in e.findall('disk')}
+                if not ref.startswith(('button', 'led')) and ch.get('inputtag') and '0' in disks:
+                    out.append({'type': 'button', 'rect': r, 'radius': min(r[2], r[3]) // 2,
+                                'color': colour(disks['0']), 'tag': ch.get('inputtag'),
+                                'mask': ch.get('inputmask')})
+                elif ref.startswith('button'):
                     st0 = [c for c in e.findall('rect') if c.get('state') == '0']
                     face = colour(st0[0]) if st0 else '#303030'
                     inner = [c for c in e.findall('rect') if c.get('state') == '0'][1:]
@@ -118,6 +133,16 @@ def convert(lay, view_name, X, Y, W, H):
                         xs_ = [p[0] for p in pts]
                         el['glyph'] = ('▼' if ys.count(2) == 2 else '▲' if ys.count(8) == 2
                                        else '◀' if xs_.count(8) == 2 else '▶')
+                    out.append(el)
+                elif ref.startswith('led') and '1' in disks:
+                    # a round LED; with inputtag it is also a button (MU50: lit PLAY, EDIT...)
+                    el = {'type': 'led', 'shape': 'round',
+                          'at': [r[0] + r[2] // 2, r[1] + r[3] // 2], 'r': min(r[2], r[3]) // 2,
+                          'color': colour(disks['1']), 'name': ch.get('name')}
+                    if '0' in disks:
+                        el['off'] = colour(disks['0'])
+                    if ch.get('inputtag'):
+                        el['tag'], el['mask'] = ch.get('inputtag'), ch.get('inputmask')
                     out.append(el)
                 elif ref.startswith('led'):
                     on = [c for c in e.findall('rect') if c.get('state') == '1']

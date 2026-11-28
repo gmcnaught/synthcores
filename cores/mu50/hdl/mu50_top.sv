@@ -19,7 +19,8 @@
 // virtual time (a receiver that samples bit k at t0 + 320 k + 160, t0 the start bit's falling
 // edge) and the bytes go out at 31,250 baud in real time (synthframe_midi_tx).
 module mu50_top #(
-    parameter longint CLK_HZ = 50_000_000
+    parameter longint CLK_HZ = 50_000_000,
+    parameter PANEL_DIR = "../hdl/panel/"   // front-panel art ROMs; Quartus: relative to mister/
 ) (
     input  logic        clk,
     input  logic        clk_vid,
@@ -329,10 +330,10 @@ module mu50_top #(
     );
 
     // ---------------------------------------------------------------- video
-    mu50_lcd_video video (
+    mu50_lcd_video #(.PANEL_DIR(PANEL_DIR)) video (
         .clk(clk_vid),
         .cg_clk(clk), .cg_we, .cg_addr, .cg_data,
-        .r_line, .r_pos, .r_row, .r_code, .r_cg_bits, .lcd_on, .leds,
+        .r_line, .r_pos, .r_row, .r_code, .r_cg_bits, .lcd_on, .leds, .keys,
         .rom_ok, .loading(ioctl_download), .running, .midi_led(midi_seen),
         .underrun_led(1'b0), .underrun_seen(underruns != 16'd0), .lag_seen(1'b0),
         .hs(vid_hs), .vs(vid_vs), .hblank(vid_hblank), .vblank(vid_vblank),

@@ -5,11 +5,11 @@
 // (kind, address, data, time) and the FPGA clocks per CPU state; mu50_bench --bushash gives the
 // same hash for the same run on the board alone (memories in C++ arrays).
 //
-//   mu50_top_bench PACK.rom SAMPLES [--lat N] [--rx RXLOG] [--pace]
+//   mu50_top_bench PACK.rom SAMPLES [--lat N] [--rx RXLOG] [--pace] [--frame OUT.ppm]
 // --lat: DDR3 read latency in clocks (default 12). --rx: MAME's MU_RX_LOG; its bytes are sent on
 // the UART at 31,250 baud, each when the CPU reaches the time MAME's started. --pace: real-time
 // pacing on (prints the audio FIFO underruns). The bytes on the UART's transmit pin (MIDI out,
-// 31,250 baud) are printed in hex.
+// 31,250 baud) are printed in hex. --frame: after the run, one 800 x 600 video frame as a PPM.
 #include "Vmu50_top.h"
 #include "Vmu50_top___024root.h"
 #include "verilated.h"
@@ -33,11 +33,13 @@ int main(int argc, char **argv) {
     const uint64_t want = strtoull(argv[2], nullptr, 0);
     int lat = 12;
     bool pace = false;
+    const char *frame_fn = nullptr;
     struct Mb { uint64_t t; uint8_t b; };
     std::deque<Mb> mbytes;
     for (int i = 3; i < argc; i++) {
         if (!strcmp(argv[i], "--lat") && i + 1 < argc) lat = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--pace")) pace = true;
+        else if (!strcmp(argv[i], "--frame") && i + 1 < argc) frame_fn = argv[++i];
         else if (!strcmp(argv[i], "--rx") && i + 1 < argc) {
             // decode MAME's pin changes (320 states a bit) back into bytes and start times
             FILE *g = fopen(argv[++i], "r");
@@ -180,6 +182,21 @@ int main(int argc, char **argv) {
             if (b == 2) prof_x[r->mu50_top__DOT__board__DOT__x & 15]++;
         }
         if (clk - t_load > 4000000000ULL) { fprintf(stderr, "no progress\n"); break; }
+    }
+    if (frame_fn) {   // the video clock runs with the core clock here; one frame from vsync
+        std::vector<uint8_t> px;
+        int vs0 = c->vid_vs, started = 0;
+        while (px.size() < 800u * 600u * 3u) {
+            tick();
+            if (!started) { if (c->vid_vs && !vs0) started = 1; vs0 = c->vid_vs; continue; }
+            if (!c->vid_hblank && !c->vid_vblank) {
+                px.push_back(c->vid_r); px.push_back(c->vid_g); px.push_back(c->vid_b);
+            }
+        }
+        FILE *f = fopen(frame_fn, "wb");
+        fprintf(f, "P6\n800 600\n255\n");
+        fwrite(px.data(), 1, px.size(), f);
+        fclose(f);
     }
     uint64_t vt = r->mu50_top__DOT__vtime;
     printf("loaded in %llu clocks; %llu samples, %llu accesses, bus hash %016llx\n",
