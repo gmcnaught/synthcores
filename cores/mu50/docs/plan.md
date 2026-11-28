@@ -105,14 +105,17 @@ CZ-101's tables were generated from MAME's.
 - From synthframe: `midi_rx`, `midi_tx`, `audio_fifo`, `nvsave` (the 64 KB RAM to the SD card),
   `mem_ddr3` / `mem_arb` (wave ROM, program ROM and the effects delay lines),
   `synthframe_hd44780` with the B04 character ROM, `synthframe_charlcd`, `synthframe_vtiming`
-  and `synthframe_panel_art` for the screen. The front panel under the LCD is MAME's CC0
-  `mu50.lay` (`cfg/panel.yaml`, `docs/panel.png`): the five lit buttons (PLAY, EDIT, UTIL,
+  and `synthframe_panel_art` for the screen. The screen is MAME's CC0 `mu50.lay` front panel
+  (`cfg/panel.yaml`, `docs/panel.png`), cropped to MAME's x 345-1640 (YAMAHA, INPUT, PHONES and
+  POWER/VOL left out) so that the LCD, drawn in the panel's window, has whole-pixel dots: the
+  five lit buttons (PLAY, EDIT, UTIL,
   EFFECT, MODE) show the firmware's LEDs, the other nine show pressed, each with its PS/2 key.
   The LCD is drawn with MAME's mulcd cell layout (the dot positions of its LCD SVG): 17 x 2
   characters with the lines touching (positions 0-16), a row of five small characters (line 0
   positions 17-18, line 1 positions 17-19) and a 16 x 16-dot block (positions 20-23); other
-  DDRAM positions are not shown. Until 2026-11-27 the core drew a 4 x 20 grid, which showed
-  positions MAME does not and split the large two-line characters.
+  DDRAM positions are not shown; MAME's backlight colour, unlit dots not drawn. Until
+  2026-11-27 the core drew a 4 x 20 grid above the panel, which showed positions MAME does not
+  and split the large two-line characters.
 
 ## Size [INF, to be checked by the first build]
 

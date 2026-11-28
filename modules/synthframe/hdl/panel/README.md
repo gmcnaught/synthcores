@@ -29,7 +29,8 @@ In one-line mode MAME draws only line 0; the render port returns line 0's charac
 `cores/<core>/cfg/panel.yaml` describes the panel at the output resolution: the case, labels,
 buttons (with the MiSTer key that presses each one), LEDs, knobs, the LCD rectangle and the status
 strip. A `type: lay` entry pulls in a MAME layout view (the CZ-101 uses MAME's CC0 `cz101.lay`,
-the MU50 `mu50.lay`, whose SVG case art panel_art.py rasterises with `rsvg-convert`). Buttons
+the MU50 `mu50.lay`, whose SVG case art panel_art.py rasterises with `rsvg-convert`; `crop:`
+draws part of the view, in layout units). Buttons
 get their expression from `key_expr` (`kc<n>` tags) or `input_map` (regex on the tag; `{bit}` is
 the mask's bit), LEDs from `led_map`.
 Buttons with `input:` and LEDs with `bit:` hold an HDL expression in the renderer's scope; they

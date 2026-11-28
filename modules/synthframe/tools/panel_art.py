@@ -85,7 +85,7 @@ def expand(spec, base='.'):
         if e['type'] != 'lay':
             out.append(e)
             continue
-        for el in convert(os.path.join(base, e['file']), e['view'], *e['rect']):
+        for el in convert(os.path.join(base, e['file']), e['view'], *e['rect'], crop=e.get('crop')):
             if el['type'] == 'lcd' and e.get('lcd') == 'window':
                 el = {'type': 'area', 'rect': el['rect'], 'color': '#0a0a0a', 'radius': 0}
             if el['type'] == 'button' and el.get('tag'):
@@ -166,6 +166,10 @@ def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
             png = subprocess.run(['rsvg-convert', '-w', str(w), '-h', str(h)],
                                  input=e['svg'].encode(), capture_output=True, check=True).stdout
             art = Image.open(io.BytesIO(png)).convert('RGBA')
+            if 'clip' in e:     # a cropped layout view: only the crop's part of the art
+                kx, ky, kw, kh = e['clip']
+                art = art.crop((kx - x, ky - y, kx - x + kw, ky - y + kh))
+                x, y = kx, ky
             im.paste(art, (x, y), art)
         elif t == 'line':
             d.line(e['xy'], fill=rgb(e.get('color', '#808080')), width=e.get('width', 1))

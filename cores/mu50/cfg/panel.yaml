@@ -1,6 +1,5 @@
-# MU50 front panel for the MiSTer screen (800 x 600). Below the LCD: MAME's mu50.lay (CC0)
-# "Internal Layout" view; its LCD window stays dark and the LCD is drawn larger above it by
-# hdl/mu50_lcd_video.sv (LCD panel at 80, 48, 640 x 220).
+# MU50 front panel for the MiSTer screen (800 x 600): MAME's mu50.lay (CC0) "Internal Layout"
+# view, cropped; hdl/mu50_lcd_video.sv draws the LCD in its window (the lcd rectangle below).
 size: [800, 600]
 bpp: 5
 # HDL expressions, in mu50_lcd_video's scope: keys = mu50_board's keys (1 = pressed; [4:0] row
@@ -27,10 +26,10 @@ keys:
   O2:0x20: '-'
   O2:0x40: '='
 elements:
-  - {type: lcd, rect: [80, 48, 640, 220], color: '#9cc4b0', bezel: 10}
-  # under the LCD, as on the unit (mu50.lay): the part, MIDI and bank/program cells
-  - {type: label, at: [134, 291], text: PART, size: 10, color: '#c8c8c8'}
-  - {type: label, at: [220, 291], text: MIDI, size: 10, color: '#c8c8c8'}
-  - {type: label, at: [329, 291], text: BANK/PGM#, size: 10, color: '#c8c8c8'}
-  - {type: lay, file: mu50.lay, view: 'Internal Layout', rect: [8, 306, 784, 190], lcd: window}
+  # the view from the LCD bezel to the right edge (MAME's x 345-1640): YAMAHA, INPUT, PHONES and
+  # POWER/VOL are left out so the LCD is large enough to draw in its window
+  - {type: lay, file: mu50.lay, view: 'Internal Layout', rect: [8, 150, 784, 260],
+     crop: [345, 0, 1295, 390], lcd: window}
+  # the case's left edge, where the crop cuts it
+  - {type: line, xy: [8, 187, 8, 374], color: '#666666', width: 2}
   - {type: strip, at: [16, 560]}

@@ -4,7 +4,7 @@
 
   lay2panel.py LAYOUT.lay VIEW X Y W H > elements.yaml
 
-The view's bounds are scaled into the rectangle (X, Y, W, H) of the output, keeping the aspect
+The view's bounds (or a crop rectangle of the view, in layout units) are scaled into the rectangle (X, Y, W, H) of the output, keeping the aspect
 ratio. Buttons keep MAME's inputtag/inputmask, LEDs their output name, so the core's panel.yaml
 can map them to its key and LED bits. Buttons are `button*` elements or, with an inputtag, any
 element drawn as disks (MU50 `round_button`); a `led*` element of disks is a round LED, and
@@ -59,7 +59,7 @@ def expand_repeats(parent):
     return out
 
 
-def convert(lay, view_name, X, Y, W, H):
+def convert(lay, view_name, X, Y, W, H, crop=None):
     root = ET.parse(lay).getroot()
     top = expand_repeats(root)
     elems = {e.get('name'): e for e in top if e.tag == 'element'}
@@ -172,9 +172,22 @@ def convert(lay, view_name, X, Y, W, H):
                                     'color': colour(t, '#ffffff')})
 
     view = next(v for v in top if v.tag == 'view' and v.get('name') == view_name)
-    vx, vy, vw, vh = bounds(view.find('bounds'))
+    vx, vy, vw, vh = crop if crop else bounds(view.find('bounds'))
     s = min(W / vw, H / vh)
     walk(view, (s, s, X + (W - vw * s) / 2 - vx * s, Y + (H - vh * s) / 2 - vy * s))
+    if crop:    # keep what is centred inside the crop; clip the SVG art to it
+        cx0, cy0 = round(X + (W - vw * s) / 2), round(Y + (H - vh * s) / 2)
+        cx1, cy1 = cx0 + round(vw * s), cy0 + round(vh * s)
+
+        def inside(e):
+            if 'rect' in e:
+                x, y, w, h = e['rect']
+                x, y = x + w / 2, y + h / 2
+            else:
+                x, y = e['at']
+            return cx0 <= x < cx1 and cy0 <= y < cy1
+        out = [dict(e, clip=[cx0, cy0, cx1 - cx0, cy1 - cy0]) if e['type'] == 'svg' else e
+               for e in out if e['type'] == 'svg' or inside(e)]
     return out
 
 

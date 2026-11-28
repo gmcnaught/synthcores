@@ -44,7 +44,7 @@ module mu50_lcd_video #(
     output logic [7:0]  g,
     output logic [7:0]  b
 );
-    localparam int X0 = 80, Y0 = 48, PW = 640, PH = 220;      // the LCD panel (cfg/panel.yaml)
+    localparam int X0 = 56, Y0 = 224, PW = 387, PH = 117;     // the panel's LCD window
     localparam int SY = 560;                                  // the status strip
 
     // ------------------------------------------------------------ character ROM (dual clock)
@@ -58,45 +58,46 @@ module mu50_lcd_video #(
     synthframe_vtiming timing (.clk, .x, .y, .hblank(hb), .vblank(vb), .hsync(hsy), .vsync(vsy));
 
     // ------------------------------------------------------------ the LCD
-    // MAME's mulcd cell layout (the dots of its LCD SVG, x 4 from SVG units, origin LX, LY):
+    // MAME's mulcd cell layout (the dots of its LCD SVG, 2.39 pixels an SVG unit in the panel's
+    // window, rounded to whole pixels; origin LX, LY):
     //  main   17 x 2 characters, line 0 above line 1 with no gap: positions 0-16; character pitch
-    //         35, dot pitch 6 (5 x 5 dots), row pitch 6
-    //  small  one row of five characters: line 0 positions 17, 18, line 1 positions 17-19; dot
-    //         pitch 5 (4 x 4 dots), at x 0, 33, 70, 103, 135, y 138
-    //  block  16 x 16 dots, no gaps: positions 20-23 (23: its left column only), line 0 above
-    //         line 1; dot pitch 6 x 3 (4 x 2 dots), at x 176, y 131
+    //         21, dot pitch 4 (3 x 3 dots), row pitch 4
+    //  small  one row of five characters at y 82: line 0 positions 17, 18, line 1 positions
+    //         17-19, at x 0, 20, 42, 61, 81; dot pitch 3 (2 x 2 dots)
+    //  block  16 x 16 dots, no gaps, at x 105, y 78: positions 20-23 (23: its left column only),
+    //         line 0 above line 1; dot pitch 3 x 2 (2 x 1 dots)
     // Other DDRAM positions are not shown, as in MAME. Three stages, as synthframe_charlcd:
     // cell (x, y -> line, position, row, dot), character (board port, glyph lookup), dot.
-    localparam int LX = X0 + 25, LY = Y0 + 20;
+    localparam int LX = X0 + 11, LY = Y0 + 2;
     wire        in_xy = x >= 11'(LX) && y >= 10'(LY);
     wire [10:0] dx = x - 11'(LX);
     wire [9:0]  dy = y - 10'(LY);
     // main
-    wire [10:0] m_col = dx / 11'd35, m_px = dx % 11'd35;
-    wire [9:0]  m_row = dy / 10'd6, m_py = dy % 10'd6;
-    wire        m_hit = m_col < 11'd17 && m_px < 11'd30 && m_px % 11'd6 < 11'd5 && m_row < 10'd16
-                        && m_py < 10'd5;
+    wire [10:0] m_col = dx / 11'd21, m_px = dx % 11'd21;
+    wire [9:0]  m_row = dy / 10'd4, m_py = dy % 10'd4;
+    wire        m_hit = m_col < 11'd17 && m_px < 11'd20 && m_px % 11'd4 < 11'd3 && m_row < 10'd16
+                        && m_py < 10'd3;
     // small
-    wire [9:0]  s_y = dy - 10'd138, s_row = s_y / 10'd5, s_py = s_y % 10'd5;
-    wire        s_rows = dy >= 10'd138 && s_row < 10'd8 && s_py < 10'd4;
+    wire [9:0]  s_y = dy - 10'd82, s_row = s_y / 10'd3, s_py = s_y % 10'd3;
+    wire        s_rows = dy >= 10'd82 && s_row < 10'd8 && s_py < 10'd2;
     logic       s_hit;
     logic [2:0] s_cell, s_dot;
     always_comb begin
         s_hit = 1'b0; s_cell = '0; s_dot = '0;
         for (int i = 0; i < 5; i++) begin
-            automatic logic [10:0] o = i == 0 ? 11'd0 : i == 1 ? 11'd33 : i == 2 ? 11'd70 :
-                                       i == 3 ? 11'd103 : 11'd135;
+            automatic logic [10:0] o = i == 0 ? 11'd0 : i == 1 ? 11'd20 : i == 2 ? 11'd42 :
+                                       i == 3 ? 11'd61 : 11'd81;
             automatic logic [10:0] px = dx - o;
-            if (dx >= o && px < 11'd25 && px % 11'd5 < 11'd4) begin
-                s_hit = s_rows; s_cell = 3'(i); s_dot = 3'(px / 11'd5);
+            if (dx >= o && px < 11'd15 && px % 11'd3 < 11'd2) begin
+                s_hit = s_rows; s_cell = 3'(i); s_dot = 3'(px / 11'd3);
             end
         end
     end
     // block
-    wire [9:0]  b_y = dy - 10'd131, b_row = b_y / 10'd3;
-    wire [10:0] b_x = dx - 11'd176, b_c = b_x / 11'd6;
-    wire        b_hit = dy >= 10'd131 && b_row < 10'd16 && b_y % 10'd3 < 10'd2
-                        && dx >= 11'd176 && b_c < 11'd16 && b_x % 11'd6 < 11'd4;
+    wire [9:0]  b_y = dy - 10'd78, b_row = b_y / 10'd2;
+    wire [10:0] b_x = dx - 11'd105, b_c = b_x / 11'd3;
+    wire        b_hit = dy >= 10'd78 && b_row < 10'd16 && !b_y[0]
+                        && dx >= 11'd105 && b_c < 11'd16 && b_x % 11'd3 < 11'd2;
     // stage 1: the cell
     logic       a_hit, a_line, a_panel;
     logic [4:0] a_pos;
@@ -105,7 +106,7 @@ module mu50_lcd_video #(
         a_panel <= x >= 11'(X0) && x < 11'(X0 + PW) && y >= 10'(Y0) && y < 10'(Y0 + PH);
         a_hit <= in_xy && (m_hit || s_hit || b_hit);
         if (m_hit) begin
-            a_line <= m_row[3]; a_pos <= 5'(m_col); a_row <= m_row[2:0]; a_dot <= 3'(m_px / 11'd6);
+            a_line <= m_row[3]; a_pos <= 5'(m_col); a_row <= m_row[2:0]; a_dot <= 3'(m_px / 11'd4);
         end else if (s_hit) begin
             a_line <= s_cell >= 3'd2;
             a_pos <= s_cell == 3'd0 ? 5'd17 : s_cell == 3'd1 ? 5'd18 : 5'd15 + 5'(s_cell);
@@ -130,10 +131,9 @@ module mu50_lcd_video #(
     end
     // stage 3: the dot (bit 4 the leftmost)
     wire [4:0]  gbits = c_cg ? cg_bits : rom_bits;
-    logic       l_panel, l_dot, l_lit;
+    logic       l_panel, l_lit;
     always_ff @(posedge clk) begin
         l_panel <= c_panel;
-        l_dot <= c_hit;
         l_lit <= c_hit && gbits[3'd4 - c_dot];
     end
 
@@ -170,9 +170,9 @@ module mu50_lcd_video #(
     always_ff @(posedge clk) begin
         hs <= !hs_q[2]; vs <= !vs_q[2]; hblank <= hb_q[2]; vblank <= vb_q[2];
         if (l_panel) begin
-            if (l_lit && lcd_on) {r, g, b} <= 24'h102018;       // dot on
-            else if (l_dot) {r, g, b} <= 24'h8cb4a0;            // dot off
-            else {r, g, b} <= 24'h9cc4b0;                       // panel
+            // MAME's mulcd.lay: the yellow-green backlight; unlit dots not drawn
+            if (l_lit && lcd_on) {r, g, b} <= 24'h2a4010;       // dot on
+            else {r, g, b} <= 24'hb1fe32;                       // panel
         end else if (st_hit) begin
             {r, g, b} <= st_rgb;
         end else
