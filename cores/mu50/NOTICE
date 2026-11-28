@@ -20,6 +20,10 @@ This directory contains:
     notice below, which must be kept with it. The MAME authors' names are
     given as credit only; they do not endorse this core.
 
+  * cfg/mu50.lay: MAME's src/mame/layout/mu50.lay (hap, Felipe Sanches),
+    CC0-1.0, unchanged. The front-panel art in hdl/panel/ and docs/panel.png
+    is generated from it (modules/synthframe/tools/panel_art.py).
+
   * Files that remain BSD-3-Clause (MAME's licence):
       - mame/patches/: patches to MAME's own files (logging, and stream
         updates in two SWP00 handlers), used only to produce the reference

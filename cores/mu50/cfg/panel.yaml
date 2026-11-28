@@ -1,0 +1,35 @@
+# MU50 front panel for the MiSTer screen (800 x 600): MAME's mu50.lay (CC0) "Internal Layout"
+# view, cropped; hdl/mu50_lcd_video.sv draws the LCD in its window (the lcd rectangle below).
+size: [800, 600]
+bpp: 5
+# HDL expressions, in mu50_lcd_video's scope: keys = mu50_board's keys (1 = pressed; [4:0] row
+# O0 bits 2-6, [9:5] O1, [14:10] O2), leds = mu50_board's leds (MAME mulcd LED0-LED4).
+input_map:
+  - ['O(\d)', 'keys[5*{0}+{bit}-2]']
+led_map:
+  - ['LED(\d)', 'leds[{0}]']
+theme: {background: '#202428', hint_style: inside, hint: '#e0b040'}
+# MAME inputtag:inputmask -> PS/2 key (hdl/mu50_top.sv; MAME's own keys)
+keys:
+  O0:0x04: A
+  O0:0x08: E
+  O0:0x10: S
+  O0:0x20: '['
+  O0:0x40: ']'
+  O1:0x04: U
+  O1:0x08: F
+  O1:0x10: '↵'
+  O1:0x20: ','
+  O1:0x40: .
+  O2:0x04: M
+  O2:0x10: BS
+  O2:0x20: '-'
+  O2:0x40: '='
+elements:
+  # the view from the LCD bezel to the right edge (MAME's x 345-1640): YAMAHA, INPUT, PHONES and
+  # POWER/VOL are left out so the LCD is large enough to draw in its window
+  - {type: lay, file: mu50.lay, view: 'Internal Layout', rect: [8, 150, 784, 260],
+     crop: [345, 0, 1295, 390], lcd: window}
+  # the case's left edge, where the crop cuts it
+  - {type: line, xy: [8, 187, 8, 374], color: '#666666', width: 2}
+  - {type: strip, at: [16, 560]}

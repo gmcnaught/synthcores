@@ -90,3 +90,7 @@ lint_off -rule WIDTHEXPAND -file "*mister/MU50.sv" -match "Operator ASSIGNW expe
 lint_off -rule UNUSEDSIGNAL -file "*mister/MU50.sv" -match "Signal is not used: 'rom_ok'"
 lint_off -rule UNUSEDSIGNAL -file "*mister/MU50.sv" -match "Signal is not used: 'running'"
 lint_off -rule UNUSEDSIGNAL -file "*mister/MU50.sv" -match "Signal is not used: 'underruns'"
+// panel art: the generated geometry is used in part; PLAY, EDIT, UTIL, EFFECT and MODE are lit
+// buttons, drawn by their LED (MAME's mu50.lay), and O2 bit 3 is not a key
+lint_off -rule UNUSEDPARAM -file "*hdl/panel/mu50_panel.svh"
+lint_off -rule UNUSEDSIGNAL -file "*hdl/mu50_lcd_video.sv" -match "Bits of signal are not used: 'keys'[11:10,6:5,1:0]"

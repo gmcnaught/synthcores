@@ -4,9 +4,12 @@
 
   lay2panel.py LAYOUT.lay VIEW X Y W H > elements.yaml
 
-The view's bounds are scaled into the rectangle (X, Y, W, H) of the output, keeping the aspect
+The view's bounds (or a crop rectangle of the view, in layout units) are scaled into the rectangle (X, Y, W, H) of the output, keeping the aspect
 ratio. Buttons keep MAME's inputtag/inputmask, LEDs their output name, so the core's panel.yaml
-can map them to its key and LED bits.
+can map them to its key and LED bits. Buttons are `button*` elements or, with an inputtag, any
+element drawn as disks (MU50 `round_button`); a `led*` element of disks is a round LED, and
+with an inputtag a lit button. An element drawn by an SVG image becomes a `svg` element;
+elements blended onto the screen (contrast, dot mask) are left to the LCD renderer.
 """
 import re
 import sys
@@ -56,7 +59,7 @@ def expand_repeats(parent):
     return out
 
 
-def convert(lay, view_name, X, Y, W, H):
+def convert(lay, view_name, X, Y, W, H, crop=None):
     root = ET.parse(lay).getroot()
     top = expand_repeats(root)
     elems = {e.get('name'): e for e in top if e.tag == 'element'}
@@ -92,9 +95,21 @@ def convert(lay, view_name, X, Y, W, H):
             elif ch.tag == 'screen':
                 out.append({'type': 'lcd', 'rect': r})
             elif ch.tag == 'element':
+                if ch.get('blend'):     # LCD overlays (contrast, dot mask): the LCD renderer's
+                    continue
                 ref = ch.get('ref')
                 e = elems[ref]
-                if ref.startswith('button'):
+                img = e.find('image')
+                if (img is not None and img.find('data') is not None and not ch.get('inputtag')
+                        and not ref.startswith('button')):
+                    out.append({'type': 'svg', 'rect': r, 'svg': img.find('data').text.strip()})
+                    continue
+                disks = {c.get('state'): c for c in e.findall('disk')}
+                if not ref.startswith(('button', 'led')) and ch.get('inputtag') and '0' in disks:
+                    out.append({'type': 'button', 'rect': r, 'radius': min(r[2], r[3]) // 2,
+                                'color': colour(disks['0']), 'tag': ch.get('inputtag'),
+                                'mask': ch.get('inputmask')})
+                elif ref.startswith('button'):
                     st0 = [c for c in e.findall('rect') if c.get('state') == '0']
                     face = colour(st0[0]) if st0 else '#303030'
                     inner = [c for c in e.findall('rect') if c.get('state') == '0'][1:]
@@ -118,6 +133,16 @@ def convert(lay, view_name, X, Y, W, H):
                         xs_ = [p[0] for p in pts]
                         el['glyph'] = ('▼' if ys.count(2) == 2 else '▲' if ys.count(8) == 2
                                        else '◀' if xs_.count(8) == 2 else '▶')
+                    out.append(el)
+                elif ref.startswith('led') and '1' in disks:
+                    # a round LED; with inputtag it is also a button (MU50: lit PLAY, EDIT...)
+                    el = {'type': 'led', 'shape': 'round',
+                          'at': [r[0] + r[2] // 2, r[1] + r[3] // 2], 'r': min(r[2], r[3]) // 2,
+                          'color': colour(disks['1']), 'name': ch.get('name')}
+                    if '0' in disks:
+                        el['off'] = colour(disks['0'])
+                    if ch.get('inputtag'):
+                        el['tag'], el['mask'] = ch.get('inputtag'), ch.get('inputmask')
                     out.append(el)
                 elif ref.startswith('led'):
                     on = [c for c in e.findall('rect') if c.get('state') == '1']
@@ -147,9 +172,22 @@ def convert(lay, view_name, X, Y, W, H):
                                     'color': colour(t, '#ffffff')})
 
     view = next(v for v in top if v.tag == 'view' and v.get('name') == view_name)
-    vx, vy, vw, vh = bounds(view.find('bounds'))
+    vx, vy, vw, vh = crop if crop else bounds(view.find('bounds'))
     s = min(W / vw, H / vh)
     walk(view, (s, s, X + (W - vw * s) / 2 - vx * s, Y + (H - vh * s) / 2 - vy * s))
+    if crop:    # keep what is centred inside the crop; clip the SVG art to it
+        cx0, cy0 = round(X + (W - vw * s) / 2), round(Y + (H - vh * s) / 2)
+        cx1, cy1 = cx0 + round(vw * s), cy0 + round(vh * s)
+
+        def inside(e):
+            if 'rect' in e:
+                x, y, w, h = e['rect']
+                x, y = x + w / 2, y + h / 2
+            else:
+                x, y = e['at']
+            return cx0 <= x < cx1 and cy0 <= y < cy1
+        out = [dict(e, clip=[cx0, cy0, cx1 - cx0, cy1 - cy0]) if e['type'] == 'svg' else e
+               for e in out if e['type'] == 'svg' or inside(e)]
     return out
 
 

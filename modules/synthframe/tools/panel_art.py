@@ -7,15 +7,18 @@ palette of 2^bpp colours, for modules/synthframe/hdl/panel/synthframe_panel_art.
 buttons with an HDL expression (`bit:` / `input:`) are dynamic: their unlit pixels use reserved
 palette entries, and a second palette holds the lit (or pressed) colours, chosen per 8 x 8 cell by
 the element that owns the cell. The character LCD and the status strip keep their own
-renderers, which draw over the art.
+renderers, which draw over the art. Layout SVG art (`type: svg`, from a MAME .lay) is
+rasterised with rsvg-convert (librsvg).
 
   panel_art.py PANEL.yaml --png OUT.png [--lit] [--pressed]   picture (mock-up)
   panel_art.py PANEL.yaml --stats                              tile and block RAM counts
   panel_art.py PANEL.yaml --hdl DIR --name NAME                NAME_panel_map.hex, NAME_panel_tiles.hex,
                                                                NAME_panel.svh in DIR
 """
+import io
 import pathlib
 import os
+import subprocess
 import re
 import argparse
 import sys
@@ -82,7 +85,7 @@ def expand(spec, base='.'):
         if e['type'] != 'lay':
             out.append(e)
             continue
-        for el in convert(os.path.join(base, e['file']), e['view'], *e['rect']):
+        for el in convert(os.path.join(base, e['file']), e['view'], *e['rect'], crop=e.get('crop')):
             if el['type'] == 'lcd' and e.get('lcd') == 'window':
                 el = {'type': 'area', 'rect': el['rect'], 'color': '#0a0a0a', 'radius': 0}
             if el['type'] == 'button' and el.get('tag'):
@@ -93,6 +96,17 @@ def expand(spec, base='.'):
                 if m and 'key_expr' in spec:
                     el['input'] = spec['key_expr'].format(tag=int(m.group(1)),
                                                           bit=int(el['mask'], 0).bit_length() - 1)
+            if el['type'] == 'led' and el.get('tag'):
+                k = norm(f"{el['tag']}:{el['mask']}")
+                if k in keys:
+                    el['key'] = keys[k]
+            if el['type'] == 'button' and el.get('tag') and 'input' not in el:
+                for pat, tmpl in spec.get('input_map', []):
+                    m = re.fullmatch(pat, el['tag'])
+                    if m:
+                        el['input'] = tmpl.format(*m.groups(),
+                                                  bit=int(el['mask'], 0).bit_length() - 1)
+                        break
             if el['type'] == 'led':
                 for pat, tmpl in spec.get('led_map', []):
                     m = re.fullmatch(pat, el.get('name') or '')
@@ -147,6 +161,16 @@ def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
             x, y, w, h = e['rect']
             c = rgb(e['color'])
             d.rounded_rectangle([x, y, x + w - 1, y + h - 1], e.get('radius', 2), fill=c)
+        elif t == 'svg':
+            x, y, w, h = e['rect']
+            png = subprocess.run(['rsvg-convert', '-w', str(w), '-h', str(h)],
+                                 input=e['svg'].encode(), capture_output=True, check=True).stdout
+            art = Image.open(io.BytesIO(png)).convert('RGBA')
+            if 'clip' in e:     # a cropped layout view: only the crop's part of the art
+                kx, ky, kw, kh = e['clip']
+                art = art.crop((kx - x, ky - y, kx - x + kw, ky - y + kh))
+                x, y = kx, ky
+            im.paste(art, (x, y), art)
         elif t == 'line':
             d.line(e['xy'], fill=rgb(e.get('color', '#808080')), width=e.get('width', 1))
         elif t == 'box':
@@ -216,7 +240,7 @@ def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
             cx, cy = e['at']
             r = e.get('r', 4)
             on = rgb(e.get('color', '#ff3020'))
-            off = shade(on, 0.28)
+            off = rgb(e['off']) if 'off' in e else shade(on, 0.28)
             fill = on if lit and (e.get('bit') is not None or not hdl) else off
             if e.get('shape', 'round') == 'round':
                 d.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1], fill=(20, 20, 20))
@@ -230,6 +254,9 @@ def draw(spec, lit=False, pressed=False, hdl=False, base='.'):
                             fill=(20, 20, 20))
                 d.rectangle([cx - w // 2, cy - h // 2, cx + w // 2 - 1, cy + h // 2 - 1],
                             fill=fill)
+            if e.get('key'):    # a lit button's key, inside, outlined to read lit and unlit
+                d.text((cx, cy - 1), e['key'], fill=hint, font=font(max(9, r), 'Bold'),
+                       anchor='mm', stroke_width=1, stroke_fill=(16, 16, 16))
             if 'label' in e:
                 lx, ly = e.get('label_at', [cx, cy + r + 9])
                 text(d, (lx, ly), e['label'], e.get('lsize', 8), dim, e.get('anchor', 'mm'))

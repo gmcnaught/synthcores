@@ -55,9 +55,11 @@ verilate(mu50_top_bench SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_peri
          "${HDL}/swp00/swp00_pkg.sv" "${HDL}/swp00/swp00_meg.sv" "${HDL}/swp00/swp00.sv"
          "${SF}/panel/synthframe_hd44780.sv" "${HDL}/mu50_lcd.sv" "${HDL}/mu50_board.sv"
          "${SF}/mem/synthframe_mem_ddr3.sv" "${SF}/mem/synthframe_mem_arb.sv" "${HDL}/mu50_mem.sv"
-         "${SF}/panel/synthframe_vtiming.sv" "${SF}/panel/synthframe_charlcd.sv"
-         "${SF}/panel/synthframe_status_strip.sv" "${HDL}/mu50_lcd_video.sv"
+         "${SF}/panel/synthframe_vtiming.sv"
+         "${SF}/panel/synthframe_status_strip.sv" "${SF}/panel/synthframe_panel_art.sv"
+         "${HDL}/mu50_lcd_video.sv"
          "${SF}/midi/synthframe_midi_rx.sv" "${SF}/midi/synthframe_midi_tx.sv" "${SF}/audio/synthframe_audio_fifo.sv"
          "${SF}/save/synthframe_nvsave.sv" "${HDL}/mu50_top.sv"
-         INCLUDE_DIRS "${HDL}/h8h" "${HDL}/swp00" TOP_MODULE mu50_top PREFIX Vmu50_top
-         VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ -Wno-PINCONNECTEMPTY --public-flat-rw)
+         INCLUDE_DIRS "${HDL}/h8h" "${HDL}/swp00" "${HDL}/panel" TOP_MODULE mu50_top PREFIX Vmu50_top
+         VERILATOR_ARGS ${VFLAGS} -Wno-BLKSEQ -Wno-PINCONNECTEMPTY --public-flat-rw
+         "-GPANEL_DIR=\"${HDL}/panel/\"")
