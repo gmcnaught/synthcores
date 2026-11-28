@@ -48,6 +48,9 @@ Step-by-step instructions for users are in the release repository,
 Load the core, then OSD → **Load System**. On the first boot the core loads the factory presets by
 running the firmware's own diagnostics *Initialize* (about 9 s; the LCD shows the steps), restarts,
 and saves the presets to `saves/Proteus/proteus_system.sav`. Later boots restore that file.
+*Initialize* leaves user presets 64–255 as `--Default--` or copies of firmware presets; a real
+unit's factory user presets load as SysEx from sysexdb.com #1320 (login needed;
+`modules/synthframe/tools/SYX.md`).
 
 ## MIDI
 Set the core's UART mode to **MIDI** in the OSD and connect a USB MIDI keyboard to the MiSTer
