@@ -108,6 +108,11 @@ CZ-101's tables were generated from MAME's.
   and `synthframe_panel_art` for the screen. The front panel under the LCD is MAME's CC0
   `mu50.lay` (`cfg/panel.yaml`, `docs/panel.png`): the five lit buttons (PLAY, EDIT, UTIL,
   EFFECT, MODE) show the firmware's LEDs, the other nine show pressed, each with its PS/2 key.
+  The LCD is drawn with MAME's mulcd cell layout (the dot positions of its LCD SVG): 17 x 2
+  characters with the lines touching (positions 0-16), a row of five small characters (line 0
+  positions 17-18, line 1 positions 17-19) and a 16 x 16-dot block (positions 20-23); other
+  DDRAM positions are not shown. Until 2026-11-27 the core drew a 4 x 20 grid, which showed
+  positions MAME does not and split the large two-line characters.
 
 ## Size [INF, to be checked by the first build]
 

@@ -55,7 +55,7 @@ verilate(mu50_top_bench SOURCES "${HDL}/h8h/h8h_core.sv" "${HDL}/h8h/h83003_peri
          "${HDL}/swp00/swp00_pkg.sv" "${HDL}/swp00/swp00_meg.sv" "${HDL}/swp00/swp00.sv"
          "${SF}/panel/synthframe_hd44780.sv" "${HDL}/mu50_lcd.sv" "${HDL}/mu50_board.sv"
          "${SF}/mem/synthframe_mem_ddr3.sv" "${SF}/mem/synthframe_mem_arb.sv" "${HDL}/mu50_mem.sv"
-         "${SF}/panel/synthframe_vtiming.sv" "${SF}/panel/synthframe_charlcd.sv"
+         "${SF}/panel/synthframe_vtiming.sv"
          "${SF}/panel/synthframe_status_strip.sv" "${SF}/panel/synthframe_panel_art.sv"
          "${HDL}/mu50_lcd_video.sv"
          "${SF}/midi/synthframe_midi_rx.sv" "${SF}/midi/synthframe_midi_tx.sv" "${SF}/audio/synthframe_audio_fifo.sv"

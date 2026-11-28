@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
-// 800 x 600 at 60 Hz (40 MHz pixel clock): the MU50's LCD (HD44780 set to 4 x 20, as MAME's
-// mulcd) as 4 lines of 20 characters of 5 x 8 dots; under it the front panel (MAME's mu50.lay,
+// 800 x 600 at 60 Hz (40 MHz pixel clock): the MU50's LCD (HD44780, two lines) with MAME's
+// mulcd cell layout (below); under it the front panel (MAME's mu50.lay,
 // from cfg/panel.yaml, drawn by synthframe_panel_art from the ROMs in hdl/panel/ that
 // modules/synthframe/tools/panel_art.py makes) with its five LEDs lit and its buttons shown
 // pressed; and the status strip of the other synthframe cores (state band, MIDI, underrun, lag).
 //
-// Characters come from the board's HD44780 render port (line 0/1, position 0-39: the 4 x 20
-// layout is lines 0 and 1 at positions 0-19, then again at 20-39); codes 00-0F from its
+// Characters come from the board's HD44780 render port (line 0/1, position 0-23, display shift
+// applied by the controller); codes 00-0F from its
 // character-generator RAM, the others from the HD44780's ROM B04 (16 bytes a code, row r at
 // code * 16 + r), loaded from the ROM pack. The render port, the LEDs and the keys are read from
 // the core clock without synchronisation (display only), as the JV-880 core does.
@@ -58,29 +58,84 @@ module mu50_lcd_video #(
     synthframe_vtiming timing (.clk, .x, .y, .hblank(hb), .vblank(vb), .hsync(hsy), .vsync(vsy));
 
     // ------------------------------------------------------------ the LCD
-    logic [1:0] c_line;
-    logic [5:0] c_col;
-    logic [7:0] gcode, code_q;
-    logic [2:0] grow;
-    logic [4:0] gbits, rom_bits;
-    logic       fetch, l_panel, l_dot, l_lit;
-    // cell: the board's port, line = c_line[0], position = c_col + 20 * c_line[1]
-    assign r_line = c_line[0];
-    assign r_pos = 5'(c_col) + (c_line[1] ? 5'd20 : 5'd0);
-    synthframe_charlcd #(.X0(X0), .Y0(Y0), .COLS(20), .LINES(4), .PW(PW), .PH(PH), .LEFT(10),
-                         .TOP(10), .CHAR_P(31), .LINE_P(52), .DOT_W(5), .DOT_H(5), .DOT_PX(6),
-                         .DOT_PY(6), .ROW7_GLYPH(1)) lcd (
-        .clk, .x, .y,
-        .cell_line(c_line), .cell_col(c_col), .cell_row(), .cell_code(r_code), .cell_cursor(1'b0),
-        .glyph_code(gcode), .glyph_row(grow), .glyph_bits(gbits), .fetch(fetch),
-        .panel(l_panel), .dot(l_dot), .lit(l_lit));
-    // glyph: CGRAM for codes below 10 (the board's port at r_row, same cell), else the ROM
-    assign r_row = grow;
-    always_ff @(posedge clk) begin
-        rom_bits <= cgrom[{gcode, 1'b0, grow}][4:0];
-        code_q <= gcode;
+    // MAME's mulcd cell layout (the dots of its LCD SVG, x 4 from SVG units, origin LX, LY):
+    //  main   17 x 2 characters, line 0 above line 1 with no gap: positions 0-16; character pitch
+    //         35, dot pitch 6 (5 x 5 dots), row pitch 6
+    //  small  one row of five characters: line 0 positions 17, 18, line 1 positions 17-19; dot
+    //         pitch 5 (4 x 4 dots), at x 0, 33, 70, 103, 135, y 138
+    //  block  16 x 16 dots, no gaps: positions 20-23 (23: its left column only), line 0 above
+    //         line 1; dot pitch 6 x 3 (4 x 2 dots), at x 176, y 131
+    // Other DDRAM positions are not shown, as in MAME. Three stages, as synthframe_charlcd:
+    // cell (x, y -> line, position, row, dot), character (board port, glyph lookup), dot.
+    localparam int LX = X0 + 25, LY = Y0 + 20;
+    wire        in_xy = x >= 11'(LX) && y >= 10'(LY);
+    wire [10:0] dx = x - 11'(LX);
+    wire [9:0]  dy = y - 10'(LY);
+    // main
+    wire [10:0] m_col = dx / 11'd35, m_px = dx % 11'd35;
+    wire [9:0]  m_row = dy / 10'd6, m_py = dy % 10'd6;
+    wire        m_hit = m_col < 11'd17 && m_px < 11'd30 && m_px % 11'd6 < 11'd5 && m_row < 10'd16
+                        && m_py < 10'd5;
+    // small
+    wire [9:0]  s_y = dy - 10'd138, s_row = s_y / 10'd5, s_py = s_y % 10'd5;
+    wire        s_rows = dy >= 10'd138 && s_row < 10'd8 && s_py < 10'd4;
+    logic       s_hit;
+    logic [2:0] s_cell, s_dot;
+    always_comb begin
+        s_hit = 1'b0; s_cell = '0; s_dot = '0;
+        for (int i = 0; i < 5; i++) begin
+            automatic logic [10:0] o = i == 0 ? 11'd0 : i == 1 ? 11'd33 : i == 2 ? 11'd70 :
+                                       i == 3 ? 11'd103 : 11'd135;
+            automatic logic [10:0] px = dx - o;
+            if (dx >= o && px < 11'd25 && px % 11'd5 < 11'd4) begin
+                s_hit = s_rows; s_cell = 3'(i); s_dot = 3'(px / 11'd5);
+            end
+        end
     end
-    assign gbits = code_q < 8'h10 ? r_cg_bits : rom_bits;
+    // block
+    wire [9:0]  b_y = dy - 10'd131, b_row = b_y / 10'd3;
+    wire [10:0] b_x = dx - 11'd176, b_c = b_x / 11'd6;
+    wire        b_hit = dy >= 10'd131 && b_row < 10'd16 && b_y % 10'd3 < 10'd2
+                        && dx >= 11'd176 && b_c < 11'd16 && b_x % 11'd6 < 11'd4;
+    // stage 1: the cell
+    logic       a_hit, a_line, a_panel;
+    logic [4:0] a_pos;
+    logic [2:0] a_row, a_dot;
+    always_ff @(posedge clk) begin
+        a_panel <= x >= 11'(X0) && x < 11'(X0 + PW) && y >= 10'(Y0) && y < 10'(Y0 + PH);
+        a_hit <= in_xy && (m_hit || s_hit || b_hit);
+        if (m_hit) begin
+            a_line <= m_row[3]; a_pos <= 5'(m_col); a_row <= m_row[2:0]; a_dot <= 3'(m_px / 11'd6);
+        end else if (s_hit) begin
+            a_line <= s_cell >= 3'd2;
+            a_pos <= s_cell == 3'd0 ? 5'd17 : s_cell == 3'd1 ? 5'd18 : 5'd15 + 5'(s_cell);
+            a_row <= s_row[2:0]; a_dot <= s_dot;
+        end else begin
+            a_line <= b_row[3]; a_pos <= 5'd20 + 5'(b_c / 11'd5); a_row <= b_row[2:0];
+            a_dot <= 3'(b_c % 11'd5);
+        end
+    end
+    // stage 2: the character, from the board's port; CGRAM for codes below 10, else the ROM
+    assign r_line = a_line;
+    assign r_pos = a_pos;
+    assign r_row = a_row;
+    logic       c_hit, c_panel, c_cg;
+    logic [2:0] c_dot;
+    logic [4:0] rom_bits, cg_bits;
+    always_ff @(posedge clk) begin
+        rom_bits <= cgrom[{r_code, 1'b0, a_row}][4:0];
+        cg_bits <= r_cg_bits;
+        c_cg <= r_code < 8'h10;
+        c_hit <= a_hit; c_panel <= a_panel; c_dot <= a_dot;
+    end
+    // stage 3: the dot (bit 4 the leftmost)
+    wire [4:0]  gbits = c_cg ? cg_bits : rom_bits;
+    logic       l_panel, l_dot, l_lit;
+    always_ff @(posedge clk) begin
+        l_panel <= c_panel;
+        l_dot <= c_hit;
+        l_lit <= c_hit && gbits[3'd4 - c_dot];
+    end
 
     // ------------------------------------------------------------ strip, syncs
     logic [10:0] x0, x1, x2;

@@ -16,7 +16,6 @@
 ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 ../hdl/mu50_mem.sv
 ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
-../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv
 ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 ../../../modules/synthframe/hdl/panel/synthframe_panel_art.sv
 ../hdl/mu50_lcd_video.sv

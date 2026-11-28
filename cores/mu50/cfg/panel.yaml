@@ -28,5 +28,9 @@ keys:
   O2:0x40: '='
 elements:
   - {type: lcd, rect: [80, 48, 640, 220], color: '#9cc4b0', bezel: 10}
+  # under the LCD, as on the unit (mu50.lay): the part, MIDI and bank/program cells
+  - {type: label, at: [134, 291], text: PART, size: 10, color: '#c8c8c8'}
+  - {type: label, at: [220, 291], text: MIDI, size: 10, color: '#c8c8c8'}
+  - {type: label, at: [329, 291], text: BANK/PGM#, size: 10, color: '#c8c8c8'}
   - {type: lay, file: mu50.lay, view: 'Internal Layout', rect: [8, 306, 784, 190], lcd: window}
   - {type: strip, at: [16, 560]}

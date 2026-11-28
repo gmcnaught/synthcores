@@ -15,7 +15,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/m
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/mu50_mem.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_vtiming.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_charlcd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_status_strip.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../modules/synthframe/hdl/panel/synthframe_panel_art.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../hdl/mu50_lcd_video.sv
