@@ -7,6 +7,7 @@
 #   snd    snd_tb.cpp: snd_ctrl + proteus_snd + synthframe_mem_* (no CPU), driven
 #          by a demo image; output compared with tools/proteus_model.py (tests/test_snd_model.py)
 #   mfp    mfp_tb.cpp: mfp68901 alone (tests/test_mfp.py)
+#   midi   midi_bench.sv + midi_tb.cpp: midi_in in front of mfp68901 (tests/test_midi_in.py)
 #   unit   unit_bench.sv + unit_tb.cpp: proteus_core with a small hand-assembled 68000 program
 #          (no ROMs; tests/test_core_unit.py)
 #   core   proteus_core + core_main.cpp: the FPGA's wiring, real system image (ROMs)
@@ -23,7 +24,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CORE="$HERE/.."
 RTL="$CORE/mister/rtl"
 MEM="$CORE/../../modules/synthframe/hdl/mem"
-BENCH=${1:?usage: sim/build.sh snd|mfp|unit|core|sys [OUTDIR]}
+BENCH=${1:?usage: sim/build.sh snd|mfp|midi|unit|core|sys [OUTDIR]}
 OUT="${2:-$CORE/build/sim/$BENCH}"
 mkdir -p "$OUT"
 # ccache through bin/objcache: plain ccache would share a precompiled header between checkouts
@@ -36,6 +37,8 @@ case "$BENCH" in
   snd)  SRC=("$RTL/interp_rom.sv" "$RTL/proteus_snd.sv" "$MEM/synthframe_mem_ddr3.sv" "$MEM/synthframe_mem_arb.sv"
              "$RTL/snd_ctrl.sv"); TOP=snd_ctrl; MAIN=snd_tb.cpp ;;
   mfp)  SRC=("$RTL/mfp68901.sv"); TOP=mfp68901; MAIN=mfp_tb.cpp ;;
+  midi) SRC=("$ROOT/modules/synthframe/hdl/midi/synthframe_midi_rx.sv" "$RTL/midi_in.sv" "$RTL/mfp68901.sv"
+             "$HERE/midi_bench.sv"); TOP=midi_bench; MAIN=midi_tb.cpp ;;
   unit) SRC=(-F "$HERE/files.f" "$HERE/unit_bench.sv"); TOP=unit_bench; MAIN=unit_tb.cpp ;;
   core) SRC=(-F "$HERE/files.f"); TOP=proteus_core; MAIN=core_main.cpp ;;
   sys)  SRC=(-F "$HERE/files.f" "$HERE/sys_top.sv"); TOP=sys_top; MAIN=sys_main.cpp ;;

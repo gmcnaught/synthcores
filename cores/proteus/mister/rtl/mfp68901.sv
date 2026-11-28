@@ -49,7 +49,8 @@ module mfp68901
 	output reg [3:0] tout,          // TAO, TBO, TCO, TDO
 
 	input            si,
-	output reg       so
+	output reg       so,
+	output           rx_full        // RSR buffer full: a character waits for the UDR read
 );
 
 localparam R_GPIP = 5'd0,  R_AER = 5'd1,  R_DDR = 5'd2,  R_IERA = 5'd3, R_IERB = 5'd4,
@@ -72,6 +73,7 @@ reg  [7:0] gpio_last;
 reg  [1:0] ti_last;
 
 assign irq = |(ipr & imr);
+assign rx_full = rsr[7];
 
 // prescalers
 function [7:0] prescale(input [2:0] m);

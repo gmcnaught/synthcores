@@ -7,6 +7,7 @@
 #   - every tests/test_*.py and tests/*/test_*.py:
 #       test_snd_model.py   Proteus/1 sound HDL (snd_ctrl + proteus_snd) vs tools/proteus_model.py
 #       test_mfp.py         MC68901 against MAME's behaviour at the corners the firmware can hit
+#       test_midi_in.py     midi_in + MFP: no MIDI byte lost while the CPU is paused
 #       test_core_unit.py   proteus_core with a small 68000 program: sound-register read-back,
 #                           pan byte lanes, preset macro vs autosave
 #       test_compare_writes.py, test_rebuild_checksum.py   Proteus/1 tools

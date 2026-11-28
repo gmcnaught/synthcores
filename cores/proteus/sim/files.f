@@ -7,7 +7,9 @@
 ../../../modules/synthframe/hdl/mem/synthframe_mem_ddr3.sv
 ../../../modules/synthframe/hdl/mem/synthframe_mem_arb.sv
 ../mister/rtl/snd_ctrl.sv
+../../../modules/synthframe/hdl/midi/synthframe_midi_rx.sv
 ../mister/rtl/mfp68901.sv
+../mister/rtl/midi_in.sv
 ../../../modules/synthframe/hdl/panel/synthframe_hd44780.sv
 ../../../modules/synthframe/hdl/panel/synthframe_panel_art.sv
 ../mister/rtl/display.sv
