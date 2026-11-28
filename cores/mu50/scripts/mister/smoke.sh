@@ -7,7 +7,7 @@
 # Installs RBF (synth-mister install; run 'synth-mister backup' once first) and PACK
 # (tools/mkpack.py) as games/MU50/mu50_smoke.rom, removes its save file, loads the core and the
 # pack through an MGL (as the OSD's "Load ROM pack": saves/MU50/mu50_smoke.sav is mounted), waits
-# BOOT seconds (default 10), screenshots (boot), plays tests/midi/basic.txt over the UART at
+# BOOT seconds (default 20; the pack load takes about 10), screenshots (boot), plays tests/midi/basic.txt over the UART at
 # 9600 baud (synthframe_midi_rx also takes 9600), screenshots (end); presses U (Util) and
 # screenshots (key); MIDI out: tty_midi_xfer.py at 31,250 baud sends XG System On twice and
 # the bulk dump requests of tests/midi/dump.txt and reads the answer, which must be MAME's
@@ -34,7 +34,7 @@ printf '<mistergamedescription>\n  <rbf>_Devices/MU50</rbf>\n  <file delay="1" t
 scp -q ../../modules/synthframe/tools/mister/mister_keys.py "$MISTER:/tmp/"
 keys() { $M sh "python3 /tmp/mister_keys.py $*"; }
 $M midi-stop
-$M load /tmp/mu50_smoke.mgl; sleep "${BOOT:-10}"
+$M load /tmp/mu50_smoke.mgl; sleep "${BOOT:-20}"
 $M shot mu50 "$OUT/boot.png" >/dev/null
 $M sh "stty -F /dev/ttyS1 9600 raw -echo"
 # a few zero bytes (framing errors at 31250) switch the input to 9600 (synthframe_midi_rx)
